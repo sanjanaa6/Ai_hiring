@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
+import { motion } from 'framer-motion';
 import UserLayout from '../components/UserLayout';
-import AIInterviewConductor from '../../components/AIInterviewConductor';
+import { useNavigate } from 'react-router-dom';
 import { 
   Bot, 
   Link, 
@@ -17,9 +19,9 @@ import {
 
 const CandidateDashboard = () => {
   const { user } = useAuth();
+  const { isDarkMode } = useTheme();
+  const navigate = useNavigate();
   const [interviewLink, setInterviewLink] = useState('');
-  const [showInterview, setShowInterview] = useState(false);
-  const [interviewId, setInterviewId] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -45,11 +47,12 @@ const CandidateDashboard = () => {
       // Extract interview ID from link
       const url = new URL(interviewLink);
       const pathParts = url.pathname.split('/');
-      const id = pathParts[pathParts.length - 1];
+      const idWithMaybeQuery = pathParts[pathParts.length - 1];
+      const id = idWithMaybeQuery.split('?')[0];
       
       if (id && id.startsWith('interview_')) {
-        setInterviewId(id);
-        setShowInterview(true);
+        // Redirect to the canonical interview route so the page fetches full data
+        navigate(`/interview/${id}`);
       } else {
         setError('Invalid interview link format');
       }
@@ -67,49 +70,44 @@ const CandidateDashboard = () => {
     experience: user?.candidateProfile?.experience || 'Not specified'
   };
 
-  if (showInterview) {
-    return (
-      <AIInterviewConductor 
-        interviewId={interviewId} 
-        candidateInfo={candidateInfo}
-      />
-    );
-  }
-
   return (
     <UserLayout>
-      <div className="py-8">
+      <div className="py-8" style={{
+        background: isDarkMode
+          ? 'radial-gradient(1200px 700px at -10% 0%, rgba(59,130,246,.08), transparent), radial-gradient(1000px 600px at 110% -10%, rgba(6,182,212,.08), transparent)'
+          : undefined
+      }}>
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Header */}
-          <div className="mb-8 text-center p-8 bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl border border-blue-200">
+          <motion.div className={`mb-8 text-center p-8 rounded-2xl border ${isDarkMode ? 'bg-white/10 border-white/10 backdrop-blur' : 'bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200'}`} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
             <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full mb-6">
               <Bot className="h-10 w-10 text-white" />
             </div>
-            <h1 className="text-4xl font-bold text-gray-900 mb-4">
+            <h1 className={`text-4xl font-bold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
               AI Interview Portal
             </h1>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+            <p className={`text-lg max-w-2xl mx-auto ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
               Enter your interview link to start your AI-powered interview and showcase your skills
             </p>
-          </div>
+          </motion.div>
 
           {/* Interview Link Input */}
-          <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-8 mb-8">
+          <motion.div className={`${isDarkMode ? 'bg-white/10 border border-white/10 backdrop-blur' : 'bg-white'} rounded-2xl shadow-xl p-8 mb-8`} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .05 }}>
             <div className="text-center mb-8">
               <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full mb-6">
                 <Link className="h-8 w-8 text-white" />
               </div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-3">
+              <h2 className={`text-2xl font-bold mb-3 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                 Join Your Interview
               </h2>
-              <p className="text-gray-600 text-lg">
+              <p className={`text-lg ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                 Enter the interview link provided by the recruiter to begin your AI-powered interview
               </p>
             </div>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-white' : 'text-gray-700'}`}>
                   Interview Link
                 </label>
                 <input
@@ -117,7 +115,7 @@ const CandidateDashboard = () => {
                   value={interviewLink}
                   onChange={(e) => setInterviewLink(e.target.value)}
                   placeholder="https://yourapp.com/interview/interview_123456789"
-                  className="w-full px-6 py-4 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all text-lg"
+                  className={`w-full px-6 py-4 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all text-lg ${isDarkMode ? 'bg-white/10 border-white/20 text-white placeholder-gray-400' : 'border-2 border-gray-300'}`}
                 />
               </div>
 
@@ -146,88 +144,41 @@ const CandidateDashboard = () => {
                 )}
               </button>
             </div>
-          </div>
+          </motion.div>
 
-          {/* Features Section */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div className="bg-white rounded-lg shadow border border-gray-200 p-6 text-center">
-              <div className="p-2 bg-blue-100 rounded-lg w-12 h-12 mx-auto mb-4 flex items-center justify-center">
-                <Bot className="h-6 w-6 text-blue-600" />
-              </div>
-              <h3 className="font-semibold text-gray-900 mb-2">AI-Powered</h3>
-              <p className="text-sm text-gray-600">
-                Advanced AI conducts your interview with intelligent questions
-              </p>
-            </div>
-
-            <div className="bg-white rounded-lg shadow border border-gray-200 p-6 text-center">
-              <div className="p-2 bg-green-100 rounded-lg w-12 h-12 mx-auto mb-4 flex items-center justify-center">
-                <Clock className="h-6 w-6 text-green-600" />
-              </div>
-              <h3 className="font-semibold text-gray-900 mb-2">Flexible Timing</h3>
-              <p className="text-sm text-gray-600">
-                Take your interview at your convenience, anytime, anywhere
-              </p>
-            </div>
-
-            <div className="bg-white rounded-lg shadow border border-gray-200 p-6 text-center">
-              <div className="p-2 bg-purple-100 rounded-lg w-12 h-12 mx-auto mb-4 flex items-center justify-center">
-                <CheckCircle className="h-6 w-6 text-purple-600" />
-              </div>
-              <h3 className="font-semibold text-gray-900 mb-2">Instant Feedback</h3>
-              <p className="text-sm text-gray-600">
-                Get immediate evaluation and feedback on your performance
-              </p>
-            </div>
-          </div>
-
-          {/* Candidate Info */}
-          <div className="bg-white rounded-lg shadow border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Your Profile</h3>
+          {/* Candidate Info (optional) */}
+          <motion.div className={`${isDarkMode ? 'bg-white/10 border border-white/10 backdrop-blur' : 'bg-white'} rounded-lg shadow p-6`} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .1 }}>
+            <h3 className={`text-lg font-semibold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Your Profile</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <h4 className="font-medium text-gray-900 mb-2">Personal Information</h4>
+                <h4 className={`font-medium mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Personal Information</h4>
                 <div className="space-y-2">
                   <div className="flex items-center space-x-2">
                     <User className="h-4 w-4 text-gray-500" />
-                    <span className="text-sm text-gray-600">{candidateInfo.name}</span>
+                    <span className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>{candidateInfo.name}</span>
                   </div>
                   <div className="flex items-center space-x-2">
                     <Calendar className="h-4 w-4 text-gray-500" />
-                    <span className="text-sm text-gray-600">{candidateInfo.experience}</span>
+                    <span className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>{candidateInfo.experience}</span>
                   </div>
                 </div>
               </div>
-              
               <div>
-                <h4 className="font-medium text-gray-900 mb-2">Skills</h4>
+                <h4 className={`font-medium mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Skills</h4>
                 <div className="flex flex-wrap gap-2">
                   {candidateInfo.skills.length > 0 ? (
                     candidateInfo.skills.map((skill, index) => (
-                      <span key={index} className="px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full">
+                      <span key={index} className={`px-3 py-1 text-sm rounded-full ${isDarkMode ? 'bg-white/10 text-white border border-white/10' : 'bg-blue-100 text-blue-800'}`}>
                         {skill}
                       </span>
                     ))
                   ) : (
-                    <span className="text-sm text-gray-500">No skills listed</span>
+                    <span className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>No skills listed</span>
                   )}
                 </div>
               </div>
             </div>
-          </div>
-
-          {/* Instructions */}
-          <div className="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-blue-900 mb-3">How to Join Your Interview</h3>
-            <ol className="list-decimal list-inside space-y-2 text-sm text-blue-800">
-              <li>Make sure you have a stable internet connection</li>
-              <li>Find a quiet environment with good lighting</li>
-              <li>Have your interview link ready (provided by the recruiter)</li>
-              <li>Click "Join Interview" and follow the on-screen instructions</li>
-              <li>Answer each question thoughtfully within the time limit</li>
-              <li>Review your answers before submitting</li>
-            </ol>
-          </div>
+          </motion.div>
         </div>
       </div>
     </UserLayout>

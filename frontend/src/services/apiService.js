@@ -2,11 +2,25 @@ import axios from 'axios';
 
 const RAW_API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
+function deriveBaseFromWindow() {
+  try {
+    const { protocol, hostname, port } = window.location;
+    const targetPort = port && port !== '3000' ? port : '5000';
+    return `${protocol}//${hostname}${targetPort ? `:${targetPort}` : ''}/api`;
+  } catch (_) {
+    return 'http://localhost:5000/api';
+  }
+}
+
 function normalizeApiBaseUrl(url) {
-  if (!url) return 'http://localhost:5000/api';
-  // Remove trailing slashes
+  if (!url) return deriveBaseFromWindow();
   const trimmed = url.replace(/\/$/, '');
-  // If it already ends with /api, keep it; otherwise append /api
+  // If using localhost but page is not on localhost, derive from window
+  const isLocal = /localhost|127\.0\.0\.1/.test(trimmed);
+  const pageIsLocal = /localhost|127\.0\.0\.1/.test(typeof window !== 'undefined' ? window.location.hostname : '');
+  if (isLocal && !pageIsLocal) {
+    return deriveBaseFromWindow();
+  }
   if (/\/api$/i.test(trimmed)) return trimmed;
   return `${trimmed}/api`;
 }
@@ -15,7 +29,6 @@ const API_BASE_URL = normalizeApiBaseUrl(RAW_API_BASE_URL);
 
 class ApiService {
   constructor() {
-    // Helpful debug log to verify base URL in the browser console
     // eslint-disable-next-line no-console
     console.log('[ApiService] Base URL =', API_BASE_URL);
 
@@ -26,7 +39,6 @@ class ApiService {
       }
     });
 
-    // Add auth token to requests
     this.client.interceptors.request.use((config) => {
       const token = localStorage.getItem('token');
       if (token) {
@@ -89,6 +101,35 @@ class ApiService {
       return {
         success: false,
         error: error.response?.data?.error || error.message || 'Failed to get interview stats'
+      };
+    }
+  }
+
+  async getInterviewAnswers(interviewId, candidateId) {
+    try {
+      const query = candidateId ? `?candidateId=${encodeURIComponent(candidateId)}` : '';
+      const response = await this.client.get(`/interviews/${interviewId}/answers${query}`);
+      return response.data;
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('Get interview answers error:', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to get interview answers'
+      };
+    }
+  }
+
+  async deleteInterview(interviewId) {
+    try {
+      const response = await this.client.delete(`/interviews/${interviewId}`);
+      return response.data;
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('Delete interview error:', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to delete interview'
       };
     }
   }

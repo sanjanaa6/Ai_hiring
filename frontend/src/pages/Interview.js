@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
-import AIInterviewConductor from '../components/AIInterviewConductor';
+import SimpleVoiceInterview from '../components/SimpleVoiceInterview';
 import apiService from '../services/apiService';
-import { Bot, AlertCircle, ArrowLeft, User, Mail, Phone } from 'lucide-react';
+import { Bot, AlertCircle, ArrowLeft, User, Mail, Phone, Camera, Mic, Shield } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const Interview = () => {
@@ -116,8 +116,8 @@ const Interview = () => {
             <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center mx-auto mb-4">
               <User className="h-8 w-8 text-white" />
             </div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">Welcome to the Interview</h1>
-            <p className="text-gray-600">Please provide your information to begin</p>
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">Voice AI Interview</h1>
+            <p className="text-gray-600">This interview uses voice responses and camera monitoring</p>
           </div>
 
           <form onSubmit={handleCandidateSubmit} className="space-y-4">
@@ -159,11 +159,30 @@ const Interview = () => {
               />
             </div>
 
+            {/* Interview Requirements */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-6">
+              <h3 className="font-medium text-blue-900 mb-2">Interview Requirements:</h3>
+              <div className="space-y-2 text-sm text-blue-800">
+                <div className="flex items-center space-x-2">
+                  <Camera className="h-4 w-4" />
+                  <span>Camera access for identity verification</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Mic className="h-4 w-4" />
+                  <span>Microphone for voice responses</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Shield className="h-4 w-4" />
+                  <span>Environment monitoring (no electronic devices)</span>
+                </div>
+              </div>
+            </div>
+
             <button
               type="submit"
               className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200"
             >
-              Start Interview
+              Start Voice Interview
             </button>
           </form>
         </div>
@@ -183,16 +202,16 @@ const Interview = () => {
   }
 
   return (
-    <AIInterviewConductor 
-      interviewData={interviewData}
+    <SimpleVoiceInterview 
+      interviewId={interviewId}
       candidateInfo={candidateInfo}
-      onComplete={(answers) => {
-        console.log('Interview completed with answers:', answers);
-        // Here you would typically send the answers to your backend
+      onComplete={(result) => {
+        console.log('Voice interview completed:', result);
+        // Redirect to completion page or show success message
       }}
-      onAnswer={(answer) => {
-        console.log('Answer submitted:', answer);
-        // Here you could save individual answers as they're submitted
+      onError={(error) => {
+        console.error('Voice interview error:', error);
+        setError(error);
       }}
     />
   );

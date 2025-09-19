@@ -6,7 +6,7 @@ import {
   SkipForward, 
   Clock, 
   CheckCircle, 
-  AlertCircle, 
+  AlertCircle,
   User, 
   Bot,
   ArrowRight,
@@ -75,12 +75,13 @@ const AIInterviewConductor = ({
   };
 
   const saveAnswer = () => {
-    if (!currentAnswer.trim()) return;
+    // Always record and submit, even if empty, to capture participation and timing
+    const normalizedAnswer = (currentAnswer ?? '').toString();
 
     const answerData = {
       roundId: currentRoundData.roundId,
       questionId: currentQuestionData.id,
-      answer: currentAnswer,
+      answer: normalizedAnswer,
       timestamp: new Date(),
       timeSpent: (currentQuestionData?.timeLimit * 60) - timeRemaining
     };
@@ -99,7 +100,7 @@ const AIInterviewConductor = ({
         roundId: currentRoundData?.roundId || 'round_1',
         questionId: currentQuestionData.id,
         question: currentQuestionData.question,
-        answer: currentAnswer,
+        answer: normalizedAnswer,
         timeTaken: (currentQuestionData?.timeLimit * 60) - timeRemaining
       };
 
@@ -134,9 +135,9 @@ const AIInterviewConductor = ({
       setCurrentRound(prev => prev + 1);
       setCurrentQuestion(0);
       setTimeRemaining(interviewData?.rounds?.[currentRound + 1]?.questions?.[0]?.timeLimit * 60 || 300);
-    } else {
-      // Interview completed
-      setInterviewStatus('completed');
+        } else {
+          // Interview completed
+          setInterviewStatus('completed');
       if (onComplete) {
         onComplete(answers);
       }
@@ -184,7 +185,7 @@ const AIInterviewConductor = ({
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-2xl w-full">
-          <div className="text-center">
+        <div className="text-center">
             <div className="w-20 h-20 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center mx-auto mb-6">
               <Bot className="h-10 w-10 text-white" />
             </div>
@@ -284,24 +285,24 @@ const AIInterviewConductor = ({
               <p className="text-gray-600">
                 Round {currentRound + 1} of {totalRounds}: {currentRoundData?.title}
               </p>
-            </div>
+              </div>
             
             <div className="flex items-center space-x-4">
               <div className="text-right">
                 <div className="text-sm text-gray-500">Time Remaining</div>
                 <div className={`text-2xl font-bold ${timeRemaining < 60 ? 'text-red-600' : 'text-gray-900'}`}>
                   {formatTime(timeRemaining)}
-                </div>
               </div>
-              
+            </div>
+            
               <button
                 onClick={pauseInterview}
                 className="p-3 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
               >
                 {isPaused ? <Play className="h-5 w-5" /> : <Pause className="h-5 w-5" />}
               </button>
-            </div>
-          </div>
+                </div>
+              </div>
 
           {/* Progress Bar */}
           <div className="w-full bg-gray-200 rounded-full h-2">
@@ -334,23 +335,23 @@ const AIInterviewConductor = ({
                 {currentQuestionData?.question}
               </h2>
             </div>
-          </div>
+            </div>
 
-          {/* Answer Input */}
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Your Answer
-              </label>
-              <textarea
+            {/* Answer Input */}
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Your Answer
+                </label>
+                <textarea
                 value={currentAnswer}
                 onChange={(e) => setCurrentAnswer(e.target.value)}
                 placeholder="Type your answer here..."
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                rows={6}
+                  rows={6}
                 disabled={isPaused}
-              />
-            </div>
+                />
+              </div>
 
             {/* Follow-up Questions */}
             {currentQuestionData?.followUpQuestions?.length > 0 && (
@@ -370,22 +371,22 @@ const AIInterviewConductor = ({
 
         {/* Navigation */}
         <div className="flex justify-between items-center">
-          <button
+                <button
             onClick={previousQuestion}
             disabled={currentRound === 0 && currentQuestion === 0}
             className="flex items-center space-x-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 disabled:bg-gray-50 disabled:text-gray-400 text-gray-700 rounded-lg transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
             <span>Previous</span>
-          </button>
-
+                </button>
+                
           <div className="flex items-center space-x-2">
-            <span className="text-sm text-gray-500">
+                <span className="text-sm text-gray-500">
               Round {currentRound + 1} of {totalRounds}
-            </span>
-          </div>
+                </span>
+              </div>
 
-          <button
+                <button
             onClick={nextQuestion}
             className="flex items-center space-x-2 px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-lg transition-colors"
           >
@@ -396,8 +397,8 @@ const AIInterviewConductor = ({
               }
             </span>
             <ArrowRight className="h-4 w-4" />
-          </button>
-        </div>
+                </button>
+              </div>
       </div>
     </div>
   );

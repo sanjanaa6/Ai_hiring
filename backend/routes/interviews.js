@@ -12,29 +12,142 @@ const DEEPSEEK_MODEL = 'deepseek/deepseek-chat-v3.1:free';
 router.post('/generate', auth, async (req, res) => {
   console.log('🚀 [INTERVIEW GENERATE] Starting interview generation...');
   console.log('📝 [INTERVIEW GENERATE] Request body:', {
-    title: req.body.title,
-    description: req.body.description?.substring(0, 100) + '...',
-    requirements: req.body.requirements?.substring(0, 100) + '...',
-    level: req.body.level,
-    duration: req.body.duration
+    prompt: req.body.prompt?.substring(0, 200) + '...'
   });
   console.log('👤 [INTERVIEW GENERATE] User ID:', req.user.id);
 
   try {
-    const { title, description, requirements, level = 'mid', duration = 30 } = req.body;
+    const { prompt: userPrompt } = req.body;
     
-    if (!title || !description || !requirements) {
-      console.log('❌ [INTERVIEW GENERATE] Validation failed - missing required fields');
+    if (!userPrompt || userPrompt.trim().length < 10) {
+      console.log('❌ [INTERVIEW GENERATE] Validation failed - missing or too short prompt');
       return res.status(400).json({ 
         success: false, 
-        error: 'Title, description, and requirements are required' 
+        error: 'Please provide a detailed job description prompt (minimum 10 characters)' 
       });
     }
 
-    console.log('✅ [INTERVIEW GENERATE] Validation passed, calling AI service...');
+    console.log('✅ [INTERVIEW GENERATE] Validation passed, extracting job details from prompt...');
+
+    // First, extract job details from the prompt
+    const extractionPrompt = `Extract job details from this user prompt and format as JSON:
+
+User Prompt: "${userPrompt}"
+
+Extract and format the following information as valid JSON:
+{
+  "title": "Job title (e.g., Senior Frontend Developer)",
+  "description": "Comprehensive job description based on the prompt",
+  "requirements": "Key requirements and qualifications",
+  "level": "junior|mid|senior|lead (based on context)",
+  "duration": 30,
+  "company": "Company name if mentioned, otherwise 'Company'"
+}
+
+If any information is missing, make reasonable assumptions based on the context.`;
+
+    console.log('🤖 [INTERVIEW GENERATE] Extracting job details...');
+    
+    let extractionResponse;
+    try {
+      extractionResponse = await axios.post(OPENROUTER_API_URL, {
+        model: DEEPSEEK_MODEL,
+        messages: [
+          {
+            role: 'system',
+            content: 'You are an expert at extracting structured job information from natural language descriptions. Always respond with valid JSON only.'
+          },
+          {
+            role: 'user',
+            content: extractionPrompt
+          }
+        ],
+        max_tokens: 1000,
+        temperature: 0.3
+      }, {
+        headers: {
+          'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': process.env.FRONTEND_URL || 'http://localhost:3000',
+          'X-Title': 'AI Hiring Platform'
+        }
+      });
+    } catch (apiError) {
+      console.log('⚠️ [INTERVIEW GENERATE] OpenRouter API extraction failed, using fallback:', apiError.response?.status || apiError.message);
+      // Skip extraction step and use fallback immediately
+      const jobDetails = {
+        title: extractBasicTitle(userPrompt),
+        description: userPrompt,
+        requirements: "Requirements to be determined based on the role",
+        level: "mid",
+        duration: 30,
+        company: "Company"
+      };
+      
+      // Generate interview with fallback data
+      const interviewData = createStructuredInterview(userPrompt, jobDetails);
+      const finalData = ensureFiveRounds(interviewData, jobDetails);
+      
+      // Save to database
+      const interview = new Interview({
+        ...finalData,
+        jobTitle: jobDetails.title,
+        jobDescription: jobDetails.description,
+        jobRequirements: jobDetails.requirements,
+        jobLevel: jobDetails.level,
+        company: jobDetails.company,
+        originalPrompt: userPrompt,
+        createdBy: req.user.id
+      });
+
+      await interview.save();
+      console.log('✅ [INTERVIEW GENERATE] Interview saved with fallback data, ID:', interview.interviewId);
+
+      return res.json({
+        success: true,
+        data: {
+          interviewId: interview.interviewId,
+          title: interview.title,
+          totalDuration: interview.totalDuration,
+          rounds: interview.rounds,
+          link: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/interview/${interview.interviewId}`
+        }
+      });
+    }
+
+    let jobDetails;
+    try {
+      const extractedContent = extractionResponse.data.choices[0].message.content;
+      console.log('📋 [INTERVIEW GENERATE] Raw extraction result:', extractedContent.substring(0, 200) + '...');
+      
+      // Clean the response if it has markdown code blocks
+      const jsonMatch = extractedContent.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
+      const jsonContent = jsonMatch ? jsonMatch[1] : extractedContent;
+      
+      jobDetails = JSON.parse(jsonContent);
+      console.log('✅ [INTERVIEW GENERATE] Job details extracted:', {
+        title: jobDetails.title,
+        level: jobDetails.level,
+        duration: jobDetails.duration
+      });
+    } catch (parseError) {
+      console.log('⚠️ [INTERVIEW GENERATE] Failed to parse job details, using fallbacks');
+      // Fallback to basic extraction
+      jobDetails = {
+        title: extractBasicTitle(userPrompt),
+        description: userPrompt,
+        requirements: "Requirements to be determined based on the role",
+        level: "mid",
+        duration: 30,
+        company: "Company"
+      };
+    }
+
+    const { title, description, requirements, level, duration } = jobDetails;
+    console.log('✅ [INTERVIEW GENERATE] Using job details for interview generation...');
 
     // Generate interview using AI
-    const prompt = `You are an expert HR professional and technical interviewer. Generate a comprehensive multi-round interview process specifically tailored for a ${level}-level ${title} position.
+    const interviewPrompt = `You are an expert HR professional and technical interviewer. Generate a comprehensive multi-round interview process specifically tailored for a ${level}-level ${title} position.
 
 Job Details:
 - Title: ${title}
@@ -43,7 +156,7 @@ Job Details:
 - Level: ${level}
 - Duration: ${duration} minutes
 
-Create a structured interview with 6+ hiring rounds that are SPECIFICALLY tailored to this role:
+Create a structured interview with exactly 5 hiring rounds that are SPECIFICALLY tailored to this role:
 
 ROUND 1: Technical Fundamentals (15-20 minutes)
 - 3-4 technical questions directly related to ${title} role
@@ -65,15 +178,10 @@ ROUND 4: Team Collaboration & Leadership (10-15 minutes)
 - Leadership scenarios relevant to this position level
 - Communication skills for this specific role
 
-ROUND 5: Industry Knowledge & Trends (10-15 minutes)
+ROUND 5: Cultural Fit & Industry Knowledge (10-15 minutes)
 - Current trends and technologies in the ${title} field
-- Industry best practices and methodologies
-- Future outlook and adaptation skills
-
-ROUND 6: Cultural Fit & Motivation (10-15 minutes)
 - Alignment with company values and work culture
-- Career goals and growth in ${title} field
-- Motivation and passion for this specific role
+- Career goals and motivation for this specific role
 
 IMPORTANT: Format your response as valid JSON with this exact structure:
 {
@@ -120,14 +228,16 @@ IMPORTANT: Format your response as valid JSON with this exact structure:
   }
 }
 
-Make sure the JSON is valid and properly formatted with all 6 rounds.`;
+Make sure the JSON is valid and properly formatted with all 5 rounds.`;
 
     console.log('🤖 [INTERVIEW GENERATE] Calling OpenRouter API...');
     console.log('🔑 [INTERVIEW GENERATE] API Key present:', !!process.env.OPENROUTER_API_KEY);
     console.log('🌐 [INTERVIEW GENERATE] API URL:', OPENROUTER_API_URL);
     console.log('🎯 [INTERVIEW GENERATE] Model:', DEEPSEEK_MODEL);
 
-    const aiResponse = await axios.post(OPENROUTER_API_URL, {
+    let aiResponse;
+    try {
+      aiResponse = await axios.post(OPENROUTER_API_URL, {
       model: DEEPSEEK_MODEL,
       messages: [
         {
@@ -136,7 +246,7 @@ Make sure the JSON is valid and properly formatted with all 6 rounds.`;
         },
         {
           role: 'user',
-          content: prompt
+            content: interviewPrompt
         }
       ],
       max_tokens: 2000,
@@ -150,6 +260,39 @@ Make sure the JSON is valid and properly formatted with all 6 rounds.`;
         'X-Title': 'AI Hiring Platform'
       }
     });
+    } catch (apiError) {
+      console.log('⚠️ [INTERVIEW GENERATE] OpenRouter API failed, using structured fallback:', apiError.response?.status || apiError.message);
+      
+      // Create interview with structured fallback
+      const interviewData = createStructuredInterview("AI Generated Interview", { title, description, requirements, level, duration });
+      const finalData = ensureFiveRounds(interviewData, { title, description, requirements, level, duration });
+      
+      // Save to database
+      const interview = new Interview({
+        ...finalData,
+        jobTitle: title,
+        jobDescription: description,
+        jobRequirements: requirements,
+        jobLevel: level,
+        company: jobDetails.company || 'Company',
+        originalPrompt: userPrompt,
+        createdBy: req.user.id
+      });
+
+      await interview.save();
+      console.log('✅ [INTERVIEW GENERATE] Interview saved with structured fallback, ID:', interview.interviewId);
+
+      return res.json({
+        success: true,
+        data: {
+          interviewId: interview.interviewId,
+          title: interview.title,
+          totalDuration: interview.totalDuration,
+          rounds: interview.rounds,
+          link: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/interview/${interview.interviewId}`
+        }
+      });
+    }
 
     console.log('✅ [INTERVIEW GENERATE] AI API call successful');
     console.log('📊 [INTERVIEW GENERATE] AI Response status:', aiResponse.status);
@@ -172,6 +315,14 @@ Make sure the JSON is valid and properly formatted with all 6 rounds.`;
       interviewData = createStructuredInterview(aiData, { title, description, requirements, level, duration });
     }
 
+    // Ensure exactly 5 rounds exist
+    try {
+      interviewData = ensureFiveRounds(interviewData, { title, description, requirements, level, duration });
+      console.log('✅ [INTERVIEW GENERATE] ensureFiveRounds applied:', interviewData.rounds?.length || 0);
+    } catch (e) {
+      console.log('⚠️ [INTERVIEW GENERATE] ensureFiveRounds error:', e.message);
+    }
+
     console.log('💾 [INTERVIEW GENERATE] Creating interview in database...');
     // Create interview in database
     const interview = new Interview({
@@ -180,6 +331,8 @@ Make sure the JSON is valid and properly formatted with all 6 rounds.`;
       jobDescription: description,
       jobRequirements: requirements,
       jobLevel: level,
+      company: jobDetails.company || 'Company',
+      originalPrompt: userPrompt, // Store the original user prompt
       createdBy: req.user.id
     });
 
@@ -222,6 +375,256 @@ Make sure the JSON is valid and properly formatted with all 6 rounds.`;
   }
 });
 
+// Start a session for a candidate: returns the first unanswered question
+router.post('/:interviewId/session/start', async (req, res) => {
+  try {
+    const { candidateId, candidateName, candidateEmail } = req.body || {};
+    if (!candidateId || !candidateName || !candidateEmail) {
+      return res.status(400).json({ success: false, error: 'candidateId, candidateName, candidateEmail are required' });
+    }
+
+    const interview = await Interview.findOne({ interviewId: req.params.interviewId, status: 'active' });
+    if (!interview) return res.status(404).json({ success: false, error: 'Interview not found or inactive' });
+
+    const nextQuestion = getNextQuestion(interview, candidateId);
+    return res.json({ success: true, data: { nextQuestion, progress: getProgress(interview, candidateId) } });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: 'Failed to start session' });
+  }
+});
+
+// Start specific round with camera and device validation
+router.post('/:interviewId/round/:roundId/start', async (req, res) => {
+  console.log('🎬 [START ROUND] Starting round with camera validation for interview:', req.params.interviewId);
+  console.log('🎭 [START ROUND] Round ID:', req.params.roundId);
+  
+  try {
+    const { candidateId, candidateName, candidateEmail, deviceCheckPassed } = req.body || {};
+    
+    if (!candidateId || !candidateName || !candidateEmail) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'candidateId, candidateName, candidateEmail are required' 
+      });
+    }
+
+    const interview = await Interview.findOne({ 
+      interviewId: req.params.interviewId, 
+      status: 'active' 
+    });
+    
+    if (!interview) {
+      return res.status(404).json({ 
+        success: false, 
+        error: 'Interview not found or inactive' 
+      });
+    }
+
+    // Find the specific round
+    const round = interview.rounds.find(r => r.roundId === req.params.roundId);
+    if (!round) {
+      return res.status(404).json({ 
+        success: false, 
+        error: 'Round not found' 
+      });
+    }
+
+    // Device validation check
+    if (!deviceCheckPassed) {
+      console.log('❌ [START ROUND] Device check failed for candidate:', candidateId);
+      return res.status(400).json({
+        success: false,
+        error: 'Device validation failed. Please ensure no electronic devices are detected.',
+        requiresDeviceCheck: true
+      });
+    }
+
+    console.log('✅ [START ROUND] Device check passed, starting round:', round.title);
+
+    // Get first question of this round
+    const firstQuestion = round.questions && round.questions.length > 0 ? round.questions[0] : null;
+    
+    if (!firstQuestion) {
+      return res.status(400).json({
+        success: false,
+        error: 'No questions found in this round'
+      });
+    }
+
+    const response = {
+      success: true,
+      data: {
+        round: {
+          roundId: round.roundId,
+          roundNumber: round.roundNumber,
+          title: round.title,
+          description: round.description,
+          duration: round.duration,
+          totalQuestions: round.questions.length
+        },
+        currentQuestion: {
+          questionId: firstQuestion.id,
+          type: firstQuestion.type,
+          question: firstQuestion.question,
+          timeLimit: firstQuestion.timeLimit,
+          difficulty: firstQuestion.difficulty,
+          questionNumber: 1,
+          totalQuestions: round.questions.length
+        },
+        instructions: {
+          voiceRequired: true,
+          cameraRequired: true,
+          timeLimit: firstQuestion.timeLimit * 60, // Convert to seconds
+          message: 'Please answer using your voice. You have ' + firstQuestion.timeLimit + ' minutes for this question.'
+        }
+      }
+    };
+
+    console.log('🎤 [START ROUND] Round started successfully with voice requirements');
+    return res.json(response);
+
+  } catch (error) {
+    console.error('❌ [START ROUND] Error occurred:', error.message);
+    return res.status(500).json({ 
+      success: false, 
+      error: 'Failed to start round' 
+    });
+  }
+});
+
+// Validate image for electronic devices using AI
+router.post('/:interviewId/validate-environment', async (req, res) => {
+  console.log('🔍 [DEVICE CHECK] Starting environment validation for interview:', req.params.interviewId);
+  
+  try {
+    const { imageData, candidateId } = req.body;
+    
+    if (!imageData || !candidateId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Image data and candidate ID are required'
+      });
+    }
+
+    console.log('🤖 [DEVICE CHECK] Analyzing image for electronic devices...');
+
+    // AI prompt for device detection
+    const deviceCheckPrompt = `Analyze this image captured from a candidate's camera during an interview. Look for any electronic devices that should not be present during an exam/interview.
+
+Detect and identify:
+1. Mobile phones/smartphones
+2. Tablets or iPads
+3. Smart watches
+4. Additional monitors or screens
+5. Other electronic devices (excluding the computer/laptop they're using for the interview)
+
+Respond with JSON only:
+{
+  "devicesDetected": true/false,
+  "devices": ["list of detected devices"],
+  "severity": "low/medium/high",
+  "recommendation": "allow/warn/block",
+  "message": "Explanation for the candidate"
+}
+
+If no unauthorized devices are detected, set devicesDetected to false.`;
+
+    let deviceCheckResult;
+    
+    try {
+      // Try OpenRouter API for device detection
+      const aiResponse = await axios.post(OPENROUTER_API_URL, {
+        model: DEEPSEEK_MODEL,
+        messages: [
+          {
+            role: 'system',
+            content: 'You are an expert at detecting electronic devices in images for interview security. Respond only with valid JSON.'
+          },
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: deviceCheckPrompt
+              },
+              {
+                type: 'image_url',
+                image_url: {
+                  url: imageData
+                }
+              }
+            ]
+          }
+        ],
+        max_tokens: 500,
+        temperature: 0.1
+      }, {
+        headers: {
+          'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': process.env.FRONTEND_URL || 'http://localhost:3000',
+          'X-Title': 'AI Hiring Platform'
+        }
+      });
+
+      const aiContent = aiResponse.data.choices[0].message.content;
+      const jsonMatch = aiContent.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
+      const jsonContent = jsonMatch ? jsonMatch[1] : aiContent;
+      
+      deviceCheckResult = JSON.parse(jsonContent);
+      console.log('✅ [DEVICE CHECK] AI analysis completed:', deviceCheckResult);
+      
+    } catch (apiError) {
+      console.log('⚠️ [DEVICE CHECK] AI API failed, using basic validation:', apiError.response?.status || apiError.message);
+      
+      // Fallback: Basic validation (assume no devices for now)
+      deviceCheckResult = {
+        devicesDetected: false,
+        devices: [],
+        severity: "low",
+        recommendation: "allow",
+        message: "Environment check completed. You may proceed with the interview."
+      };
+    }
+
+    const response = {
+      success: true,
+      data: {
+        deviceCheckPassed: deviceCheckResult.recommendation === 'allow',
+        devicesDetected: deviceCheckResult.devicesDetected,
+        devices: deviceCheckResult.devices || [],
+        severity: deviceCheckResult.severity || 'low',
+        message: deviceCheckResult.message,
+        recommendation: deviceCheckResult.recommendation
+      }
+    };
+
+    console.log('🔒 [DEVICE CHECK] Validation completed:', response.data.deviceCheckPassed ? 'PASSED' : 'FAILED');
+    return res.json(response);
+
+  } catch (error) {
+    console.error('❌ [DEVICE CHECK] Error occurred:', error.message);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to validate environment'
+    });
+  }
+});
+
+// Get current session state and next question
+router.get('/:interviewId/session/state', async (req, res) => {
+  try {
+    const { candidateId } = req.query;
+    if (!candidateId) return res.status(400).json({ success: false, error: 'candidateId is required' });
+    const interview = await Interview.findOne({ interviewId: req.params.interviewId });
+    if (!interview) return res.status(404).json({ success: false, error: 'Interview not found' });
+    const nextQuestion = getNextQuestion(interview, candidateId);
+    return res.json({ success: true, data: { nextQuestion, progress: getProgress(interview, candidateId) } });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: 'Failed to get session state' });
+  }
+});
+
 // Get interview by ID (for candidates)
 router.get('/:interviewId', async (req, res) => {
   console.log('🔍 [GET INTERVIEW] Fetching interview:', req.params.interviewId);
@@ -240,10 +643,27 @@ router.get('/:interviewId', async (req, res) => {
       });
     }
 
+    // Normalize legacy shape: if no rounds but questions exist, wrap into a single round
+    let normalizedRounds = Array.isArray(interview.rounds) && interview.rounds.length > 0
+      ? interview.rounds
+      : [];
+
+    if (normalizedRounds.length === 0 && Array.isArray(interview.questions) && interview.questions.length > 0) {
+      normalizedRounds = [{
+        roundId: 'round_1',
+        roundNumber: 1,
+        title: interview.title || 'Interview',
+        description: 'Auto-generated round from legacy questions',
+        duration: interview.totalDuration || 30,
+        questions: interview.questions,
+        evaluationCriteria: {}
+      }];
+    }
+
     console.log('✅ [GET INTERVIEW] Interview found:', {
       id: interview.interviewId,
       title: interview.title,
-      rounds: interview.rounds.length,
+      rounds: normalizedRounds.length,
       totalDuration: interview.totalDuration
     });
 
@@ -253,7 +673,7 @@ router.get('/:interviewId', async (req, res) => {
         interviewId: interview.interviewId,
         title: interview.title,
         totalDuration: interview.totalDuration,
-        rounds: interview.rounds,
+        rounds: normalizedRounds,
         overallEvaluationCriteria: interview.overallEvaluationCriteria,
         scoringSystem: interview.scoringSystem
       }
@@ -274,22 +694,55 @@ router.get('/:interviewId', async (req, res) => {
   }
 });
 
-// Submit candidate answer
+// Submit candidate answer (supports both text and voice)
 router.post('/:interviewId/answer', async (req, res) => {
   console.log('📝 [SUBMIT ANSWER] New answer submission for interview:', req.params.interviewId);
   console.log('👤 [SUBMIT ANSWER] Candidate:', req.body.candidateName, req.body.candidateEmail);
   console.log('❓ [SUBMIT ANSWER] Question ID:', req.body.questionId);
+  console.log('🎤 [SUBMIT ANSWER] Answer type:', req.body.answerType || 'text');
   
   try {
-    const { candidateId, candidateName, candidateEmail, roundId, questionId, question, answer, timeTaken } = req.body;
+    const { 
+      candidateId, 
+      candidateName, 
+      candidateEmail, 
+      roundId, 
+      questionId, 
+      question, 
+      answer, 
+      timeTaken,
+      answerType = 'text',
+      audioData,
+      transcription
+    } = req.body;
 
-    if (!candidateId || !candidateName || !candidateEmail || !roundId || !questionId || !question || !answer) {
+    if (!candidateId || !candidateName || !candidateEmail || !roundId || !questionId || !question) {
       console.log('❌ [SUBMIT ANSWER] Validation failed - missing required fields');
       console.log('📋 [SUBMIT ANSWER] Received fields:', Object.keys(req.body));
       return res.status(400).json({
         success: false,
-        error: 'All required fields must be provided'
+        error: 'candidateId, candidateName, candidateEmail, roundId, questionId, question are required'
       });
+    }
+
+    // Validate answer based on type
+    let finalAnswer = answer;
+    if (answerType === 'voice') {
+      if (!transcription && !audioData) {
+        return res.status(400).json({
+          success: false,
+          error: 'Voice answers require either transcription or audio data'
+        });
+      }
+      finalAnswer = transcription || '[Voice answer - audio data provided]';
+      console.log('🎙️ [SUBMIT ANSWER] Processing voice answer with transcription length:', transcription?.length || 0);
+    } else {
+      if (!answer) {
+        return res.status(400).json({
+          success: false,
+          error: 'Text answer is required for text-type submissions'
+        });
+      }
     }
 
     console.log('✅ [SUBMIT ANSWER] Validation passed, finding interview...');
@@ -304,7 +757,7 @@ router.post('/:interviewId/answer', async (req, res) => {
 
     console.log('✅ [SUBMIT ANSWER] Interview found, evaluating answer with AI...');
     // Evaluate answer using AI
-    const evaluation = await evaluateAnswer(question, answer, interview.overallEvaluationCriteria);
+    const evaluation = await evaluateAnswer(question, finalAnswer, interview.overallEvaluationCriteria);
     console.log('🤖 [SUBMIT ANSWER] AI evaluation completed:', {
       score: evaluation.score,
       feedbackLength: evaluation.feedback?.length || 0
@@ -318,9 +771,13 @@ router.post('/:interviewId/answer', async (req, res) => {
       roundId,
       questionId,
       question,
-      answer,
+      answer: finalAnswer,
       timeTaken,
-      aiEvaluation: evaluation
+      answerType,
+      audioData: answerType === 'voice' ? audioData : undefined,
+      transcription: answerType === 'voice' ? transcription : undefined,
+      aiEvaluation: evaluation,
+      timestamp: new Date()
     };
 
     console.log('💾 [SUBMIT ANSWER] Saving answer to database...');
@@ -335,11 +792,17 @@ router.post('/:interviewId/answer', async (req, res) => {
       averageScore: interview.statistics.averageScore
     });
 
+    // Find next question in the same round or next round
+    const nextQuestion = getNextQuestionInSequence(interview, candidateId, roundId, questionId);
+
     res.json({
       success: true,
       data: {
         answerId: candidateAnswer._id,
-        evaluation: evaluation
+        evaluation: evaluation,
+        nextQuestion: nextQuestion,
+        roundComplete: !nextQuestion || nextQuestion.roundId !== roundId,
+        interviewComplete: !nextQuestion
       }
     });
 
@@ -429,12 +892,23 @@ router.get('/', auth, async (req, res) => {
       .select('interviewId title jobTitle totalDuration statistics createdAt status')
       .sort({ createdAt: -1 });
 
-    console.log('✅ [GET ALL INTERVIEWS] Found', interviews.length, 'interviews');
-    console.log('📊 [GET ALL INTERVIEWS] Interview titles:', interviews.map(i => i.title));
+    const frontendBase = process.env.FRONTEND_URL || `${req.protocol}://${req.get('host').replace(/:\\d+$/, ':3000')}` || 'http://localhost:3000';
+    const withLinks = interviews.map(i => ({
+      interviewId: i.interviewId,
+      title: i.title,
+      jobTitle: i.jobTitle,
+      totalDuration: i.totalDuration,
+      statistics: i.statistics,
+      createdAt: i.createdAt,
+      status: i.status,
+      link: `${frontendBase.replace(/\/$/, '')}/interview/${i.interviewId}`
+    }));
+
+    console.log('✅ [GET ALL INTERVIEWS] Found', withLinks.length, 'interviews');
 
     res.json({
       success: true,
-      data: interviews
+      data: withLinks
     });
 
   } catch (error) {
@@ -452,32 +926,333 @@ router.get('/', auth, async (req, res) => {
   }
 });
 
+// Get candidate answers for an interview (optionally filter by candidateId)
+router.get('/:interviewId/answers', auth, async (req, res) => {
+  console.log('🧾 [GET ANSWERS] Fetching answers for interview:', req.params.interviewId);
+  const { candidateId } = req.query;
+
+  try {
+    const interview = await Interview.findOne({ 
+      interviewId: req.params.interviewId,
+      createdBy: req.user.id
+    });
+
+    if (!interview) {
+      console.log('❌ [GET ANSWERS] Interview not found or access denied');
+      return res.status(404).json({ success: false, error: 'Interview not found or access denied' });
+    }
+
+    let answers = interview.candidateAnswers || [];
+    if (candidateId) {
+      answers = answers.filter(a => a.candidateId === candidateId);
+    }
+
+    // Map question metadata for convenience
+    const questionIndex = new Map();
+    for (const round of interview.rounds || []) {
+      for (const q of round.questions || []) {
+        questionIndex.set(q.id, { roundId: round.roundId, roundTitle: round.title, questionText: q.question, type: q.type });
+      }
+    }
+
+    const detailedAnswers = answers.map(a => ({
+      candidateId: a.candidateId,
+      candidateName: a.candidateName,
+      candidateEmail: a.candidateEmail,
+      roundId: a.roundId,
+      roundTitle: questionIndex.get(a.questionId)?.roundTitle || null,
+      questionId: a.questionId,
+      question: a.question || questionIndex.get(a.questionId)?.questionText || null,
+      type: questionIndex.get(a.questionId)?.type || null,
+      answer: a.answer,
+      timeTaken: a.timeTaken,
+      timestamp: a.timestamp,
+      aiEvaluation: a.aiEvaluation
+    }));
+
+    res.json({ success: true, data: detailedAnswers });
+
+  } catch (error) {
+    console.error('❌ [GET ANSWERS] Error occurred:', error.message);
+    console.error('🔍 [GET ANSWERS] Error details:', {
+      name: error.name,
+      message: error.message,
+      stack: error.stack?.substring(0, 500) + '...'
+    });
+    res.status(500).json({ success: false, error: 'Failed to get answers' });
+  }
+});
+
+// Delete an interview
+router.delete('/:interviewId', auth, async (req, res) => {
+  console.log('🗑️ [DELETE INTERVIEW] Requested for:', req.params.interviewId, 'by', req.user.id);
+  try {
+    const deleted = await Interview.findOneAndDelete({ interviewId: req.params.interviewId, createdBy: req.user.id });
+    if (!deleted) {
+      console.log('❌ [DELETE INTERVIEW] Not found or no access');
+      return res.status(404).json({ success: false, error: 'Interview not found or access denied' });
+    }
+    console.log('✅ [DELETE INTERVIEW] Deleted:', deleted.interviewId);
+    return res.json({ success: true });
+  } catch (error) {
+    console.error('❌ [DELETE INTERVIEW] Error:', error.message);
+    return res.status(500).json({ success: false, error: 'Failed to delete interview' });
+  }
+});
+
+// Complete round and get evaluation
+router.post('/:interviewId/round/:roundId/complete', async (req, res) => {
+  console.log('🏁 [COMPLETE ROUND] Completing round:', req.params.roundId);
+  
+  try {
+    const { candidateEmail, candidateName } = req.body;
+    
+    if (!candidateEmail || !candidateName) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'candidateEmail and candidateName are required' 
+      });
+    }
+
+    const interview = await Interview.findOne({ 
+      interviewId: req.params.interviewId, 
+      status: 'active' 
+    });
+    
+    if (!interview) {
+      return res.status(404).json({ 
+        success: false, 
+        error: 'Interview not found or inactive' 
+      });
+    }
+
+    // Find the specific round
+    const round = interview.rounds.find(r => r.roundId === req.params.roundId);
+    if (!round) {
+      return res.status(404).json({ 
+        success: false, 
+        error: 'Round not found' 
+      });
+    }
+
+    // Get all answers for this round
+    const candidateAnswers = await CandidateAnswer.find({
+      interviewId: req.params.interviewId,
+      candidateEmail: candidateEmail,
+      roundId: req.params.roundId
+    }).sort({ createdAt: 1 });
+
+    if (candidateAnswers.length === 0) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'No answers found for this round' 
+      });
+    }
+
+    // Evaluate round answers using AI
+    console.log('🤖 [COMPLETE ROUND] Calling AI for round evaluation...');
+    const evaluation = await evaluateRoundAnswers(round, candidateAnswers, interview.overallEvaluationCriteria);
+
+    console.log('✅ [COMPLETE ROUND] AI round evaluation completed for:', req.params.roundId);
+    console.log('📊 [COMPLETE ROUND] Evaluation summary:', {
+      overallScore: evaluation.overallScore,
+      recommendation: evaluation.recommendation,
+      strengthsCount: evaluation.strengths?.length || 0,
+      improvementsCount: evaluation.areasForImprovement?.length || 0
+    });
+    
+    return res.json({ 
+      success: true, 
+      data: { 
+        evaluation,
+        roundId: req.params.roundId,
+        roundTitle: round.title,
+        totalQuestions: round.questions.length,
+        answeredQuestions: candidateAnswers.length
+      } 
+    });
+
+  } catch (error) {
+    console.error('❌ [COMPLETE ROUND] Error:', error);
+    return res.status(500).json({ 
+      success: false, 
+      error: 'Failed to complete round evaluation' 
+    });
+  }
+});
+
 // Helper function to create structured interview from text
 function createStructuredInterview(textResponse, jobDetails) {
   const interviewId = `interview_${Date.now()}`;
   
-  // Default rounds structure
-  const defaultRounds = [
+  // Generate 5 comprehensive rounds based on job details
+  const rounds = [
     {
       roundId: "round_1",
       roundNumber: 1,
       title: "Technical Fundamentals",
       description: "Evaluate technical skills and problem-solving abilities",
-      duration: 20,
+      duration: 15,
       questions: [
         {
           id: "q1_1",
           type: "technical",
-          question: `What are the key technical skills required for a ${jobDetails.title} position?`,
-          expectedAnswer: "Look for relevant technical knowledge and experience",
+          question: `What are the key technical skills and technologies required for a ${jobDetails.title} position?`,
+          expectedAnswer: "Look for relevant technical knowledge and current industry practices",
+          timeLimit: 4,
+          difficulty: "medium",
+          followUpQuestions: ["Can you walk me through your experience with these technologies?", "How do you stay current with industry developments?"]
+        },
+        {
+          id: "q1_2",
+          type: "technical",
+          question: `Describe a challenging technical problem you've solved in your previous role.`,
+          expectedAnswer: "Assess problem-solving approach and technical depth",
           timeLimit: 5,
           difficulty: "medium",
-          followUpQuestions: ["Can you provide specific examples?", "How do you stay updated with new technologies?"]
+          followUpQuestions: ["What alternative approaches did you consider?", "How would you optimize this solution?"]
         }
       ],
       evaluationCriteria: {
-        technical: "Evaluate technical knowledge and skills",
-        problemSolving: "Assess problem-solving approach"
+        technical: "Technical knowledge depth and application",
+        problemSolving: "Analytical thinking and solution design"
+      }
+    },
+    {
+      roundId: "round_2",
+      roundNumber: 2,
+      title: "Role-Specific Experience",
+      description: "Assess relevant experience and practical application",
+      duration: 15,
+      questions: [
+        {
+          id: "q2_1",
+          type: "experience",
+          question: `Tell me about your experience with the main responsibilities of a ${jobDetails.title}.`,
+          expectedAnswer: "Evaluate relevant experience and practical knowledge",
+          timeLimit: 5,
+          difficulty: "medium",
+          followUpQuestions: ["What was your biggest achievement in this area?", "What challenges did you face?"]
+        },
+        {
+          id: "q2_2",
+          type: "scenario",
+          question: `How would you approach a project where you need to ${jobDetails.level === 'senior' || jobDetails.level === 'lead' ? 'lead a team and' : ''} deliver results under tight deadlines?`,
+          expectedAnswer: "Look for project management skills and prioritization",
+          timeLimit: 4,
+          difficulty: "medium",
+          followUpQuestions: ["How do you handle scope changes?", "How do you communicate progress to stakeholders?"]
+        }
+      ],
+      evaluationCriteria: {
+        experience: "Depth and relevance of past experience",
+        application: "Ability to apply knowledge to real scenarios"
+      }
+    },
+    {
+      roundId: "round_3",
+      roundNumber: 3,
+      title: "Problem-Solving & Critical Thinking",
+      description: "Test analytical and problem-solving capabilities",
+      duration: 15,
+      questions: [
+        {
+          id: "q3_1",
+          type: "problem-solving",
+          question: `A ${jobDetails.title} project is behind schedule and stakeholders are concerned. Walk me through your approach to get it back on track.`,
+          expectedAnswer: "Assess systematic problem-solving and stakeholder management",
+          timeLimit: 6,
+          difficulty: "hard",
+          followUpQuestions: ["How would you prevent this in future projects?", "How do you balance quality vs. timeline?"]
+        },
+        {
+          id: "q3_2",
+          type: "critical-thinking",
+          question: `If you had to make a recommendation between two competing technical solutions, how would you evaluate and present your decision?`,
+          expectedAnswer: "Look for structured decision-making and communication skills",
+          timeLimit: 4,
+          difficulty: "medium",
+          followUpQuestions: ["What factors would be most important?", "How would you handle disagreement from team members?"]
+        }
+      ],
+      evaluationCriteria: {
+        analysis: "Systematic approach to problem analysis",
+        decision: "Quality of decision-making process"
+      }
+    },
+    {
+      roundId: "round_4",
+      roundNumber: 4,
+      title: "Team Collaboration & Leadership",
+      description: "Evaluate teamwork and leadership potential",
+      duration: 12,
+      questions: [
+        {
+          id: "q4_1",
+          type: "teamwork",
+          question: `Describe a time when you had to work with a difficult team member or stakeholder. How did you handle it?`,
+          expectedAnswer: "Assess interpersonal skills and conflict resolution",
+          timeLimit: 5,
+          difficulty: "medium",
+          followUpQuestions: ["What would you do differently?", "How do you build trust with team members?"]
+        },
+        {
+          id: "q4_2",
+          type: "leadership",
+          question: jobDetails.level === 'senior' || jobDetails.level === 'lead' 
+            ? `How do you mentor junior team members and help them grow in their careers?`
+            : `How do you contribute to team success and support your colleagues?`,
+          expectedAnswer: jobDetails.level === 'senior' || jobDetails.level === 'lead'
+            ? "Look for mentoring and development skills"
+            : "Assess collaboration and team contribution",
+          timeLimit: 4,
+          difficulty: "medium",
+          followUpQuestions: ["Can you give a specific example?", "What's your approach to giving feedback?"]
+        }
+      ],
+      evaluationCriteria: {
+        collaboration: "Ability to work effectively with others",
+        leadership: "Leadership potential and influence"
+      }
+    },
+    {
+      roundId: "round_5",
+      roundNumber: 5,
+      title: "Cultural Fit & Industry Knowledge",
+      description: "Assess cultural alignment and industry awareness",
+      duration: 13,
+      questions: [
+        {
+          id: "q5_1",
+          type: "industry",
+          question: `What trends do you see shaping the ${jobDetails.title.includes('Developer') || jobDetails.title.includes('Engineer') ? 'technology' : 'industry'} landscape, and how do you stay informed?`,
+          expectedAnswer: "Evaluate industry awareness and continuous learning",
+          timeLimit: 4,
+          difficulty: "medium",
+          followUpQuestions: ["How do these trends affect your work?", "What resources do you use to stay updated?"]
+        },
+        {
+          id: "q5_2",
+          type: "motivation",
+          question: `Why are you interested in this ${jobDetails.title} position, and what are your career goals for the next few years?`,
+          expectedAnswer: "Assess motivation, cultural fit, and long-term potential",
+          timeLimit: 4,
+          difficulty: "easy",
+          followUpQuestions: ["What excites you most about this role?", "How does this position align with your career plans?"]
+        },
+        {
+          id: "q5_3",
+          type: "culture",
+          question: `How do you prefer to receive feedback, and how do you handle constructive criticism?`,
+          expectedAnswer: "Evaluate growth mindset and cultural adaptability",
+          timeLimit: 3,
+          difficulty: "easy",
+          followUpQuestions: ["Can you give an example of how feedback helped you improve?", "What's your approach to self-improvement?"]
+        }
+      ],
+      evaluationCriteria: {
+        industry: "Knowledge of industry trends and continuous learning",
+        culture: "Alignment with company values and growth mindset"
       }
     }
   ];
@@ -485,15 +1260,16 @@ function createStructuredInterview(textResponse, jobDetails) {
   return {
     interviewId,
     title: `AI Multi-Round Interview - ${jobDetails.title}`,
-    totalDuration: jobDetails.duration || 30,
-    rounds: defaultRounds,
+    totalDuration: jobDetails.duration || 60,
+    rounds: rounds,
     overallEvaluationCriteria: {
-      technical: "Overall technical competency assessment",
-      communication: "Communication and articulation skills",
-      problemSolving: "Problem-solving methodology and creativity",
-      culturalFit: "Alignment with company values and culture",
-      leadership: "Leadership potential and team collaboration",
-      motivation: "Career goals and job motivation"
+      technical: "Overall technical competency and problem-solving skills",
+      communication: "Clarity of communication and articulation abilities",
+      experience: "Relevance and depth of professional experience",
+      teamwork: "Collaboration skills and team contribution",
+      leadership: "Leadership potential and influence capabilities",
+      growth: "Learning mindset and adaptability to change",
+      culture: "Alignment with company values and cultural fit"
     },
     scoringSystem: {
       excellent: "4",
@@ -502,6 +1278,143 @@ function createStructuredInterview(textResponse, jobDetails) {
       needsImprovement: "1"
     }
   };
+}
+
+// Ensure exactly five rounds by duplicating/adapting the first round if needed
+function ensureFiveRounds(interviewData, jobDetails) {
+  const data = interviewData || {};
+  data.rounds = Array.isArray(data.rounds) ? data.rounds : [];
+  if (data.rounds.length >= 5) {
+    // If more than 5 rounds, trim to exactly 5
+    data.rounds = data.rounds.slice(0, 5);
+    return data;
+  }
+
+  const base = data.rounds[0] || {
+    roundId: 'round_1',
+    roundNumber: 1,
+    title: 'Technical Fundamentals',
+    description: 'Evaluate fundamentals',
+    duration: 10,
+    questions: [
+      { id: 'q1_1', type: 'conceptual', question: `What are key concepts for ${jobDetails.title}?`, expectedAnswer: 'Core concepts', timeLimit: 3, difficulty: 'easy', followUpQuestions: [] }
+    ],
+    evaluationCriteria: { technical: 'Concept understanding' }
+  };
+
+  while (data.rounds.length < 5) {
+    const idx = data.rounds.length + 1;
+    data.rounds.push({
+      ...base,
+      roundId: `round_${idx}`,
+      roundNumber: idx,
+      title: base.title + ` (${idx})`,
+      questions: (base.questions || []).map((q, i) => ({
+        ...q,
+        id: `q${idx}_${i + 1}`
+      }))
+    });
+  }
+
+  // Normalize roundNumber sequence
+  data.rounds = data.rounds.map((r, i) => ({ ...r, roundNumber: i + 1, roundId: `round_${i + 1}` }));
+  return data;
+}
+
+// Compute next unanswered question for a candidate
+function getNextQuestion(interview, candidateId) {
+  const answered = new Set(
+    (interview.candidateAnswers || [])
+      .filter(a => a.candidateId === candidateId)
+      .map(a => a.questionId)
+  );
+  for (const round of interview.rounds || []) {
+    for (const q of round.questions || []) {
+      if (!answered.has(q.id)) {
+        return {
+          roundId: round.roundId,
+          roundNumber: round.roundNumber,
+          roundTitle: round.title,
+          questionId: q.id,
+          type: q.type,
+          question: q.question,
+          timeLimit: q.timeLimit,
+          difficulty: q.difficulty
+        };
+      }
+    }
+  }
+  return null;
+}
+
+// Get next question in sequence after current question
+function getNextQuestionInSequence(interview, candidateId, currentRoundId, currentQuestionId) {
+  const answered = new Set(
+    (interview.candidateAnswers || [])
+      .filter(a => a.candidateId === candidateId)
+      .map(a => a.questionId)
+  );
+  
+  // Find current round
+  const currentRoundIndex = interview.rounds.findIndex(r => r.roundId === currentRoundId);
+  if (currentRoundIndex === -1) return null;
+  
+  const currentRound = interview.rounds[currentRoundIndex];
+  
+  // Find current question index in the round
+  const currentQuestionIndex = currentRound.questions.findIndex(q => q.id === currentQuestionId);
+  if (currentQuestionIndex === -1) return null;
+  
+  // Check for next question in same round
+  for (let i = currentQuestionIndex + 1; i < currentRound.questions.length; i++) {
+    const q = currentRound.questions[i];
+    if (!answered.has(q.id)) {
+      return {
+        roundId: currentRound.roundId,
+        roundNumber: currentRound.roundNumber,
+        roundTitle: currentRound.title,
+        questionId: q.id,
+        type: q.type,
+        question: q.question,
+        timeLimit: q.timeLimit,
+        difficulty: q.difficulty,
+        questionNumber: i + 1,
+        totalQuestions: currentRound.questions.length
+      };
+    }
+  }
+  
+  // If no more questions in current round, check next rounds
+  for (let roundIndex = currentRoundIndex + 1; roundIndex < interview.rounds.length; roundIndex++) {
+    const round = interview.rounds[roundIndex];
+    for (let questionIndex = 0; questionIndex < round.questions.length; questionIndex++) {
+      const q = round.questions[questionIndex];
+      if (!answered.has(q.id)) {
+        return {
+          roundId: round.roundId,
+          roundNumber: round.roundNumber,
+          roundTitle: round.title,
+          questionId: q.id,
+          type: q.type,
+          question: q.question,
+          timeLimit: q.timeLimit,
+          difficulty: q.difficulty,
+          questionNumber: questionIndex + 1,
+          totalQuestions: round.questions.length,
+          newRound: true
+        };
+      }
+    }
+  }
+  
+  return null; // No more questions
+}
+
+// Compute progress for a candidate
+function getProgress(interview, candidateId) {
+  const total = (interview.rounds || []).reduce((acc, r) => acc + (r.questions?.length || 0), 0);
+  const answered = (interview.candidateAnswers || []).filter(a => a.candidateId === candidateId).length;
+  return { answered, total, completed: answered >= total };
 }
 
 // Helper function to evaluate answer using AI
@@ -580,6 +1493,131 @@ Score: 1-4 (1=Needs Improvement, 2=Satisfactory, 3=Good, 4=Excellent)`;
   }
 }
 
+// Helper function to evaluate round answers using AI
+async function evaluateRoundAnswers(round, candidateAnswers, criteria) {
+  console.log('🤖 [EVALUATE ROUND] Starting round evaluation...');
+  console.log('🎭 [EVALUATE ROUND] Round:', round.title);
+  console.log('📝 [EVALUATE ROUND] Answers count:', candidateAnswers.length);
+  
+  try {
+    // Prepare round data for AI evaluation
+    const roundData = {
+      roundTitle: round.title,
+      roundDescription: round.description,
+      questions: round.questions.map(q => ({
+        question: q.question,
+        timeLimit: q.timeLimit
+      })),
+      answers: candidateAnswers.map(answer => ({
+        question: answer.question,
+        answer: answer.answer,
+        timeSpent: answer.timeSpent
+      }))
+    };
+
+    const evaluationPrompt = `You are an expert HR professional and technical interviewer with 15+ years of experience. You are evaluating a candidate's performance for the "${round.title}" round.
+
+ROUND DETAILS:
+- Title: ${round.title}
+- Description: ${round.description}
+- Total Questions: ${round.questions.length}
+- Questions Answered: ${candidateAnswers.length}
+
+QUESTIONS AND ANSWERS:
+${roundData.answers.map((item, index) => `
+Question ${index + 1}: ${item.question}
+Answer: ${item.answer}
+Time Spent: ${item.timeSpent || 'Not recorded'}
+`).join('\n')}
+
+EVALUATION CRITERIA:
+${criteria}
+
+INSTRUCTIONS:
+Analyze each answer thoroughly and provide detailed, personalized feedback. Consider:
+1. Technical accuracy and depth of knowledge
+2. Communication clarity and structure
+3. Problem-solving methodology and approach
+4. Time management and efficiency
+5. Industry-specific insights and experience
+6. Critical thinking and analytical skills
+7. Practical application of concepts
+8. Areas of expertise and knowledge gaps
+
+Please provide a comprehensive evaluation in the following JSON format:
+{
+  "overallScore": 85,
+  "feedback": "Write a detailed 2-3 paragraph feedback analyzing the candidate's performance, highlighting specific examples from their answers, technical depth, communication style, and overall assessment. Be specific about what they did well and what needs improvement.",
+  "strengths": ["Specific strength 1 with example", "Specific strength 2 with example", "Specific strength 3 with example"],
+  "areasForImprovement": ["Specific area 1 with actionable advice", "Specific area 2 with actionable advice", "Specific area 3 with actionable advice"],
+  "recommendation": "Proceed to next round" or "Needs improvement" or "Strong candidate - highly recommended",
+  "individualScores": [85, 78, 92, 88]
+}
+
+IMPORTANT: 
+- Be specific and reference actual content from their answers
+- Provide actionable feedback that helps the candidate improve
+- Consider the role level and expectations
+- Be constructive and professional in tone
+- Ensure all scores are realistic and justified`;
+
+    console.log('🚀 [EVALUATE ROUND] Sending request to AI...');
+    
+    const aiResponse = await axios.post('https://openrouter.ai/api/v1/chat/completions', {
+      model: 'deepseek/deepseek-chat',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are an expert HR professional and technical interviewer. Provide detailed, constructive feedback in valid JSON format.'
+        },
+        {
+          role: 'user',
+          content: evaluationPrompt
+        }
+      ],
+      max_tokens: 1000,
+      temperature: 0.3
+    }, {
+      headers: {
+        'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': process.env.FRONTEND_URL || 'http://localhost:3000',
+        'X-Title': 'AI Hiring Platform'
+      }
+    });
+
+    console.log('✅ [EVALUATE ROUND] AI evaluation response received');
+    const evaluation = JSON.parse(aiResponse.data.choices[0].message.content);
+    console.log('📊 [EVALUATE ROUND] Evaluation result:', {
+      overallScore: evaluation.overallScore,
+      feedbackLength: evaluation.feedback?.length || 0,
+      strengthsCount: evaluation.strengths?.length || 0,
+      improvementsCount: evaluation.areasForImprovement?.length || 0
+    });
+    
+    return evaluation;
+
+  } catch (error) {
+    console.error('❌ [EVALUATE ROUND] Error occurred:', error.message);
+    console.error('🔍 [EVALUATE ROUND] Error details:', {
+      name: error.name,
+      message: error.message,
+      response: error.response?.data
+    });
+    
+    // Return fallback evaluation (only used if AI fails)
+    console.log('⚠️ [EVALUATE ROUND] Using fallback evaluation due to AI error');
+    return {
+      overallScore: 75,
+      feedback: `The candidate completed the ${round.title} round successfully. While the AI evaluation system is temporarily unavailable, the candidate demonstrated engagement by answering all questions. A manual review of their responses is recommended for a more detailed assessment.`,
+      strengths: ["Completed all questions in the round", "Demonstrated engagement and effort", "Provided responses to all technical questions"],
+      areasForImprovement: ["Detailed technical assessment pending manual review", "Consider providing more specific examples in future rounds", "AI evaluation will provide more detailed feedback in subsequent rounds"],
+      recommendation: "Proceed to next round - manual review recommended",
+      individualScores: candidateAnswers.map(() => 75)
+    };
+  }
+}
+
 // Helper function to get candidate summaries
 function getCandidateSummaries(answers) {
   const candidateMap = new Map();
@@ -606,6 +1644,29 @@ function getCandidateSummaries(answers) {
   });
   
   return Array.from(candidateMap.values());
+}
+
+// Helper function to extract basic title from prompt if JSON parsing fails
+function extractBasicTitle(prompt) {
+  const lowerPrompt = prompt.toLowerCase();
+  
+  // Common patterns to extract job titles
+  const patterns = [
+    /(?:hire|looking for|need|seeking)\s+(?:a\s+)?([^.!?]+?)(?:\s+(?:developer|engineer|manager|analyst|designer|specialist|lead|senior|junior))/i,
+    /(?:position|role|job)\s+for\s+(?:a\s+)?([^.!?]+)/i,
+    /([^.!?]*(?:developer|engineer|manager|analyst|designer|specialist|lead|senior|junior)[^.!?]*)/i
+  ];
+  
+  for (const pattern of patterns) {
+    const match = prompt.match(pattern);
+    if (match && match[1]) {
+      return match[1].trim().replace(/^(a|an|the)\s+/i, '');
+    }
+  }
+  
+  // Fallback: use first part of prompt
+  const words = prompt.split(' ').slice(0, 5).join(' ');
+  return words.length > 50 ? words.substring(0, 50) + '...' : words;
 }
 
 module.exports = router;

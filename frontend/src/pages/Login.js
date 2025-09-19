@@ -52,13 +52,19 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-white py-12 px-4">
-      <div className="max-w-md w-full space-y-8">
+    <div className="min-h-screen flex items-center justify-center py-12 px-4" style={{
+      background: 'radial-gradient(1000px 600px at 10% -20%, rgba(59,130,246,0.08), transparent), radial-gradient(800px 500px at 100% 0%, rgba(6,182,212,0.08), transparent), #0b0f17'
+    }}>
+      <div className="max-w-md w-full space-y-8 rounded-2xl p-8" style={{
+        background: 'linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03))',
+        boxShadow: '0 10px 40px rgba(0,0,0,0.4)',
+        border: '1px solid rgba(255,255,255,0.08)'
+      }}>
         <div>
-          <h2 className="text-center text-3xl font-bold text-gray-900 mb-2">
+          <h2 className="text-center text-3xl font-bold text-white mb-2">
             Sign in to your account
           </h2>
-          <p className="text-center text-gray-600">
+          <p className="text-center text-gray-300">
             Or{' '}
             <Link
               to="/register"
@@ -85,7 +91,7 @@ const Login = () => {
                   type="email"
                   autoComplete="email"
                   required
-                  className="form-input"
+                  className="form-input bg-white border-gray-200 placeholder-gray-500 text-black"
                   placeholder="enter your email"
                   value={formData.email}
                   onChange={handleChange}
@@ -107,7 +113,7 @@ const Login = () => {
                   type={showPassword ? 'text' : 'password'}
                   autoComplete="current-password"
                   required
-                  className="form-input pr-10"
+                  className="form-input pr-10 bg-white border-gray-200 placeholder-gray-500 text-black"
                   placeholder="enter your password"
                   value={formData.password}
                   onChange={handleChange}
@@ -127,15 +133,15 @@ const Login = () => {
             </div>
           </div>
 
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between text-black/80">
             <div className="flex items-center">
               <input
                 id="remember-me"
                 name="remember-me"
                 type="checkbox"
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                className="h-4 w-4 text-blue-400 focus:ring-blue-500 border-gray-600 rounded bg-transparent"
               />
-              <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">
+              <label htmlFor="remember-me" className="ml-2 block text-sm">
                 Remember me
               </label>
             </div>
@@ -151,7 +157,7 @@ const Login = () => {
             <button
               type="submit"
               disabled={loading}
-              className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full disabled:opacity-50 disabled:cursor-not-allowed h-10 rounded-2xl text-black font-semibold bg-white"
             >
               {loading ? (
                 <div className="flex items-center">
@@ -170,7 +176,7 @@ const Login = () => {
                 <div className="w-full border-t border-gray-300" />
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-gray-50 text-gray-500">Demo Accounts</span>
+                <span className="px-2 bg-white text-gray-600">Demo Accounts</span>
               </div>
             </div>
 
@@ -178,14 +184,14 @@ const Login = () => {
               <button
                 type="button"
                 onClick={() => setFormData({ email: 'candidate@demo.com', password: 'password123' })}
-                className="btn-demo"
+                className="btn-demo bg-white text-black border-gray-200 hover:bg-gray-50"
               >
                 Candidate Demo
               </button>
               <button
                 type="button"
                 onClick={() => setFormData({ email: 'recruiter@demo.com', password: 'password123' })}
-                className="btn-demo"
+                className="btn-demo bg-white text-black border-gray-200 hover:bg-gray-50"
               >
                 Recruiter Demo
               </button>

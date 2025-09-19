@@ -67,13 +67,19 @@ const Register = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
+    <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8" style={{
+      background: 'radial-gradient(1000px 600px at 10% -20%, rgba(59,130,246,0.08), transparent), radial-gradient(800px 500px at 100% 0%, rgba(6,182,212,0.08), transparent), #0b0f17'
+    }}>
+      <div className="max-w-md w-full space-y-8 rounded-2xl p-8" style={{
+        background: 'linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03))',
+        boxShadow: '0 10px 40px rgba(0,0,0,0.4)',
+        border: '1px solid rgba(255,255,255,0.08)'
+      }}>
         <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+          <h2 className="mt-6 text-center text-3xl font-extrabold text-black">
             Create your account
           </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
+          <p className="mt-2 text-center text-sm text-black/80">
             Or{' '}
             <Link
               to="/login"
@@ -100,7 +106,7 @@ const Register = () => {
                   type="text"
                   autoComplete="name"
                   required
-                  className="form-input pl-10"
+                  className="form-input pl-10 bg-white/10 border-white/10 placeholder-gray-400 text-white"
                   placeholder="Enter your full name"
                   value={formData.name}
                   onChange={handleChange}
@@ -122,7 +128,7 @@ const Register = () => {
                   type="email"
                   autoComplete="email"
                   required
-                  className="form-input pl-10"
+                  className="form-input pl-10 bg-white/10 border-white/10 placeholder-gray-400 text-white"
                   placeholder="Enter your email"
                   value={formData.email}
                   onChange={handleChange}
@@ -146,14 +152,14 @@ const Register = () => {
                   />
                   <div className={`p-4 border-2 rounded-lg cursor-pointer transition-colors ${
                     formData.role === 'candidate'
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-gray-200 hover:border-gray-300'
+                      ? 'border-cyan-400 bg-white/10 text-white'
+                      : 'border-white/10 text-gray-300 hover:border-white/20'
                   }`}>
                     <div className="flex items-center justify-center">
                       <User className="h-6 w-6 mr-2" />
                       <span className="font-medium">Candidate</span>
                     </div>
-                    <p className="text-sm text-gray-600 mt-1 text-center">
+                    <p className="text-sm text-gray-400 mt-1 text-center">
                       Looking for jobs
                     </p>
                   </div>
@@ -170,14 +176,14 @@ const Register = () => {
                   />
                   <div className={`p-4 border-2 rounded-lg cursor-pointer transition-colors ${
                     formData.role === 'recruiter'
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-gray-200 hover:border-gray-300'
+                      ? 'border-cyan-400 bg-white/10 text-white'
+                      : 'border-white/10 text-gray-300 hover:border-white/20'
                   }`}>
                     <div className="flex items-center justify-center">
                       <Briefcase className="h-6 w-6 mr-2" />
                       <span className="font-medium">Recruiter</span>
                     </div>
-                    <p className="text-sm text-gray-600 mt-1 text-center">
+                    <p className="text-sm text-gray-400 mt-1 text-center">
                       Hiring talent
                     </p>
                   </div>
@@ -199,7 +205,7 @@ const Register = () => {
                   type={showPassword ? 'text' : 'password'}
                   autoComplete="new-password"
                   required
-                  className="form-input pl-10 pr-10"
+                  className="form-input pl-10 pr-10 bg-white/10 border-white/10 placeholder-gray-400 text-white"
                   placeholder="Create a password"
                   value={formData.password}
                   onChange={handleChange}
@@ -235,7 +241,7 @@ const Register = () => {
                   type={showConfirmPassword ? 'text' : 'password'}
                   autoComplete="new-password"
                   required
-                  className="form-input pl-10 pr-10"
+                  className="form-input pl-10 pr-10 bg-white/10 border-white/10 placeholder-gray-400 text-white"
                   placeholder="Confirm your password"
                   value={formData.confirmPassword}
                   onChange={handleChange}
@@ -255,21 +261,21 @@ const Register = () => {
             </div>
           </div>
 
-          <div className="flex items-center">
+          <div className="flex items-center text-gray-300">
             <input
               id="agree-terms"
               name="agree-terms"
               type="checkbox"
               required
-              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              className="h-4 w-4 text-blue-400 focus:ring-blue-500 border-gray-600 rounded bg-transparent"
             />
-            <label htmlFor="agree-terms" className="ml-2 block text-sm text-gray-900">
+            <label htmlFor="agree-terms" className="ml-2 block text-sm">
               I agree to the{' '}
-              <a href="#" className="text-blue-600 hover:text-blue-500">
+              <a href="#" className="text-blue-400 hover:text-blue-300">
                 Terms of Service
               </a>{' '}
               and{' '}
-              <a href="#" className="text-blue-600 hover:text-blue-500">
+              <a href="#" className="text-blue-400 hover:text-blue-300">
                 Privacy Policy
               </a>
             </label>
@@ -279,7 +285,8 @@ const Register = () => {
             <button
               type="submit"
               disabled={loading}
-              className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="group relative w-full flex justify-center py-3 px-4 text-sm font-semibold rounded-2xl text-white disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ background: 'linear-gradient(135deg, #3b82f6, #06b6d4)', boxShadow: '0 8px 24px rgba(3,105,161,.35)' }}
             >
               {loading ? (
                 <div className="flex items-center">
