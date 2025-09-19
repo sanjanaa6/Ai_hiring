@@ -1,0 +1,201 @@
+import React, { useState, useEffect } from 'react';
+import { useParams, useSearchParams } from 'react-router-dom';
+import AIInterviewConductor from '../components/AIInterviewConductor';
+import apiService from '../services/apiService';
+import { Bot, AlertCircle, ArrowLeft, User, Mail, Phone } from 'lucide-react';
+import { Link } from 'react-router-dom';
+
+const Interview = () => {
+  const { interviewId } = useParams();
+  const [searchParams] = useSearchParams();
+  const [candidateInfo, setCandidateInfo] = useState(null);
+  const [interviewData, setInterviewData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [showCandidateForm, setShowCandidateForm] = useState(false);
+
+  useEffect(() => {
+    loadInterviewData();
+  }, [interviewId]);
+
+  const loadInterviewData = async () => {
+    try {
+      const result = await apiService.getInterview(interviewId);
+      
+      if (result.success) {
+        setInterviewData(result.data);
+      } else {
+        setError(result.error || 'Interview not found. Please check the interview link.');
+        return;
+      }
+
+      // Get candidate info from localStorage or show form
+    const storedInfo = localStorage.getItem('candidateInfo');
+    if (storedInfo) {
+      setCandidateInfo(JSON.parse(storedInfo));
+    } else {
+        setShowCandidateForm(true);
+      }
+    } catch (err) {
+      setError('Failed to load interview data');
+      console.error('Error loading interview:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCandidateSubmit = (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const info = {
+      name: formData.get('name'),
+      email: formData.get('email'),
+      phone: formData.get('phone')
+    };
+      setCandidateInfo(info);
+      localStorage.setItem('candidateInfo', JSON.stringify(info));
+    setShowCandidateForm(false);
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading interview...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center max-w-md mx-auto px-4">
+          <AlertCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Interview Not Found</h1>
+          <p className="text-gray-600 mb-6">{error}</p>
+          <Link
+            to="/"
+            className="inline-flex items-center space-x-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            <span>Go Home</span>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (!interviewId) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center max-w-md mx-auto px-4">
+          <Bot className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Invalid Interview Link</h1>
+          <p className="text-gray-600 mb-6">
+            The interview link you provided is not valid. Please check the link and try again.
+          </p>
+          <Link
+            to="/"
+            className="inline-flex items-center space-x-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            <span>Go Home</span>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (showCandidateForm) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full">
+          <div className="text-center mb-6">
+            <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center mx-auto mb-4">
+              <User className="h-8 w-8 text-white" />
+            </div>
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">Welcome to the Interview</h1>
+            <p className="text-gray-600">Please provide your information to begin</p>
+          </div>
+
+          <form onSubmit={handleCandidateSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Full Name *
+              </label>
+              <input
+                type="text"
+                name="name"
+                required
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                placeholder="Enter your full name"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Email Address *
+              </label>
+              <input
+                type="email"
+                name="email"
+                required
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                placeholder="Enter your email address"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Phone Number
+              </label>
+              <input
+                type="tel"
+                name="phone"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                placeholder="Enter your phone number (optional)"
+              />
+            </div>
+
+            <button
+              type="submit"
+              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200"
+            >
+              Start Interview
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  if (!interviewData || !candidateInfo) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Preparing interview...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <AIInterviewConductor 
+      interviewData={interviewData}
+      candidateInfo={candidateInfo}
+      onComplete={(answers) => {
+        console.log('Interview completed with answers:', answers);
+        // Here you would typically send the answers to your backend
+      }}
+      onAnswer={(answer) => {
+        console.log('Answer submitted:', answer);
+        // Here you could save individual answers as they're submitted
+      }}
+    />
+  );
+};
+
+export default Interview;
