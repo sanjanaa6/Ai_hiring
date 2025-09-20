@@ -717,119 +717,365 @@ const RecruiterDashboard = () => {
         )}
 
         {activeTab === 'answers' && (
-          <div className="space-y-6">
-            {/* Select interview for answers */}
-            <div className={`${isDarkMode ? 'bg-white/10 border border-white/10 backdrop-blur' : 'bg-white'} rounded-lg shadow p-6`}>
-              <div className="flex items-center justify-between mb-4">
-                <h2 className={`text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Interview Answers</h2>
+          <div className="space-y-8">
+            {/* Modern Performance Dashboard Header */}
+            <div className={`${isDarkMode ? 'bg-gradient-to-r from-purple-900/50 to-blue-900/50 border border-white/10 backdrop-blur' : 'bg-gradient-to-r from-purple-600 to-blue-600'} rounded-2xl shadow-2xl p-8`}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className={`text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-white'} mb-2`}>
+                    🎯 Performance Analytics
+                  </h2>
+                  <p className={`${isDarkMode ? 'text-purple-200' : 'text-purple-100'} text-lg`}>
+                    Comprehensive candidate performance insights and detailed interview analysis
+                  </p>
+                </div>
+                <div className="flex items-center space-x-4">
+                  <div className={`${isDarkMode ? 'bg-white/20' : 'bg-white/20'} rounded-xl p-4`}>
+                    <div className="text-2xl font-bold text-white">
+                      {selectedInterviewId ? groupAnswersByCandidate().length : 0}
+                    </div>
+                    <div className="text-sm text-purple-100">Candidates</div>
+                  </div>
+                  <div className={`${isDarkMode ? 'bg-white/20' : 'bg-white/20'} rounded-xl p-4`}>
+                    <div className="text-2xl font-bold text-white">
+                      {selectedInterviewId ? answers.length : 0}
+                    </div>
+                    <div className="text-sm text-purple-100">Total Answers</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Interview Selection */}
+            <div className={`${isDarkMode ? 'bg-white/10 border border-white/10 backdrop-blur' : 'bg-white'} rounded-2xl shadow-lg p-6`}>
+              <div className="flex items-center justify-between mb-6">
+                <h3 className={`text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                  📊 Select Interview to Analyze
+                </h3>
                 <button
                   onClick={() => selectedInterviewId && loadAnswers(selectedInterviewId, selectedCandidateId)}
-                  className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg"
+                  className={`px-4 py-2 rounded-xl font-medium transition-all duration-200 ${
+                    isDarkMode 
+                      ? 'bg-purple-600 hover:bg-purple-700 text-white' 
+                      : 'bg-purple-600 hover:bg-purple-700 text-white'
+                  }`}
                 >
-                  Refresh
+                  🔄 Refresh Data
                 </button>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Select Interview</label>
+                  <label className={`block text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'} mb-3`}>
+                    🎯 Interview Selection
+                  </label>
                   <select
                     value={selectedInterviewId || ''}
                     onChange={(e) => setSelectedInterviewId(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                    className={`w-full px-4 py-3 rounded-xl border-2 transition-all duration-200 ${
+                      isDarkMode 
+                        ? 'bg-gray-800 border-gray-600 text-white focus:border-purple-500' 
+                        : 'bg-white border-gray-300 text-gray-900 focus:border-purple-500'
+                    }`}
                   >
-                    <option value="" disabled>Select an interview</option>
+                    <option value="" disabled>Select an interview to analyze</option>
                     {jobs.map(job => (
-                      <option key={job.interviewId} value={job.interviewId}>{job.title}</option>
+                      <option key={job.interviewId} value={job.interviewId}>
+                        {job.title} - {job.jobTitle}
+                      </option>
                     ))}
                   </select>
                 </div>
+                
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Filter by Candidate ID (email)</label>
+                  <label className={`block text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'} mb-3`}>
+                    🔍 Filter by Candidate (Optional)
+                  </label>
                   <input
                     type="text"
                     value={selectedCandidateId}
                     onChange={(e) => setSelectedCandidateId(e.target.value)}
                     placeholder="candidate@example.com"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                    className={`w-full px-4 py-3 rounded-xl border-2 transition-all duration-200 ${
+                      isDarkMode 
+                        ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400 focus:border-purple-500' 
+                        : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-purple-500'
+                    }`}
                   />
                 </div>
               </div>
             </div>
 
-            {/* Candidates list */}
-            <div className={`${isDarkMode ? 'bg-white/10 border border-white/10 backdrop-blur' : 'bg-white'} rounded-lg shadow p-6`}>
-              <div className="flex items-center justify-between mb-4">
-                <h3 className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Candidates</h3>
-                {answersLoading && <div className="text-sm text-gray-500">Loading...</div>}
-              </div>
-
-              {selectedInterviewId ? (
-                groupAnswersByCandidate().length ? (
-                  <div className="space-y-3">
-                    {groupAnswersByCandidate().map((c) => (
-                      <div key={c.candidateId} className="border border-gray-200 rounded-lg">
-                        <button
-                          onClick={() => toggleExpand(c.candidateId)}
-                          className="w-full text-left p-4 flex items-center justify-between hover:bg-gray-50"
-                        >
+            {/* Performance Dashboard Content */}
+            {selectedInterviewId && (
+              <div className="space-y-6">
+                {answersLoading ? (
+                  <div className={`${isDarkMode ? 'bg-white/10 border border-white/10 backdrop-blur' : 'bg-white'} rounded-2xl shadow-lg p-12 text-center`}>
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+                    <p className={`text-lg ${isDarkMode ? 'text-white' : 'text-gray-600'}`}>Loading performance data...</p>
+                  </div>
+                ) : groupAnswersByCandidate().length > 0 ? (
+                  <>
+                    {/* Performance Overview Cards */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                      <div className={`${isDarkMode ? 'bg-white/10 border border-white/10 backdrop-blur' : 'bg-white'} rounded-2xl shadow-lg p-6`}>
+                        <div className="flex items-center justify-between">
                           <div>
-                            <div className="font-medium text-gray-900">{c.candidateName}</div>
-                            <div className="text-sm text-gray-600">{c.candidateEmail}</div>
+                            <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>Total Candidates</p>
+                            <p className={`text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                              {groupAnswersByCandidate().length}
+                            </p>
                           </div>
-                          <div className="text-right">
-                            <div className="text-sm text-gray-600">Avg Score</div>
-                            <div className="text-lg font-semibold text-purple-600">{(c.averageScore || 0).toFixed(1)}/4</div>
+                          <div className="p-3 bg-blue-100 rounded-xl">
+                            <Users className="h-6 w-6 text-blue-600" />
                           </div>
-                        </button>
+                        </div>
+                      </div>
 
-                        {expandedCandidates[c.candidateId] && (
-                          <div className="p-4 border-t border-gray-200">
-                            {/* Transcript */}
-                            <div className="space-y-3">
-                              {answers
-                                .filter(a => a.candidateId === c.candidateId)
-                                .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
-                                .map((a, idx) => (
-                                  <div key={idx} className="bg-gray-50 rounded-md p-3">
-                                    <div className="text-xs text-gray-500 mb-1">
-                                      {a.roundTitle ? `${a.roundTitle} • ` : ''}{a.type?.toUpperCase()} • {new Date(a.timestamp).toLocaleString()}
-                                    </div>
-                                    <div className="text-sm text-gray-900 font-medium">Q: {a.question}</div>
-                                    <div className="text-sm text-gray-700 mt-1 whitespace-pre-wrap">A: {a.answer}</div>
-                                    {a.aiEvaluation && (
-                                      <div className="mt-2 bg-white rounded border border-gray-200 p-2">
-                                        <div className="text-xs text-gray-500">AI Feedback</div>
-                                        <div className="text-sm text-gray-900">Score: {a.aiEvaluation.score}/4</div>
-                                        {a.aiEvaluation.feedback && (
-                                          <div className="text-sm text-gray-700 mt-1">{a.aiEvaluation.feedback}</div>
-                                        )}
-                                        {(a.aiEvaluation.strengths?.length || 0) > 0 && (
-                                          <div className="text-xs text-gray-600 mt-2">
-                                            <span className="font-medium text-gray-700">Strengths:</span> {a.aiEvaluation.strengths.slice(0,3).join(', ')}
+                      <div className={`${isDarkMode ? 'bg-white/10 border border-white/10 backdrop-blur' : 'bg-white'} rounded-2xl shadow-lg p-6`}>
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>Average Score</p>
+                            <p className={`text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                              {(groupAnswersByCandidate().reduce((sum, c) => sum + (c.averageScore || 0), 0) / groupAnswersByCandidate().length).toFixed(1)}/4
+                            </p>
+                          </div>
+                          <div className="p-3 bg-green-100 rounded-xl">
+                            <BarChart3 className="h-6 w-6 text-green-600" />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className={`${isDarkMode ? 'bg-white/10 border border-white/10 backdrop-blur' : 'bg-white'} rounded-2xl shadow-lg p-6`}>
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>Total Answers</p>
+                            <p className={`text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                              {answers.length}
+                            </p>
+                          </div>
+                          <div className="p-3 bg-purple-100 rounded-xl">
+                            <FileText className="h-6 w-6 text-purple-600" />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className={`${isDarkMode ? 'bg-white/10 border border-white/10 backdrop-blur' : 'bg-white'} rounded-2xl shadow-lg p-6`}>
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>Completion Rate</p>
+                            <p className={`text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                              {Math.round((answers.length / (groupAnswersByCandidate().length * 5)) * 100)}%
+                            </p>
+                          </div>
+                          <div className="p-3 bg-orange-100 rounded-xl">
+                            <CheckCircle className="h-6 w-6 text-orange-600" />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Candidate Performance Cards */}
+                    <div className={`${isDarkMode ? 'bg-white/10 border border-white/10 backdrop-blur' : 'bg-white'} rounded-2xl shadow-lg p-6`}>
+                      <h3 className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'} mb-6`}>
+                        👥 Candidate Performance Analysis
+                      </h3>
+                      
+                      <div className="space-y-4">
+                        {groupAnswersByCandidate().map((candidate, index) => (
+                          <div key={candidate.candidateId} className={`${isDarkMode ? 'bg-gray-800/50 border border-gray-700' : 'bg-gray-50 border border-gray-200'} rounded-xl p-6 transition-all duration-200 hover:shadow-lg`}>
+                            <div className="flex items-center justify-between mb-4">
+                              <div className="flex items-center space-x-4">
+                                <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-bold ${
+                                  candidate.averageScore >= 3 ? 'bg-green-500' : 
+                                  candidate.averageScore >= 2 ? 'bg-yellow-500' : 'bg-red-500'
+                                }`}>
+                                  {candidate.candidateName.charAt(0).toUpperCase()}
+                                </div>
+                                <div>
+                                  <h4 className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                                    {candidate.candidateName}
+                                  </h4>
+                                  <p className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                                    {candidate.candidateEmail}
+                                  </p>
+                                </div>
+                              </div>
+                              
+                              <div className="flex items-center space-x-6">
+                                <div className="text-center">
+                                  <div className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                                    {(candidate.averageScore || 0).toFixed(1)}/4
+                                  </div>
+                                  <div className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Avg Score</div>
+                                </div>
+                                
+                                <button
+                                  onClick={() => toggleExpand(candidate.candidateId)}
+                                  className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+                                    expandedCandidates[candidate.candidateId]
+                                      ? isDarkMode 
+                                        ? 'bg-purple-600 text-white' 
+                                        : 'bg-purple-600 text-white'
+                                      : isDarkMode 
+                                        ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' 
+                                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                  }`}
+                                >
+                                  {expandedCandidates[candidate.candidateId] ? '📖 Hide Details' : '📖 View Details'}
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Performance Bar */}
+                            <div className="mb-4">
+                              <div className="flex justify-between text-sm mb-1">
+                                <span className={isDarkMode ? 'text-gray-300' : 'text-gray-600'}>Performance</span>
+                                <span className={isDarkMode ? 'text-gray-300' : 'text-gray-600'}>
+                                  {Math.round((candidate.averageScore / 4) * 100)}%
+                                </span>
+                              </div>
+                              <div className={`w-full ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'} rounded-full h-3`}>
+                                <div 
+                                  className={`h-3 rounded-full transition-all duration-1000 ${
+                                    candidate.averageScore >= 3 ? 'bg-gradient-to-r from-green-500 to-green-600' : 
+                                    candidate.averageScore >= 2 ? 'bg-gradient-to-r from-yellow-500 to-yellow-600' : 
+                                    'bg-gradient-to-r from-red-500 to-red-600'
+                                  }`}
+                                  style={{ width: `${(candidate.averageScore / 4) * 100}%` }}
+                                ></div>
+                              </div>
+                            </div>
+
+                            {/* Expanded Details */}
+                            {expandedCandidates[candidate.candidateId] && (
+                              <div className={`${isDarkMode ? 'bg-gray-800/50 border border-gray-700' : 'bg-white border border-gray-200'} rounded-xl p-6 mt-4`}>
+                                <h5 className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'} mb-4`}>
+                                  📝 Detailed Interview Responses
+                                </h5>
+                                
+                                <div className="space-y-4">
+                                  {answers
+                                    .filter(a => a.candidateId === candidate.candidateId)
+                                    .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
+                                    .map((answer, idx) => (
+                                      <div key={idx} className={`${isDarkMode ? 'bg-gray-700/50 border border-gray-600' : 'bg-gray-50 border border-gray-200'} rounded-lg p-4`}>
+                                        <div className="flex items-center justify-between mb-3">
+                                          <div className="flex items-center space-x-2">
+                                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                              answer.roundTitle ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'
+                                            }`}>
+                                              {answer.roundTitle || 'Round'}
+                                            </span>
+                                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                              answer.type === 'voice' ? 'bg-purple-100 text-purple-800' : 'bg-green-100 text-green-800'
+                                            }`}>
+                                              {answer.type?.toUpperCase() || 'TEXT'}
+                                            </span>
                                           </div>
-                                        )}
-                                        {(a.aiEvaluation.improvements?.length || 0) > 0 && (
-                                          <div className="text-xs text-gray-600 mt-1">
-                                            <span className="font-medium text-gray-700">Improvements:</span> {a.aiEvaluation.improvements.slice(0,3).join(', ')}
+                                          <div className="text-sm text-gray-500">
+                                            {new Date(answer.timestamp).toLocaleString()}
+                                          </div>
+                                        </div>
+                                        
+                                        <div className="mb-3">
+                                          <h6 className={`font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'} mb-1`}>
+                                            Q: {answer.question}
+                                          </h6>
+                                          <p className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'} whitespace-pre-wrap`}>
+                                            A: {answer.answer}
+                                          </p>
+                                        </div>
+
+                                        {answer.aiEvaluation && (
+                                          <div className={`${isDarkMode ? 'bg-gray-800 border border-gray-600' : 'bg-white border border-gray-200'} rounded-lg p-4`}>
+                                            <div className="flex items-center justify-between mb-3">
+                                              <h6 className={`font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                                                🤖 AI Evaluation
+                                              </h6>
+                                              <div className={`px-3 py-1 rounded-full text-sm font-bold ${
+                                                answer.aiEvaluation.score >= 3 ? 'bg-green-100 text-green-800' : 
+                                                answer.aiEvaluation.score >= 2 ? 'bg-yellow-100 text-yellow-800' : 
+                                                'bg-red-100 text-red-800'
+                                              }`}>
+                                                {answer.aiEvaluation.score}/4
+                                              </div>
+                                            </div>
+                                            
+                                            {answer.aiEvaluation.feedback && (
+                                              <p className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'} mb-3`}>
+                                                {answer.aiEvaluation.feedback}
+                                              </p>
+                                            )}
+                                            
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                              {answer.aiEvaluation.strengths?.length > 0 && (
+                                                <div>
+                                                  <h6 className={`text-sm font-semibold ${isDarkMode ? 'text-green-400' : 'text-green-700'} mb-2`}>
+                                                    ✅ Strengths
+                                                  </h6>
+                                                  <ul className="space-y-1">
+                                                    {answer.aiEvaluation.strengths.slice(0, 3).map((strength, i) => (
+                                                      <li key={i} className={`text-xs ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                                                        • {strength}
+                                                      </li>
+                                                    ))}
+                                                  </ul>
+                                                </div>
+                                              )}
+                                              
+                                              {answer.aiEvaluation.improvements?.length > 0 && (
+                                                <div>
+                                                  <h6 className={`text-sm font-semibold ${isDarkMode ? 'text-orange-400' : 'text-orange-700'} mb-2`}>
+                                                    🎯 Improvements
+                                                  </h6>
+                                                  <ul className="space-y-1">
+                                                    {answer.aiEvaluation.improvements.slice(0, 3).map((improvement, i) => (
+                                                      <li key={i} className={`text-xs ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                                                        • {improvement}
+                                                      </li>
+                                                    ))}
+                                                  </ul>
+                                                </div>
+                                              )}
+                                            </div>
                                           </div>
                                         )}
                                       </div>
-                                    )}
-                                  </div>
-                                ))}
-                            </div>
+                                    ))}
+                                </div>
+                              </div>
+                            )}
                           </div>
-                        )}
+                        ))}
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  </>
                 ) : (
-                  <div className="text-sm text-gray-500">No candidate answers yet.</div>
-                )
-              ) : (
-                <div className="text-sm text-gray-500">Select an interview to view answers.</div>
-              )}
-            </div>
+                  <div className={`${isDarkMode ? 'bg-white/10 border border-white/10 backdrop-blur' : 'bg-white'} rounded-2xl shadow-lg p-12 text-center`}>
+                    <div className="text-6xl mb-4">📊</div>
+                    <h3 className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'} mb-2`}>
+                      No Performance Data Yet
+                    </h3>
+                    <p className={`text-lg ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                      Candidates haven't started this interview yet. Share the interview link to begin collecting performance data.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {!selectedInterviewId && (
+              <div className={`${isDarkMode ? 'bg-white/10 border border-white/10 backdrop-blur' : 'bg-white'} rounded-2xl shadow-lg p-12 text-center`}>
+                <div className="text-6xl mb-4">🎯</div>
+                <h3 className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'} mb-2`}>
+                  Select an Interview
+                </h3>
+                <p className={`text-lg ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                  Choose an interview from the dropdown above to view detailed performance analytics and candidate insights.
+                </p>
+              </div>
+            )}
           </div>
         )}
 
