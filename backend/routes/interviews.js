@@ -6,7 +6,7 @@ const axios = require('axios');
 
 // OpenRouter API configuration
 const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
-const DEEPSEEK_MODEL = 'deepseek/deepseek-chat-v3.1:free';
+const KIMI_MODEL = 'moonshotai/kimi-vl-a3b-thinking';
 
 // Generate AI interview
 router.post('/generate', auth, async (req, res) => {
@@ -51,7 +51,7 @@ If any information is missing, make reasonable assumptions based on the context.
     let extractionResponse;
     try {
       extractionResponse = await axios.post(OPENROUTER_API_URL, {
-        model: DEEPSEEK_MODEL,
+        model: KIMI_MODEL,
         messages: [
           {
             role: 'system',
@@ -233,12 +233,12 @@ Make sure the JSON is valid and properly formatted with all 5 rounds.`;
     console.log('🤖 [INTERVIEW GENERATE] Calling OpenRouter API...');
     console.log('🔑 [INTERVIEW GENERATE] API Key present:', !!process.env.OPENROUTER_API_KEY);
     console.log('🌐 [INTERVIEW GENERATE] API URL:', OPENROUTER_API_URL);
-    console.log('🎯 [INTERVIEW GENERATE] Model:', DEEPSEEK_MODEL);
+    console.log('🎯 [INTERVIEW GENERATE] Model:', KIMI_MODEL);
 
     let aiResponse;
     try {
       aiResponse = await axios.post(OPENROUTER_API_URL, {
-      model: DEEPSEEK_MODEL,
+      model: KIMI_MODEL,
       messages: [
         {
           role: 'system',
@@ -534,7 +534,7 @@ If no unauthorized devices are detected, set devicesDetected to false.`;
     try {
       // Try OpenRouter API for device detection
       const aiResponse = await axios.post(OPENROUTER_API_URL, {
-        model: DEEPSEEK_MODEL,
+        model: KIMI_MODEL,
         messages: [
           {
             role: 'system',
@@ -1443,7 +1443,7 @@ Score: 1-4 (1=Needs Improvement, 2=Satisfactory, 3=Good, 4=Excellent)`;
 
     console.log('🤖 [EVALUATE ANSWER] Calling AI for evaluation...');
     const aiResponse = await axios.post(OPENROUTER_API_URL, {
-      model: DEEPSEEK_MODEL,
+      model: KIMI_MODEL,
       messages: [
         {
           role: 'system',

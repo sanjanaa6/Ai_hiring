@@ -32,14 +32,15 @@ This guide will help you set up the AI integration using OpenRouter with Gemini 
 
 ### 3. Model Configuration
 
-The AI service is configured to use Google's Gemini Pro model by default. You can modify the model in `src/services/aiService.js`:
+The AI service is configured to use Moonshot AI's Kimi VL A3B model by default. You can modify the model in `src/services/aiService.js`:
 
 ```javascript
-const GEMINI_MODEL = 'google/gemini-pro';
+const KIMI_MODEL = 'moonshotai/kimi-vl-a3b-thinking';
 ```
 
 Available models on OpenRouter:
-- `google/gemini-pro` - Google's Gemini Pro (recommended)
+- `moonshotai/kimi-vl-a3b-thinking` - Moonshot AI's Kimi VL A3B (current)
+- `google/gemini-pro` - Google's Gemini Pro
 - `google/gemini-pro-vision` - For image analysis
 - `anthropic/claude-3-sonnet` - Anthropic's Claude
 - `openai/gpt-4` - OpenAI's GPT-4

@@ -351,91 +351,229 @@ const RecruiterDashboard = () => {
             </button>
           </div>
 
-          {/* Create Job Modal */}
+          {/* Create Job Modal - Full Page */}
           {showCreateJob && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-              <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-gray-200">
-                <div className="flex justify-between items-center mb-8">
-                  <div>
-                    <h2 className="text-2xl font-bold text-gray-900 mb-2">Create Job with AI Interview</h2>
-                    <p className="text-gray-600">Describe the job you want to create and AI will generate everything including interview questions</p>
-                  </div>
-                  <button
-                    onClick={() => setShowCreateJob(false)}
-                    className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
-                  >
-                    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
-
-                <div className="space-y-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-3">
-                      Job Description Prompt *
-                    </label>
-                    <p className="text-sm text-gray-500 mb-4">
-                      Describe the job you want to hire for. Be as detailed as possible - include job title, level, requirements, responsibilities, company info, etc. AI will extract all details and create tailored interview questions.
-                    </p>
-                    <textarea
-                      value={jobPrompt}
-                      onChange={(e) => setJobPrompt(e.target.value)}
-                      rows={12}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors resize-none"
-                      placeholder="Example: I need to hire a Senior React Developer for our fintech startup. The role involves building modern web applications using React, TypeScript, and Node.js. Requirements include 5+ years of React experience, strong knowledge of JavaScript/TypeScript, experience with Redux, REST APIs, and Git. The person will work remotely, salary range $100k-$140k. They'll be responsible for developing new features, maintaining existing code, and mentoring junior developers..."
-                    />
-                    <div className="mt-2 text-right text-sm text-gray-500">
-                      {jobPrompt.length} characters (minimum 10 required)
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 overflow-hidden"
+            >
+              {/* Backdrop */}
+              <div className={`absolute inset-0 ${isDarkMode ? 'bg-gray-900/95 backdrop-blur-sm' : 'bg-white/95 backdrop-blur-sm'}`} />
+              
+              {/* Main Content */}
+              <div className="relative h-full flex flex-col">
+                {/* Header */}
+                <div className={`${isDarkMode ? 'bg-gray-800/50 border-gray-700' : 'bg-white/50 border-gray-200'} border-b backdrop-blur-md`}>
+                  <div className="max-w-6xl mx-auto px-6 py-6">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-4">
+                        <div className={`p-3 rounded-xl ${isDarkMode ? 'bg-purple-500/20' : 'bg-gradient-to-br from-purple-500 to-blue-500'}`}>
+                          <Sparkles className={`h-8 w-8 ${isDarkMode ? 'text-purple-400' : 'text-white'}`} />
+                        </div>
+                        <div>
+                          <h1 className={`text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                            Create AI-Powered Interview
+                          </h1>
+                          <p className={`${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mt-1`}>
+                            Describe your ideal candidate and let AI generate everything
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => setShowCreateJob(false)}
+                        className={`p-3 rounded-xl transition-all duration-200 ${isDarkMode ? 'text-gray-400 hover:text-white hover:bg-gray-700/50' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}
+                      >
+                        <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
                     </div>
                   </div>
+                </div>
 
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <div className="flex items-start space-x-3">
-                      <svg className="h-5 w-5 text-blue-600 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      <div>
-                        <h3 className="text-sm font-medium text-blue-800 mb-1">AI will automatically extract:</h3>
-                        <ul className="text-sm text-blue-700 space-y-1">
-                          <li>• Job title and level (Junior/Mid/Senior/Lead)</li>
-                          <li>• Job description and requirements</li>
-                          <li>• Company information</li>
-                          <li>• Appropriate interview duration</li>
-                          <li>• 5 tailored interview rounds with specific questions</li>
-                        </ul>
+                {/* Content Area */}
+                <div className="flex-1 overflow-y-auto">
+                  <div className="max-w-6xl mx-auto px-6 py-8">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                      {/* Main Form */}
+                      <div className="lg:col-span-2">
+                        <motion.div
+                          initial={{ y: 20, opacity: 0 }}
+                          animate={{ y: 0, opacity: 1 }}
+                          transition={{ delay: 0.1 }}
+                          className={`${isDarkMode ? 'bg-gray-800/50 border-gray-700' : 'bg-white/50 border-gray-200'} rounded-2xl border backdrop-blur-md p-8`}
+                        >
+                          <div className="mb-6">
+                            <label className={`block text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'} mb-3`}>
+                              Job Description Prompt *
+                            </label>
+                            <p className={`${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-6 leading-relaxed`}>
+                              Describe the job you want to hire for. Be as detailed as possible - include job title, level, requirements, responsibilities, company info, etc. AI will extract all details and create tailored interview questions.
+                            </p>
+                            <div className="relative">
+                              <textarea
+                                value={jobPrompt}
+                                onChange={(e) => setJobPrompt(e.target.value)}
+                                rows={16}
+                                className={`w-full px-6 py-4 rounded-xl border-2 transition-all duration-200 resize-none focus:outline-none ${
+                                  isDarkMode 
+                                    ? 'bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20' 
+                                    : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20'
+                                }`}
+                                placeholder="Example: I need to hire a Senior React Developer for our fintech startup. The role involves building modern web applications using React, TypeScript, and Node.js. Requirements include 5+ years of React experience, strong knowledge of JavaScript/TypeScript, experience with Redux, REST APIs, and Git. The person will work remotely, salary range $100k-$140k. They'll be responsible for developing new features, maintaining existing code, and mentoring junior developers..."
+                              />
+                              <div className={`absolute bottom-4 right-4 text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                                {jobPrompt.length} characters (minimum 10 required)
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Action Buttons */}
+                          <div className="flex justify-end space-x-4">
+                            <button
+                              onClick={() => setShowCreateJob(false)}
+                              className={`px-8 py-3 rounded-xl font-semibold transition-all duration-200 ${
+                                isDarkMode 
+                                  ? 'text-gray-300 hover:text-white hover:bg-gray-700/50' 
+                                  : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
+                              }`}
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              onClick={generateAIInterview}
+                              disabled={loading || jobPrompt.trim().length < 10}
+                              className="flex items-center space-x-3 px-8 py-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 disabled:from-gray-300 disabled:to-gray-300 text-white rounded-xl transition-all duration-200 font-semibold transform hover:scale-105 disabled:transform-none disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
+                            >
+                              {loading ? (
+                                <>
+                                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                                  <span>Creating AI Interview...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Sparkles className="h-5 w-5" />
+                                  <span>Generate AI Interview</span>
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        </motion.div>
+                      </div>
+
+                      {/* Sidebar */}
+                      <div className="space-y-6">
+                        {/* AI Features */}
+                        <motion.div
+                          initial={{ y: 20, opacity: 0 }}
+                          animate={{ y: 0, opacity: 1 }}
+                          transition={{ delay: 0.2 }}
+                          className={`${isDarkMode ? 'bg-gradient-to-br from-blue-500/20 to-purple-500/20 border-blue-500/30' : 'bg-gradient-to-br from-blue-50 to-purple-50 border-blue-200'} rounded-2xl border backdrop-blur-md p-6`}
+                        >
+                          <div className="flex items-center space-x-3 mb-4">
+                            <div className={`p-2 rounded-lg ${isDarkMode ? 'bg-blue-500/30' : 'bg-blue-100'}`}>
+                              <Bot className={`h-6 w-6 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} />
+                            </div>
+                            <h3 className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                              AI Magic ✨
+                            </h3>
+                          </div>
+                          <ul className={`space-y-3 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                            <li className="flex items-start space-x-3">
+                              <CheckCircle className={`h-5 w-5 mt-0.5 ${isDarkMode ? 'text-green-400' : 'text-green-600'}`} />
+                              <span className="text-sm">Extract job title & level automatically</span>
+                            </li>
+                            <li className="flex items-start space-x-3">
+                              <CheckCircle className={`h-5 w-5 mt-0.5 ${isDarkMode ? 'text-green-400' : 'text-green-600'}`} />
+                              <span className="text-sm">Generate 5 tailored interview rounds</span>
+                            </li>
+                            <li className="flex items-start space-x-3">
+                              <CheckCircle className={`h-5 w-5 mt-0.5 ${isDarkMode ? 'text-green-400' : 'text-green-600'}`} />
+                              <span className="text-sm">Create role-specific questions</span>
+                            </li>
+                            <li className="flex items-start space-x-3">
+                              <CheckCircle className={`h-5 w-5 mt-0.5 ${isDarkMode ? 'text-green-400' : 'text-green-600'}`} />
+                              <span className="text-sm">Optimize interview duration</span>
+                            </li>
+                            <li className="flex items-start space-x-3">
+                              <CheckCircle className={`h-5 w-5 mt-0.5 ${isDarkMode ? 'text-green-400' : 'text-green-600'}`} />
+                              <span className="text-sm">Include company context</span>
+                            </li>
+                          </ul>
+                        </motion.div>
+
+                        {/* Tips */}
+                        <motion.div
+                          initial={{ y: 20, opacity: 0 }}
+                          animate={{ y: 0, opacity: 1 }}
+                          transition={{ delay: 0.3 }}
+                          className={`${isDarkMode ? 'bg-gray-800/50 border-gray-700' : 'bg-white/50 border-gray-200'} rounded-2xl border backdrop-blur-md p-6`}
+                        >
+                          <div className="flex items-center space-x-3 mb-4">
+                            <div className={`p-2 rounded-lg ${isDarkMode ? 'bg-yellow-500/30' : 'bg-yellow-100'}`}>
+                              <svg className={`h-6 w-6 ${isDarkMode ? 'text-yellow-400' : 'text-yellow-600'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                              </svg>
+                            </div>
+                            <h3 className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                              Pro Tips
+                            </h3>
+                          </div>
+                          <ul className={`space-y-3 text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                            <li className="flex items-start space-x-3">
+                              <span className={`w-2 h-2 rounded-full mt-2 ${isDarkMode ? 'bg-purple-400' : 'bg-purple-500'}`}></span>
+                              <span>Include specific technologies and frameworks</span>
+                            </li>
+                            <li className="flex items-start space-x-3">
+                              <span className={`w-2 h-2 rounded-full mt-2 ${isDarkMode ? 'bg-purple-400' : 'bg-purple-500'}`}></span>
+                              <span>Mention years of experience required</span>
+                            </li>
+                            <li className="flex items-start space-x-3">
+                              <span className={`w-2 h-2 rounded-full mt-2 ${isDarkMode ? 'bg-purple-400' : 'bg-purple-500'}`}></span>
+                              <span>Describe company culture and values</span>
+                            </li>
+                            <li className="flex items-start space-x-3">
+                              <span className={`w-2 h-2 rounded-full mt-2 ${isDarkMode ? 'bg-purple-400' : 'bg-purple-500'}`}></span>
+                              <span>Include salary range and benefits</span>
+                            </li>
+                            <li className="flex items-start space-x-3">
+                              <span className={`w-2 h-2 rounded-full mt-2 ${isDarkMode ? 'bg-purple-400' : 'bg-purple-500'}`}></span>
+                              <span>Specify remote/hybrid/onsite work</span>
+                            </li>
+                          </ul>
+                        </motion.div>
+
+                        {/* Example */}
+                        <motion.div
+                          initial={{ y: 20, opacity: 0 }}
+                          animate={{ y: 0, opacity: 1 }}
+                          transition={{ delay: 0.4 }}
+                          className={`${isDarkMode ? 'bg-gray-800/50 border-gray-700' : 'bg-white/50 border-gray-200'} rounded-2xl border backdrop-blur-md p-6`}
+                        >
+                          <div className="flex items-center space-x-3 mb-4">
+                            <div className={`p-2 rounded-lg ${isDarkMode ? 'bg-green-500/30' : 'bg-green-100'}`}>
+                              <FileText className={`h-6 w-6 ${isDarkMode ? 'text-green-400' : 'text-green-600'}`} />
+                            </div>
+                            <h3 className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                              Example Output
+                            </h3>
+                          </div>
+                          <div className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} space-y-2`}>
+                            <p><strong>Job Title:</strong> Senior React Developer</p>
+                            <p><strong>Duration:</strong> 25-30 minutes</p>
+                            <p><strong>Rounds:</strong> 5 interview rounds</p>
+                            <p><strong>Questions:</strong> 15+ tailored questions</p>
+                            <p><strong>Focus:</strong> Technical skills, problem-solving, culture fit</p>
+                          </div>
+                        </motion.div>
                       </div>
                     </div>
                   </div>
                 </div>
-
-                <div className="flex justify-end space-x-3 mt-8">
-                  <button
-                    onClick={() => setShowCreateJob(false)}
-                    className="px-6 py-2 text-gray-600 hover:text-gray-800 transition-colors font-medium"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={generateAIInterview}
-                    disabled={loading || jobPrompt.trim().length < 10}
-                    className="flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 disabled:from-gray-300 disabled:to-gray-300 text-white rounded-lg transition-all duration-200 font-semibold transform hover:scale-105 disabled:transform-none"
-                  >
-                    {loading ? (
-                      <>
-                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                        <span>Creating AI Interview...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="h-5 w-5" />
-                        <span>Generate AI Interview</span>
-                      </>
-                    )}
-                  </button>
-                </div>
               </div>
-            </div>
+            </motion.div>
           )}
 
           {/* Generated Interview Success */}

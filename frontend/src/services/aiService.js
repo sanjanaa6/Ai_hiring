@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
-const DEEPSEEK_MODEL = 'deepseek/deepseek-chat-v3.1:free';
+const KIMI_MODEL = 'moonshotai/kimi-vl-a3b-thinking';
 
 class AIService {
   constructor() {
@@ -26,7 +26,7 @@ class AIService {
       const systemPrompt = this.buildSystemPrompt(context);
       
       const response = await this.client.post('', {
-        model: DEEPSEEK_MODEL,
+        model: KIMI_MODEL,
         messages: [
           {
             role: 'system',

@@ -45,12 +45,13 @@ Visit: `http://localhost:3000/openrouter-test`
 ## 🔧 **Technical Details**
 
 ### **Current Configuration:**
-- **Model**: Google Gemini Pro (`google/gemini-pro`)
+- **Model**: Kimi VL A3B Thinking (`moonshotai/kimi-vl-a3b-thinking`)
 - **API Endpoint**: `https://openrouter.ai/api/v1/chat/completions`
 - **Service**: `aiService.js` handles all API calls
 
 ### **Available Models on OpenRouter:**
-- `google/gemini-pro` - Google's Gemini Pro (current)
+- `moonshotai/kimi-vl-a3b-thinking` - Moonshot AI's Kimi VL A3B (current)
+- `google/gemini-pro` - Google's Gemini Pro
 - `google/gemini-pro-vision` - For image analysis
 - `anthropic/claude-3-sonnet` - Anthropic's Claude
 - `openai/gpt-4` - OpenAI's GPT-4
@@ -59,14 +60,14 @@ Visit: `http://localhost:3000/openrouter-test`
 ### **Changing Models:**
 Edit `frontend/src/services/aiService.js`:
 ```javascript
-const GEMINI_MODEL = 'google/gemini-pro'; // Change this line
+const KIMI_MODEL = 'moonshotai/kimi-vl-a3b-thinking'; // Change this line
 ```
 
 ## 💰 **Pricing & Credits**
 
 ### **OpenRouter Pricing:**
 - Pay-per-use model
-- Gemini Pro: ~$0.0005 per 1K tokens
+- Kimi VL A3B: Free tier available
 - Very cost-effective for most use cases
 - Monitor usage in OpenRouter dashboard
 
