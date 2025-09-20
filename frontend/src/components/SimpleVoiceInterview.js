@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Camera, Mic, MicOff, Play, Pause, AlertTriangle, CheckCircle, Clock, Volume2, SkipForward } from 'lucide-react';
+import { Camera, Mic, MicOff, Play, Pause, AlertTriangle, CheckCircle, Clock, Volume2, SkipForward, MessageSquare, BarChart3, TrendingUp } from 'lucide-react';
 
 const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError }) => {
   const [step, setStep] = useState('setup'); // setup, device-check, interview, round-complete, round-selection, complete
@@ -1095,77 +1095,138 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
             </p>
           </div>
 
-          {/* Round Evaluation */}
+          {/* Round Evaluation - Modern Card Layout */}
           {roundEvaluation && (
-            <div className="space-y-6">
-              {/* Overall Score */}
-              <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg p-6">
-                <div className="text-center">
-                  <h3 className="text-2xl font-bold text-gray-900 mb-2">Overall Score</h3>
-                  <div className="text-6xl font-bold text-blue-600 mb-2">
-                    {roundEvaluation.overallScore}%
+            <div className="max-w-4xl mx-auto">
+              {/* Header with Score */}
+              <div className="relative overflow-hidden bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 rounded-3xl p-8 mb-8 shadow-2xl">
+                <div className="absolute inset-0 bg-black opacity-10"></div>
+                <div className="relative z-10 text-center text-white">
+                  <div className="inline-flex items-center justify-center w-24 h-24 bg-white bg-opacity-20 rounded-full mb-4">
+                    <span className="text-4xl font-bold">{roundEvaluation.overallScore}%</span>
                   </div>
-                  <p className="text-gray-600">{roundEvaluation.recommendation}</p>
+                  <h2 className="text-3xl font-bold mb-2">Round Complete</h2>
+                  <p className="text-indigo-100 text-lg">{roundEvaluation.recommendation}</p>
                 </div>
+                <div className="absolute top-0 right-0 w-32 h-32 bg-white opacity-5 rounded-full -translate-y-16 translate-x-16"></div>
+                <div className="absolute bottom-0 left-0 w-24 h-24 bg-white opacity-5 rounded-full translate-y-12 -translate-x-12"></div>
               </div>
 
-              {/* Feedback */}
-              <div className="bg-white border border-gray-200 rounded-lg p-6">
-                <h3 className="text-xl font-semibold text-gray-900 mb-4">📝 Feedback</h3>
-                <p className="text-gray-700 leading-relaxed">{roundEvaluation.feedback}</p>
-              </div>
-
-              {/* Strengths and Areas for Improvement */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Strengths */}
-                <div className="bg-green-50 border border-green-200 rounded-lg p-6">
-                  <h3 className="text-xl font-semibold text-green-800 mb-4">✅ Strengths</h3>
-                  <ul className="space-y-2">
-                    {roundEvaluation.strengths?.map((strength, index) => (
-                      <li key={index} className="flex items-start space-x-2">
-                        <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
-                        <span className="text-green-700">{strength}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                {/* Areas for Improvement */}
-                <div className="bg-orange-50 border border-orange-200 rounded-lg p-6">
-                  <h3 className="text-xl font-semibold text-orange-800 mb-4">🎯 Areas for Improvement</h3>
-                  <ul className="space-y-2">
-                    {roundEvaluation.areasForImprovement?.map((area, index) => (
-                      <li key={index} className="flex items-start space-x-2">
-                        <AlertTriangle className="h-5 w-5 text-orange-600 mt-0.5 flex-shrink-0" />
-                        <span className="text-orange-700">{area}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-
-              {/* Individual Question Scores */}
-              {roundEvaluation.individualScores && (
-                <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
-                  <h3 className="text-xl font-semibold text-gray-900 mb-4">📊 Question Breakdown</h3>
-                  <div className="space-y-3">
-                    {roundEvaluation.individualScores.map((score, index) => (
-                      <div key={index} className="flex items-center justify-between bg-white rounded-lg p-3">
-                        <span className="text-gray-700">Question {index + 1}</span>
-                        <div className="flex items-center space-x-2">
-                          <div className="w-24 bg-gray-200 rounded-full h-2">
-                            <div
-                              className="bg-blue-600 h-2 rounded-full"
-                              style={{ width: `${score}%` }}
-                            ></div>
-                          </div>
-                          <span className="text-sm font-medium text-gray-900 w-12">{score}%</span>
-                        </div>
+              {/* Main Content Grid */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                
+                {/* Left Column - Feedback */}
+                <div className="lg:col-span-2 space-y-6">
+                  {/* Feedback Card */}
+                  <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
+                    <div className="flex items-center mb-6">
+                      <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mr-4">
+                        <MessageSquare className="h-6 w-6 text-blue-600" />
                       </div>
-                    ))}
+                      <h3 className="text-2xl font-bold text-gray-900">Performance Review</h3>
+                    </div>
+                    <div className="prose prose-lg max-w-none">
+                      <p className="text-gray-700 leading-relaxed text-lg">{roundEvaluation.feedback}</p>
+                    </div>
+                  </div>
+
+                  {/* Question Performance */}
+                  {roundEvaluation.individualScores && (
+                    <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
+                      <div className="flex items-center mb-6">
+                        <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center mr-4">
+                          <BarChart3 className="h-6 w-6 text-purple-600" />
+                        </div>
+                        <h3 className="text-2xl font-bold text-gray-900">Question Performance</h3>
+                      </div>
+                      <div className="space-y-4">
+                        {roundEvaluation.individualScores.map((score, index) => (
+                          <div key={index} className="group">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="font-semibold text-gray-800">Question {index + 1}</span>
+                              <span className="text-2xl font-bold text-gray-900">{score}%</span>
+                            </div>
+                            <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                              <div
+                                className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full transition-all duration-1000 ease-out"
+                                style={{ width: `${score}%` }}
+                              ></div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Right Column - Analysis */}
+                <div className="space-y-6">
+                  
+                  {/* Strengths */}
+                  <div className="bg-gradient-to-br from-emerald-50 to-green-50 rounded-2xl shadow-lg border border-emerald-100 p-6">
+                    <div className="flex items-center mb-4">
+                      <div className="w-10 h-10 bg-emerald-500 rounded-lg flex items-center justify-center mr-3">
+                        <CheckCircle className="h-5 w-5 text-white" />
+                      </div>
+                      <h3 className="text-xl font-bold text-emerald-800">Strengths</h3>
+                    </div>
+                    <div className="space-y-3">
+                      {roundEvaluation.strengths?.length > 0 ? (
+                        roundEvaluation.strengths.map((strength, index) => (
+                          <div key={index} className="flex items-start space-x-3">
+                            <div className="w-2 h-2 bg-emerald-500 rounded-full mt-2 flex-shrink-0"></div>
+                            <span className="text-emerald-700 text-sm leading-relaxed">{strength}</span>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-emerald-600 text-sm italic">No specific strengths identified</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Areas for Improvement */}
+                  <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl shadow-lg border border-amber-100 p-6">
+                    <div className="flex items-center mb-4">
+                      <div className="w-10 h-10 bg-amber-500 rounded-lg flex items-center justify-center mr-3">
+                        <AlertTriangle className="h-5 w-5 text-white" />
+                      </div>
+                      <h3 className="text-xl font-bold text-amber-800">Focus Areas</h3>
+                    </div>
+                    <div className="space-y-3">
+                      {roundEvaluation.areasForImprovement?.map((area, index) => (
+                        <div key={index} className="flex items-start space-x-3">
+                          <div className="w-2 h-2 bg-amber-500 rounded-full mt-2 flex-shrink-0"></div>
+                          <span className="text-amber-700 text-sm leading-relaxed">{area}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Performance Summary */}
+                  <div className="bg-gradient-to-br from-slate-50 to-gray-50 rounded-2xl shadow-lg border border-slate-100 p-6">
+                    <div className="flex items-center mb-4">
+                      <div className="w-10 h-10 bg-slate-500 rounded-lg flex items-center justify-center mr-3">
+                        <TrendingUp className="h-5 w-5 text-white" />
+                      </div>
+                      <h3 className="text-xl font-bold text-slate-800">Summary</h3>
+                    </div>
+                    <div className="space-y-3 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-slate-600">Overall Score</span>
+                        <span className="font-semibold text-slate-800">{roundEvaluation.overallScore}%</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-600">Questions Answered</span>
+                        <span className="font-semibold text-slate-800">{roundEvaluation.individualScores?.length || 0}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-600">Status</span>
+                        <span className="font-semibold text-slate-800">{roundEvaluation.recommendation}</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              )}
+              </div>
             </div>
           )}
 

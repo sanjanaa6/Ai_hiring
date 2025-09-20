@@ -1506,26 +1506,34 @@ INSTRUCTIONS:
 2. If the answer is vague, incomplete, or shows lack of knowledge, score it LOW
 3. "No idea" or similar responses should get score 1 (Poor)
 4. Only give high scores for genuinely good, detailed, technical answers
-5. Provide specific, actionable feedback that challenges the candidate
+5. Provide SPECIFIC, CONSTRUCTIVE, and OBJECTIVE feedback following these guidelines:
+   - Focus on specific behaviors or responses observed
+   - Provide actionable suggestions for improvement
+   - Base feedback on observable facts, not personal opinions
+   - Evaluate: Communication skills, Problem-solving approach, Relevance of experience, Attitude and enthusiasm
 6. Score from 1-4 (1=Poor, 2=Fair, 3=Good, 4=Excellent)
 
 SCORING GUIDELINES:
-- Score 1: Vague, "no idea", completely wrong, or no attempt
-- Score 2: Basic understanding but lacks depth, examples, or technical detail
-- Score 3: Good technical knowledge with some examples and clear explanation
-- Score 4: Excellent technical depth, specific examples, problem-solving approach
+- Score 1: "No idea", completely wrong, or no attempt at all
+- Score 2: Basic understanding with some technical terms mentioned, but lacks depth or examples
+- Score 3: Good technical knowledge with specific examples and clear explanation
+- Score 4: Excellent technical depth, detailed examples, and problem-solving approach
+
+IMPORTANT: If the answer mentions technical terms (programming languages, frameworks, databases, etc.) or provides examples, it should get at least score 2, not score 1.
 
 RESPOND WITH VALID JSON ONLY (no markdown, no extra text):
 {
-  "score": 1,
-  "feedback": "Critical analysis pointing out specific weaknesses and areas that need improvement",
-  "strengths": ["Only list if there are genuine strengths"],
-  "improvements": ["Specific areas that need significant improvement"]
+  "score": 2,
+  "feedback": "You mentioned technical terms like 'programming languages' and 'frameworks', which shows basic awareness. However, your explanation lacked specific examples and depth. Consider elaborating on your thought process with concrete examples from your experience.",
+  "strengths": ["Only list if there are genuine strengths - be specific"],
+  "improvements": ["Specific, actionable suggestions for improvement - focus on observable behaviors"]
 }`;
 
     console.log('🤖 [EVALUATE ANSWER] Calling AI for evaluation...');
     console.log('🔑 [EVALUATE ANSWER] API Key present:', !!process.env.OPENROUTER_API_KEY);
     console.log('🌐 [EVALUATE ANSWER] API URL:', OPENROUTER_API_URL);
+    console.log('📝 [EVALUATE ANSWER] Question preview:', question.substring(0, 100) + '...');
+    console.log('💬 [EVALUATE ANSWER] Answer preview:', answer.substring(0, 100) + '...');
     
     // Try multiple models in order of preference
     const modelsToTry = [KIMI_MODEL, FALLBACK_MODEL, 'openai/gpt-3.5-turbo', 'anthropic/claude-3-haiku'];
@@ -1541,7 +1549,7 @@ RESPOND WITH VALID JSON ONLY (no markdown, no extra text):
        messages: [
          {
            role: 'system',
-              content: 'You are an expert technical interviewer. Always respond with valid JSON only. No markdown, no explanations, just the JSON object.'
+              content: 'You are a strict, experienced technical interviewer with very high standards. Be critical and honest - do not inflate scores. Always respond with valid JSON only. No markdown, no explanations, just the JSON object.'
          },
          {
            role: 'user',
@@ -1618,11 +1626,12 @@ RESPOND WITH VALID JSON ONLY (no markdown, no extra text):
     evaluation.strengths = evaluation.strengths || [];
     evaluation.improvements = evaluation.improvements || [];
     
-    console.log('📊 [EVALUATE ANSWER] Evaluation successful:', {
+    console.log('📊 [EVALUATE ANSWER] AI Evaluation successful:', {
       score: evaluation.score,
       feedbackLength: evaluation.feedback?.length || 0,
       strengthsCount: evaluation.strengths?.length || 0,
-      improvementsCount: evaluation.improvements?.length || 0
+      improvementsCount: evaluation.improvements?.length || 0,
+      source: 'AI_EVALUATION'
     });
     
     return evaluation;
@@ -1642,7 +1651,7 @@ RESPOND WITH VALID JSON ONLY (no markdown, no extra text):
 
 // Helper function to create fallback evaluation
 function createFallbackEvaluation(question, answer) {
-  console.log('⚠️ [EVALUATE ANSWER] Creating fallback evaluation');
+  console.log('⚠️ [EVALUATE ANSWER] Creating FALLBACK evaluation (AI failed)');
   
   // Critical analysis based on answer length and content
   const answerLength = answer.length;
@@ -1655,46 +1664,56 @@ function createFallbackEvaluation(question, answer) {
   // Check for poor responses
   if (answerLower.includes('no idea') || answerLower.includes('dont know') || answerLower.includes("don't know") || answerLength < 10) {
     score = 1;
-    feedback += "The candidate's response indicates a lack of knowledge or preparation. ";
-    improvements.push("Significant improvement needed in technical knowledge");
-    improvements.push("Prepare thoroughly before interviews");
+    feedback += "Your response indicates a lack of knowledge or preparation. Communication was unclear and no specific examples were provided. ";
+    improvements.push("Demonstrate concrete knowledge with specific examples from your experience");
+    improvements.push("Prepare thoroughly before interviews and practice articulating your thoughts clearly");
   } else if (answerLength < 50) {
     score = 1;
-    feedback += "The answer was extremely brief and lacks substance. ";
-    improvements.push("Provide more detailed and comprehensive responses");
+    feedback += "Your answer was extremely brief and lacks substance. No specific examples or technical details were provided. ";
+    improvements.push("Provide more detailed and comprehensive responses with concrete examples");
+    improvements.push("Elaborate on your thought process and demonstrate problem-solving approach");
   } else if (answerLength < 100) {
     score = 2;
-    feedback += "The candidate provided a basic response but lacks depth. ";
-    improvements.push("Include more technical details and examples");
+    feedback += "You provided a basic response but it lacks depth and specific examples. ";
+    improvements.push("Include more technical details and concrete examples from your experience");
+    improvements.push("Show your analytical thinking and problem-solving approach");
   } else {
     score = 3;
-    feedback += "The candidate provided a detailed response. ";
-    strengths.push("Provided comprehensive answer");
+    feedback += "You provided a detailed response with good length. ";
+    strengths.push("Provided comprehensive answer with adequate detail");
   }
   
   // Check for technical content
   if (answerLower.includes('example') || answerLower.includes('experience') || answerLower.includes('project')) {
     score = Math.min(4, score + 1);
-    feedback += "The response included relevant examples or experience. ";
-    strengths.push("Included relevant examples");
+    feedback += "Your response included relevant examples or experience, which demonstrates practical knowledge. ";
+    strengths.push("Included relevant examples from experience");
   } else {
-    improvements.push("Include specific examples and real-world experience");
+    improvements.push("Include specific examples and real-world experience to strengthen your response");
   }
   
   // Additional critical feedback
   if (answerLength < 30) {
-    improvements.push("Provide much more detailed explanations");
-    improvements.push("Demonstrate technical knowledge with specific examples");
+    improvements.push("Provide much more detailed explanations with concrete examples");
+    improvements.push("Demonstrate technical knowledge with specific examples from your experience");
   }
   
-  feedback += "The candidate needs to significantly improve their technical knowledge and interview preparation.";
+  feedback += "Focus on improving your technical knowledge and interview preparation to better articulate your expertise.";
     
-    return {
+    const fallbackResult = {
     score,
     feedback,
     strengths: strengths.length > 0 ? strengths : ["Answered the question"],
     improvements: improvements.length > 0 ? improvements : ["Consider providing more detail"]
   };
+  
+  console.log('📊 [EVALUATE ANSWER] Fallback evaluation created:', {
+    score: fallbackResult.score,
+    feedbackLength: fallbackResult.feedback?.length || 0,
+    source: 'FALLBACK_EVALUATION'
+  });
+  
+  return fallbackResult;
 }
 
 // Helper function to evaluate round answers using AI with performance data
@@ -1782,26 +1801,32 @@ INSTRUCTIONS:
 2. If answers are vague, incomplete, or show lack of knowledge, score LOW
 3. "No idea" or similar responses indicate poor performance
 4. Only give high scores for genuinely excellent, detailed, technical answers
-5. Provide specific, actionable feedback that challenges the candidate
+5. Provide SPECIFIC, CONSTRUCTIVE, and OBJECTIVE feedback following these guidelines:
+   - Focus on specific behaviors or responses observed
+   - Provide actionable suggestions for improvement
+   - Base feedback on observable facts, not personal opinions
+   - Evaluate: Communication skills, Problem-solving approach, Relevance of experience, Attitude and enthusiasm
 6. Score from 0-100 (overall score) - be strict with scoring
 
 SCORING GUIDELINES:
-- 0-30: Poor performance, major knowledge gaps, vague answers
-- 31-50: Below average, lacks technical depth, needs significant improvement
-- 51-70: Average performance, some understanding but missing key elements
-- 71-85: Good performance, solid technical knowledge with examples
+- 0-30: Poor performance, "no idea" responses, major knowledge gaps
+- 31-50: Below average, basic technical terms mentioned but lacks depth
+- 51-70: Average performance, some understanding with examples but missing key elements
+- 71-85: Good performance, solid technical knowledge with specific examples
 - 86-100: Excellent performance, outstanding technical depth and problem-solving
+
+IMPORTANT: If answers mention technical terms (programming languages, frameworks, databases, etc.) or provide examples, the overall score should be at least 31-50, not 0-30.
 
 IMPORTANT: Only provide individual scores for questions that were actually answered by the candidate. Do not create scores for unanswered questions.
 
 RESPOND WITH VALID JSON ONLY (no markdown, no extra text):
 {
-  "overallScore": 25,
-  "feedback": "Critical analysis of the candidate's performance highlighting specific weaknesses and areas requiring significant improvement",
-  "strengths": ["Only list if there are genuine strengths - be honest"],
-  "areasForImprovement": ["Specific areas that need major improvement with actionable advice"],
+  "overallScore": 40,
+  "feedback": "The candidate demonstrated basic awareness of technical concepts by mentioning programming languages and frameworks. However, responses lacked specific examples and depth. Communication was unclear at times, and problem-solving approach needs improvement. Focus on providing concrete examples from experience and elaborating on your thought process.",
+  "strengths": ["Only list if there are genuine strengths - be specific and observable"],
+  "areasForImprovement": ["Specific, actionable suggestions - focus on observable behaviors and provide clear guidance"],
   "recommendation": "Needs significant improvement" or "Proceed to next round" or "Strong candidate",
-  "individualScores": [25, 30]
+  "individualScores": [40, 45]
 }`;
 
     console.log('🚀 [EVALUATE ROUND] Sending request to AI...');
@@ -1822,7 +1847,7 @@ RESPOND WITH VALID JSON ONLY (no markdown, no extra text):
       messages: [
         {
           role: 'system',
-              content: 'You are an expert HR professional and technical interviewer. Always respond with valid JSON only. No markdown, no explanations, just the JSON object.'
+              content: 'You are a strict, experienced HR professional and technical interviewer with very high standards. Be critical and honest - do not inflate scores. Always respond with valid JSON only. No markdown, no explanations, just the JSON object.'
         },
         {
           role: 'user',
@@ -1953,8 +1978,8 @@ function createFallbackRoundEvaluation(round, candidateAnswers) {
   
   if (hasPoorResponses) {
     overallScore = 15; // Very low score for "no idea" responses
-    improvements.push("Significant improvement needed in technical knowledge");
-    improvements.push("Prepare thoroughly before interviews");
+    improvements.push("Demonstrate concrete knowledge with specific examples from your experience");
+    improvements.push("Prepare thoroughly before interviews and practice articulating your thoughts clearly");
   }
   
   if (completionRate >= 100) {
@@ -1976,9 +2001,11 @@ function createFallbackRoundEvaluation(round, candidateAnswers) {
     strengths.push("Provided detailed responses");
   } else if (avgAnswerLength < 50) {
     overallScore = Math.max(overallScore - 10, 10); // Penalize short answers
-    improvements.push("Provide much more detailed and comprehensive responses");
+    improvements.push("Provide much more detailed and comprehensive responses with concrete examples");
+    improvements.push("Elaborate on your thought process and demonstrate problem-solving approach");
   } else {
-    improvements.push("Include more technical details and examples");
+    improvements.push("Include more technical details and concrete examples from your experience");
+    improvements.push("Show your analytical thinking and problem-solving approach");
   }
   
   // Check for examples or experience in answers
@@ -1990,35 +2017,35 @@ function createFallbackRoundEvaluation(round, candidateAnswers) {
   
   if (hasExamples) {
     overallScore = Math.min(overallScore + 10, 70);
-    strengths.push("Included relevant examples and experience");
+    strengths.push("Included relevant examples and experience from past projects");
   } else {
-    improvements.push("Include specific examples and real-world experience");
+    improvements.push("Include specific examples and real-world experience to strengthen your responses");
   }
   
-  let feedback = `The candidate completed the ${round.title} round with ${totalAnswers} out of ${totalQuestions} questions answered. `;
+  let feedback = `You completed the ${round.title} round with ${totalAnswers} out of ${totalQuestions} questions answered. `;
   
   if (hasPoorResponses) {
-    feedback += "The candidate's responses indicate significant knowledge gaps and lack of preparation. ";
+    feedback += "Your responses indicate significant knowledge gaps and lack of preparation. Communication was unclear and no specific examples were provided. ";
   }
   
   if (completionRate >= 100) {
-    feedback += "All questions were answered, but the quality of responses was poor. ";
+    feedback += "All questions were answered, but the quality of responses needs improvement. ";
   } else {
-    feedback += `The completion rate was only ${Math.round(completionRate)}%, which is unacceptable. `;
+    feedback += `The completion rate was only ${Math.round(completionRate)}%, which needs improvement. `;
     improvements.push("Complete all questions in future rounds");
   }
   
-  feedback += `The average response length was only ${Math.round(avgAnswerLength)} characters, which is insufficient. `;
+  feedback += `The average response length was ${Math.round(avgAnswerLength)} characters. `;
   
   if (overallScore >= 60) {
-    feedback += "Performance was below average and requires significant improvement.";
+    feedback += "Performance was below average and requires significant improvement. Focus on providing more detailed technical explanations with specific examples.";
   } else if (overallScore >= 40) {
-    feedback += "Performance was poor and demonstrates major knowledge gaps.";
+    feedback += "Performance was poor and demonstrates major knowledge gaps. Consider preparing more thoroughly and practicing articulating your technical knowledge.";
   } else {
-    feedback += "Performance was unacceptable and indicates complete lack of preparation.";
+    feedback += "Performance was unacceptable and indicates complete lack of preparation. Significant improvement needed in technical knowledge and interview skills.";
   }
   
-  feedback += " The candidate needs to significantly improve their technical knowledge, preparation, and interview skills.";
+  feedback += " Focus on improving your technical knowledge, preparation, and ability to communicate your expertise clearly.";
   
   // Fix individual scores - only show scores for unique questions that were actually answered
   const uniqueQuestionIds = [...new Set(candidateAnswers.map(answer => answer.questionId))];
