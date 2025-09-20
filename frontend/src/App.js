@@ -13,7 +13,6 @@ import { ThemeProvider } from './context/ThemeContext';
 import ProtectedRoute from './components/ProtectedRoute';
 
 // Pages
-import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
@@ -26,6 +25,9 @@ import Interview from './pages/Interview';
 import StyleTest from './components/StyleTest';
 import OpenRouterTest from './components/OpenRouterTest';
 import NotFound from './pages/NotFound';
+
+// Landing Pages
+import LandingPage from './landing/LandingPage';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -40,7 +42,7 @@ const queryClient = new QueryClient({
 function AppShell() {
   const location = useLocation();
   const path = location.pathname || '';
-  // Hide header on auth pages
+  // Hide header on auth pages and landing pages
   const hideGlobalNavbar = (
     path.startsWith('/login') ||
     path.startsWith('/register')
@@ -51,8 +53,11 @@ function AppShell() {
       {!hideGlobalNavbar && <Header />}
       <main>
         <Routes>
+          {/* Landing Page */}
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/landing" element={<LandingPage />} />
+          
           {/* Public Routes */}
-          <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/jobs" element={<Jobs />} />
