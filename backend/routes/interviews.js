@@ -7,6 +7,7 @@ const axios = require('axios');
 // OpenRouter API configuration
 const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
 const KIMI_MODEL = 'moonshotai/kimi-vl-a3b-thinking';
+const FALLBACK_MODEL = 'meta-llama/llama-3.1-8b-instruct:free';
 
 // Generate AI interview
 router.post('/generate', auth, async (req, res) => {
@@ -50,8 +51,16 @@ If any information is missing, make reasonable assumptions based on the context.
     
     let extractionResponse;
     try {
+      // Try multiple models for job extraction
+      const modelsToTry = [KIMI_MODEL, FALLBACK_MODEL, 'openai/gpt-3.5-turbo'];
+      let lastError = null;
+      
+      for (const model of modelsToTry) {
+        try {
+          console.log('🎯 [INTERVIEW GENERATE] Trying extraction model:', model);
+          
       extractionResponse = await axios.post(OPENROUTER_API_URL, {
-        model: KIMI_MODEL,
+            model: model,
         messages: [
           {
             role: 'system',
@@ -72,6 +81,20 @@ If any information is missing, make reasonable assumptions based on the context.
           'X-Title': 'AI Hiring Platform'
         }
       });
+          
+          console.log('✅ [INTERVIEW GENERATE] Extraction success with model:', model);
+          break; // Success, exit the loop
+          
+        } catch (error) {
+          console.log('❌ [INTERVIEW GENERATE] Extraction failed with model:', model, error.response?.status || error.message);
+          lastError = error;
+          continue; // Try next model
+        }
+      }
+      
+      if (!extractionResponse) {
+        throw lastError || new Error('All extraction models failed');
+      }
     } catch (apiError) {
       console.log('⚠️ [INTERVIEW GENERATE] OpenRouter API extraction failed, using fallback:', apiError.response?.status || apiError.message);
       // Skip extraction step and use fallback immediately
@@ -237,8 +260,16 @@ Make sure the JSON is valid and properly formatted with all 5 rounds.`;
 
     let aiResponse;
     try {
+      // Try multiple models for interview generation
+      const modelsToTry = [KIMI_MODEL, FALLBACK_MODEL, 'openai/gpt-3.5-turbo', 'anthropic/claude-3-haiku'];
+      let lastError = null;
+      
+      for (const model of modelsToTry) {
+        try {
+          console.log('🎯 [INTERVIEW GENERATE] Trying generation model:', model);
+          
       aiResponse = await axios.post(OPENROUTER_API_URL, {
-      model: KIMI_MODEL,
+            model: model,
       messages: [
         {
           role: 'system',
@@ -260,6 +291,20 @@ Make sure the JSON is valid and properly formatted with all 5 rounds.`;
         'X-Title': 'AI Hiring Platform'
       }
     });
+          
+          console.log('✅ [INTERVIEW GENERATE] Generation success with model:', model);
+          break; // Success, exit the loop
+          
+        } catch (error) {
+          console.log('❌ [INTERVIEW GENERATE] Generation failed with model:', model, error.response?.status || error.message);
+          lastError = error;
+          continue; // Try next model
+        }
+      }
+      
+      if (!aiResponse) {
+        throw lastError || new Error('All generation models failed');
+      }
     } catch (apiError) {
       console.log('⚠️ [INTERVIEW GENERATE] OpenRouter API failed, using structured fallback:', apiError.response?.status || apiError.message);
       
@@ -734,8 +779,19 @@ router.post('/:interviewId/answer', async (req, res) => {
           error: 'Voice answers require either transcription or audio data'
         });
       }
-      finalAnswer = transcription || '[Voice answer - audio data provided]';
-      console.log('🎙️ [SUBMIT ANSWER] Processing voice answer with transcription length:', transcription?.length || 0);
+      
+      // Use transcription text for AI evaluation (not the audio data)
+      if (transcription && transcription.trim().length > 0) {
+        finalAnswer = transcription.trim();
+        console.log('🎙️ [SUBMIT ANSWER] Using transcription for AI evaluation:', {
+          transcriptionLength: finalAnswer.length,
+          preview: finalAnswer.substring(0, 100) + '...',
+          note: 'Transcription text will be sent to AI for evaluation and feedback'
+        });
+      } else {
+        finalAnswer = '[Voice answer - transcription not available, audio data provided]';
+        console.log('⚠️ [SUBMIT ANSWER] No transcription available, using fallback text for AI evaluation');
+      }
     } else {
       if (!answer) {
         return res.status(400).json({
@@ -756,11 +812,18 @@ router.post('/:interviewId/answer', async (req, res) => {
     }
 
     console.log('✅ [SUBMIT ANSWER] Interview found, evaluating answer with AI...');
-    // Evaluate answer using AI
+    console.log('📝 [SUBMIT ANSWER] Sending to AI for evaluation:', {
+      answerType: answerType,
+      textLength: finalAnswer.length,
+      isTranscription: answerType === 'voice' && transcription ? true : false
+    });
+    
+    // Evaluate answer using AI (transcription text for voice answers, regular text for text answers)
     const evaluation = await evaluateAnswer(question, finalAnswer, interview.overallEvaluationCriteria);
     console.log('🤖 [SUBMIT ANSWER] AI evaluation completed:', {
       score: evaluation.score,
-      feedbackLength: evaluation.feedback?.length || 0
+      feedbackLength: evaluation.feedback?.length || 0,
+      evaluationType: answerType === 'voice' ? 'Transcription-based evaluation' : 'Text-based evaluation'
     });
 
     // Add candidate answer
@@ -1005,7 +1068,7 @@ router.post('/:interviewId/round/:roundId/complete', async (req, res) => {
   console.log('🏁 [COMPLETE ROUND] Completing round:', req.params.roundId);
   
   try {
-    const { candidateEmail, candidateName } = req.body;
+    const { candidateEmail, candidateName, performanceData } = req.body;
     
     if (!candidateEmail || !candidateName) {
       return res.status(400).json({ 
@@ -1035,12 +1098,11 @@ router.post('/:interviewId/round/:roundId/complete', async (req, res) => {
       });
     }
 
-    // Get all answers for this round
-    const candidateAnswers = await CandidateAnswer.find({
-      interviewId: req.params.interviewId,
-      candidateEmail: candidateEmail,
-      roundId: req.params.roundId
-    }).sort({ createdAt: 1 });
+    // Get all answers for this round from the interview document
+    const candidateAnswers = interview.candidateAnswers.filter(answer => 
+      answer.candidateEmail === candidateEmail && 
+      answer.roundId === req.params.roundId
+    ).sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
 
     if (candidateAnswers.length === 0) {
       return res.status(400).json({ 
@@ -1049,9 +1111,9 @@ router.post('/:interviewId/round/:roundId/complete', async (req, res) => {
       });
     }
 
-    // Evaluate round answers using AI
-    console.log('🤖 [COMPLETE ROUND] Calling AI for round evaluation...');
-    const evaluation = await evaluateRoundAnswers(round, candidateAnswers, interview.overallEvaluationCriteria);
+    // Evaluate round answers using AI with performance data
+    console.log('🤖 [COMPLETE ROUND] Calling AI for comprehensive round evaluation...');
+    const evaluation = await evaluateRoundAnswers(round, candidateAnswers, interview.overallEvaluationCriteria, performanceData);
 
     console.log('✅ [COMPLETE ROUND] AI round evaluation completed for:', req.params.roundId);
     console.log('📊 [COMPLETE ROUND] Evaluation summary:', {
@@ -1422,52 +1484,141 @@ async function evaluateAnswer(question, answer, criteria) {
   console.log('🤖 [EVALUATE ANSWER] Starting AI evaluation...');
   console.log('❓ [EVALUATE ANSWER] Question length:', question.length);
   console.log('💬 [EVALUATE ANSWER] Answer length:', answer.length);
+  console.log('📝 [EVALUATE ANSWER] Answer type: Text-based evaluation (transcription or typed text)');
   
+  // Check if we have the required API key
+  if (!process.env.OPENROUTER_API_KEY) {
+    console.error('❌ [EVALUATE ANSWER] Missing OPENROUTER_API_KEY');
+    return createFallbackEvaluation(question, answer);
+  }
+
   try {
-    const prompt = `Evaluate this interview answer based on the criteria:
+    const prompt = `You are a strict, experienced technical interviewer with high standards. Evaluate this candidate's answer critically and provide honest, tough feedback.
 
-Question: ${question}
-Answer: ${answer}
+QUESTION: ${question}
 
-Evaluation Criteria: ${JSON.stringify(criteria)}
+ANSWER: ${answer}
 
-Provide evaluation in this JSON format:
+EVALUATION CRITERIA: ${JSON.stringify(criteria, null, 2)}
+
+INSTRUCTIONS:
+1. Be CRITICAL and HONEST - do not inflate scores
+2. If the answer is vague, incomplete, or shows lack of knowledge, score it LOW
+3. "No idea" or similar responses should get score 1 (Poor)
+4. Only give high scores for genuinely good, detailed, technical answers
+5. Provide specific, actionable feedback that challenges the candidate
+6. Score from 1-4 (1=Poor, 2=Fair, 3=Good, 4=Excellent)
+
+SCORING GUIDELINES:
+- Score 1: Vague, "no idea", completely wrong, or no attempt
+- Score 2: Basic understanding but lacks depth, examples, or technical detail
+- Score 3: Good technical knowledge with some examples and clear explanation
+- Score 4: Excellent technical depth, specific examples, problem-solving approach
+
+RESPOND WITH VALID JSON ONLY (no markdown, no extra text):
 {
-  "score": 3,
-  "feedback": "Detailed feedback about the answer",
-  "strengths": ["Strength 1", "Strength 2"],
-  "improvements": ["Area for improvement 1", "Area for improvement 2"]
-}
-
-Score: 1-4 (1=Needs Improvement, 2=Satisfactory, 3=Good, 4=Excellent)`;
+  "score": 1,
+  "feedback": "Critical analysis pointing out specific weaknesses and areas that need improvement",
+  "strengths": ["Only list if there are genuine strengths"],
+  "improvements": ["Specific areas that need significant improvement"]
+}`;
 
     console.log('🤖 [EVALUATE ANSWER] Calling AI for evaluation...');
-    const aiResponse = await axios.post(OPENROUTER_API_URL, {
-      model: KIMI_MODEL,
-      messages: [
-        {
-          role: 'system',
-          content: 'You are an expert interviewer. Evaluate candidate answers objectively and provide constructive feedback.'
-        },
-        {
-          role: 'user',
-          content: prompt
-        }
-      ],
-      max_tokens: 500,
-      temperature: 0.3
-    }, {
-      headers: {
-        'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
-        'Content-Type': 'application/json',
-        'HTTP-Referer': process.env.FRONTEND_URL || 'http://localhost:3000',
-        'X-Title': 'AI Hiring Platform'
+    console.log('🔑 [EVALUATE ANSWER] API Key present:', !!process.env.OPENROUTER_API_KEY);
+    console.log('🌐 [EVALUATE ANSWER] API URL:', OPENROUTER_API_URL);
+    
+    // Try multiple models in order of preference
+    const modelsToTry = [KIMI_MODEL, FALLBACK_MODEL, 'openai/gpt-3.5-turbo', 'anthropic/claude-3-haiku'];
+    let aiResponse = null;
+    let lastError = null;
+    
+    for (const model of modelsToTry) {
+      try {
+        console.log('🎯 [EVALUATE ANSWER] Trying model:', model);
+        
+        aiResponse = await axios.post(OPENROUTER_API_URL, {
+          model: model,
+       messages: [
+         {
+           role: 'system',
+              content: 'You are an expert technical interviewer. Always respond with valid JSON only. No markdown, no explanations, just the JSON object.'
+         },
+         {
+           role: 'user',
+           content: prompt
+         }
+       ],
+          max_tokens: 800,
+          temperature: 0.2
+     }, {
+       headers: {
+         'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+         'Content-Type': 'application/json',
+         'HTTP-Referer': process.env.FRONTEND_URL || 'http://localhost:3000',
+         'X-Title': 'AI Hiring Platform'
+          },
+          timeout: 30000 // 30 second timeout
+        });
+        
+        console.log('✅ [EVALUATE ANSWER] Success with model:', model);
+        break; // Success, exit the loop
+        
+      } catch (error) {
+        console.log('❌ [EVALUATE ANSWER] Failed with model:', model, error.response?.status || error.message);
+        lastError = error;
+        continue; // Try next model
       }
-    });
+    }
+    
+    if (!aiResponse) {
+      throw lastError || new Error('All models failed');
+    }
 
-    console.log('✅ [EVALUATE ANSWER] AI evaluation response received');
-    const evaluation = JSON.parse(aiResponse.data.choices[0].message.content);
-    console.log('📊 [EVALUATE ANSWER] Evaluation result:', {
+    console.log('✅ [EVALUATE ANSWER] AI response received, status:', aiResponse.status);
+    
+    if (!aiResponse.data || !aiResponse.data.choices || !aiResponse.data.choices[0]) {
+      throw new Error('Invalid AI response structure');
+    }
+
+    const rawContent = aiResponse.data.choices[0].message.content;
+    console.log('📝 [EVALUATE ANSWER] Raw AI response length:', rawContent.length);
+    console.log('📝 [EVALUATE ANSWER] Raw AI response preview:', rawContent.substring(0, 200) + '...');
+    
+    // Clean the response - remove markdown if present
+    let cleanContent = rawContent.trim();
+    
+    // Remove markdown code blocks
+    if (cleanContent.includes('```')) {
+      const jsonMatch = cleanContent.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
+      if (jsonMatch) {
+        cleanContent = jsonMatch[1];
+      }
+    }
+    
+    // Remove any leading/trailing text that's not JSON
+    const jsonStart = cleanContent.indexOf('{');
+    const jsonEnd = cleanContent.lastIndexOf('}');
+    if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
+      cleanContent = cleanContent.substring(jsonStart, jsonEnd + 1);
+    }
+    
+    console.log('🧹 [EVALUATE ANSWER] Cleaned content length:', cleanContent.length);
+    
+    const evaluation = JSON.parse(cleanContent);
+    
+    // Validate the evaluation structure
+    if (!evaluation.score || !evaluation.feedback) {
+      throw new Error('Invalid evaluation structure from AI');
+    }
+    
+    // Ensure score is within valid range
+    evaluation.score = Math.max(1, Math.min(4, parseInt(evaluation.score)));
+    
+    // Ensure arrays exist
+    evaluation.strengths = evaluation.strengths || [];
+    evaluation.improvements = evaluation.improvements || [];
+    
+    console.log('📊 [EVALUATE ANSWER] Evaluation successful:', {
       score: evaluation.score,
       feedbackLength: evaluation.feedback?.length || 0,
       strengthsCount: evaluation.strengths?.length || 0,
@@ -1481,23 +1632,82 @@ Score: 1-4 (1=Needs Improvement, 2=Satisfactory, 3=Good, 4=Excellent)`;
     console.error('🔍 [EVALUATE ANSWER] Error details:', {
       name: error.name,
       message: error.message,
-      response: error.response?.data
+      response: error.response?.data,
+      status: error.response?.status
     });
     
-    return {
-      score: 2,
-      feedback: "Unable to evaluate answer at this time",
-      strengths: [],
-      improvements: ["Answer could not be evaluated"]
-    };
+    return createFallbackEvaluation(question, answer);
   }
 }
 
-// Helper function to evaluate round answers using AI
-async function evaluateRoundAnswers(round, candidateAnswers, criteria) {
+// Helper function to create fallback evaluation
+function createFallbackEvaluation(question, answer) {
+  console.log('⚠️ [EVALUATE ANSWER] Creating fallback evaluation');
+  
+  // Critical analysis based on answer length and content
+  const answerLength = answer.length;
+  const answerLower = answer.toLowerCase();
+  let score = 1; // Default to poor - be strict
+  let feedback = "The answer was received and recorded. ";
+  const strengths = [];
+  const improvements = [];
+  
+  // Check for poor responses
+  if (answerLower.includes('no idea') || answerLower.includes('dont know') || answerLower.includes("don't know") || answerLength < 10) {
+    score = 1;
+    feedback += "The candidate's response indicates a lack of knowledge or preparation. ";
+    improvements.push("Significant improvement needed in technical knowledge");
+    improvements.push("Prepare thoroughly before interviews");
+  } else if (answerLength < 50) {
+    score = 1;
+    feedback += "The answer was extremely brief and lacks substance. ";
+    improvements.push("Provide more detailed and comprehensive responses");
+  } else if (answerLength < 100) {
+    score = 2;
+    feedback += "The candidate provided a basic response but lacks depth. ";
+    improvements.push("Include more technical details and examples");
+  } else {
+    score = 3;
+    feedback += "The candidate provided a detailed response. ";
+    strengths.push("Provided comprehensive answer");
+  }
+  
+  // Check for technical content
+  if (answerLower.includes('example') || answerLower.includes('experience') || answerLower.includes('project')) {
+    score = Math.min(4, score + 1);
+    feedback += "The response included relevant examples or experience. ";
+    strengths.push("Included relevant examples");
+  } else {
+    improvements.push("Include specific examples and real-world experience");
+  }
+  
+  // Additional critical feedback
+  if (answerLength < 30) {
+    improvements.push("Provide much more detailed explanations");
+    improvements.push("Demonstrate technical knowledge with specific examples");
+  }
+  
+  feedback += "The candidate needs to significantly improve their technical knowledge and interview preparation.";
+    
+    return {
+    score,
+    feedback,
+    strengths: strengths.length > 0 ? strengths : ["Answered the question"],
+    improvements: improvements.length > 0 ? improvements : ["Consider providing more detail"]
+  };
+}
+
+// Helper function to evaluate round answers using AI with performance data
+async function evaluateRoundAnswers(round, candidateAnswers, criteria, performanceData = null) {
   console.log('🤖 [EVALUATE ROUND] Starting round evaluation...');
   console.log('🎭 [EVALUATE ROUND] Round:', round.title);
   console.log('📝 [EVALUATE ROUND] Answers count:', candidateAnswers.length);
+  
+  // Check if we have the required API key
+  if (!process.env.OPENROUTER_API_KEY) {
+    console.error('❌ [EVALUATE ROUND] Missing OPENROUTER_API_KEY');
+    return createFallbackRoundEvaluation(round, candidateAnswers);
+  }
   
   try {
     // Prepare round data for AI evaluation
@@ -1515,7 +1725,39 @@ async function evaluateRoundAnswers(round, candidateAnswers, criteria) {
       }))
     };
 
-    const evaluationPrompt = `You are an expert HR professional and technical interviewer with 15+ years of experience. You are evaluating a candidate's performance for the "${round.title}" round.
+    // Prepare performance data for AI analysis
+    let performanceAnalysis = '';
+    if (performanceData) {
+      const avgResponseTime = performanceData.communicationMetrics?.responseTimes?.length > 0 
+        ? performanceData.communicationMetrics.responseTimes.reduce((a, b) => a + b, 0) / performanceData.communicationMetrics.responseTimes.length 
+        : 0;
+      const avgConfidence = performanceData.communicationMetrics?.confidenceScores?.length > 0 
+        ? performanceData.communicationMetrics.confidenceScores.reduce((a, b) => a + b, 0) / performanceData.communicationMetrics.confidenceScores.length 
+        : 0;
+      const avgAnswerQuality = performanceData.answerQuality?.length > 0 
+        ? performanceData.answerQuality.reduce((a, b) => a + b.quality, 0) / performanceData.answerQuality.length 
+        : 0;
+      const engagementExpressions = performanceData.facialExpressions?.filter(exp => exp.expression === 'engaged').length || 0;
+      const totalExpressions = performanceData.facialExpressions?.length || 1;
+      const engagementRate = (engagementExpressions / totalExpressions) * 100;
+
+      performanceAnalysis = `
+PERFORMANCE METRICS (Real-time Analysis):
+- Average Response Time: ${Math.round(avgResponseTime)} seconds
+- Average Confidence Score: ${Math.round(avgConfidence)}%
+- Average Answer Quality: ${Math.round(avgAnswerQuality)}%
+- Engagement Rate: ${Math.round(engagementRate)}%
+- Facial Expression Analysis: ${performanceData.facialExpressions?.map(exp => exp.expression).join(', ') || 'Not available'}
+- Overall Engagement Level: ${performanceData.overallEngagement || 'Not measured'}
+
+COMMUNICATION ANALYSIS:
+- Response Times: ${performanceData.communicationMetrics?.responseTimes?.join(', ') || 'Not tracked'}
+- Confidence Scores: ${performanceData.communicationMetrics?.confidenceScores?.join(', ') || 'Not tracked'}
+- Answer Quality Scores: ${performanceData.answerQuality?.map(aq => aq.quality).join(', ') || 'Not tracked'}
+`;
+    }
+
+    const evaluationPrompt = `You are a strict, experienced HR professional and technical interviewer with very high standards. Evaluate this candidate's performance critically and provide honest, tough feedback.
 
 ROUND DETAILS:
 - Title: ${round.title}
@@ -1530,65 +1772,143 @@ Answer: ${item.answer}
 Time Spent: ${item.timeSpent || 'Not recorded'}
 `).join('\n')}
 
+${performanceAnalysis}
+
 EVALUATION CRITERIA:
-${criteria}
+${JSON.stringify(criteria, null, 2)}
 
 INSTRUCTIONS:
-Analyze each answer thoroughly and provide detailed, personalized feedback. Consider:
-1. Technical accuracy and depth of knowledge
-2. Communication clarity and structure
-3. Problem-solving methodology and approach
-4. Time management and efficiency
-5. Industry-specific insights and experience
-6. Critical thinking and analytical skills
-7. Practical application of concepts
-8. Areas of expertise and knowledge gaps
+1. Be CRITICAL and HONEST - do not inflate scores
+2. If answers are vague, incomplete, or show lack of knowledge, score LOW
+3. "No idea" or similar responses indicate poor performance
+4. Only give high scores for genuinely excellent, detailed, technical answers
+5. Provide specific, actionable feedback that challenges the candidate
+6. Score from 0-100 (overall score) - be strict with scoring
 
-Please provide a comprehensive evaluation in the following JSON format:
+SCORING GUIDELINES:
+- 0-30: Poor performance, major knowledge gaps, vague answers
+- 31-50: Below average, lacks technical depth, needs significant improvement
+- 51-70: Average performance, some understanding but missing key elements
+- 71-85: Good performance, solid technical knowledge with examples
+- 86-100: Excellent performance, outstanding technical depth and problem-solving
+
+IMPORTANT: Only provide individual scores for questions that were actually answered by the candidate. Do not create scores for unanswered questions.
+
+RESPOND WITH VALID JSON ONLY (no markdown, no extra text):
 {
-  "overallScore": 85,
-  "feedback": "Write a detailed 2-3 paragraph feedback analyzing the candidate's performance, highlighting specific examples from their answers, technical depth, communication style, and overall assessment. Be specific about what they did well and what needs improvement.",
-  "strengths": ["Specific strength 1 with example", "Specific strength 2 with example", "Specific strength 3 with example"],
-  "areasForImprovement": ["Specific area 1 with actionable advice", "Specific area 2 with actionable advice", "Specific area 3 with actionable advice"],
-  "recommendation": "Proceed to next round" or "Needs improvement" or "Strong candidate - highly recommended",
-  "individualScores": [85, 78, 92, 88]
-}
-
-IMPORTANT: 
-- Be specific and reference actual content from their answers
-- Provide actionable feedback that helps the candidate improve
-- Consider the role level and expectations
-- Be constructive and professional in tone
-- Ensure all scores are realistic and justified`;
+  "overallScore": 25,
+  "feedback": "Critical analysis of the candidate's performance highlighting specific weaknesses and areas requiring significant improvement",
+  "strengths": ["Only list if there are genuine strengths - be honest"],
+  "areasForImprovement": ["Specific areas that need major improvement with actionable advice"],
+  "recommendation": "Needs significant improvement" or "Proceed to next round" or "Strong candidate",
+  "individualScores": [25, 30]
+}`;
 
     console.log('🚀 [EVALUATE ROUND] Sending request to AI...');
+    console.log('🔑 [EVALUATE ROUND] API Key present:', !!process.env.OPENROUTER_API_KEY);
+    console.log('🌐 [EVALUATE ROUND] API URL:', OPENROUTER_API_URL);
     
-    const aiResponse = await axios.post('https://openrouter.ai/api/v1/chat/completions', {
-      model: 'deepseek/deepseek-chat',
+    // Try multiple models in order of preference
+    const modelsToTry = [KIMI_MODEL, FALLBACK_MODEL, 'openai/gpt-3.5-turbo', 'anthropic/claude-3-haiku'];
+    let aiResponse = null;
+    let lastError = null;
+    
+    for (const model of modelsToTry) {
+      try {
+        console.log('🎯 [EVALUATE ROUND] Trying model:', model);
+        
+        aiResponse = await axios.post(OPENROUTER_API_URL, {
+          model: model,
       messages: [
         {
           role: 'system',
-          content: 'You are an expert HR professional and technical interviewer. Provide detailed, constructive feedback in valid JSON format.'
+              content: 'You are an expert HR professional and technical interviewer. Always respond with valid JSON only. No markdown, no explanations, just the JSON object.'
         },
         {
           role: 'user',
           content: evaluationPrompt
         }
       ],
-      max_tokens: 1000,
-      temperature: 0.3
+          max_tokens: 1200,
+          temperature: 0.2
     }, {
       headers: {
         'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
         'Content-Type': 'application/json',
         'HTTP-Referer': process.env.FRONTEND_URL || 'http://localhost:3000',
         'X-Title': 'AI Hiring Platform'
+          },
+          timeout: 30000 // 30 second timeout
+        });
+        
+        console.log('✅ [EVALUATE ROUND] Success with model:', model);
+        break; // Success, exit the loop
+        
+      } catch (error) {
+        console.log('❌ [EVALUATE ROUND] Failed with model:', model, error.response?.status || error.message);
+        lastError = error;
+        continue; // Try next model
       }
-    });
+    }
+    
+    if (!aiResponse) {
+      throw lastError || new Error('All models failed');
+    }
 
-    console.log('✅ [EVALUATE ROUND] AI evaluation response received');
-    const evaluation = JSON.parse(aiResponse.data.choices[0].message.content);
-    console.log('📊 [EVALUATE ROUND] Evaluation result:', {
+    console.log('✅ [EVALUATE ROUND] AI response received, status:', aiResponse.status);
+    
+    if (!aiResponse.data || !aiResponse.data.choices || !aiResponse.data.choices[0]) {
+      throw new Error('Invalid AI response structure');
+    }
+
+    const rawContent = aiResponse.data.choices[0].message.content;
+    console.log('📝 [EVALUATE ROUND] Raw AI response length:', rawContent.length);
+    console.log('📝 [EVALUATE ROUND] Raw AI response preview:', rawContent.substring(0, 200) + '...');
+    
+    // Clean the response - remove markdown if present
+    let cleanContent = rawContent.trim();
+    
+    // Remove markdown code blocks
+    if (cleanContent.includes('```')) {
+      const jsonMatch = cleanContent.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
+      if (jsonMatch) {
+        cleanContent = jsonMatch[1];
+      }
+    }
+    
+    // Remove any leading/trailing text that's not JSON
+    const jsonStart = cleanContent.indexOf('{');
+    const jsonEnd = cleanContent.lastIndexOf('}');
+    if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
+      cleanContent = cleanContent.substring(jsonStart, jsonEnd + 1);
+    }
+    
+    console.log('🧹 [EVALUATE ROUND] Cleaned content length:', cleanContent.length);
+    
+    const evaluation = JSON.parse(cleanContent);
+    
+    // Validate the evaluation structure
+    if (!evaluation.overallScore || !evaluation.feedback) {
+      throw new Error('Invalid evaluation structure from AI');
+    }
+    
+    // Ensure score is within valid range
+    evaluation.overallScore = Math.max(0, Math.min(100, parseInt(evaluation.overallScore)));
+    
+    // Ensure arrays exist
+    evaluation.strengths = evaluation.strengths || [];
+    evaluation.areasForImprovement = evaluation.areasForImprovement || [];
+    
+    // Fix individual scores - only show scores for questions that were actually answered
+    const uniqueQuestionIds = [...new Set(candidateAnswers.map(answer => answer.questionId))];
+    evaluation.individualScores = uniqueQuestionIds.map((questionId, index) => {
+      // Get the AI evaluation score for this question if available
+      const questionAnswers = candidateAnswers.filter(answer => answer.questionId === questionId);
+      const latestAnswer = questionAnswers[questionAnswers.length - 1]; // Get the latest answer
+      return latestAnswer?.aiEvaluation?.score ? latestAnswer.aiEvaluation.score * 25 : Math.round(evaluation.overallScore); // Convert 1-4 scale to 0-100
+    });
+    
+    console.log('📊 [EVALUATE ROUND] Evaluation successful:', {
       overallScore: evaluation.overallScore,
       feedbackLength: evaluation.feedback?.length || 0,
       strengthsCount: evaluation.strengths?.length || 0,
@@ -1602,20 +1922,120 @@ IMPORTANT:
     console.error('🔍 [EVALUATE ROUND] Error details:', {
       name: error.name,
       message: error.message,
-      response: error.response?.data
+      response: error.response?.data,
+      status: error.response?.status
     });
     
-    // Return fallback evaluation (only used if AI fails)
-    console.log('⚠️ [EVALUATE ROUND] Using fallback evaluation due to AI error');
-    return {
-      overallScore: 75,
-      feedback: `The candidate completed the ${round.title} round successfully. While the AI evaluation system is temporarily unavailable, the candidate demonstrated engagement by answering all questions. A manual review of their responses is recommended for a more detailed assessment.`,
-      strengths: ["Completed all questions in the round", "Demonstrated engagement and effort", "Provided responses to all technical questions"],
-      areasForImprovement: ["Detailed technical assessment pending manual review", "Consider providing more specific examples in future rounds", "AI evaluation will provide more detailed feedback in subsequent rounds"],
-      recommendation: "Proceed to next round - manual review recommended",
-      individualScores: candidateAnswers.map(() => 75)
-    };
+    return createFallbackRoundEvaluation(round, candidateAnswers);
   }
+}
+
+// Helper function to create fallback round evaluation
+function createFallbackRoundEvaluation(round, candidateAnswers) {
+  console.log('⚠️ [EVALUATE ROUND] Creating fallback round evaluation');
+  
+  // Calculate basic metrics
+  const totalAnswers = candidateAnswers.length;
+  const totalQuestions = round.questions.length;
+  const completionRate = (totalAnswers / totalQuestions) * 100;
+  
+  // Critical scoring based on completion and answer quality
+  let overallScore = 20; // Start low - be strict
+  const strengths = [];
+  const improvements = [];
+  
+  // Check for poor responses like "no idea"
+  const hasPoorResponses = candidateAnswers.some(answer => 
+    answer.answer?.toLowerCase().includes('no idea') || 
+    answer.answer?.toLowerCase().includes('dont know') ||
+    answer.answer?.toLowerCase().includes("don't know")
+  );
+  
+  if (hasPoorResponses) {
+    overallScore = 15; // Very low score for "no idea" responses
+    improvements.push("Significant improvement needed in technical knowledge");
+    improvements.push("Prepare thoroughly before interviews");
+  }
+  
+  if (completionRate >= 100) {
+    overallScore = Math.min(overallScore + 20, 40); // Still keep it low even if completed
+    strengths.push("Completed all questions in the round");
+  } else if (completionRate >= 75) {
+    overallScore = Math.min(overallScore + 15, 35);
+    strengths.push("Completed most questions in the round");
+  } else {
+    overallScore = Math.min(overallScore + 5, 25);
+    improvements.push("Complete all questions in future rounds");
+  }
+  
+  // Analyze answer quality based on length - be critical
+  const avgAnswerLength = candidateAnswers.reduce((sum, answer) => sum + (answer.answer?.length || 0), 0) / totalAnswers;
+  
+  if (avgAnswerLength > 100) {
+    overallScore = Math.min(overallScore + 15, 60); // Still not too high
+    strengths.push("Provided detailed responses");
+  } else if (avgAnswerLength < 50) {
+    overallScore = Math.max(overallScore - 10, 10); // Penalize short answers
+    improvements.push("Provide much more detailed and comprehensive responses");
+  } else {
+    improvements.push("Include more technical details and examples");
+  }
+  
+  // Check for examples or experience in answers
+  const hasExamples = candidateAnswers.some(answer => 
+    answer.answer?.toLowerCase().includes('example') || 
+    answer.answer?.toLowerCase().includes('experience') ||
+    answer.answer?.toLowerCase().includes('project')
+  );
+  
+  if (hasExamples) {
+    overallScore = Math.min(overallScore + 10, 70);
+    strengths.push("Included relevant examples and experience");
+  } else {
+    improvements.push("Include specific examples and real-world experience");
+  }
+  
+  let feedback = `The candidate completed the ${round.title} round with ${totalAnswers} out of ${totalQuestions} questions answered. `;
+  
+  if (hasPoorResponses) {
+    feedback += "The candidate's responses indicate significant knowledge gaps and lack of preparation. ";
+  }
+  
+  if (completionRate >= 100) {
+    feedback += "All questions were answered, but the quality of responses was poor. ";
+  } else {
+    feedback += `The completion rate was only ${Math.round(completionRate)}%, which is unacceptable. `;
+    improvements.push("Complete all questions in future rounds");
+  }
+  
+  feedback += `The average response length was only ${Math.round(avgAnswerLength)} characters, which is insufficient. `;
+  
+  if (overallScore >= 60) {
+    feedback += "Performance was below average and requires significant improvement.";
+  } else if (overallScore >= 40) {
+    feedback += "Performance was poor and demonstrates major knowledge gaps.";
+  } else {
+    feedback += "Performance was unacceptable and indicates complete lack of preparation.";
+  }
+  
+  feedback += " The candidate needs to significantly improve their technical knowledge, preparation, and interview skills.";
+  
+  // Fix individual scores - only show scores for unique questions that were actually answered
+  const uniqueQuestionIds = [...new Set(candidateAnswers.map(answer => answer.questionId))];
+  const individualScores = uniqueQuestionIds.map(questionId => {
+    const questionAnswers = candidateAnswers.filter(answer => answer.questionId === questionId);
+    const latestAnswer = questionAnswers[questionAnswers.length - 1]; // Get the latest answer
+    return latestAnswer?.aiEvaluation?.score ? latestAnswer.aiEvaluation.score * 25 : Math.round(overallScore); // Convert 1-4 scale to 0-100
+  });
+
+    return {
+    overallScore: Math.round(overallScore),
+    feedback,
+    strengths: strengths.length > 0 ? strengths : ["Participated in the round"],
+    areasForImprovement: improvements.length > 0 ? improvements : ["Consider providing more detailed responses"],
+    recommendation: overallScore >= 70 ? "Proceed to next round" : "Needs improvement",
+    individualScores: individualScores
+  };
 }
 
 // Helper function to get candidate summaries

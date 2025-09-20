@@ -26,6 +26,7 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
   const [removalCountdown, setRemovalCountdown] = useState(3);
   const [cameraStatus, setCameraStatus] = useState('initializing');
   const [questionStartCountdown, setQuestionStartCountdown] = useState(0);
+  const [isCameraRestarting, setIsCameraRestarting] = useState(false);
 
   const videoRef = useRef(null);
   const mediaRecorderRef = useRef(null);
@@ -34,6 +35,7 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
   const speechSynthesisRef = useRef(null);
   const deviceDetectionInterval = useRef(null);
   const canvasRef = useRef(null);
+  const cameraMonitorInterval = useRef(null);
 
   // Step 1: Initialize camera and microphone
   const startSetup = async () => {
@@ -364,10 +366,8 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
          await speakQuestion(nextQuestion.question);
             console.log('✅ Next question started successfully');
             
-            // Ensure device detection continues for next question
-            if (!deviceDetectionActive) {
-              startDeviceDetection();
-            }
+            // Device detection will continue automatically via useEffect
+            console.log('🔄 Device detection will continue automatically for next question');
           } catch (speakErr) {
             console.error('❌ Failed to start next question:', speakErr);
             setError('Failed to start next question');
@@ -430,9 +430,16 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
   const ensureCameraActive = async () => {
     try {
       console.log('📹 Ensuring camera is active for interview...');
+      setIsCameraRestarting(true);
       
-      if (!cameraStream) {
-        console.log('📹 No camera stream found, requesting new stream...');
+      // Stop device detection temporarily during camera restart
+      if (deviceDetectionActive) {
+        console.log('⏸️ Temporarily stopping device detection for camera restart...');
+        stopDeviceDetection();
+      }
+      
+      // Always get a fresh stream to ensure camera is working
+      console.log('📹 Requesting fresh camera stream...');
         const stream = await navigator.mediaDevices.getUserMedia({
           video: { 
             width: { ideal: 1280, min: 640 },
@@ -441,19 +448,55 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
           },
           audio: true
         });
-        setCameraStream(stream);
-        setCameraStatus('connected');
+      
+      // Stop old stream if it exists
+      if (cameraStream) {
+        console.log('📹 Stopping old camera stream...');
+        cameraStream.getTracks().forEach(track => track.stop());
       }
       
-      if (videoRef.current && cameraStream) {
-        videoRef.current.srcObject = cameraStream;
+        setCameraStream(stream);
+        setCameraStatus('connected');
+      
+      if (videoRef.current) {
+        console.log('📹 Assigning new stream to video element...');
+        videoRef.current.srcObject = stream;
+        
+        // Wait for video to be ready and play
+        const playVideo = async () => {
+          try {
         await videoRef.current.play();
         setCameraStatus('playing');
-        console.log('✅ Camera stream active for interview');
+            console.log('✅ Camera stream active and playing');
+          } catch (playError) {
+            console.error('❌ Video play failed:', playError);
+            setCameraStatus('error');
+          }
+        };
+        
+        // If video is already ready, play immediately
+        if (videoRef.current.readyState >= 2) {
+          await playVideo();
+        } else {
+          // Wait for video to be ready
+          videoRef.current.addEventListener('canplay', playVideo, { once: true });
+        }
       }
+      
+      // Restart device detection after camera is stable
+      console.log('⏳ Waiting for camera to stabilize before restarting device detection...');
+      setTimeout(() => {
+        setIsCameraRestarting(false);
+        if (step === 'interview' && !deviceDetectionActive) {
+          console.log('🔄 Restarting device detection after camera stabilization...');
+          startDeviceDetection();
+        }
+      }, 2000); // Reduced to 2-second grace period
+      
     } catch (err) {
       console.error('❌ Failed to ensure camera active:', err);
       setCameraStatus('error');
+      setIsCameraRestarting(false);
     }
   };
 
@@ -504,8 +547,11 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
         });
       }, 1000);
       
-      // Start electronic device detection
-      startDeviceDetection();
+      // Start electronic device detection (will be auto-started by useEffect when video is ready)
+      console.log('🎯 Device detection will start automatically when video is ready');
+      
+      // Start camera monitoring to ensure it stays active
+      startCameraMonitoring();
       
       console.log('✅ Round started successfully');
       
@@ -728,6 +774,9 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
     if (deviceDetectionInterval.current) {
       clearInterval(deviceDetectionInterval.current);
     }
+    if (cameraMonitorInterval.current) {
+      clearInterval(cameraMonitorInterval.current);
+    }
     if (timerRef.current) {
       clearInterval(timerRef.current);
     }
@@ -771,118 +820,158 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
     }
   }, [cameraStream]);
 
-  // Electronic device detection function
+  // Auto-start device detection when video is ready during interview
+  useEffect(() => {
+    if (step === 'interview' && videoRef.current && cameraStream && !deviceDetectionActive) {
+      const video = videoRef.current;
+      
+      // Check if video is ready with valid dimensions
+      if (video.videoWidth > 0 && video.videoHeight > 0 && video.readyState >= 2) {
+        console.log('🎯 Video is ready, starting device detection...');
+        startDeviceDetection();
+      } else {
+        // Wait for video to be ready
+        const checkVideoReady = () => {
+          if (video.videoWidth > 0 && video.videoHeight > 0 && video.readyState >= 2) {
+            console.log('🎯 Video became ready, starting device detection...');
+            startDeviceDetection();
+          } else {
+            // Check again in 500ms
+            setTimeout(checkVideoReady, 500);
+          }
+        };
+        checkVideoReady();
+      }
+    }
+  }, [step, cameraStream, deviceDetectionActive]);
+
+  // Device detection - only detect dark devices, allow all bright screens
+  const detectDevice = (imageData) => {
+    const data = imageData.data;
+    let darkPixels = 0;
+    let totalPixels = 0;
+    
+    // Pixel analysis - only detect dark devices, allow bright screens
+    for (let i = 0; i < data.length; i += 4) {
+      const r = data[i];
+      const g = data[i + 1];
+      const b = data[i + 2];
+      const brightness = (r + g + b) / 3;
+      
+      totalPixels++;
+      
+      // Only count dark pixels (dark devices, phone bodies) - ignore bright screens
+      if (brightness < 80 && brightness > 20) {
+        darkPixels++;
+      }
+    }
+    
+    const darkRatio = darkPixels / totalPixels;
+    
+    console.log(`📱 Dark Device Detection: Dark: ${darkPixels} (${(darkRatio * 100).toFixed(1)}%) - Bright screens allowed`);
+    
+    // Only detect dark devices - allow all bright screens
+    if (darkRatio > 0.2) {
+      console.log('🚨 Dark device detected');
+      return true;
+    }
+    
+    console.log('✅ No dark device detected - bright screens allowed');
+    return false;
+  };
+
+  // Manual test function for device detection
+  const testDeviceDetection = async () => {
+    try {
+      console.log('🧪 MANUAL TEST: Testing device detection...');
+      
+      if (!videoRef.current || !cameraStream) {
+        console.log('⚠️ Cannot test - video or camera not ready');
+        return;
+      }
+
+      const video = videoRef.current;
+      
+      if (!video.videoWidth || !video.videoHeight || video.readyState < 2) {
+        console.log('⚠️ Cannot test - video not ready');
+        return;
+      }
+
+      // Create canvas for analysis
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d');
+      
+      // Draw video frame to canvas
+      ctx.drawImage(video, 0, 0);
+      
+      // Get image data
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      
+      // Run detection
+      const deviceDetected = detectDevice(imageData);
+      
+      if (deviceDetected) {
+        console.log('🧪 TEST RESULT: Device detected!');
+        setElectronicDeviceDetected(true);
+        setError('TEST: Mobile device detected! Please remove all electronic devices and try again.');
+      } else {
+        console.log('🧪 TEST RESULT: No device detected');
+        setElectronicDeviceDetected(false);
+        setError('TEST: No device detected - detection is working correctly');
+      }
+      
+    } catch (err) {
+      console.error('❌ Test error:', err);
+    }
+  };
+
+  // Electronic device detection function - reimplemented
   const detectElectronicDevices = async () => {
     try {
-      if (!videoRef.current || !canvasRef.current) {
-        console.log('⚠️ Device detection skipped - video or canvas not ready');
-        console.log('📹 Video ref:', videoRef.current ? 'Available' : 'Not available');
-        console.log('📹 Canvas ref:', canvasRef.current ? 'Available' : 'Not available');
-        return;
-      }
-
-      if (!cameraStream) {
-        console.log('⚠️ Device detection skipped - no camera stream');
-        return;
-      }
-
-      console.log('🔍 Running device detection scan...');
-
-      const canvas = canvasRef.current;
-      const ctx = canvas.getContext('2d');
-      const video = videoRef.current;
-
-      // Set canvas size to match video (optimized for device detection)
-      const maxWidth = 640;
-      const maxHeight = 480;
-      const videoWidth = video.videoWidth;
-      const videoHeight = video.videoHeight;
+      console.log('🔍 Running device detection...');
       
-      // Calculate scaled dimensions for device detection
-      const scale = Math.min(maxWidth / videoWidth, maxHeight / videoHeight);
-      canvas.width = videoWidth * scale;
-      canvas.height = videoHeight * scale;
+      if (!videoRef.current || !cameraStream) {
+        console.log('⚠️ Video or camera not ready');
+        return;
+      }
 
-      // Draw current video frame to canvas
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const video = videoRef.current;
+      
+      if (!video.videoWidth || !video.videoHeight || video.readyState < 2) {
+        console.log('⚠️ Video not ready');
+        return;
+      }
 
-      // Get image data for analysis
+      // Create canvas and draw video frame
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0);
+      
+      // Get image data and run detection
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const data = imageData.data;
-
-      // Enhanced electronic device detection based on:
-      // 1. Bright rectangular objects (screens)
-      // 2. Metallic reflections
-      // 3. Blue light emissions (phone screens)
-      // 4. White light sources (tablets, laptops)
-      // 5. Rectangular patterns (device shapes)
-      let deviceScore = 0;
-      let brightPixels = 0;
-      let bluePixels = 0;
-      let whitePixels = 0;
-      let metallicPixels = 0;
-
-      for (let i = 0; i < data.length; i += 4) {
-        const r = data[i];
-        const g = data[i + 1];
-        const b = data[i + 2];
-        const brightness = (r + g + b) / 3;
-
-        // Detect bright pixels (potential screens) - lowered threshold
-        if (brightness > 180) {
-          brightPixels++;
-        }
-
-        // Detect blue light (phone screens often emit blue light)
-        if (b > r && b > g && b > 120) {
-          bluePixels++;
-        }
-
-        // Detect white light sources (tablets, laptops)
-        if (r > 200 && g > 200 && b > 200) {
-          whitePixels++;
-        }
-
-        // Detect metallic reflections (shiny device surfaces)
-        if (brightness > 150 && Math.abs(r - g) < 30 && Math.abs(g - b) < 30) {
-          metallicPixels++;
-        }
-      }
-
-      const totalPixels = data.length / 4;
-      const brightRatio = brightPixels / totalPixels;
-      const blueRatio = bluePixels / totalPixels;
-      const whiteRatio = whitePixels / totalPixels;
-      const metallicRatio = metallicPixels / totalPixels;
-
-      // Enhanced device detection score with multiple factors
-      deviceScore = (brightRatio * 0.3) + (blueRatio * 0.25) + (whiteRatio * 0.25) + (metallicRatio * 0.2);
-
-      // Enhanced logging for debugging
-      if (deviceScore > 0.02) { // Log when score is getting high
-        console.log(`🔍 Device detection scan: Score ${deviceScore.toFixed(4)} (threshold: 0.05)`);
-        console.log(`📊 Pixel analysis: Bright: ${brightPixels}, Blue: ${bluePixels}, White: ${whitePixels}, Metallic: ${metallicPixels}`);
-        console.log(`📊 Ratios: Bright: ${brightRatio.toFixed(4)}, Blue: ${blueRatio.toFixed(4)}, White: ${whiteRatio.toFixed(4)}, Metallic: ${metallicRatio.toFixed(4)}`);
-      }
-
-      // If device score is high, trigger detection (very sensitive for interview integrity)
-      if (deviceScore > 0.05) { // Very sensitive threshold for strict monitoring
-        console.log('🚨 Electronic device detected! Score:', deviceScore.toFixed(4));
-        console.log(`📊 Detection details: Bright pixels: ${brightPixels}, Blue pixels: ${bluePixels}, White pixels: ${whitePixels}, Metallic pixels: ${metallicPixels}`);
+      const deviceDetected = detectDevice(imageData);
+      
+      if (deviceDetected) {
+        console.log('🚨 DEVICE DETECTED!');
         setElectronicDeviceDetected(true);
-        setError('Electronic device detected! Please remove all electronic devices and try again.');
+        setError('Mobile device detected! Please remove all electronic devices and try again.');
         
-        // Stop all interview activities immediately
+        // Stop activities and start countdown
         stopRecording();
         stopDeviceDetection();
         
-        // Start countdown and auto-remove candidate
         setRemovalCountdown(3);
         const countdownInterval = setInterval(() => {
           setRemovalCountdown(prev => {
             if (prev <= 1) {
               clearInterval(countdownInterval);
-              console.log('🚨 Removing candidate due to electronic device usage');
+              console.log('🚨 Removing candidate due to device usage');
+              stopCameraMonitoring();
+              stopDeviceDetection();
               if (onError) {
                 onError('Candidate removed due to electronic device usage during interview');
               }
@@ -892,73 +981,59 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
           });
         }, 1000);
       } else {
+        console.log('✅ No device detected');
         setElectronicDeviceDetected(false);
       }
-
-      // Analyze facial expressions for confidence
-      analyzeFacialExpression(imageData);
 
     } catch (err) {
       console.error('❌ Device detection error:', err);
     }
   };
 
-  // Simple facial expression analysis
-  const analyzeFacialExpression = (imageData) => {
-    try {
-      // This is a simplified analysis - in a real implementation,
-      // you would use a proper face detection library like face-api.js
-      const data = imageData.data;
-      let facePixels = 0;
-      let confidentPixels = 0;
 
-      // Simple skin tone detection and confidence analysis
-      for (let i = 0; i < data.length; i += 4) {
-        const r = data[i];
-        const g = data[i + 1];
-        const b = data[i + 2];
 
-        // Detect skin tones (simplified)
-        if (r > 95 && g > 40 && b > 20 && r > g && r > b && r - g > 15) {
-          facePixels++;
-          
-          // Detect confident expressions (bright, clear skin)
-          if (r > 120 && g > 60 && b > 30) {
-            confidentPixels++;
-          }
-        }
-      }
-
-      if (facePixels > 0) {
-        const confidenceRatio = confidentPixels / facePixels;
-        setConfidenceScore(Math.round(confidenceRatio * 100));
-        
-        // Set facial expression based on confidence
-        if (confidenceRatio > 0.7) {
-          setFacialExpression('Confident');
-        } else if (confidenceRatio > 0.4) {
-          setFacialExpression('Neutral');
-        } else {
-          setFacialExpression('Nervous');
-        }
-      }
-    } catch (err) {
-      console.error('❌ Facial analysis error:', err);
-    }
-  };
-
-  // Start device detection
+  // Start device detection - active monitoring for dark devices only
   const startDeviceDetection = () => {
     if (deviceDetectionInterval.current) {
       clearInterval(deviceDetectionInterval.current);
     }
     
+    console.log('🔍 Starting device monitoring (dark devices only - bright screens allowed)...');
+    
+    // Check if video is ready
+    if (!videoRef.current || !cameraStream) {
+      console.log('⚠️ Video or camera not ready, retrying in 2 seconds...');
+      setTimeout(() => {
+        if (step === 'interview') {
+          startDeviceDetection();
+        }
+      }, 2000);
+      return;
+    }
+
+    const video = videoRef.current;
+    if (!video.videoWidth || !video.videoHeight || video.readyState < 2) {
+      console.log('⚠️ Video not ready, retrying in 2 seconds...');
+      setTimeout(() => {
+        if (step === 'interview') {
+          startDeviceDetection();
+        }
+      }, 2000);
+      return;
+    }
+    
     setDeviceDetectionActive(true);
-    // More frequent detection during interview - every 1 second for better tracking
-    deviceDetectionInterval.current = setInterval(detectElectronicDevices, 1000);
-    console.log('🔍 Electronic device detection started - monitoring every 1 second');
-    console.log('📹 Camera stream status:', cameraStream ? 'Available' : 'Not available');
-    console.log('📹 Video element status:', videoRef.current ? 'Available' : 'Not available');
+    console.log('✅ Device monitoring started - detecting dark devices only, bright screens allowed');
+    
+    // Run detection every 3 seconds
+    deviceDetectionInterval.current = setInterval(() => {
+      if (step === 'interview' && videoRef.current && cameraStream) {
+        detectElectronicDevices();
+      } else {
+        console.log('⚠️ Stopping device monitoring');
+        stopDeviceDetection();
+      }
+    }, 3000);
   };
 
   // Stop device detection
@@ -969,6 +1044,38 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
     }
     setDeviceDetectionActive(false);
     console.log('🛑 Electronic device detection stopped');
+  };
+
+  // Start camera monitoring to ensure it stays active
+  const startCameraMonitoring = () => {
+    if (cameraMonitorInterval.current) {
+      clearInterval(cameraMonitorInterval.current);
+    }
+    
+    console.log('📹 Starting camera monitoring...');
+    cameraMonitorInterval.current = setInterval(() => {
+      if (step === 'interview' && videoRef.current && cameraStream) {
+        const video = videoRef.current;
+        
+        // Check if video is still playing and has valid stream
+        if (video.readyState < 2 || !video.videoWidth || !video.videoHeight) {
+          console.log('⚠️ Camera stream appears to be inactive, attempting to restart...');
+          ensureCameraActive();
+        } else if (cameraStatus !== 'playing') {
+          console.log('⚠️ Camera status is not playing, attempting to restart...');
+          ensureCameraActive();
+        }
+      }
+    }, 5000); // Check every 5 seconds
+  };
+
+  // Stop camera monitoring
+  const stopCameraMonitoring = () => {
+    if (cameraMonitorInterval.current) {
+      clearInterval(cameraMonitorInterval.current);
+      cameraMonitorInterval.current = null;
+    }
+    console.log('🛑 Camera monitoring stopped');
   };
 
   // Render different steps
@@ -1075,6 +1182,8 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
               <button
                 onClick={() => {
                   setStep('complete');
+                  stopCameraMonitoring();
+                  stopDeviceDetection();
                   if (onComplete) {
                     onComplete({ 
                       message: 'All interview rounds completed successfully!',
@@ -1244,6 +1353,8 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
               <button
                 onClick={() => {
                   setStep('complete');
+                  stopCameraMonitoring();
+                  stopDeviceDetection();
                   if (onComplete) {
                     onComplete({ 
                       message: 'All interview rounds completed successfully!',
@@ -1747,7 +1858,7 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
                       <button
                   onClick={() => {
                     console.log('🧪 Manual device detection test triggered');
-                    detectElectronicDevices();
+                    testDeviceDetection();
                   }}
                   className="px-4 py-2 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-400/30 rounded-lg text-purple-200 text-sm transition-all duration-200"
                 >
@@ -1759,10 +1870,11 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
                     console.log('📹 Manual camera restart triggered');
                     await ensureCameraActive();
                   }}
-                  className="px-4 py-2 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-400/30 rounded-lg text-blue-200 text-sm transition-all duration-200"
+                  disabled={isCameraRestarting}
+                  className="px-4 py-2 bg-blue-600/20 hover:bg-blue-600/30 disabled:bg-gray-600/20 disabled:cursor-not-allowed border border-blue-400/30 rounded-lg text-blue-200 text-sm transition-all duration-200"
                 >
-                  📹 Restart Camera
-                      </button>
+                  {isCameraRestarting ? '🔄 Restarting...' : '📹 Restart Camera'}
+                </button>
                   </div>
 
                   {error && (

@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import apiService from '../services/apiService';
+import aiInterviewService from '../services/aiInterviewService';
+import InterviewEvaluationResults from './InterviewEvaluationResults';
 import { 
   Play, 
   Pause, 
@@ -14,7 +16,8 @@ import {
   RotateCcw,
   Mic,
   MicOff,
-  Send
+  Send,
+  Loader2
 } from 'lucide-react';
 
 const AIInterviewConductor = ({ 
@@ -33,11 +36,26 @@ const AIInterviewConductor = ({
   const [currentAnswer, setCurrentAnswer] = useState('');
   const [showFollowUp, setShowFollowUp] = useState(false);
   const [followUpIndex, setFollowUpIndex] = useState(0);
+  const [evaluation, setEvaluation] = useState(null);
+  const [isEvaluating, setIsEvaluating] = useState(false);
+  const [sessionId, setSessionId] = useState(null);
+  const [roundEvaluations, setRoundEvaluations] = useState({});
+  const [isEvaluatingRound, setIsEvaluatingRound] = useState(false);
+  const [showRoundResults, setShowRoundResults] = useState(false);
+  const [currentRoundEvaluation, setCurrentRoundEvaluation] = useState(null);
 
   const currentRoundData = interviewData?.rounds?.[currentRound];
   const currentQuestionData = currentRoundData?.questions?.[currentQuestion];
   const totalRounds = interviewData?.rounds?.length || 0;
   const totalQuestions = currentRoundData?.questions?.length || 0;
+
+  // Initialize interview session
+  useEffect(() => {
+    if (interviewData && candidateInfo && !sessionId) {
+      const newSessionId = aiInterviewService.startInterview(interviewData, candidateInfo);
+      setSessionId(newSessionId);
+    }
+  }, [interviewData, candidateInfo, sessionId]);
 
   // Timer effect
   useEffect(() => {
@@ -91,6 +109,14 @@ const AIInterviewConductor = ({
       [currentQuestionData.id]: answerData
     }));
 
+    // Submit answer to AI interview service
+    if (sessionId) {
+      const result = aiInterviewService.submitAnswer(sessionId, normalizedAnswer);
+      if (!result.success) {
+        console.error('Failed to submit answer to AI service:', result.error);
+      }
+    }
+
     // Submit answer to backend
     if (candidateInfo && interviewData) {
       const answerPayload = {
@@ -131,13 +157,12 @@ const AIInterviewConductor = ({
       setCurrentQuestion(prev => prev + 1);
       setTimeRemaining(currentRoundData?.questions?.[currentQuestion + 1]?.timeLimit * 60 || 300);
     } else if (currentRound < totalRounds - 1) {
-      // Move to next round
-      setCurrentRound(prev => prev + 1);
-      setCurrentQuestion(0);
-      setTimeRemaining(interviewData?.rounds?.[currentRound + 1]?.questions?.[0]?.timeLimit * 60 || 300);
-        } else {
-          // Interview completed
-          setInterviewStatus('completed');
+      // Round completed - evaluate current round
+      evaluateCurrentRound();
+    } else {
+      // Interview completed
+      setInterviewStatus('completed');
+      triggerEvaluation();
       if (onComplete) {
         onComplete(answers);
       }
@@ -152,6 +177,109 @@ const AIInterviewConductor = ({
       setCurrentRound(prev => prev - 1);
       setCurrentQuestion(interviewData?.rounds?.[currentRound - 1]?.questions?.length - 1);
       setTimeRemaining(interviewData?.rounds?.[currentRound - 1]?.questions?.[interviewData?.rounds?.[currentRound - 1]?.questions?.length - 1]?.timeLimit * 60 || 300);
+    }
+  };
+
+  const evaluateCurrentRound = async () => {
+    if (!sessionId || !currentRoundData) return;
+    
+    setIsEvaluatingRound(true);
+    try {
+      const result = await aiInterviewService.evaluateRound(sessionId, currentRoundData.roundId);
+      if (result.success) {
+        const roundEval = result.data;
+        setRoundEvaluations(prev => ({
+          ...prev,
+          [currentRoundData.roundId]: roundEval
+        }));
+        setCurrentRoundEvaluation(roundEval);
+        setShowRoundResults(true);
+      } else {
+        console.error('Round evaluation failed:', result.error);
+        // Set fallback round evaluation
+        const fallbackEval = {
+          roundScore: 60,
+          scores: {
+            technical: 6,
+            communication: 6,
+            problemSolving: 6,
+            engagement: 5,
+            responseQuality: 5
+          },
+          feedback: "Round completed with basic responses",
+          strengths: ["Participated in round"],
+          improvements: ["Provide more detailed answers"],
+          nextRoundAdvice: "Continue with detailed responses",
+          participationMetrics: {
+            questionsAnswered: currentQuestion + 1,
+            participationRate: 100,
+            avgResponseTime: 0,
+            completenessRate: 50
+          },
+          roundSummary: "Round completed with basic participation"
+        };
+        setRoundEvaluations(prev => ({
+          ...prev,
+          [currentRoundData.roundId]: fallbackEval
+        }));
+        setCurrentRoundEvaluation(fallbackEval);
+        setShowRoundResults(true);
+      }
+    } catch (error) {
+      console.error('Round evaluation error:', error);
+    } finally {
+      setIsEvaluatingRound(false);
+    }
+  };
+
+  const continueToNextRound = () => {
+    setShowRoundResults(false);
+    setCurrentRoundEvaluation(null);
+    setCurrentRound(prev => prev + 1);
+    setCurrentQuestion(0);
+    setTimeRemaining(interviewData?.rounds?.[currentRound + 1]?.questions?.[0]?.timeLimit * 60 || 300);
+  };
+
+  const triggerEvaluation = async () => {
+    if (!sessionId) return;
+    
+    setIsEvaluating(true);
+    try {
+      const result = await aiInterviewService.evaluateInterview(sessionId);
+      if (result.success) {
+        setEvaluation(result.data);
+      } else {
+        console.error('Evaluation failed:', result.error);
+        // Set a fallback evaluation
+        setEvaluation({
+          overallScore: 50,
+          scores: {
+            technical: 5,
+            communication: 5,
+            problemSolving: 5,
+            engagement: 5,
+            culturalFit: 5,
+            responseQuality: 5
+          },
+          detailedFeedback: {
+            technical: "Unable to evaluate due to system error",
+            communication: "Unable to evaluate due to system error",
+            problemSolving: "Unable to evaluate due to system error",
+            engagement: "Unable to evaluate due to system error",
+            culturalFit: "Unable to evaluate due to system error",
+            responseQuality: "Unable to evaluate due to system error"
+          },
+          strengths: ["Completed interview"],
+          areasForImprovement: ["System evaluation error"],
+          recommendation: "Maybe",
+          confidenceLevel: "Low",
+          nextSteps: "Manual review required"
+        });
+      }
+    } catch (error) {
+      console.error('Evaluation error:', error);
+    } finally {
+      setIsEvaluating(false);
     }
   };
 
@@ -180,6 +308,189 @@ const AIInterviewConductor = ({
       default: return 'text-gray-600 bg-gray-100';
     }
   };
+
+  // Show round evaluation loading
+  if (isEvaluatingRound) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-2xl w-full text-center">
+          <div className="w-20 h-20 bg-gradient-to-r from-green-500 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-6">
+            <Loader2 className="h-10 w-10 text-white animate-spin" />
+          </div>
+          
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">
+            Evaluating Round Performance
+          </h1>
+          
+          <p className="text-gray-600 mb-6">
+            Our AI is analyzing your responses for this round and generating detailed feedback...
+          </p>
+
+          <div className="bg-gray-50 rounded-lg p-4 mb-6">
+            <h3 className="font-semibold text-gray-800 mb-2">Round Summary:</h3>
+            <div className="text-sm text-gray-600 space-y-1">
+              <p>• Round: {currentRoundData?.title}</p>
+              <p>• Questions Answered: {currentQuestion + 1}</p>
+              <p>• Duration: {currentRoundData?.duration} minutes</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show round evaluation results
+  if (showRoundResults && currentRoundEvaluation) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-4xl w-full">
+          <div className="text-center mb-6">
+            <div className="w-16 h-16 bg-gradient-to-r from-green-500 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
+              <CheckCircle className="h-8 w-8 text-white" />
+            </div>
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">
+              {currentRoundData?.title} Completed!
+            </h1>
+            <p className="text-gray-600">
+              Great job! Here's your performance evaluation for this round.
+            </p>
+          </div>
+
+          {/* Round Score */}
+          <div className="bg-blue-50 rounded-xl p-6 mb-6 text-center">
+            <div className="text-3xl font-bold text-blue-600 mb-2">
+              {currentRoundEvaluation.roundScore}%
+            </div>
+            <div className="text-sm text-blue-700">Round Score</div>
+            <div className="text-xs text-blue-600 mt-1">
+              {currentRoundEvaluation.roundScore >= 80 ? 'Excellent performance!' : 
+               currentRoundEvaluation.roundScore >= 60 ? 'Good performance' : 
+               'Room for improvement'}
+            </div>
+          </div>
+
+          {/* Detailed Scores */}
+          {currentRoundEvaluation.scores && (
+            <div className="bg-white border rounded-lg p-4 mb-6">
+              <h3 className="font-semibold text-gray-800 mb-3">Detailed Performance Breakdown:</h3>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                {Object.entries(currentRoundEvaluation.scores).map(([category, score]) => (
+                  <div key={category} className="text-center">
+                    <div className="text-lg font-bold text-gray-900">{score}/10</div>
+                    <div className="text-xs text-gray-500 capitalize">{category.replace(/([A-Z])/g, ' $1').trim()}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Feedback */}
+          <div className="bg-gray-50 rounded-lg p-4 mb-6">
+            <h3 className="font-semibold text-gray-800 mb-2 flex items-center">
+              <MessageSquare className="h-4 w-4 mr-2 text-orange-500" />
+              Feedback
+            </h3>
+            <p className="text-gray-700">{currentRoundEvaluation.feedback}</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            {/* Strengths */}
+            <div className="bg-white border border-green-200 rounded-lg p-4">
+              <h3 className="font-semibold text-gray-800 mb-3 flex items-center">
+                <CheckCircle className="h-4 w-4 mr-2 text-green-500" />
+                Strengths
+              </h3>
+              <div className="space-y-2">
+                {currentRoundEvaluation.strengths?.map((strength, index) => (
+                  <div key={index} className="flex items-start space-x-2">
+                    <CheckCircle className="h-3 w-3 text-green-500 mt-1 flex-shrink-0" />
+                    <span className="text-sm text-gray-700">{strength}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Areas for Improvement */}
+            <div className="bg-white border border-orange-200 rounded-lg p-4">
+              <h3 className="font-semibold text-gray-800 mb-3 flex items-center">
+                <AlertTriangle className="h-4 w-4 mr-2 text-orange-500" />
+                Areas for Improvement
+              </h3>
+              <div className="space-y-2">
+                {currentRoundEvaluation.improvements?.map((improvement, index) => (
+                  <div key={index} className="flex items-start space-x-2">
+                    <AlertTriangle className="h-3 w-3 text-orange-500 mt-1 flex-shrink-0" />
+                    <span className="text-sm text-gray-700">{improvement}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Participation Metrics */}
+          {currentRoundEvaluation.participationMetrics && (
+            <div className="bg-gray-50 rounded-lg p-4 mb-6">
+              <h3 className="font-semibold text-gray-800 mb-3">Participation Metrics:</h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                <div className="text-center">
+                  <div className="font-semibold text-gray-900">{currentRoundEvaluation.participationMetrics.questionsAnswered}</div>
+                  <div className="text-gray-500">Questions Answered</div>
+                </div>
+                <div className="text-center">
+                  <div className="font-semibold text-gray-900">{currentRoundEvaluation.participationMetrics.participationRate}%</div>
+                  <div className="text-gray-500">Participation Rate</div>
+                </div>
+                <div className="text-center">
+                  <div className="font-semibold text-gray-900">{currentRoundEvaluation.participationMetrics.completenessRate}%</div>
+                  <div className="text-gray-500">Completeness Rate</div>
+                </div>
+                <div className="text-center">
+                  <div className="font-semibold text-gray-900">{currentRoundEvaluation.participationMetrics.avgResponseTime}s</div>
+                  <div className="text-gray-500">Avg Response Time</div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Next Round Advice */}
+          {currentRoundEvaluation.nextRoundAdvice && (
+            <div className="bg-purple-50 rounded-lg p-4 mb-6">
+              <h3 className="font-semibold text-purple-800 mb-2 flex items-center">
+                <ArrowRight className="h-4 w-4 mr-2" />
+                Advice for Next Round
+              </h3>
+              <p className="text-purple-700 text-sm">{currentRoundEvaluation.nextRoundAdvice}</p>
+            </div>
+          )}
+
+          {/* Progress */}
+          <div className="bg-gray-50 rounded-lg p-4 mb-6">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-sm font-medium text-gray-700">Interview Progress</span>
+              <span className="text-sm text-gray-500">Round {currentRound + 1} of {totalRounds}</span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div 
+                className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all duration-1000"
+                style={{ width: `${((currentRound + 1) / totalRounds) * 100}%` }}
+              />
+            </div>
+          </div>
+
+          {/* Continue Button */}
+          <div className="text-center">
+            <button
+              onClick={continueToNextRound}
+              className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold py-3 px-8 rounded-xl transition-all duration-200 flex items-center space-x-2 mx-auto"
+            >
+              <span>Continue to Next Round</span>
+              <ArrowRight className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (interviewStatus === 'ready') {
     return (
@@ -240,6 +551,45 @@ const AIInterviewConductor = ({
   }
 
   if (interviewStatus === 'completed') {
+    if (isEvaluating) {
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-2xl w-full text-center">
+            <div className="w-20 h-20 bg-gradient-to-r from-green-500 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Loader2 className="h-10 w-10 text-white animate-spin" />
+            </div>
+            
+            <h1 className="text-3xl font-bold text-gray-900 mb-4">
+              Evaluating Your Performance
+            </h1>
+            
+            <p className="text-gray-600 mb-6">
+              Our AI is analyzing your responses and generating detailed feedback. This may take a few moments...
+            </p>
+
+            <div className="bg-gray-50 rounded-lg p-4 mb-6">
+              <h3 className="font-semibold text-gray-800 mb-2">Interview Summary:</h3>
+              <div className="text-sm text-gray-600 space-y-1">
+                <p>• Total Rounds: {totalRounds}</p>
+                <p>• Questions Answered: {Object.keys(answers).length}</p>
+                <p>• Duration: {interviewData?.totalDuration} minutes</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    if (evaluation) {
+      return (
+        <InterviewEvaluationResults 
+          evaluation={evaluation}
+          candidateInfo={candidateInfo}
+          interviewData={interviewData}
+        />
+      );
+    }
+
     return (
       <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-2xl w-full text-center">
