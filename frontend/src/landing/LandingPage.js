@@ -5,7 +5,6 @@ import Features from './components/Features';
 import HowItWorks from './components/HowItWorks';
 import Testimonials from './components/Testimonials';
 import Pricing from './components/Pricing';
-import CTA from './components/CTA';
 import Footer from './components/Footer';
 
 const LandingPage = () => {
@@ -18,7 +17,6 @@ const LandingPage = () => {
       <HowItWorks />
       <Testimonials />
       <Pricing />
-      <CTA />
       <Footer />
     </div>
   );

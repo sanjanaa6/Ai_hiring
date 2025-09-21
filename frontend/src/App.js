@@ -29,6 +29,13 @@ import NotFound from './pages/NotFound';
 // Landing Pages
 import LandingPage from './landing/LandingPage';
 
+// Legal Pages
+import TermsOfService from './landing/legal/TermsOfService';
+import PrivacyPolicy from './landing/legal/PrivacyPolicy';
+import RefundPolicy from './landing/legal/RefundPolicy';
+import CookiePolicy from './landing/legal/CookiePolicy';
+import Pricing from './landing/legal/Pricing';
+
 // Create a client
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -42,10 +49,15 @@ const queryClient = new QueryClient({
 function AppShell() {
   const location = useLocation();
   const path = location.pathname || '';
-  // Hide header on auth pages and landing pages
+  // Hide header on auth pages, legal pages, and landing pages
   const hideGlobalNavbar = (
     path.startsWith('/login') ||
-    path.startsWith('/register')
+    path.startsWith('/register') ||
+    path.startsWith('/terms') ||
+    path.startsWith('/privacy') ||
+    path.startsWith('/refund') ||
+    path.startsWith('/cookies') ||
+    path.startsWith('/pricing')
   );
 
   return (
@@ -56,6 +68,13 @@ function AppShell() {
           {/* Landing Page */}
           <Route path="/" element={<LandingPage />} />
           <Route path="/landing" element={<LandingPage />} />
+          
+          {/* Legal Pages */}
+          <Route path="/terms" element={<TermsOfService />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/refund" element={<RefundPolicy />} />
+          <Route path="/cookies" element={<CookiePolicy />} />
+          <Route path="/pricing" element={<Pricing />} />
           
           {/* Public Routes */}
           <Route path="/login" element={<Login />} />

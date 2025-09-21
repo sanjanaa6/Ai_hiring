@@ -245,7 +245,7 @@ const RecruiterDashboard = () => {
                     : 'from-gray-900 to-blue-600 bg-clip-text text-transparent'
                   }`}
                 >
-                  AI Hiring Platform
+              AI Hiring Platform
                 </motion.h1>
                 <motion.p 
                   initial={{ opacity: 0, x: -20 }}
@@ -253,9 +253,9 @@ const RecruiterDashboard = () => {
                   transition={{ delay: 0.4, duration: 0.6 }}
                   className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}
                 >
-                  Create jobs with AI-powered multi-round interviews and manage candidates
+              Create jobs with AI-powered multi-round interviews and manage candidates
                 </motion.p>
-              </div>
+        </div>
             </div>
           </motion.div>
 
@@ -289,9 +289,9 @@ const RecruiterDashboard = () => {
                       isActive
                         ? `${isDarkMode ? 'text-blue-400 bg-blue-500/10' : 'text-blue-600 bg-blue-50'} shadow-lg`
                         : `${isDarkMode ? 'text-gray-400 hover:text-white hover:bg-gray-800/50' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`
-                    }`}
-                  >
-                    <div className="flex items-center space-x-2">
+                }`}
+              >
+                <div className="flex items-center space-x-2">
                       <motion.div
                         animate={{ rotate: isActive ? 360 : 0 }}
                         transition={{ duration: 0.5 }}
@@ -299,7 +299,7 @@ const RecruiterDashboard = () => {
                         <Icon className="h-4 w-4" />
                       </motion.div>
                       <span>{tab.label}</span>
-                    </div>
+                </div>
                     {isActive && (
                       <motion.div
                         layoutId="activeTab"
@@ -405,8 +405,8 @@ const RecruiterDashboard = () => {
                           transition={{ delay: 1 + index * 0.1, type: "spring", stiffness: 200 }}
                           className={`w-3 h-3 rounded-full bg-gradient-to-r ${stat.gradient} animate-pulse`}
                         ></motion.div>
-                      </div>
-                      
+              </div>
+
                       <div>
                         <motion.p 
                           initial={{ opacity: 0 }}
@@ -424,8 +424,8 @@ const RecruiterDashboard = () => {
                         >
                           {stat.value}
                         </motion.p>
-                      </div>
-                    </div>
+                  </div>
+                  </div>
                   </motion.div>
                 );
               })}
@@ -478,14 +478,14 @@ const RecruiterDashboard = () => {
                   }}
                   className="absolute bottom-0 right-0 w-1 h-1 bg-white rounded-full"
                 ></motion.div>
-              </div>
-              
+            </div>
+
               <motion.div
                 whileHover={{ rotate: 90 }}
                 transition={{ duration: 0.3 }}
                 className="relative z-10"
-              >
-                <Plus className="h-6 w-6" />
+            >
+              <Plus className="h-6 w-6" />
               </motion.div>
               <span className="relative z-10">Create Job with AI Interview</span>
               
@@ -559,8 +559,8 @@ const RecruiterDashboard = () => {
                     className={`${isDarkMode ? 'bg-black/40 border-blue-500/30' : 'bg-white/80 border-gray-200/50'} border-b backdrop-blur-2xl shadow-2xl rounded-t-3xl`}
                   >
                     <div className="px-8 py-6">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-4">
                           <motion.div 
                             initial={{ scale: 0, rotate: -180 }}
                             animate={{ scale: 1, rotate: 0 }}
@@ -574,7 +574,7 @@ const RecruiterDashboard = () => {
                               <Sparkles className={`h-8 w-8 ${isDarkMode ? 'text-blue-400' : 'text-white'}`} />
                             </motion.div>
                           </motion.div>
-                          <div>
+                        <div>
                             <motion.h1 
                               initial={{ opacity: 0, x: -20 }}
                               animate={{ opacity: 1, x: 0 }}
@@ -584,7 +584,7 @@ const RecruiterDashboard = () => {
                                 : 'from-gray-900 via-blue-600 to-purple-600 bg-clip-text text-transparent'
                               }`}
                             >
-                              Create AI-Powered Interview
+                            Create AI-Powered Interview
                             </motion.h1>
                             <motion.p 
                               initial={{ opacity: 0, x: -20 }}
@@ -592,34 +592,34 @@ const RecruiterDashboard = () => {
                               transition={{ delay: 0.6, duration: 0.6 }}
                               className={`${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mt-1 text-base`}
                             >
-                              Describe your ideal candidate and let AI generate everything
+                            Describe your ideal candidate and let AI generate everything
                             </motion.p>
-                          </div>
                         </div>
+                      </div>
                         <motion.button
                           initial={{ scale: 0 }}
                           animate={{ scale: 1 }}
                           transition={{ delay: 0.7, type: "spring", stiffness: 200 }}
                           whileHover={{ scale: 1.1, rotate: 90 }}
                           whileTap={{ scale: 0.9 }}
-                          onClick={() => setShowCreateJob(false)}
+                        onClick={() => setShowCreateJob(false)}
                           className={`p-3 rounded-xl transition-all duration-300 ${isDarkMode 
                             ? 'text-gray-400 hover:text-white hover:bg-gray-700/50 border border-gray-600/50' 
                             : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100 border border-gray-200'
                           }`}
-                        >
+                      >
                           <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                          </svg>
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
                         </motion.button>
-                      </div>
                     </div>
+                  </div>
                   </motion.div>
 
                   {/* Enhanced Content Area */}
-                  <div className="flex-1 overflow-y-auto">
+                <div className="flex-1 overflow-y-auto">
                     <div className="px-8 py-6">
-                      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                       {/* Enhanced Main Form */}
                       <div className="lg:col-span-2">
                         <motion.div
@@ -639,8 +639,8 @@ const RecruiterDashboard = () => {
                                 <FileText className={`h-5 w-5 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} />
                               </div>
                               <label className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                                Job Description Prompt *
-                              </label>
+                              Job Description Prompt *
+                            </label>
                             </motion.div>
                             
                             <motion.p 
@@ -765,27 +765,27 @@ const RecruiterDashboard = () => {
                               )}
                               
                               <div className="relative z-10 flex items-center space-x-3">
-                                {loading ? (
-                                  <>
+                              {loading ? (
+                                <>
                                     <motion.div
                                       animate={{ rotate: 360 }}
                                       transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
                                       className="w-5 h-5 border-2 border-white border-t-transparent rounded-full"
                                     ></motion.div>
-                                    <span>Creating AI Interview...</span>
-                                  </>
-                                ) : (
-                                  <>
+                                  <span>Creating AI Interview...</span>
+                                </>
+                              ) : (
+                                <>
                                     <motion.div
                                       whileHover={{ rotate: 180 }}
                                       transition={{ duration: 0.5 }}
                                     >
-                                      <Sparkles className="h-5 w-5" />
+                                  <Sparkles className="h-5 w-5" />
                                     </motion.div>
-                                    <span>Generate AI Interview</span>
-                                  </>
-                                )}
-                              </div>
+                                  <span>Generate AI Interview</span>
+                                </>
+                              )}
+                          </div>
                               
                               {/* Shine effect */}
                               {!loading && jobPrompt.trim().length >= 10 && (
@@ -958,10 +958,10 @@ const RecruiterDashboard = () => {
                           </div>
                         </motion.div>
                       </div>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
               </div>
             </motion.div>
           )}
@@ -1104,7 +1104,7 @@ const RecruiterDashboard = () => {
                                 <Clock className="h-4 w-4" />
                               </motion.div>
                               {job.duration} min
-                            </div>
+                          </div>
                           </motion.div>
                           <motion.div 
                             initial={{ opacity: 0, scale: 0.8 }}
@@ -1121,7 +1121,7 @@ const RecruiterDashboard = () => {
                               {job.status}
                             </span>
                           </motion.div>
-                        </div>
+                          </div>
                         <motion.div 
                           initial={{ opacity: 0, x: 20 }}
                           animate={{ opacity: 1, x: 0 }}
@@ -1142,8 +1142,8 @@ const RecruiterDashboard = () => {
                             <motion.div
                               whileHover={{ rotate: 45 }}
                               transition={{ duration: 0.2 }}
-                            >
-                              <Link className="h-4 w-4" />
+                          >
+                            <Link className="h-4 w-4" />
                             </motion.div>
                             <span>Get Link</span>
                           </motion.button>
@@ -1160,8 +1160,8 @@ const RecruiterDashboard = () => {
                             <motion.div
                               whileHover={{ scale: 1.1 }}
                               transition={{ duration: 0.2 }}
-                            >
-                              <FileText className="h-4 w-4" />
+                          >
+                            <FileText className="h-4 w-4" />
                             </motion.div>
                             <span>View Performance</span>
                           </motion.button>
