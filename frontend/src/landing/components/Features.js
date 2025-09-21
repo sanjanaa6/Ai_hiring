@@ -24,7 +24,8 @@ import {
   CheckCircle,
   TrendingUp,
   MessageCircle,
-  Globe
+  Globe,
+  Eye
 } from 'lucide-react';
 
 const Features = () => {
@@ -57,51 +58,55 @@ const Features = () => {
   const features = [
     {
       icon: Brain,
-      title: "AI-Powered Intelligence",
+      title: "Advanced Code Analysis",
       description: "Advanced AI conducts intelligent interviews that adapt to each candidate's responses and provides real-time analysis with 95% accuracy.",
-      gradient: "from-blue-500 to-cyan-500",
+      gradient: "from-blue-500 to-purple-600",
       bgGradient: "from-blue-50 to-cyan-50",
       darkBgGradient: "from-blue-900/20 to-cyan-900/20",
       delay: 0,
       stats: "95% Accuracy",
       color: "blue",
-      secondaryIcon: Sparkles
+      secondaryIcon: Sparkles,
+      iconStyle: "squircle-blue-purple"
     },
     {
-      icon: Zap,
-      title: "Lightning Fast Processing",
+      icon: Eye,
+      title: "Real-time AI Proctoring",
       description: "Reduce time-to-hire by 70% with automated screening, instant candidate evaluation, and real-time decision making.",
-      gradient: "from-yellow-500 to-orange-500",
+      gradient: "from-orange-500 to-orange-600",
       bgGradient: "from-yellow-50 to-orange-50",
       darkBgGradient: "from-yellow-900/20 to-orange-900/20",
       delay: 0.1,
       stats: "70% Faster",
-      color: "yellow",
-      secondaryIcon: Rocket
+      color: "orange",
+      secondaryIcon: Rocket,
+      iconStyle: "squircle-orange"
     },
     {
-      icon: Shield,
-      title: "Bias-Free Assessment",
+      icon: Target,
+      title: "Performance Insights",
       description: "Eliminate unconscious bias with objective AI evaluation based on skills, experience, and cultural fit analysis.",
-      gradient: "from-emerald-500 to-teal-500",
+      gradient: "from-purple-500 to-purple-700",
       bgGradient: "from-emerald-50 to-teal-50",
       darkBgGradient: "from-emerald-900/20 to-teal-900/20",
       delay: 0.2,
       stats: "100% Fair",
-      color: "emerald",
-      secondaryIcon: Award
+      color: "purple",
+      secondaryIcon: Award,
+      iconStyle: "squircle-purple"
     },
     {
-      icon: BarChart3,
-      title: "Advanced Analytics",
+      icon: Shield,
+      title: "Instant Evaluation",
       description: "Get detailed insights into your hiring process with comprehensive analytics, performance metrics, and predictive modeling.",
-      gradient: "from-purple-500 to-pink-500",
+      gradient: "from-green-500 to-green-600",
       bgGradient: "from-purple-50 to-pink-50",
       darkBgGradient: "from-purple-900/20 to-pink-900/20",
       delay: 0.3,
       stats: "Real-time Data",
-      color: "purple",
-      secondaryIcon: TrendingUp
+      color: "green",
+      secondaryIcon: TrendingUp,
+      iconStyle: "squircle-green"
     },
     {
       icon: Users,
@@ -113,7 +118,8 @@ const Features = () => {
       delay: 0.4,
       stats: "Unlimited Users",
       color: "indigo",
-      secondaryIcon: Heart
+      secondaryIcon: Heart,
+      iconStyle: "squircle-indigo"
     },
     {
       icon: Globe,
@@ -125,7 +131,8 @@ const Features = () => {
       delay: 0.5,
       stats: "50+ Languages",
       color: "rose",
-      secondaryIcon: Crown
+      secondaryIcon: Crown,
+      iconStyle: "squircle-rose"
     }
   ];
 
@@ -519,29 +526,33 @@ const Features = () => {
                       </div>
 
                       {/* Right Side - Visual */}
-                      <div className="relative">
+                      <div className="relative flex justify-center">
                         <motion.div
-                          className={`w-64 h-64 mx-auto rounded-3xl bg-gradient-to-br ${feature.gradient} flex items-center justify-center shadow-2xl`}
+                          className={`w-48 h-48 mx-auto rounded-[2rem] bg-gradient-to-br ${feature.gradient} flex items-center justify-center shadow-2xl relative overflow-hidden`}
                           initial={{ opacity: 0, scale: 0, rotate: -180 }}
                           animate={{ opacity: 1, scale: 1, rotate: 0 }}
                           transition={{ delay: 0.3, duration: 0.8, type: "spring", stiffness: 100 }}
                           whileHover={{ 
-                            scale: 1.1, 
-                            rotate: 5,
+                            scale: 1.05, 
+                            rotate: 2,
                             transition: { duration: 0.3 }
                           }}
+                          style={{
+                            borderRadius: '2rem'
+                          }}
                         >
+                          {/* Subtle glow effect */}
+                          <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent rounded-[2rem]" />
+                          
                           <motion.div
                             animate={{ 
-                              rotate: [0, 360],
-                              scale: [1, 1.1, 1]
+                              scale: [1, 1.05, 1]
                             }}
                             transition={{ 
-                              rotate: { duration: 8, repeat: Infinity, ease: "linear" },
-                              scale: { duration: 2, repeat: Infinity }
+                              scale: { duration: 3, repeat: Infinity, ease: "easeInOut" }
                             }}
                           >
-                            <IconComponent className="w-32 h-32 text-white" />
+                            <IconComponent className="w-24 h-24 text-white stroke-2" />
                           </motion.div>
                         </motion.div>
 
