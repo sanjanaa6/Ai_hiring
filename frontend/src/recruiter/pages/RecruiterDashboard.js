@@ -210,368 +210,758 @@ const RecruiterDashboard = () => {
 
   return (
     <RecruiterLayout>
-      <div className="py-8" style={{
+      <div className="h-full flex flex-col" style={{
         background: isDarkMode
           ? 'radial-gradient(1200px 700px at -10% 0%, rgba(59,130,246,.08), transparent), radial-gradient(1000px 600px at 110% -10%, rgba(6,182,212,.08), transparent)'
           : undefined
       }}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-          <div className={`mb-8 p-6 rounded-lg border ${isDarkMode ? 'bg-white/10 border-white/10 backdrop-blur text-white' : 'bg-gradient-to-r from-purple-50 to-blue-50 border-purple-200'}`}>
-            <h1 className={`text-3xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-              AI Hiring Platform
-          </h1>
-            <p className={`${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-              Create jobs with AI-powered multi-round interviews and manage candidates
-          </p>
-        </div>
-
-        {/* Tab Navigation */}
-        <div className="mb-8">
-          <div className="border-b border-gray-200">
-            <nav className="-mb-px flex space-x-8">
-              <button
-                onClick={() => setActiveTab('jobs')}
-                className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === 'jobs'
-                    ? 'border-purple-500 text-purple-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
+        <div className="w-full px-4 sm:px-6 lg:px-8 flex-1 flex flex-col">
+        {/* Enhanced Header with Glassmorphism */}
+          <motion.div 
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+            className={`mb-6 p-8 rounded-2xl border backdrop-blur-xl ${isDarkMode 
+              ? 'bg-black/30 border-blue-500/40 shadow-2xl shadow-blue-500/10' 
+              : 'bg-white/80 border-blue-200/50 shadow-2xl shadow-blue-500/5'
+            }`}
+          >
+            <div className="flex items-center space-x-4 mb-4">
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+                className={`p-3 rounded-xl ${isDarkMode ? 'bg-blue-500/20' : 'bg-blue-100'}`}
               >
-                <div className="flex items-center space-x-2">
-                  <Briefcase className="h-4 w-4" />
-                  <span>Jobs & Interviews</span>
-                </div>
-              </button>
-              <button
-                onClick={() => setActiveTab('candidates')}
-                className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === 'candidates'
-                    ? 'border-purple-500 text-purple-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                <div className="flex items-center space-x-2">
-                  <UserCheck className="h-4 w-4" />
-                  <span>Candidates</span>
-                </div>
-              </button>
-              <button
-                onClick={() => setActiveTab('answers')}
-                className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === 'answers'
-                    ? 'border-purple-500 text-purple-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                <div className="flex items-center space-x-2">
-                  <FileText className="h-4 w-4" />
-                  <span>Answers</span>
-                </div>
-              </button>
-              <button
-                onClick={() => setActiveTab('analytics')}
-                className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === 'analytics'
-                    ? 'border-purple-500 text-purple-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                <div className="flex items-center space-x-2">
-                  <BarChart3 className="h-4 w-4" />
-                  <span>Analytics</span>
-                </div>
-              </button>
-            </nav>
-          </div>
-        </div>
-
-        {/* Tab Content */}
-        {activeTab === 'jobs' && (
-          <>
-            {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-              <div className={`${isDarkMode ? 'bg-white/10 border border-white/10 backdrop-blur' : 'bg-white'} rounded-lg shadow p-6 transition-transform hover:-translate-y-1`}>
-                <div className="flex items-center">
-                  <div className="p-2 bg-blue-100 rounded-lg">
-                    <Briefcase className="h-6 w-6 text-blue-600" />
-                  </div>
-                  <div className="ml-4">
-                    <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>Active Jobs</p>
-                    <p className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{jobs.length}</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className={`${isDarkMode ? 'bg-white/10 border border-white/10 backdrop-blur' : 'bg-white'} rounded-lg shadow p-6 transition-transform hover:-translate-y-1`}>
-                <div className="flex items-center">
-                  <div className="p-2 bg-green-100 rounded-lg">
-                    <Bot className="h-6 w-6 text-green-600" />
-                  </div>
-                  <div className="ml-4">
-                    <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>AI Interviews</p>
-                    <p className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{jobs.length}</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className={`${isDarkMode ? 'bg-white/10 border border-white/10 backdrop-blur' : 'bg-white'} rounded-lg shadow p-6 transition-transform hover:-translate-y-1`}>
-                <div className="flex items-center">
-                  <div className="p-2 bg-purple-100 rounded-lg">
-                    <Users className="h-6 w-6 text-purple-600" />
-                  </div>
-                  <div className="ml-4">
-                    <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>Candidates</p>
-                    <p className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>0</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className={`${isDarkMode ? 'bg-white/10 border border-white/10 backdrop-blur' : 'bg-white'} rounded-lg shadow p-6 transition-transform hover:-translate-y-1`}>
-                <div className="flex items-center">
-                  <div className="p-2 bg-yellow-100 rounded-lg">
-                    <Clock className="h-6 w-6 text-yellow-600" />
-                  </div>
-                  <div className="ml-4">
-                    <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>Completed</p>
-                    <p className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>0</p>
-                  </div>
-                </div>
+                <Bot className={`h-8 w-8 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} />
+              </motion.div>
+              <div>
+                <motion.h1 
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.3, duration: 0.6 }}
+                  className={`text-3xl font-bold bg-gradient-to-r ${isDarkMode 
+                    ? 'from-white to-blue-200 bg-clip-text text-transparent' 
+                    : 'from-gray-900 to-blue-600 bg-clip-text text-transparent'
+                  }`}
+                >
+                  AI Hiring Platform
+                </motion.h1>
+                <motion.p 
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.4, duration: 0.6 }}
+                  className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}
+                >
+                  Create jobs with AI-powered multi-round interviews and manage candidates
+                </motion.p>
               </div>
             </div>
+          </motion.div>
 
-          {/* Create Job Button */}
-          <div className="mb-8 text-center">
-            <button
-              onClick={() => setShowCreateJob(true)}
-              className="inline-flex items-center space-x-3 px-8 py-4 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-200 font-semibold text-lg"
-            >
-              <Plus className="h-6 w-6" />
-              <span>Create Job with AI Interview</span>
-            </button>
+        {/* Enhanced Tab Navigation with Animations */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5, duration: 0.6 }}
+          className="mb-6"
+        >
+          <div className={`border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} backdrop-blur-sm`}>
+            <nav className="-mb-px flex space-x-8">
+              {[
+                { id: 'jobs', label: 'Jobs & Interviews', icon: Briefcase },
+                { id: 'candidates', label: 'Candidates', icon: UserCheck },
+                { id: 'answers', label: 'Answers', icon: FileText },
+                { id: 'analytics', label: 'Analytics', icon: BarChart3 }
+              ].map((tab, index) => {
+                const Icon = tab.icon;
+                const isActive = activeTab === tab.id;
+                return (
+                  <motion.button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.6 + index * 0.1, duration: 0.4 }}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className={`relative py-3 px-4 font-medium text-sm rounded-t-xl transition-all duration-300 ${
+                      isActive
+                        ? `${isDarkMode ? 'text-blue-400 bg-blue-500/10' : 'text-blue-600 bg-blue-50'} shadow-lg`
+                        : `${isDarkMode ? 'text-gray-400 hover:text-white hover:bg-gray-800/50' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`
+                    }`}
+                  >
+                    <div className="flex items-center space-x-2">
+                      <motion.div
+                        animate={{ rotate: isActive ? 360 : 0 }}
+                        transition={{ duration: 0.5 }}
+                      >
+                        <Icon className="h-4 w-4" />
+                      </motion.div>
+                      <span>{tab.label}</span>
+                    </div>
+                    {isActive && (
+                      <motion.div
+                        layoutId="activeTab"
+                        className={`absolute bottom-0 left-0 right-0 h-0.5 ${isDarkMode ? 'bg-blue-400' : 'bg-blue-600'} rounded-full`}
+                        initial={false}
+                        transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                      />
+                    )}
+                  </motion.button>
+                );
+              })}
+            </nav>
           </div>
+        </motion.div>
 
-          {/* Create Job Modal - Full Page */}
+        {/* Tab Content */}
+        <div className="flex-1 overflow-y-auto">
+        {activeTab === 'jobs' && (
+          <>
+            {/* Enhanced Stats Cards with Animations */}
+            <motion.div 
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.7, duration: 0.6 }}
+              className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8"
+            >
+              {[
+                { 
+                  icon: Briefcase, 
+                  label: 'Active Jobs', 
+                  value: jobs.length, 
+                  color: 'blue',
+                  bgColor: isDarkMode ? 'bg-blue-500/20' : 'bg-blue-100',
+                  iconColor: 'text-blue-600',
+                  gradient: 'from-blue-500 to-blue-600'
+                },
+                { 
+                  icon: Bot, 
+                  label: 'AI Interviews', 
+                  value: jobs.length, 
+                  color: 'green',
+                  bgColor: isDarkMode ? 'bg-green-500/20' : 'bg-green-100',
+                  iconColor: 'text-green-600',
+                  gradient: 'from-green-500 to-green-600'
+                },
+                { 
+                  icon: Users, 
+                  label: 'Candidates', 
+                  value: 0, 
+                  color: 'purple',
+                  bgColor: isDarkMode ? 'bg-purple-500/20' : 'bg-purple-100',
+                  iconColor: 'text-purple-600',
+                  gradient: 'from-purple-500 to-purple-600'
+                },
+                { 
+                  icon: Clock, 
+                  label: 'Completed', 
+                  value: 0, 
+                  color: 'yellow',
+                  bgColor: isDarkMode ? 'bg-yellow-500/20' : 'bg-yellow-100',
+                  iconColor: 'text-yellow-600',
+                  gradient: 'from-yellow-500 to-yellow-600'
+                }
+              ].map((stat, index) => {
+                const Icon = stat.icon;
+                return (
+                  <motion.div
+                    key={stat.label}
+                    initial={{ opacity: 0, y: 30, scale: 0.9 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    transition={{ 
+                      delay: 0.8 + index * 0.1, 
+                      duration: 0.5,
+                      type: "spring",
+                      stiffness: 100
+                    }}
+                    whileHover={{ 
+                      y: -8, 
+                      scale: 1.02,
+                      transition: { duration: 0.2 }
+                    }}
+                    className={`group relative overflow-hidden rounded-2xl p-6 backdrop-blur-xl border transition-all duration-300 ${
+                      isDarkMode 
+                        ? 'bg-black/30 border-blue-500/30 shadow-2xl shadow-blue-500/10' 
+                        : 'bg-white/80 border-gray-200/50 shadow-xl shadow-gray-500/5'
+                    }`}
+                  >
+                    {/* Animated background gradient */}
+                    <div className={`absolute inset-0 bg-gradient-to-br ${stat.gradient} opacity-0 group-hover:opacity-10 transition-opacity duration-300`}></div>
+                    
+                    <div className="relative z-10">
+                      <div className="flex items-center justify-between mb-4">
+                        <motion.div
+                          whileHover={{ rotate: 360 }}
+                          transition={{ duration: 0.6 }}
+                          className={`p-3 rounded-xl ${stat.bgColor} group-hover:scale-110 transition-transform duration-300`}
+                        >
+                          <Icon className={`h-6 w-6 ${stat.iconColor}`} />
+                        </motion.div>
+                        <motion.div
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          transition={{ delay: 1 + index * 0.1, type: "spring", stiffness: 200 }}
+                          className={`w-3 h-3 rounded-full bg-gradient-to-r ${stat.gradient} animate-pulse`}
+                        ></motion.div>
+                      </div>
+                      
+                      <div>
+                        <motion.p 
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          transition={{ delay: 1.1 + index * 0.1 }}
+                          className={`text-sm font-medium mb-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}
+                        >
+                          {stat.label}
+                        </motion.p>
+                        <motion.p 
+                          initial={{ opacity: 0, scale: 0.5 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ delay: 1.2 + index * 0.1, type: "spring", stiffness: 200 }}
+                          className={`text-2xl font-bold bg-gradient-to-r ${stat.gradient} bg-clip-text text-transparent`}
+                        >
+                          {stat.value}
+                        </motion.p>
+                      </div>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </motion.div>
+
+          {/* Enhanced Create Job Button */}
+          <motion.div 
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 1.3, duration: 0.6 }}
+            className="mb-8 text-center"
+          >
+            <motion.button
+              onClick={() => setShowCreateJob(true)}
+              whileHover={{ 
+                scale: 1.05,
+                y: -5,
+                transition: { duration: 0.2 }
+              }}
+              whileTap={{ scale: 0.95 }}
+              className="group relative inline-flex items-center space-x-3 px-10 py-5 bg-gradient-to-r from-blue-600 via-blue-700 to-slate-800 hover:from-blue-700 hover:via-blue-800 hover:to-slate-900 text-white rounded-2xl shadow-2xl hover:shadow-blue-500/25 transition-all duration-300 font-semibold text-lg overflow-hidden"
+            >
+              {/* Animated background */}
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-blue-600 opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
+              
+              {/* Floating particles effect */}
+              <div className="absolute inset-0 overflow-hidden">
+                <motion.div
+                  animate={{ 
+                    x: [0, 100, 0],
+                    opacity: [0, 1, 0]
+                  }}
+                  transition={{ 
+                    duration: 3,
+                    repeat: Infinity,
+                    ease: "easeInOut"
+                  }}
+                  className="absolute top-0 left-0 w-2 h-2 bg-white rounded-full"
+                ></motion.div>
+                <motion.div
+                  animate={{ 
+                    x: [0, -100, 0],
+                    opacity: [0, 1, 0]
+                  }}
+                  transition={{ 
+                    duration: 3,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                    delay: 1
+                  }}
+                  className="absolute bottom-0 right-0 w-1 h-1 bg-white rounded-full"
+                ></motion.div>
+              </div>
+              
+              <motion.div
+                whileHover={{ rotate: 90 }}
+                transition={{ duration: 0.3 }}
+                className="relative z-10"
+              >
+                <Plus className="h-6 w-6" />
+              </motion.div>
+              <span className="relative z-10">Create Job with AI Interview</span>
+              
+              {/* Shine effect */}
+              <motion.div
+                animate={{ x: ['-100%', '100%'] }}
+                transition={{ 
+                  duration: 2,
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+                className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-12"
+              ></motion.div>
+            </motion.button>
+          </motion.div>
+
+          {/* Enhanced Create Job Modal - Fixed Width */}
           {showCreateJob && (
             <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
               className="fixed inset-0 z-50 overflow-hidden"
             >
-              {/* Backdrop */}
-              <div className={`absolute inset-0 ${isDarkMode ? 'bg-gray-900/95 backdrop-blur-sm' : 'bg-white/95 backdrop-blur-sm'}`} />
+              {/* Enhanced Backdrop */}
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className={`absolute inset-0 ${isDarkMode ? 'bg-black/90 backdrop-blur-xl' : 'bg-white/95 backdrop-blur-xl'}`} 
+              />
               
-              {/* Main Content */}
-              <div className="relative h-full flex flex-col">
-                {/* Header */}
-                <div className={`${isDarkMode ? 'bg-gray-800/50 border-gray-700' : 'bg-white/50 border-gray-200'} border-b backdrop-blur-md`}>
-                  <div className="max-w-6xl mx-auto px-6 py-6">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-4">
-                        <div className={`p-3 rounded-xl ${isDarkMode ? 'bg-purple-500/20' : 'bg-gradient-to-br from-purple-500 to-blue-500'}`}>
-                          <Sparkles className={`h-8 w-8 ${isDarkMode ? 'text-purple-400' : 'text-white'}`} />
+              {/* Animated Background Elements */}
+              <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                <motion.div
+                  animate={{ 
+                    scale: [1, 1.2, 1],
+                    opacity: [0.1, 0.2, 0.1]
+                  }}
+                  transition={{ 
+                    duration: 8,
+                    repeat: Infinity,
+                    ease: "easeInOut"
+                  }}
+                  className={`absolute top-1/4 left-1/4 w-96 h-96 rounded-full ${isDarkMode ? 'bg-blue-500' : 'bg-blue-300'}`}
+                ></motion.div>
+                <motion.div
+                  animate={{ 
+                    scale: [1, 1.3, 1],
+                    opacity: [0.05, 0.15, 0.05]
+                  }}
+                  transition={{ 
+                    duration: 10,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                    delay: 2
+                  }}
+                  className={`absolute bottom-1/4 right-1/4 w-80 h-80 rounded-full ${isDarkMode ? 'bg-purple-500' : 'bg-purple-300'}`}
+                ></motion.div>
+              </div>
+              
+              {/* Main Content Container */}
+              <div className="relative h-full flex items-center justify-center p-4">
+                <div className="w-full max-w-7xl h-full max-h-[90vh] flex flex-col">
+                  {/* Enhanced Header - Always Visible */}
+                  <motion.div 
+                    initial={{ y: -50, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.2, duration: 0.6 }}
+                    className={`${isDarkMode ? 'bg-black/40 border-blue-500/30' : 'bg-white/80 border-gray-200/50'} border-b backdrop-blur-2xl shadow-2xl rounded-t-3xl`}
+                  >
+                    <div className="px-8 py-6">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-4">
+                          <motion.div 
+                            initial={{ scale: 0, rotate: -180 }}
+                            animate={{ scale: 1, rotate: 0 }}
+                            transition={{ delay: 0.4, type: "spring", stiffness: 200 }}
+                            className={`p-3 rounded-xl ${isDarkMode ? 'bg-gradient-to-br from-blue-500/30 to-purple-500/30 border border-blue-500/40' : 'bg-gradient-to-br from-blue-500 to-purple-600 shadow-lg'}`}
+                          >
+                            <motion.div
+                              animate={{ rotate: [0, 360] }}
+                              transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                            >
+                              <Sparkles className={`h-8 w-8 ${isDarkMode ? 'text-blue-400' : 'text-white'}`} />
+                            </motion.div>
+                          </motion.div>
+                          <div>
+                            <motion.h1 
+                              initial={{ opacity: 0, x: -20 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: 0.5, duration: 0.6 }}
+                              className={`text-3xl font-bold bg-gradient-to-r ${isDarkMode 
+                                ? 'from-white via-blue-200 to-purple-200 bg-clip-text text-transparent' 
+                                : 'from-gray-900 via-blue-600 to-purple-600 bg-clip-text text-transparent'
+                              }`}
+                            >
+                              Create AI-Powered Interview
+                            </motion.h1>
+                            <motion.p 
+                              initial={{ opacity: 0, x: -20 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: 0.6, duration: 0.6 }}
+                              className={`${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mt-1 text-base`}
+                            >
+                              Describe your ideal candidate and let AI generate everything
+                            </motion.p>
+                          </div>
                         </div>
-                        <div>
-                          <h1 className={`text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                            Create AI-Powered Interview
-                          </h1>
-                          <p className={`${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mt-1`}>
-                            Describe your ideal candidate and let AI generate everything
-                          </p>
-                        </div>
+                        <motion.button
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          transition={{ delay: 0.7, type: "spring", stiffness: 200 }}
+                          whileHover={{ scale: 1.1, rotate: 90 }}
+                          whileTap={{ scale: 0.9 }}
+                          onClick={() => setShowCreateJob(false)}
+                          className={`p-3 rounded-xl transition-all duration-300 ${isDarkMode 
+                            ? 'text-gray-400 hover:text-white hover:bg-gray-700/50 border border-gray-600/50' 
+                            : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100 border border-gray-200'
+                          }`}
+                        >
+                          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </motion.button>
                       </div>
-                      <button
-                        onClick={() => setShowCreateJob(false)}
-                        className={`p-3 rounded-xl transition-all duration-200 ${isDarkMode ? 'text-gray-400 hover:text-white hover:bg-gray-700/50' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}
-                      >
-                        <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
                     </div>
-                  </div>
-                </div>
+                  </motion.div>
 
-                {/* Content Area */}
-                <div className="flex-1 overflow-y-auto">
-                  <div className="max-w-6xl mx-auto px-6 py-8">
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                      {/* Main Form */}
+                  {/* Enhanced Content Area */}
+                  <div className="flex-1 overflow-y-auto">
+                    <div className="px-8 py-6">
+                      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                      {/* Enhanced Main Form */}
                       <div className="lg:col-span-2">
                         <motion.div
-                          initial={{ y: 20, opacity: 0 }}
+                          initial={{ y: 30, opacity: 0 }}
                           animate={{ y: 0, opacity: 1 }}
-                          transition={{ delay: 0.1 }}
-                          className={`${isDarkMode ? 'bg-gray-800/50 border-gray-700' : 'bg-white/50 border-gray-200'} rounded-2xl border backdrop-blur-md p-8`}
+                          transition={{ delay: 0.8, duration: 0.6 }}
+                          className={`${isDarkMode ? 'bg-black/40 border-blue-500/30' : 'bg-white/90 border-gray-200/50'} rounded-2xl border backdrop-blur-2xl shadow-2xl p-6`}
                         >
                           <div className="mb-6">
-                            <label className={`block text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'} mb-3`}>
-                              Job Description Prompt *
-                            </label>
-                            <p className={`${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-6 leading-relaxed`}>
+                            <motion.div
+                              initial={{ opacity: 0, x: -20 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: 0.9, duration: 0.6 }}
+                              className="flex items-center space-x-3 mb-3"
+                            >
+                              <div className={`p-2 rounded-lg ${isDarkMode ? 'bg-blue-500/20' : 'bg-blue-100'}`}>
+                                <FileText className={`h-5 w-5 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} />
+                              </div>
+                              <label className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                                Job Description Prompt *
+                              </label>
+                            </motion.div>
+                            
+                            <motion.p 
+                              initial={{ opacity: 0, x: -20 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: 1.0, duration: 0.6 }}
+                              className={`${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-4 leading-relaxed text-sm`}
+                            >
                               Describe the job you want to hire for. Be as detailed as possible - include job title, level, requirements, responsibilities, company info, etc. AI will extract all details and create tailored interview questions.
-                            </p>
-                            <div className="relative">
+                            </motion.p>
+                            
+                            <motion.div 
+                              initial={{ opacity: 0, y: 20 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: 1.1, duration: 0.6 }}
+                              className="relative group"
+                            >
                               <textarea
                                 value={jobPrompt}
                                 onChange={(e) => setJobPrompt(e.target.value)}
-                                rows={16}
-                                className={`w-full px-6 py-4 rounded-xl border-2 transition-all duration-200 resize-none focus:outline-none ${
+                                rows={12}
+                                className={`w-full px-6 py-4 rounded-xl border-2 transition-all duration-300 resize-none focus:outline-none text-base ${
                                   isDarkMode 
-                                    ? 'bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20' 
-                                    : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20'
+                                    ? 'bg-black/30 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 hover:border-blue-400' 
+                                    : 'bg-white/80 border-gray-300 text-gray-900 placeholder-gray-500 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 hover:border-blue-400'
                                 }`}
                                 placeholder="Example: I need to hire a Senior React Developer for our fintech startup. The role involves building modern web applications using React, TypeScript, and Node.js. Requirements include 5+ years of React experience, strong knowledge of JavaScript/TypeScript, experience with Redux, REST APIs, and Git. The person will work remotely, salary range $100k-$140k. They'll be responsible for developing new features, maintaining existing code, and mentoring junior developers..."
                               />
-                              <div className={`absolute bottom-4 right-4 text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                              
+                              {/* Animated character counter */}
+                              <motion.div 
+                                animate={{ scale: jobPrompt.length > 0 ? [1, 1.1, 1] : 1 }}
+                                transition={{ duration: 0.3 }}
+                                className={`absolute bottom-6 right-6 px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+                                  jobPrompt.length >= 10 
+                                    ? isDarkMode 
+                                      ? 'bg-green-500/20 text-green-300 border border-green-500/30' 
+                                      : 'bg-green-100 text-green-700 border border-green-200'
+                                    : isDarkMode 
+                                      ? 'bg-gray-700/50 text-gray-400' 
+                                      : 'bg-gray-100 text-gray-500'
+                                }`}
+                              >
                                 {jobPrompt.length} characters (minimum 10 required)
-                              </div>
-                            </div>
+                              </motion.div>
+                              
+                              {/* Floating label effect */}
+                              {jobPrompt.length > 0 && (
+                                <motion.div
+                                  initial={{ opacity: 0, y: 10 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  className={`absolute -top-2 left-6 px-2 text-xs font-medium ${isDarkMode ? 'bg-black text-blue-400' : 'bg-white text-blue-600'}`}
+                                >
+                                  Job Description
+                                </motion.div>
+                              )}
+                            </motion.div>
                           </div>
 
-                          {/* Action Buttons */}
-                          <div className="flex justify-end space-x-4">
-                            <button
+                          {/* Enhanced Action Buttons */}
+                          <motion.div 
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 1.2, duration: 0.6 }}
+                            className="flex justify-end space-x-4 mt-4"
+                          >
+                            <motion.button
+                              whileHover={{ scale: 1.05, y: -2 }}
+                              whileTap={{ scale: 0.95 }}
                               onClick={() => setShowCreateJob(false)}
-                              className={`px-8 py-3 rounded-xl font-semibold transition-all duration-200 ${
+                              className={`px-8 py-4 rounded-2xl font-semibold transition-all duration-300 ${
                                 isDarkMode 
-                                  ? 'text-gray-300 hover:text-white hover:bg-gray-700/50' 
-                                  : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
+                                  ? 'text-gray-300 hover:text-white hover:bg-gray-700/50 border border-gray-600/50' 
+                                  : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100 border border-gray-200'
                               }`}
                             >
                               Cancel
-                            </button>
-                            <button
+                            </motion.button>
+                            
+                            <motion.button
+                              whileHover={{ 
+                                scale: loading || jobPrompt.trim().length < 10 ? 1 : 1.05,
+                                y: loading || jobPrompt.trim().length < 10 ? 0 : -3
+                              }}
+                              whileTap={{ scale: 0.95 }}
                               onClick={generateAIInterview}
                               disabled={loading || jobPrompt.trim().length < 10}
-                              className="flex items-center space-x-3 px-8 py-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 disabled:from-gray-300 disabled:to-gray-300 text-white rounded-xl transition-all duration-200 font-semibold transform hover:scale-105 disabled:transform-none disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
+                              className="group relative flex items-center space-x-3 px-10 py-4 bg-gradient-to-r from-blue-600 via-blue-700 to-purple-700 hover:from-blue-700 hover:via-blue-800 hover:to-purple-800 disabled:from-gray-300 disabled:to-gray-300 text-white rounded-2xl transition-all duration-300 font-semibold shadow-2xl hover:shadow-blue-500/25 disabled:shadow-none overflow-hidden"
                             >
-                              {loading ? (
-                                <>
-                                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                                  <span>Creating AI Interview...</span>
-                                </>
-                              ) : (
-                                <>
-                                  <Sparkles className="h-5 w-5" />
-                                  <span>Generate AI Interview</span>
-                                </>
+                              {/* Animated background */}
+                              <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-purple-500 opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
+                              
+                              {/* Floating particles */}
+                              {!loading && jobPrompt.trim().length >= 10 && (
+                                <div className="absolute inset-0 overflow-hidden">
+                                  <motion.div
+                                    animate={{ 
+                                      x: [0, 100, 0],
+                                      opacity: [0, 1, 0]
+                                    }}
+                                    transition={{ 
+                                      duration: 3,
+                                      repeat: Infinity,
+                                      ease: "easeInOut"
+                                    }}
+                                    className="absolute top-0 left-0 w-2 h-2 bg-white rounded-full"
+                                  ></motion.div>
+                                  <motion.div
+                                    animate={{ 
+                                      x: [0, -100, 0],
+                                      opacity: [0, 1, 0]
+                                    }}
+                                    transition={{ 
+                                      duration: 3,
+                                      repeat: Infinity,
+                                      ease: "easeInOut",
+                                      delay: 1
+                                    }}
+                                    className="absolute bottom-0 right-0 w-1 h-1 bg-white rounded-full"
+                                  ></motion.div>
+                                </div>
                               )}
-                            </button>
-                          </div>
+                              
+                              <div className="relative z-10 flex items-center space-x-3">
+                                {loading ? (
+                                  <>
+                                    <motion.div
+                                      animate={{ rotate: 360 }}
+                                      transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                                      className="w-5 h-5 border-2 border-white border-t-transparent rounded-full"
+                                    ></motion.div>
+                                    <span>Creating AI Interview...</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <motion.div
+                                      whileHover={{ rotate: 180 }}
+                                      transition={{ duration: 0.5 }}
+                                    >
+                                      <Sparkles className="h-5 w-5" />
+                                    </motion.div>
+                                    <span>Generate AI Interview</span>
+                                  </>
+                                )}
+                              </div>
+                              
+                              {/* Shine effect */}
+                              {!loading && jobPrompt.trim().length >= 10 && (
+                                <motion.div
+                                  animate={{ x: ['-100%', '100%'] }}
+                                  transition={{ 
+                                    duration: 2,
+                                    repeat: Infinity,
+                                    ease: "easeInOut"
+                                  }}
+                                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-12"
+                                ></motion.div>
+                              )}
+                            </motion.button>
+                          </motion.div>
                         </motion.div>
                       </div>
 
-                      {/* Sidebar */}
+                      {/* Enhanced Sidebar */}
                       <div className="space-y-6">
-                        {/* AI Features */}
+                        {/* Enhanced AI Features */}
                         <motion.div
-                          initial={{ y: 20, opacity: 0 }}
-                          animate={{ y: 0, opacity: 1 }}
-                          transition={{ delay: 0.2 }}
-                          className={`${isDarkMode ? 'bg-gradient-to-br from-blue-500/20 to-purple-500/20 border-blue-500/30' : 'bg-gradient-to-br from-blue-50 to-purple-50 border-blue-200'} rounded-2xl border backdrop-blur-md p-6`}
+                          initial={{ x: 30, opacity: 0 }}
+                          animate={{ x: 0, opacity: 1 }}
+                          transition={{ delay: 1.3, duration: 0.6 }}
+                          className={`${isDarkMode ? 'bg-gradient-to-br from-blue-500/20 to-purple-500/20 border-blue-500/40' : 'bg-gradient-to-br from-blue-50 to-purple-50 border-blue-200'} rounded-2xl border backdrop-blur-xl shadow-2xl p-6`}
                         >
                           <div className="flex items-center space-x-3 mb-4">
-                            <div className={`p-2 rounded-lg ${isDarkMode ? 'bg-blue-500/30' : 'bg-blue-100'}`}>
+                            <motion.div 
+                              animate={{ rotate: [0, 360] }}
+                              transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                              className={`p-2 rounded-lg ${isDarkMode ? 'bg-blue-500/30' : 'bg-blue-100'}`}
+                            >
                               <Bot className={`h-6 w-6 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} />
-                            </div>
-                            <h3 className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                            </motion.div>
+                            <h3 className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                               AI Magic ✨
                             </h3>
                           </div>
                           <ul className={`space-y-3 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                            <li className="flex items-start space-x-3">
-                              <CheckCircle className={`h-5 w-5 mt-0.5 ${isDarkMode ? 'text-green-400' : 'text-green-600'}`} />
-                              <span className="text-sm">Extract job title & level automatically</span>
-                            </li>
-                            <li className="flex items-start space-x-3">
-                              <CheckCircle className={`h-5 w-5 mt-0.5 ${isDarkMode ? 'text-green-400' : 'text-green-600'}`} />
-                              <span className="text-sm">Generate 5 tailored interview rounds</span>
-                            </li>
-                            <li className="flex items-start space-x-3">
-                              <CheckCircle className={`h-5 w-5 mt-0.5 ${isDarkMode ? 'text-green-400' : 'text-green-600'}`} />
-                              <span className="text-sm">Create role-specific questions</span>
-                            </li>
-                            <li className="flex items-start space-x-3">
-                              <CheckCircle className={`h-5 w-5 mt-0.5 ${isDarkMode ? 'text-green-400' : 'text-green-600'}`} />
-                              <span className="text-sm">Optimize interview duration</span>
-                            </li>
-                            <li className="flex items-start space-x-3">
-                              <CheckCircle className={`h-5 w-5 mt-0.5 ${isDarkMode ? 'text-green-400' : 'text-green-600'}`} />
-                              <span className="text-sm">Include company context</span>
-                            </li>
+                            {[
+                              "Extract job title & level automatically",
+                              "Generate 5 tailored interview rounds", 
+                              "Create role-specific questions",
+                              "Optimize interview duration",
+                              "Include company context"
+                            ].map((feature, index) => (
+                              <motion.li 
+                                key={feature}
+                                initial={{ opacity: 0, x: 20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: 1.4 + index * 0.1, duration: 0.4 }}
+                                className="flex items-start space-x-3 group"
+                              >
+                                <motion.div
+                                  whileHover={{ scale: 1.2, rotate: 360 }}
+                                  transition={{ duration: 0.3 }}
+                                >
+                                  <CheckCircle className={`h-4 w-4 mt-0.5 ${isDarkMode ? 'text-green-400' : 'text-green-600'}`} />
+                                </motion.div>
+                                <span className="text-xs group-hover:text-blue-400 transition-colors duration-200">{feature}</span>
+                              </motion.li>
+                            ))}
                           </ul>
                         </motion.div>
 
-                        {/* Tips */}
+                        {/* Enhanced Pro Tips */}
                         <motion.div
-                          initial={{ y: 20, opacity: 0 }}
-                          animate={{ y: 0, opacity: 1 }}
-                          transition={{ delay: 0.3 }}
-                          className={`${isDarkMode ? 'bg-gray-800/50 border-gray-700' : 'bg-white/50 border-gray-200'} rounded-2xl border backdrop-blur-md p-6`}
+                          initial={{ x: 30, opacity: 0 }}
+                          animate={{ x: 0, opacity: 1 }}
+                          transition={{ delay: 1.8, duration: 0.6 }}
+                          className={`${isDarkMode ? 'bg-gradient-to-br from-yellow-500/10 to-orange-500/10 border-yellow-500/30' : 'bg-gradient-to-br from-yellow-50 to-orange-50 border-yellow-200'} rounded-2xl border backdrop-blur-xl shadow-2xl p-6`}
                         >
                           <div className="flex items-center space-x-3 mb-4">
-                            <div className={`p-2 rounded-lg ${isDarkMode ? 'bg-yellow-500/30' : 'bg-yellow-100'}`}>
+                            <motion.div 
+                              animate={{ 
+                                scale: [1, 1.1, 1],
+                                rotate: [0, 5, -5, 0]
+                              }}
+                              transition={{ 
+                                duration: 4,
+                                repeat: Infinity,
+                                ease: "easeInOut"
+                              }}
+                              className={`p-2 rounded-lg ${isDarkMode ? 'bg-yellow-500/30' : 'bg-yellow-100'}`}
+                            >
                               <svg className={`h-6 w-6 ${isDarkMode ? 'text-yellow-400' : 'text-yellow-600'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                               </svg>
-                            </div>
-                            <h3 className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                              Pro Tips
+                            </motion.div>
+                            <h3 className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                              Pro Tips 💡
                             </h3>
                           </div>
                           <ul className={`space-y-3 text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-                            <li className="flex items-start space-x-3">
-                              <span className={`w-2 h-2 rounded-full mt-2 ${isDarkMode ? 'bg-purple-400' : 'bg-purple-500'}`}></span>
-                              <span>Include specific technologies and frameworks</span>
-                            </li>
-                            <li className="flex items-start space-x-3">
-                              <span className={`w-2 h-2 rounded-full mt-2 ${isDarkMode ? 'bg-purple-400' : 'bg-purple-500'}`}></span>
-                              <span>Mention years of experience required</span>
-                            </li>
-                            <li className="flex items-start space-x-3">
-                              <span className={`w-2 h-2 rounded-full mt-2 ${isDarkMode ? 'bg-purple-400' : 'bg-purple-500'}`}></span>
-                              <span>Describe company culture and values</span>
-                            </li>
-                            <li className="flex items-start space-x-3">
-                              <span className={`w-2 h-2 rounded-full mt-2 ${isDarkMode ? 'bg-purple-400' : 'bg-purple-500'}`}></span>
-                              <span>Include salary range and benefits</span>
-                            </li>
-                            <li className="flex items-start space-x-3">
-                              <span className={`w-2 h-2 rounded-full mt-2 ${isDarkMode ? 'bg-purple-400' : 'bg-purple-500'}`}></span>
-                              <span>Specify remote/hybrid/onsite work</span>
-                            </li>
+                            {[
+                              "Include specific technologies and frameworks",
+                              "Mention years of experience required",
+                              "Describe company culture and values",
+                              "Include salary range and benefits",
+                              "Specify remote/hybrid/onsite work"
+                            ].map((tip, index) => (
+                              <motion.li 
+                                key={tip}
+                                initial={{ opacity: 0, x: 20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: 1.9 + index * 0.1, duration: 0.4 }}
+                                className="flex items-start space-x-3 group"
+                              >
+                                <motion.div
+                                  animate={{ scale: [1, 1.2, 1] }}
+                                  transition={{ 
+                                    duration: 2,
+                                    repeat: Infinity,
+                                    delay: index * 0.2
+                                  }}
+                                  className={`w-2 h-2 rounded-full mt-2 ${isDarkMode ? 'bg-blue-400' : 'bg-blue-500'}`}
+                                ></motion.div>
+                                <span className="text-xs group-hover:text-yellow-400 transition-colors duration-200">{tip}</span>
+                              </motion.li>
+                            ))}
                           </ul>
                         </motion.div>
 
-                        {/* Example */}
+                        {/* Enhanced Example Output */}
                         <motion.div
-                          initial={{ y: 20, opacity: 0 }}
-                          animate={{ y: 0, opacity: 1 }}
-                          transition={{ delay: 0.4 }}
-                          className={`${isDarkMode ? 'bg-gray-800/50 border-gray-700' : 'bg-white/50 border-gray-200'} rounded-2xl border backdrop-blur-md p-6`}
+                          initial={{ x: 30, opacity: 0 }}
+                          animate={{ x: 0, opacity: 1 }}
+                          transition={{ delay: 2.3, duration: 0.6 }}
+                          className={`${isDarkMode ? 'bg-gradient-to-br from-green-500/10 to-emerald-500/10 border-green-500/30' : 'bg-gradient-to-br from-green-50 to-emerald-50 border-green-200'} rounded-2xl border backdrop-blur-xl shadow-2xl p-6`}
                         >
                           <div className="flex items-center space-x-3 mb-4">
-                            <div className={`p-2 rounded-lg ${isDarkMode ? 'bg-green-500/30' : 'bg-green-100'}`}>
+                            <motion.div 
+                              animate={{ 
+                                y: [0, -5, 0],
+                                rotate: [0, 10, -10, 0]
+                              }}
+                              transition={{ 
+                                duration: 3,
+                                repeat: Infinity,
+                                ease: "easeInOut"
+                              }}
+                              className={`p-2 rounded-lg ${isDarkMode ? 'bg-green-500/30' : 'bg-green-100'}`}
+                            >
                               <FileText className={`h-6 w-6 ${isDarkMode ? 'text-green-400' : 'text-green-600'}`} />
-                            </div>
-                            <h3 className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                              Example Output
+                            </motion.div>
+                            <h3 className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                              Example Output 📄
                             </h3>
                           </div>
                           <div className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} space-y-2`}>
-                            <p><strong>Job Title:</strong> Senior React Developer</p>
-                            <p><strong>Duration:</strong> 25-30 minutes</p>
-                            <p><strong>Rounds:</strong> 5 interview rounds</p>
-                            <p><strong>Questions:</strong> 15+ tailored questions</p>
-                            <p><strong>Focus:</strong> Technical skills, problem-solving, culture fit</p>
+                            {[
+                              { label: "Job Title", value: "Senior React Developer" },
+                              { label: "Duration", value: "25-30 minutes" },
+                              { label: "Rounds", value: "5 interview rounds" },
+                              { label: "Questions", value: "15+ tailored questions" },
+                              { label: "Focus", value: "Technical skills, problem-solving, culture fit" }
+                            ].map((item, index) => (
+                              <motion.div
+                                key={item.label}
+                                initial={{ opacity: 0, x: 20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: 2.4 + index * 0.1, duration: 0.4 }}
+                                className="flex justify-between items-center p-2 rounded-lg bg-black/10 border border-gray-600/20"
+                              >
+                                <span className="font-medium text-blue-400 text-xs">{item.label}:</span>
+                                <span className="text-right text-xs">{item.value}</span>
+                              </motion.div>
+                            ))}
                           </div>
                         </motion.div>
                       </div>
                     </div>
                   </div>
                 </div>
+              </div>
               </div>
             </motion.div>
           )}
@@ -590,7 +980,7 @@ const RecruiterDashboard = () => {
                   <p className="text-sm text-gray-600"><strong>Title:</strong> {generatedInterview.title}</p>
                   <p className="text-sm text-gray-600"><strong>Duration:</strong> {generatedInterview.totalDuration || generatedInterview.duration} minutes</p>
                   <p className="text-sm text-gray-600"><strong>Rounds:</strong> {generatedInterview.rounds?.length || generatedInterview.questions?.length} rounds</p>
-                  <p className="text-sm text-gray-600"><strong>Total Questions:</strong> {generatedInterview.rounds?.reduce((total, round) => total + round.questions.length, 0) || generatedInterview.questions?.length} questions</p>
+                  <p className="text-sm text-gray-600"><strong>Total Questions:</strong> {(generatedInterview.rounds?.length || 0) * 5} questions</p>
                 </div>
                 
                 <div>
@@ -615,11 +1005,32 @@ const RecruiterDashboard = () => {
             </div>
           )}
 
-          {/* Jobs List */}
-          <div className={`${isDarkMode ? 'bg-white/10 border border-white/10 backdrop-blur' : 'bg-white'} rounded-lg shadow`}>
-            <div className={`px-6 py-4 border-b ${isDarkMode ? 'border-white/10' : 'border-gray-200'} flex items-center justify-between`}>
-              <h2 className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Your AI Interview Jobs</h2>
-              <span className={`text-sm px-2.5 py-1 rounded-full ${isDarkMode ? 'bg-white/10 text-gray-200' : 'bg-gray-100 text-gray-700'}`}>{jobs.length} total</span>
+          {/* Enhanced Jobs List */}
+          <motion.div 
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 1.4, duration: 0.6 }}
+            className={`${isDarkMode ? 'bg-black/30 border border-blue-500/40 backdrop-blur-xl' : 'bg-white/90 backdrop-blur-sm'} rounded-2xl shadow-2xl overflow-hidden`}
+          >
+            <div className={`px-8 py-6 border-b ${isDarkMode ? 'border-blue-500/30' : 'border-gray-200'} flex items-center justify-between bg-gradient-to-r ${isDarkMode ? 'from-black/20 to-black/10' : 'from-blue-50/50 to-transparent'}`}>
+              <div className="flex items-center space-x-3">
+                <motion.div
+                  animate={{ rotate: [0, 360] }}
+                  transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                  className={`p-2 rounded-lg ${isDarkMode ? 'bg-blue-500/20' : 'bg-blue-100'}`}
+                >
+                  <Briefcase className={`h-5 w-5 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} />
+                </motion.div>
+                <h2 className={`text-xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Your AI Interview Jobs</h2>
+              </div>
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ delay: 1.6, type: "spring", stiffness: 200 }}
+                className={`text-sm px-4 py-2 rounded-full font-medium ${isDarkMode ? 'bg-blue-500/20 text-blue-200 border border-blue-500/30' : 'bg-blue-100 text-blue-700 border border-blue-200'}`}
+              >
+                {jobs.length} total
+              </motion.div>
             </div>
             <div className="p-6">
               {jobs.length > 0 ? (
@@ -627,57 +1038,137 @@ const RecruiterDashboard = () => {
                   {jobs.map((job, idx) => (
                     <motion.div
                       key={job.id || idx}
-                      className={`rounded-lg p-4 ${isDarkMode ? 'border border-white/10 bg-white/5' : 'border border-gray-200 bg-white'} transition-transform`}
-                      whileHover={{ y: -3 }}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 1.7 + idx * 0.1, duration: 0.5 }}
+                      whileHover={{ 
+                        y: -8, 
+                        scale: 1.02,
+                        transition: { duration: 0.2 }
+                      }}
+                      className={`group relative overflow-hidden rounded-2xl p-6 backdrop-blur-sm border transition-all duration-300 ${
+                        isDarkMode 
+                          ? 'border-blue-500/30 bg-black/20 hover:bg-black/30 shadow-lg shadow-blue-500/10' 
+                          : 'border-gray-200 bg-white/80 hover:bg-white shadow-lg shadow-gray-500/5'
+                      }`}
                     >
-                      <div className="flex justify-between items-start">
+                      {/* Animated background gradient */}
+                      <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                      <div className="relative z-10 flex justify-between items-start">
                         <div className="flex-1">
-                          <h3 className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{job.title}</h3>
-                          <p className={`${isDarkMode ? 'text-gray-300' : 'text-gray-600'} text-sm`}>{job.company}</p>
-                          <div className="flex items-center mt-2 space-x-4">
-                            <p className={`text-sm flex items-center ${isDarkMode ? 'text-gray-300' : 'text-gray-500'}`}>
-                              <MapPin className="h-4 w-4 mr-1" />
+                          <motion.h3 
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ delay: 1.8 + idx * 0.1 }}
+                            className={`text-lg font-semibold mb-1 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}
+                          >
+                            {job.title}
+                          </motion.h3>
+                          <motion.p 
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ delay: 1.9 + idx * 0.1 }}
+                            className={`${isDarkMode ? 'text-gray-300' : 'text-gray-600'} text-sm mb-3`}
+                          >
+                            {job.company}
+                          </motion.p>
+                          <motion.div 
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 2.0 + idx * 0.1 }}
+                            className="flex items-center mt-2 space-x-6"
+                          >
+                            <div className={`flex items-center text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-500'}`}>
+                              <motion.div
+                                whileHover={{ scale: 1.2 }}
+                                className="mr-2"
+                              >
+                                <MapPin className="h-4 w-4" />
+                              </motion.div>
                               {job.location}
-                            </p>
-                            <p className={`text-sm flex items-center ${isDarkMode ? 'text-gray-300' : 'text-gray-500'}`}>
-                              <DollarSign className="h-4 w-4 mr-1" />
+                            </div>
+                            <div className={`flex items-center text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-500'}`}>
+                              <motion.div
+                                whileHover={{ scale: 1.2 }}
+                                className="mr-2"
+                              >
+                                <DollarSign className="h-4 w-4" />
+                              </motion.div>
                               {job.salary}
-                            </p>
-                            <p className={`text-sm flex items-center ${isDarkMode ? 'text-gray-300' : 'text-gray-500'}`}>
-                              <Clock className="h-4 w-4 mr-1" />
+                            </div>
+                            <div className={`flex items-center text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-500'}`}>
+                              <motion.div
+                                whileHover={{ scale: 1.2 }}
+                                className="mr-2"
+                              >
+                                <Clock className="h-4 w-4" />
+                              </motion.div>
                               {job.duration} min
-                            </p>
-                          </div>
-                          <div className="mt-2">
-                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${isDarkMode ? 'bg-green-500/20 text-green-300' : 'bg-green-100 text-green-800'}`}>
+                            </div>
+                          </motion.div>
+                          <motion.div 
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ delay: 2.1 + idx * 0.1 }}
+                            className="mt-3"
+                          >
+                            <span className={`inline-flex items-center px-3 py-1 text-xs font-medium rounded-full ${isDarkMode ? 'bg-green-500/20 text-green-300 border border-green-500/30' : 'bg-green-100 text-green-800 border border-green-200'}`}>
+                              <motion.div
+                                animate={{ scale: [1, 1.2, 1] }}
+                                transition={{ duration: 2, repeat: Infinity }}
+                                className="w-2 h-2 bg-green-500 rounded-full mr-2"
+                              ></motion.div>
                               {job.status}
                             </span>
-                          </div>
+                          </motion.div>
                         </div>
-                        <div className="flex space-x-2 ml-4">
-                          <button
+                        <motion.div 
+                          initial={{ opacity: 0, x: 20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: 2.2 + idx * 0.1 }}
+                          className="flex space-x-3 ml-4"
+                        >
+                          <motion.button
+                            whileHover={{ scale: 1.05, y: -2 }}
+                            whileTap={{ scale: 0.95 }}
                             onClick={() => {
                               const computedLink = job.link || job.interviewLink || `${window.location.origin}/interview/${job.interviewId}`;
                               setInterviewLink(computedLink);
                               setLinkCopied(false);
                               try { window.open(computedLink, '_blank'); } catch (_) {}
                             }}
-                            className={`flex items-center space-x-1 px-3 py-1 text-sm rounded-lg transition-colors ${isDarkMode ? 'bg-blue-500/20 text-blue-200 hover:bg-blue-500/30' : 'bg-blue-100 text-blue-800 hover:bg-blue-200'}`}
+                            className={`group flex items-center space-x-2 px-4 py-2 text-sm rounded-xl transition-all duration-300 ${isDarkMode ? 'bg-blue-500/20 text-blue-200 hover:bg-blue-500/30 border border-blue-500/30' : 'bg-blue-100 text-blue-800 hover:bg-blue-200 border border-blue-200'}`}
                           >
-                            <Link className="h-4 w-4" />
+                            <motion.div
+                              whileHover={{ rotate: 45 }}
+                              transition={{ duration: 0.2 }}
+                            >
+                              <Link className="h-4 w-4" />
+                            </motion.div>
                             <span>Get Link</span>
-                          </button>
-                          <button
+                          </motion.button>
+                          
+                          <motion.button
+                            whileHover={{ scale: 1.05, y: -2 }}
+                            whileTap={{ scale: 0.95 }}
                             onClick={() => {
                               setSelectedInterviewId(job.interviewId);
                               setActiveTab('answers');
                             }}
-                            className={`flex items-center space-x-1 px-3 py-1 text-sm rounded-lg transition-colors ${isDarkMode ? 'bg-purple-500/20 text-purple-200 hover:bg-purple-500/30' : 'bg-purple-100 text-purple-800 hover:bg-purple-200'}`}
+                            className={`group flex items-center space-x-2 px-4 py-2 text-sm rounded-xl transition-all duration-300 ${isDarkMode ? 'bg-purple-500/20 text-purple-200 hover:bg-purple-500/30 border border-purple-500/30' : 'bg-purple-100 text-purple-800 hover:bg-purple-200 border border-purple-200'}`}
                           >
-                            <FileText className="h-4 w-4" />
+                            <motion.div
+                              whileHover={{ scale: 1.1 }}
+                              transition={{ duration: 0.2 }}
+                            >
+                              <FileText className="h-4 w-4" />
+                            </motion.div>
                             <span>View Performance</span>
-                          </button>
-                          <button
+                          </motion.button>
+                          
+                          <motion.button
+                            whileHover={{ scale: 1.05, y: -2 }}
+                            whileTap={{ scale: 0.95 }}
                             onClick={async () => {
                               if (!window.confirm('Delete this interview? This cannot be undone.')) return;
                               try {
@@ -691,24 +1182,61 @@ const RecruiterDashboard = () => {
                                 alert('Error deleting interview');
                               }
                             }}
-                            className={`flex items-center space-x-1 px-3 py-1 text-sm rounded-lg transition-colors ${isDarkMode ? 'bg-red-500/20 text-red-200 hover:bg-red-500/30' : 'bg-red-100 text-red-800 hover:bg-red-200'}`}
+                            className={`group flex items-center space-x-2 px-4 py-2 text-sm rounded-xl transition-all duration-300 ${isDarkMode ? 'bg-red-500/20 text-red-200 hover:bg-red-500/30 border border-red-500/30' : 'bg-red-100 text-red-800 hover:bg-red-200 border border-red-200'}`}
                           >
-                            <span>Delete</span>
-                          </button>
-                        </div>
+                            <motion.span
+                              whileHover={{ scale: 1.1 }}
+                              transition={{ duration: 0.2 }}
+                            >
+                              Delete
+                            </motion.span>
+                          </motion.button>
+                        </motion.div>
                       </div>
                     </motion.div>
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-8">
-                  <Bot className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-500 mb-4">No AI interview jobs created yet</p>
-                  <p className="text-sm text-gray-400">Create your first job with AI-powered interviews</p>
-                </div>
+                <motion.div 
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 1.5, duration: 0.6 }}
+                  className="text-center py-12"
+                >
+                  <motion.div
+                    animate={{ 
+                      y: [0, -10, 0],
+                      rotate: [0, 5, -5, 0]
+                    }}
+                    transition={{ 
+                      duration: 4,
+                      repeat: Infinity,
+                      ease: "easeInOut"
+                    }}
+                    className="mb-6"
+                  >
+                    <Bot className="h-16 w-16 text-gray-400 mx-auto" />
+                  </motion.div>
+                  <motion.h3 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 1.7 }}
+                    className={`text-xl font-semibold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}
+                  >
+                    No AI interview jobs created yet
+                  </motion.h3>
+                  <motion.p 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 1.8 }}
+                    className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}
+                  >
+                    Create your first job with AI-powered interviews
+                  </motion.p>
+                </motion.div>
               )}
             </div>
-          </div>
+          </motion.div>
           </>
         )}
 
@@ -719,13 +1247,13 @@ const RecruiterDashboard = () => {
         {activeTab === 'answers' && (
           <div className="space-y-8">
             {/* Modern Performance Dashboard Header */}
-            <div className={`${isDarkMode ? 'bg-gradient-to-r from-purple-900/50 to-blue-900/50 border border-white/10 backdrop-blur' : 'bg-gradient-to-r from-purple-600 to-blue-600'} rounded-2xl shadow-2xl p-8`}>
+            <div className={`${isDarkMode ? 'bg-gradient-to-r from-blue-900/50 to-slate-900/50 border border-blue-500/30 backdrop-blur' : 'bg-gradient-to-r from-blue-600 to-slate-700'} rounded-2xl shadow-2xl p-8`}>
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className={`text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-white'} mb-2`}>
                     🎯 Performance Analytics
                   </h2>
-                  <p className={`${isDarkMode ? 'text-purple-200' : 'text-purple-100'} text-lg`}>
+                  <p className={`${isDarkMode ? 'text-blue-200' : 'text-blue-100'} text-lg`}>
                     Comprehensive candidate performance insights and detailed interview analysis
                   </p>
                 </div>
@@ -734,13 +1262,13 @@ const RecruiterDashboard = () => {
                     <div className="text-2xl font-bold text-white">
                       {selectedInterviewId ? groupAnswersByCandidate().length : 0}
                     </div>
-                    <div className="text-sm text-purple-100">Candidates</div>
+                    <div className="text-sm text-blue-100">Candidates</div>
                   </div>
                   <div className={`${isDarkMode ? 'bg-white/20' : 'bg-white/20'} rounded-xl p-4`}>
                     <div className="text-2xl font-bold text-white">
                       {selectedInterviewId ? answers.length : 0}
                     </div>
-                    <div className="text-sm text-purple-100">Total Answers</div>
+                    <div className="text-sm text-blue-100">Total Answers</div>
                   </div>
                 </div>
               </div>
@@ -756,8 +1284,8 @@ const RecruiterDashboard = () => {
                   onClick={() => selectedInterviewId && loadAnswers(selectedInterviewId, selectedCandidateId)}
                   className={`px-4 py-2 rounded-xl font-medium transition-all duration-200 ${
                     isDarkMode 
-                      ? 'bg-purple-600 hover:bg-purple-700 text-white' 
-                      : 'bg-purple-600 hover:bg-purple-700 text-white'
+                      ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                      : 'bg-blue-600 hover:bg-blue-700 text-white'
                   }`}
                 >
                   🔄 Refresh Data
@@ -774,8 +1302,8 @@ const RecruiterDashboard = () => {
                     onChange={(e) => setSelectedInterviewId(e.target.value)}
                     className={`w-full px-4 py-3 rounded-xl border-2 transition-all duration-200 ${
                       isDarkMode 
-                        ? 'bg-gray-800 border-gray-600 text-white focus:border-purple-500' 
-                        : 'bg-white border-gray-300 text-gray-900 focus:border-purple-500'
+                        ? 'bg-gray-800 border-gray-600 text-white focus:border-blue-500' 
+                        : 'bg-white border-gray-300 text-gray-900 focus:border-blue-500'
                     }`}
                   >
                     <option value="" disabled>Select an interview to analyze</option>
@@ -798,8 +1326,8 @@ const RecruiterDashboard = () => {
                     placeholder="candidate@example.com"
                     className={`w-full px-4 py-3 rounded-xl border-2 transition-all duration-200 ${
                       isDarkMode 
-                        ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400 focus:border-purple-500' 
-                        : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-purple-500'
+                        ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500' 
+                        : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-blue-500'
                     }`}
                   />
                 </div>
@@ -811,14 +1339,14 @@ const RecruiterDashboard = () => {
               <div className="space-y-6">
                 {answersLoading ? (
                   <div className={`${isDarkMode ? 'bg-white/10 border border-white/10 backdrop-blur' : 'bg-white'} rounded-2xl shadow-lg p-12 text-center`}>
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
                     <p className={`text-lg ${isDarkMode ? 'text-white' : 'text-gray-600'}`}>Loading performance data...</p>
                   </div>
                 ) : groupAnswersByCandidate().length > 0 ? (
                   <>
                     {/* Performance Overview Cards */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                      <div className={`${isDarkMode ? 'bg-white/10 border border-white/10 backdrop-blur' : 'bg-white'} rounded-2xl shadow-lg p-6`}>
+                      <div className={`${isDarkMode ? 'bg-black/20 border border-blue-500/30 backdrop-blur' : 'bg-white'} rounded-2xl shadow-lg p-6`}>
                         <div className="flex items-center justify-between">
                           <div>
                             <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>Total Candidates</p>
@@ -832,7 +1360,7 @@ const RecruiterDashboard = () => {
                         </div>
                       </div>
 
-                      <div className={`${isDarkMode ? 'bg-white/10 border border-white/10 backdrop-blur' : 'bg-white'} rounded-2xl shadow-lg p-6`}>
+                      <div className={`${isDarkMode ? 'bg-black/20 border border-blue-500/30 backdrop-blur' : 'bg-white'} rounded-2xl shadow-lg p-6`}>
                         <div className="flex items-center justify-between">
                           <div>
                             <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>Average Score</p>
@@ -846,7 +1374,7 @@ const RecruiterDashboard = () => {
                         </div>
                       </div>
 
-                      <div className={`${isDarkMode ? 'bg-white/10 border border-white/10 backdrop-blur' : 'bg-white'} rounded-2xl shadow-lg p-6`}>
+                      <div className={`${isDarkMode ? 'bg-black/20 border border-blue-500/30 backdrop-blur' : 'bg-white'} rounded-2xl shadow-lg p-6`}>
                         <div className="flex items-center justify-between">
                           <div>
                             <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>Total Answers</p>
@@ -854,13 +1382,13 @@ const RecruiterDashboard = () => {
                               {answers.length}
                             </p>
                           </div>
-                          <div className="p-3 bg-purple-100 rounded-xl">
-                            <FileText className="h-6 w-6 text-purple-600" />
+                          <div className="p-3 bg-blue-100 rounded-xl">
+                            <FileText className="h-6 w-6 text-blue-600" />
                           </div>
                         </div>
                       </div>
 
-                      <div className={`${isDarkMode ? 'bg-white/10 border border-white/10 backdrop-blur' : 'bg-white'} rounded-2xl shadow-lg p-6`}>
+                      <div className={`${isDarkMode ? 'bg-black/20 border border-blue-500/30 backdrop-blur' : 'bg-white'} rounded-2xl shadow-lg p-6`}>
                         <div className="flex items-center justify-between">
                           <div>
                             <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>Completion Rate</p>
@@ -876,14 +1404,14 @@ const RecruiterDashboard = () => {
                     </div>
 
                     {/* Candidate Performance Cards */}
-                    <div className={`${isDarkMode ? 'bg-white/10 border border-white/10 backdrop-blur' : 'bg-white'} rounded-2xl shadow-lg p-6`}>
+                    <div className={`${isDarkMode ? 'bg-black/20 border border-blue-500/30 backdrop-blur' : 'bg-white'} rounded-2xl shadow-lg p-6`}>
                       <h3 className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'} mb-6`}>
                         👥 Candidate Performance Analysis
                       </h3>
                       
                       <div className="space-y-4">
                         {groupAnswersByCandidate().map((candidate, index) => (
-                          <div key={candidate.candidateId} className={`${isDarkMode ? 'bg-gray-800/50 border border-gray-700' : 'bg-gray-50 border border-gray-200'} rounded-xl p-6 transition-all duration-200 hover:shadow-lg`}>
+                          <div key={candidate.candidateId} className={`${isDarkMode ? 'bg-black/30 border border-blue-500/20' : 'bg-gray-50 border border-gray-200'} rounded-xl p-6 transition-all duration-200 hover:shadow-lg`}>
                             <div className="flex items-center justify-between mb-4">
                               <div className="flex items-center space-x-4">
                                 <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-bold ${
@@ -915,8 +1443,8 @@ const RecruiterDashboard = () => {
                                   className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
                                     expandedCandidates[candidate.candidateId]
                                       ? isDarkMode 
-                                        ? 'bg-purple-600 text-white' 
-                                        : 'bg-purple-600 text-white'
+                                        ? 'bg-blue-600 text-white' 
+                                        : 'bg-blue-600 text-white'
                                       : isDarkMode 
                                         ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' 
                                         : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
@@ -949,7 +1477,7 @@ const RecruiterDashboard = () => {
 
                             {/* Expanded Details */}
                             {expandedCandidates[candidate.candidateId] && (
-                              <div className={`${isDarkMode ? 'bg-gray-800/50 border border-gray-700' : 'bg-white border border-gray-200'} rounded-xl p-6 mt-4`}>
+                              <div className={`${isDarkMode ? 'bg-black/30 border border-blue-500/20' : 'bg-white border border-gray-200'} rounded-xl p-6 mt-4`}>
                                 <h5 className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'} mb-4`}>
                                   📝 Detailed Interview Responses
                                 </h5>
@@ -959,7 +1487,7 @@ const RecruiterDashboard = () => {
                                     .filter(a => a.candidateId === candidate.candidateId)
                                     .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
                                     .map((answer, idx) => (
-                                      <div key={idx} className={`${isDarkMode ? 'bg-gray-700/50 border border-gray-600' : 'bg-gray-50 border border-gray-200'} rounded-lg p-4`}>
+                                      <div key={idx} className={`${isDarkMode ? 'bg-black/20 border border-blue-500/20' : 'bg-gray-50 border border-gray-200'} rounded-lg p-4`}>
                                         <div className="flex items-center justify-between mb-3">
                                           <div className="flex items-center space-x-2">
                                             <span className={`px-2 py-1 rounded-full text-xs font-medium ${
@@ -968,7 +1496,7 @@ const RecruiterDashboard = () => {
                                               {answer.roundTitle || 'Round'}
                                             </span>
                                             <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                              answer.type === 'voice' ? 'bg-purple-100 text-purple-800' : 'bg-green-100 text-green-800'
+                                              answer.type === 'voice' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'
                                             }`}>
                                               {answer.type?.toUpperCase() || 'TEXT'}
                                             </span>
@@ -988,7 +1516,7 @@ const RecruiterDashboard = () => {
                                         </div>
 
                                         {answer.aiEvaluation && (
-                                          <div className={`${isDarkMode ? 'bg-gray-800 border border-gray-600' : 'bg-white border border-gray-200'} rounded-lg p-4`}>
+                                          <div className={`${isDarkMode ? 'bg-black/20 border border-blue-500/20' : 'bg-white border border-gray-200'} rounded-lg p-4`}>
                                             <div className="flex items-center justify-between mb-3">
                                               <h6 className={`font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                                                 🤖 AI Evaluation
@@ -1052,7 +1580,7 @@ const RecruiterDashboard = () => {
                     </div>
                   </>
                 ) : (
-                  <div className={`${isDarkMode ? 'bg-white/10 border border-white/10 backdrop-blur' : 'bg-white'} rounded-2xl shadow-lg p-12 text-center`}>
+                  <div className={`${isDarkMode ? 'bg-black/20 border border-blue-500/30 backdrop-blur' : 'bg-white'} rounded-2xl shadow-lg p-12 text-center`}>
                     <div className="text-6xl mb-4">📊</div>
                     <h3 className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'} mb-2`}>
                       No Performance Data Yet
@@ -1066,7 +1594,7 @@ const RecruiterDashboard = () => {
             )}
 
             {!selectedInterviewId && (
-              <div className={`${isDarkMode ? 'bg-white/10 border border-white/10 backdrop-blur' : 'bg-white'} rounded-2xl shadow-lg p-12 text-center`}>
+              <div className={`${isDarkMode ? 'bg-black/20 border border-blue-500/30 backdrop-blur' : 'bg-white'} rounded-2xl shadow-lg p-12 text-center`}>
                 <div className="text-6xl mb-4">🎯</div>
                 <h3 className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'} mb-2`}>
                   Select an Interview
@@ -1082,16 +1610,16 @@ const RecruiterDashboard = () => {
                   {activeTab === 'analytics' && (
                     <div className="space-y-6">
                       {/* Interview Selection */}
-                      <div className="bg-white rounded-lg shadow p-6">
-                        <h2 className="text-xl font-semibold text-gray-900 mb-4">Select Interview to View Analytics</h2>
+                      <div className={`${isDarkMode ? 'bg-black/20 border border-blue-500/30 backdrop-blur' : 'bg-white'} rounded-xl shadow-lg p-6`}>
+                        <h2 className={`text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'} mb-4`}>Select Interview to View Analytics</h2>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                           {jobs.map((job) => (
                             <button
                               key={job.interviewId}
                               onClick={() => setSelectedInterviewId(job.interviewId)}
-                              className={`p-4 rounded-lg border text-left transition-all duration-200 ${
+                              className={`p-4 rounded-xl border text-left transition-all duration-200 ${
                                 selectedInterviewId === job.interviewId
-                                  ? 'border-purple-500 bg-purple-50 shadow-md'
+                                  ? 'border-blue-500 bg-blue-50 shadow-md'
                                   : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                               }`}
                             >
@@ -1108,8 +1636,8 @@ const RecruiterDashboard = () => {
                       {/* Interview Statistics */}
                       {interviewStats && (
                         <>
-                          <div className="bg-white rounded-lg shadow p-6">
-                            <h2 className="text-xl font-semibold text-gray-900 mb-4">Interview Analytics</h2>
+                          <div className={`${isDarkMode ? 'bg-black/20 border border-blue-500/30 backdrop-blur' : 'bg-white'} rounded-xl shadow-lg p-6`}>
+                            <h2 className={`text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'} mb-4`}>Interview Analytics</h2>
                             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                               <div className="text-center">
                                 <div className="text-3xl font-bold text-blue-600">{interviewStats.statistics.totalCandidates}</div>
@@ -1120,7 +1648,7 @@ const RecruiterDashboard = () => {
                                 <div className="text-sm text-gray-600">Completed Interviews</div>
                               </div>
                               <div className="text-center">
-                                <div className="text-3xl font-bold text-purple-600">{interviewStats.statistics.averageScore.toFixed(1)}/4</div>
+                                <div className="text-3xl font-bold text-blue-600">{interviewStats.statistics.averageScore.toFixed(1)}/4</div>
                                 <div className="text-sm text-gray-600">Average Score</div>
                               </div>
                               <div className="text-center">
@@ -1131,18 +1659,18 @@ const RecruiterDashboard = () => {
                           </div>
 
                           {/* Candidate Performance */}
-                          <div className="bg-white rounded-lg shadow p-6">
-                            <h3 className="text-lg font-semibold text-gray-900 mb-4">Candidate Performance</h3>
+                          <div className={`${isDarkMode ? 'bg-black/20 border border-blue-500/30 backdrop-blur' : 'bg-white'} rounded-xl shadow-lg p-6`}>
+                            <h3 className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'} mb-4`}>Candidate Performance</h3>
                             <div className="space-y-4">
                               {interviewStats.candidateSummaries.map((candidate, index) => (
-                                <div key={candidate.candidateId} className="border border-gray-200 rounded-lg p-4">
+                                <div key={candidate.candidateId} className={`border ${isDarkMode ? 'border-blue-500/30' : 'border-gray-200'} rounded-xl p-4`}>
                                   <div className="flex justify-between items-start mb-2">
                                     <div>
                                       <h4 className="font-medium text-gray-900">{candidate.candidateName}</h4>
                                       <p className="text-sm text-gray-600">{candidate.candidateEmail}</p>
                                     </div>
                                     <div className="text-right">
-                                      <div className="text-lg font-bold text-purple-600">{candidate.averageScore.toFixed(1)}/4</div>
+                                      <div className="text-lg font-bold text-blue-600">{candidate.averageScore.toFixed(1)}/4</div>
                                       <div className="text-sm text-gray-600">Average Score</div>
                                     </div>
                                   </div>
@@ -1172,13 +1700,14 @@ const RecruiterDashboard = () => {
                       )}
 
                       {!selectedInterviewId && (
-                        <div className="bg-gray-50 rounded-lg p-8 text-center">
+                        <div className={`${isDarkMode ? 'bg-black/20 border border-blue-500/30 backdrop-blur' : 'bg-gray-50'} rounded-xl p-8 text-center`}>
                           <BarChart3 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                          <p className="text-gray-600">Select an interview above to view detailed analytics</p>
+                          <p className={`${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>Select an interview above to view detailed analytics</p>
                         </div>
                       )}
                     </div>
                   )}
+        </div>
         </div>
       </div>
     </RecruiterLayout>

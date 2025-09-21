@@ -749,7 +749,7 @@ Be thorough, fair, and constructive in your evaluation.`;
     if (!session) return { success: false, error: 'Session not found' };
 
     // Calculate participation metrics
-    const totalQuestions = session.interviewData.rounds?.reduce((total, round) => total + round.questions.length, 0) || 0;
+    const totalQuestions = (session.interviewData.rounds?.length || 0) * 5; // Always 5 questions per round
     const answeredQuestions = session.answers.length;
     const participationRate = totalQuestions > 0 ? (answeredQuestions / totalQuestions) * 100 : 0;
     
@@ -928,7 +928,7 @@ Be thorough, fair, and constructive in your evaluation.`;
       console.log('🔄 Running fallback AI evaluation...');
       
       // Calculate basic metrics
-      const totalQuestions = session.interviewData.rounds?.reduce((total, round) => total + round.questions.length, 0) || 0;
+      const totalQuestions = (session.interviewData.rounds?.length || 0) * 5; // Always 5 questions per round
       const answeredQuestions = session.answers.length;
       const participationRate = totalQuestions > 0 ? (answeredQuestions / totalQuestions) * 100 : 0;
       
@@ -1022,7 +1022,7 @@ Respond in a simple format that can be easily parsed.`;
 
   // Create basic evaluation when all AI methods fail
   createBasicEvaluation(session) {
-    const totalQuestions = session.interviewData.rounds?.reduce((total, round) => total + round.questions.length, 0) || 0;
+    const totalQuestions = (session.interviewData.rounds?.length || 0) * 5; // Always 5 questions per round
     const answeredQuestions = session.answers.length;
     const participationRate = totalQuestions > 0 ? (answeredQuestions / totalQuestions) * 100 : 0;
     
@@ -1078,7 +1078,7 @@ Respond in a simple format that can be easily parsed.`;
   // Create structured evaluation from text
   createStructuredEvaluation(text, session) {
     // Calculate basic metrics
-    const totalQuestions = session?.interviewData?.rounds?.reduce((total, round) => total + round.questions.length, 0) || 0;
+    const totalQuestions = (session?.interviewData?.rounds?.length || 0) * 5; // Always 5 questions per round
     const answeredQuestions = session?.answers?.length || 0;
     const participationRate = totalQuestions > 0 ? (answeredQuestions / totalQuestions) * 100 : 0;
     

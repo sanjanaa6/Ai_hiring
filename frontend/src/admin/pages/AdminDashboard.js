@@ -43,8 +43,8 @@ const AdminDashboard = () => {
 
   return (
     <AdminLayout>
-      <div className="py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="h-full flex flex-col">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex-1 flex flex-col overflow-hidden">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">
@@ -55,6 +55,8 @@ const AdminDashboard = () => {
           </p>
         </div>
 
+        {/* Scrollable Content */}
+        <div className="flex-1 overflow-y-auto">
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <div className="bg-white rounded-lg shadow p-6">
@@ -280,6 +282,7 @@ const AdminDashboard = () => {
               )}
             </div>
           </div>
+        </div>
         </div>
         </div>
       </div>

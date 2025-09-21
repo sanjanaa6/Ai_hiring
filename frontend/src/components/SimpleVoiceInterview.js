@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Camera, Mic, MicOff, Play, Pause, AlertTriangle, CheckCircle, Clock, Volume2, SkipForward, MessageSquare, BarChart3, TrendingUp } from 'lucide-react';
+import { Camera, Mic, MicOff, Play, Pause, AlertTriangle, CheckCircle, Clock, Volume2, SkipForward, MessageSquare, BarChart3, TrendingUp, Code } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
+import CodeEditor from './CodeEditor';
 
 const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError }) => {
+  const { isDarkMode } = useTheme();
   const [step, setStep] = useState('setup'); // setup, device-check, interview, round-complete, round-selection, complete
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -27,6 +30,29 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
   const [cameraStatus, setCameraStatus] = useState('initializing');
   const [questionStartCountdown, setQuestionStartCountdown] = useState(0);
   const [isCameraRestarting, setIsCameraRestarting] = useState(false);
+  const [codeAnswer, setCodeAnswer] = useState('');
+  const [selectedLanguage, setSelectedLanguage] = useState('javascript');
+  const [showCodeEditor, setShowCodeEditor] = useState(false);
+
+  // Auto-detect if current question is a coding question and reset showCodeEditor accordingly
+  useEffect(() => {
+    const isCodingQuestion = currentQuestion?.codeEditor?.enabled || 
+      (currentQuestion?.question && (
+        currentQuestion.question.toLowerCase().includes('code editor') ||
+        currentQuestion.question.toLowerCase().includes('write a function') ||
+        currentQuestion.question.toLowerCase().includes('implement') ||
+        currentQuestion.question.toLowerCase().includes('coding') ||
+        currentQuestion.question.toLowerCase().includes('program') ||
+        currentQuestion.question.toLowerCase().includes('algorithm') ||
+        currentQuestion.question.toLowerCase().includes('debug') ||
+        currentQuestion.question.toLowerCase().includes('reverse') ||
+        currentQuestion.question.toLowerCase().includes('palindrome') ||
+        currentQuestion.question.toLowerCase().includes('factorial')
+      ));
+    
+    // Reset showCodeEditor to false when question changes, but keep it available for coding questions
+    setShowCodeEditor(false);
+  }, [currentQuestion?.questionId, currentQuestion?.codeEditor?.enabled, currentQuestion?.question]);
 
   const videoRef = useRef(null);
   const mediaRecorderRef = useRef(null);
@@ -327,8 +353,8 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
         stopRecording();
       }
       
-      // Submit current answer if there's transcription
-      if (transcription.trim()) {
+      // Submit current answer if there's transcription or code answer
+      if (transcription.trim() || codeAnswer.trim()) {
         console.log('📤 Submitting current answer before moving to next question...');
         try {
         await submitCurrentAnswer();
@@ -338,7 +364,7 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
           // Continue anyway to not block progression
         }
       } else {
-        console.log('⚠️ No transcription to submit, moving to next question');
+        console.log('⚠️ No answer content to submit, moving to next question');
       }
       
       // Check if there are more questions in current round
@@ -358,6 +384,9 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
           totalQuestions: currentRoundData.questions.length
         });
          setTranscription('');
+         setCodeAnswer(''); // Reset code answer
+         setSelectedLanguage('javascript'); // Reset language selection
+         // Don't reset showCodeEditor here - let it be determined by the next question
         setShouldAutoRecord(false); // Reset auto-record flag
          
         // Wait a moment for state to update, then start next question
@@ -525,6 +554,9 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
         totalQuestions: round.questions.length
       });
       setTranscription('');
+      setCodeAnswer(''); // Reset code answer
+      setSelectedLanguage('javascript'); // Reset language selection
+      setShowCodeEditor(false); // Reset code editor visibility for new round
       setStep('interview');
       
       // Ensure camera is active before starting interview
@@ -673,12 +705,17 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
   // Submit current answer (used internally for auto-progression)
   const submitCurrentAnswer = async () => {
     try {
-      if (!transcription.trim()) {
-        console.log('⚠️ No transcription to submit');
+      // Determine answer type and content
+      const isCodingQuestion = currentQuestion?.codeEditor?.enabled;
+      const answerContent = isCodingQuestion ? codeAnswer : transcription;
+      const answerType = isCodingQuestion ? 'code' : 'voice';
+      
+      if (!answerContent.trim()) {
+        console.log('⚠️ No answer content to submit');
         return;
       }
       
-      console.log('📤 Submitting current answer...');
+      console.log('📤 Submitting current answer...', { answerType, isCodingQuestion });
       
       const response = await fetch(`/api/interviews/${interviewId}/answer`, {
         method: 'POST',
@@ -692,9 +729,10 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
           roundId: currentRound.roundId,
           questionId: currentQuestion.questionId,
           question: currentQuestion.question,
-          answer: transcription,
-          answerType: 'voice',
-          transcription: transcription,
+          answer: answerContent,
+          answerType: answerType,
+          transcription: isCodingQuestion ? '' : transcription,
+          codeAnswer: isCodingQuestion ? codeAnswer : '',
           timeTaken: (currentQuestion.timeLimit * 60) - timeRemaining
         })
       });
@@ -749,6 +787,9 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
       }
       
       setTranscription('');
+      setCodeAnswer(''); // Reset code answer
+      setSelectedLanguage('javascript'); // Reset language selection
+      // Don't reset showCodeEditor here - let it be determined by the next question
       await moveToNextQuestion();
     } catch (err) {
       console.error('❌ Skip error:', err);
@@ -1099,7 +1140,7 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
           {roundEvaluation && (
             <div className="max-w-4xl mx-auto">
               {/* Header with Score */}
-              <div className="relative overflow-hidden bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 rounded-3xl p-8 mb-8 shadow-2xl">
+              <div className="relative overflow-hidden bg-gradient-to-br from-slate-800 via-blue-600 to-indigo-800 rounded-3xl p-8 mb-8 shadow-2xl">
                 <div className="absolute inset-0 bg-black opacity-10"></div>
                 <div className="relative z-10 text-center text-white">
                   <div className="inline-flex items-center justify-center w-24 h-24 bg-white bg-opacity-20 rounded-full mb-4">
@@ -1134,8 +1175,8 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
                   {roundEvaluation.individualScores && (
                     <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
                       <div className="flex items-center mb-6">
-                        <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center mr-4">
-                          <BarChart3 className="h-6 w-6 text-purple-600" />
+                        <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mr-4">
+                          <BarChart3 className="h-6 w-6 text-blue-600" />
                         </div>
                         <h3 className="text-2xl font-bold text-gray-900">Question Performance</h3>
                       </div>
@@ -1148,7 +1189,7 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
                             </div>
                             <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
                               <div
-                                className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full transition-all duration-1000 ease-out"
+                                className="h-full bg-gradient-to-r from-slate-600 to-blue-600 rounded-full transition-all duration-1000 ease-out"
                                 style={{ width: `${score}%` }}
                               ></div>
                             </div>
@@ -1234,7 +1275,7 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
           <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
             <button
               onClick={() => setStep('round-selection')}
-              className="px-8 py-4 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white text-lg font-bold rounded-lg shadow-lg transform hover:scale-105 transition-all"
+              className="px-8 py-4 bg-gradient-to-r from-slate-800 via-blue-600 to-indigo-600 hover:from-slate-700 hover:via-blue-500 hover:to-indigo-500 text-white text-lg font-bold rounded-lg shadow-lg transform hover:scale-105 transition-all"
             >
               🎯 Continue to Next Round
             </button>
@@ -1278,15 +1319,31 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
 
   if (step === 'round-selection') {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-lg shadow-lg p-8 max-w-6xl w-full">
-          <div className="text-center mb-8">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">Select Interview Round</h2>
-            <p className="text-gray-600 text-lg">
-              Choose which round you'd like to complete. Complete rounds in sequence to unlock the next ones.
-            </p>
+      <div className={`fixed inset-0 overflow-hidden ${
+        isDarkMode 
+          ? 'bg-gradient-to-br from-slate-900 via-gray-900 to-black' 
+          : 'bg-gradient-to-br from-white via-blue-50 to-indigo-100'
+      }`}>
+        <div className="h-full flex flex-col">
+          {/* Header */}
+          <div className={`backdrop-blur-md border-b px-6 py-4 ${
+            isDarkMode 
+              ? 'bg-black/20 border-white/10' 
+              : 'bg-white/80 border-gray-200'
+          }`}>
+            <div className="text-center">
+              <h1 className={`text-2xl font-bold mb-1 ${
+                isDarkMode ? 'text-white' : 'text-gray-900'
+              }`}>Choose Interview Round</h1>
+              <p className={`text-sm ${
+                isDarkMode ? 'text-gray-300' : 'text-gray-600'
+              }`}>Complete rounds in sequence to unlock the next ones</p>
+            </div>
           </div>
 
+          {/* Main Content */}
+          <div className="flex-1 overflow-y-auto p-6">
+            <div className="w-full max-w-6xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {allRounds.map((round, index) => {
               const roundId = round.roundId;
@@ -1296,79 +1353,134 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
               return (
                 <div
                   key={roundId}
-                  className={`border rounded-lg p-6 transition-all ${
+                  className={`group relative rounded-3xl p-8 transition-all duration-500 transform hover:scale-110 hover:-translate-y-2 ${
                     isCompleted
-                      ? 'border-green-200 bg-green-50'
+                      ? isDarkMode 
+                        ? 'bg-gradient-to-br from-emerald-500/20 via-green-500/15 to-teal-500/10 border-2 border-emerald-400/50 shadow-2xl shadow-emerald-500/30' 
+                        : 'bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50 border-2 border-emerald-300 shadow-2xl shadow-emerald-200/60'
                       : isAvailable
-                      ? 'border-purple-200 bg-purple-50 hover:border-purple-500 hover:shadow-lg cursor-pointer'
-                      : 'border-gray-200 bg-gray-50 opacity-60'
+                      ? isDarkMode
+                        ? 'bg-gradient-to-br from-slate-900/80 via-gray-900/60 to-black/40 border-2 border-blue-400/40 hover:border-blue-400/80 hover:shadow-2xl hover:shadow-blue-500/40 cursor-pointer backdrop-blur-md'
+                        : 'bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 border-2 border-blue-300 hover:border-blue-500 hover:shadow-2xl hover:shadow-blue-200/60 cursor-pointer'
+                      : isDarkMode
+                        ? 'bg-gradient-to-br from-gray-900/40 via-slate-900/30 to-black/20 border-2 border-gray-700/40 opacity-60'
+                        : 'bg-gradient-to-br from-gray-100 via-slate-100 to-gray-200 border-2 border-gray-400 opacity-60'
                   }`}
                 >
-                  <div className="text-center">
-                    {/* Round Status Icon */}
-                    <div
-                      className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${
+                  {/* Animated Background Glow */}
+                  {isAvailable && (
+                    <div className={`absolute inset-0 rounded-3xl opacity-0 group-hover:opacity-100 transition-all duration-500 ${
+                      isDarkMode 
+                        ? 'bg-gradient-to-br from-blue-500/20 via-cyan-500/15 to-indigo-500/10 animate-pulse' 
+                        : 'bg-gradient-to-br from-blue-100/60 via-cyan-100/40 to-indigo-100/50'
+                    }`}></div>
+                  )}
+                  
+                  {/* Floating Particles Effect */}
+                  {isAvailable && (
+                    <div className="absolute inset-0 overflow-hidden rounded-3xl">
+                      <div className="absolute top-2 left-4 w-1 h-1 bg-blue-400 rounded-full animate-ping opacity-60"></div>
+                      <div className="absolute top-6 right-6 w-1 h-1 bg-cyan-400 rounded-full animate-ping opacity-40 delay-300"></div>
+                      <div className="absolute bottom-4 left-8 w-1 h-1 bg-indigo-400 rounded-full animate-ping opacity-50 delay-700"></div>
+                      <div className="absolute bottom-8 right-4 w-1 h-1 bg-blue-300 rounded-full animate-ping opacity-30 delay-1000"></div>
+                    </div>
+                  )}
+                  
+                  <div className="relative z-10 text-center">
+                    {/* Round Number with Enhanced Design */}
+                    <div className="relative mb-8">
+                      <div
+                        className={`w-20 h-20 rounded-3xl flex items-center justify-center mx-auto shadow-2xl transition-all duration-500 group-hover:scale-110 ${
                         isCompleted
-                          ? 'bg-green-500'
+                            ? 'bg-gradient-to-br from-emerald-500 via-green-500 to-teal-600 shadow-emerald-500/40'
                           : isAvailable
-                          ? 'bg-gradient-to-r from-purple-500 to-blue-500'
-                          : 'bg-gray-300'
+                            ? 'bg-gradient-to-br from-slate-800 via-blue-600 to-indigo-700 shadow-blue-500/50'
+                            : 'bg-gradient-to-br from-gray-600 to-slate-700 shadow-gray-500/30'
                       }`}
                     >
                       {isCompleted ? (
-                        <CheckCircle className="h-8 w-8 text-white" />
+                          <CheckCircle className="h-10 w-10 text-white drop-shadow-lg animate-bounce" />
                       ) : (
-                        <span className="text-white text-xl font-bold">{index + 1}</span>
+                          <span className="text-white text-2xl font-black drop-shadow-lg">{index + 1}</span>
                       )}
                     </div>
 
-                    {/* Round Title */}
+                      {/* Animated Decorative Rings */}
+                      {isAvailable && (
+                        <>
+                          <div className="absolute inset-0 w-20 h-20 mx-auto rounded-3xl border-2 border-blue-400/40 animate-ping"></div>
+                          <div className="absolute inset-0 w-20 h-20 mx-auto rounded-3xl border border-cyan-400/60 animate-pulse"></div>
+                          <div className="absolute inset-0 w-20 h-20 mx-auto rounded-3xl border border-indigo-400/30 animate-pulse delay-300"></div>
+                        </>
+                      )}
+                      
+                      {/* Glowing Orb Effect */}
+                      {isAvailable && (
+                        <div className="absolute inset-0 w-20 h-20 mx-auto rounded-3xl bg-gradient-to-br from-blue-400/20 to-cyan-400/20 blur-xl animate-pulse"></div>
+                      )}
+                    </div>
+
+                    {/* Round Title with Better Typography */}
                     <h3
-                      className={`text-xl font-semibold mb-2 ${
+                      className={`text-2xl font-black mb-4 leading-tight transition-all duration-300 group-hover:scale-105 ${
                         isCompleted
-                          ? 'text-green-800'
+                          ? isDarkMode ? 'text-emerald-200' : 'text-emerald-800'
                           : isAvailable
-                          ? 'text-gray-900'
-                          : 'text-gray-500'
+                          ? isDarkMode ? 'text-white' : 'text-slate-900'
+                          : isDarkMode ? 'text-gray-400' : 'text-gray-500'
                       }`}
                     >
                       {round.title}
                     </h3>
 
-                    {/* Round Description */}
+                    {/* Round Description with Better Spacing */}
                     <p
-                      className={`text-sm mb-4 ${
+                      className={`text-sm mb-6 leading-relaxed transition-all duration-300 ${
                         isCompleted
-                          ? 'text-green-600'
+                          ? isDarkMode ? 'text-emerald-300/90' : 'text-emerald-700'
                           : isAvailable
-                          ? 'text-gray-600'
-                          : 'text-gray-400'
+                          ? isDarkMode ? 'text-gray-200/95' : 'text-slate-600'
+                          : isDarkMode ? 'text-gray-500/70' : 'text-gray-400'
                       }`}
                     >
                       {round.description}
                     </p>
 
-                    {/* Round Info */}
-                    <div className="space-y-2 text-sm text-gray-500 mb-6">
-                      <div className="flex items-center justify-center space-x-2">
-                        <Clock className="h-4 w-4" />
-                        <span>{round.duration} minutes</span>
+                    {/* Enhanced Round Info with Black/Blue Theme */}
+                    <div className={`flex justify-center space-x-4 mb-8 ${
+                      isDarkMode ? 'text-gray-300' : 'text-slate-600'
+                    }`}>
+                      <div className={`flex items-center space-x-2 px-4 py-2 rounded-full transition-all duration-300 group-hover:scale-105 ${
+                        isDarkMode 
+                          ? 'bg-slate-800/60 border border-blue-400/30' 
+                          : 'bg-blue-100/80 border border-blue-200'
+                      }`}>
+                        <Clock className="h-4 w-4 text-blue-400" />
+                        <span className="text-xs font-bold">{round.duration}m</span>
                       </div>
-                      <div className="flex items-center justify-center space-x-2">
-                        <span>{round.questions?.length || 0} questions</span>
+                      <div className={`flex items-center space-x-2 px-4 py-2 rounded-full transition-all duration-300 group-hover:scale-105 ${
+                        isDarkMode 
+                          ? 'bg-slate-800/60 border border-cyan-400/30' 
+                          : 'bg-cyan-100/80 border border-cyan-200'
+                      }`}>
+                        <span className="text-xs font-bold">{round.questions?.length || 0} Q</span>
                       </div>
                     </div>
 
-                    {/* Action Button */}
+                    {/* Enhanced Action Button with Black/Blue Theme */}
                     {isCompleted ? (
-                      <div className="space-y-2">
-                        <div className="w-full py-3 px-6 bg-green-100 text-green-800 rounded-lg font-medium">
+                      <div className="space-y-4">
+                        <div className={`w-full py-4 px-6 rounded-2xl font-bold text-sm transition-all duration-300 ${
+                          isDarkMode 
+                            ? 'bg-emerald-500/20 text-emerald-300 border-2 border-emerald-400/40 shadow-lg shadow-emerald-500/20' 
+                            : 'bg-emerald-100 text-emerald-800 border-2 border-emerald-300 shadow-lg shadow-emerald-200/40'
+                        }`}>
                           ✅ Completed
                         </div>
                         <button
                           onClick={() => startSpecificRound(roundId)}
                           disabled={loading}
-                          className="w-full py-2 px-4 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium text-sm transition-colors"
+                          className="w-full py-4 px-6 bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 hover:from-emerald-700 hover:via-green-700 hover:to-teal-700 text-white rounded-2xl font-bold text-sm transition-all duration-300 transform hover:scale-105 shadow-2xl shadow-emerald-500/30 hover:shadow-emerald-500/50"
                         >
                           Retake Round
                         </button>
@@ -1377,13 +1489,36 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
                       <button
                         onClick={() => startSpecificRound(roundId)}
                         disabled={loading}
-                        className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 disabled:from-gray-300 disabled:to-gray-300 text-white py-3 px-6 rounded-lg font-medium transition-all transform hover:scale-105 disabled:transform-none"
+                        className="w-full bg-gradient-to-r from-slate-800 via-blue-700 to-indigo-800 hover:from-slate-700 hover:via-blue-600 hover:to-indigo-700 disabled:from-gray-600 disabled:to-gray-600 text-white py-5 px-8 rounded-2xl font-black text-base transition-all duration-500 transform hover:scale-110 hover:-translate-y-1 disabled:transform-none shadow-2xl shadow-blue-500/40 hover:shadow-blue-500/60 relative overflow-hidden"
                       >
-                        {loading ? 'Starting...' : 'Start Round'}
+                        {/* Animated Background */}
+                        <div className="absolute inset-0 bg-gradient-to-r from-blue-400/20 via-cyan-400/20 to-indigo-400/20 opacity-0 hover:opacity-100 transition-opacity duration-500"></div>
+                        
+                        {/* Button Content */}
+                        <div className="relative z-10 flex items-center justify-center space-x-3">
+                          {loading ? (
+                            <>
+                              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                              <span>Starting...</span>
+                            </>
+                          ) : (
+                            <>
+                              <span>Start Round</span>
+                              <div className="w-2 h-2 bg-white rounded-full animate-ping"></div>
+                            </>
+                          )}
+                        </div>
                       </button>
                     ) : (
-                      <div className="w-full py-3 px-6 bg-gray-200 text-gray-500 rounded-lg font-medium">
-                        🔒 Complete Previous Rounds First
+                      <div className={`w-full py-5 px-8 rounded-2xl font-bold text-sm transition-all duration-300 ${
+                        isDarkMode 
+                          ? 'bg-slate-800/40 text-gray-400 border-2 border-gray-600/40' 
+                          : 'bg-gray-200 text-gray-500 border-2 border-gray-400'
+                      }`}>
+                        <div className="flex items-center justify-center space-x-3">
+                          <span className="text-lg">🔒</span>
+                          <span>Complete Previous Rounds First</span>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -1392,18 +1527,36 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
             })}
           </div>
 
-          {/* Overall Progress */}
-          <div className="mt-8 text-center">
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <h3 className="font-medium text-blue-900 mb-2">Interview Progress</h3>
-              <div className="text-sm text-blue-800">
-                Completed: {completedRounds.size} / {allRounds.length} rounds
+          {/* Enhanced Overall Progress with Black/Blue Theme */}
+          <div className="mt-10 text-center">
+            <div className={`border-2 rounded-3xl p-8 shadow-2xl transition-all duration-500 hover:scale-105 ${
+              isDarkMode 
+                ? 'bg-gradient-to-br from-slate-900/80 via-gray-900/60 to-black/40 border-blue-400/40 shadow-blue-500/30' 
+                : 'bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 border-blue-300 shadow-blue-200/40'
+            }`}>
+              <h3 className={`font-black text-2xl mb-4 ${
+                isDarkMode ? 'text-white' : 'text-slate-900'
+              }`}>Interview Progress</h3>
+              <div className={`text-lg mb-6 ${
+                isDarkMode ? 'text-gray-200' : 'text-slate-600'
+              }`}>
+                Completed: <span className="font-black text-blue-500 text-2xl">{completedRounds.size}</span> / <span className="font-black text-xl">{allRounds.length}</span> rounds
               </div>
-              <div className="w-full bg-blue-200 rounded-full h-2 mt-2">
+              <div className={`w-full rounded-full h-4 mt-4 ${
+                isDarkMode ? 'bg-slate-800' : 'bg-gray-200'
+              }`}>
                 <div
-                  className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                  className="bg-gradient-to-r from-slate-800 via-blue-600 to-indigo-600 h-4 rounded-full transition-all duration-700 shadow-lg relative overflow-hidden"
                   style={{ width: `${(completedRounds.size / allRounds.length) * 100}%` }}
-                ></div>
+                >
+                  {/* Animated Shimmer Effect */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-pulse"></div>
+                </div>
+              </div>
+              <div className={`text-sm mt-4 font-bold ${
+                isDarkMode ? 'text-blue-300' : 'text-blue-600'
+              }`}>
+                {Math.round((completedRounds.size / allRounds.length) * 100)}% Complete
               </div>
             </div>
           </div>
@@ -1424,7 +1577,7 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
                     });
                   }
                 }}
-                className="px-8 py-4 bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white text-lg font-bold rounded-lg shadow-lg transform hover:scale-105 transition-all"
+                className="px-10 py-6 bg-gradient-to-r from-emerald-600 via-blue-600 to-indigo-600 hover:from-emerald-700 hover:via-blue-700 hover:to-indigo-700 text-white text-xl font-black rounded-2xl shadow-2xl transform hover:scale-110 hover:-translate-y-2 transition-all duration-500"
               >
                 🎉 Complete Interview
               </button>
@@ -1432,16 +1585,26 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
           )}
 
           {error && (
-            <div className="bg-red-50 border border-red-200 rounded p-4 mt-6">
-              <p className="text-red-800 text-sm">{error}</p>
+            <div className={`border rounded-xl p-4 mt-6 ${
+              isDarkMode 
+                ? 'bg-red-500/20 border-red-400/30' 
+                : 'bg-red-50 border-red-200'
+            }`}>
+              <p className={`text-sm ${
+                isDarkMode ? 'text-red-200' : 'text-red-800'
+              }`}>{error}</p>
               <button
                 onClick={() => setError(null)}
-                className="text-red-600 text-sm underline mt-2"
+                className={`text-sm underline mt-2 ${
+                  isDarkMode ? 'text-red-300' : 'text-red-600'
+                }`}
               >
                 Dismiss
               </button>
             </div>
           )}
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -1449,115 +1612,175 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
 
   if (step === 'setup') {
     return (
-      <div className="fixed inset-0 bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 overflow-hidden">
+      <div className={`fixed inset-0 overflow-hidden ${
+        isDarkMode 
+          ? 'bg-gradient-to-br from-slate-900 via-gray-900 to-black' 
+          : 'bg-gradient-to-br from-white via-blue-50 to-indigo-100'
+      }`}>
         <div className="h-full flex flex-col">
           {/* Header */}
-          <div className="bg-black/20 backdrop-blur-md border-b border-white/10 px-6 py-8">
+          <div className={`backdrop-blur-md border-b px-6 py-4 ${
+            isDarkMode 
+              ? 'bg-black/20 border-white/10' 
+              : 'bg-white/80 border-gray-200'
+          }`}>
             <div className="text-center">
-              <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Camera className="h-10 w-10 text-white" />
+              <div className="w-12 h-12 bg-gradient-to-br from-slate-700 via-blue-600 to-indigo-700 rounded-full flex items-center justify-center mx-auto mb-3">
+                <Camera className="h-6 w-6 text-white" />
               </div>
-              <h1 className="text-3xl font-bold text-white mb-2">AI Interview Setup</h1>
-              <p className="text-gray-300 text-lg">Prepare your camera and microphone for the interview</p>
+              <h1 className={`text-2xl font-bold mb-1 ${
+                isDarkMode ? 'text-white' : 'text-gray-900'
+              }`}>AI Interview Setup</h1>
+              <p className={`text-sm ${
+                isDarkMode ? 'text-gray-300' : 'text-gray-600'
+              }`}>Prepare your camera and microphone for the interview</p>
             </div>
           </div>
 
           {/* Main Content */}
-          <div className="flex-1 flex items-center justify-center p-8">
-            <div className="w-full max-w-4xl">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
-                {/* Setup Instructions */}
-                <div className="space-y-6">
-                  <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-8">
-                    <h2 className="text-2xl font-bold text-white mb-6">🎯 Interview Requirements</h2>
-                    <div className="space-y-4 text-gray-300">
+          <div className="flex-1 flex items-center justify-center p-6">
+            <div className="w-full max-w-6xl">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full">
+                {/* Interview Requirements */}
+                <div className={`backdrop-blur-md border rounded-2xl p-6 flex flex-col ${
+                  isDarkMode 
+                    ? 'bg-white/10 border-white/20' 
+                    : 'bg-white border-gray-200'
+                }`}>
+                  <div className="flex items-center mb-6">
+                    <div className="w-8 h-8 bg-gradient-to-r from-red-500 to-blue-500 rounded-full flex items-center justify-center mr-3">
+                      <div className="w-4 h-4 bg-white rounded-full"></div>
+                    </div>
+                    <h2 className={`text-2xl font-bold ${
+                      isDarkMode ? 'text-white' : 'text-gray-900'
+                    }`}>Interview Requirements</h2>
+                  </div>
+                  
+                  <div className="space-y-4 flex-1">
                       <div className="flex items-start space-x-4">
-                        <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-bold">1</div>
+                      <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0">1</div>
                         <div>
-                          <p className="font-semibold text-white text-lg">Camera Access</p>
-                          <p className="text-sm">We need camera access to monitor the interview environment and detect any electronic devices</p>
+                        <p className={`font-semibold text-lg mb-1 ${
+                          isDarkMode ? 'text-white' : 'text-gray-900'
+                        }`}>Camera Access</p>
+                        <p className={`text-sm ${
+                          isDarkMode ? 'text-gray-300' : 'text-gray-600'
+                        }`}>We need camera access to monitor the interview environment and detect any electronic devices</p>
                         </div>
                       </div>
                       <div className="flex items-start space-x-4">
-                        <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-bold">2</div>
+                      <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0">2</div>
                         <div>
-                          <p className="font-semibold text-white text-lg">Microphone Access</p>
-                          <p className="text-sm">Voice recording is required for answering interview questions</p>
+                        <p className={`font-semibold text-lg mb-1 ${
+                          isDarkMode ? 'text-white' : 'text-gray-900'
+                        }`}>Microphone Access</p>
+                        <p className={`text-sm ${
+                          isDarkMode ? 'text-gray-300' : 'text-gray-600'
+                        }`}>Voice recording is required for answering interview questions</p>
                         </div>
                       </div>
                       <div className="flex items-start space-x-4">
-                        <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-bold">3</div>
+                      <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0">3</div>
                         <div>
-                          <p className="font-semibold text-white text-lg">Clean Environment</p>
-                          <p className="text-sm">Ensure no electronic devices are visible during the interview</p>
+                        <p className={`font-semibold text-lg mb-1 ${
+                          isDarkMode ? 'text-white' : 'text-gray-900'
+                        }`}>Clean Environment</p>
+                        <p className={`text-sm ${
+                          isDarkMode ? 'text-gray-300' : 'text-gray-600'
+                        }`}>Ensure no electronic devices are visible during the interview</p>
                         </div>
                       </div>
                       <div className="flex items-start space-x-4">
-                        <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-bold">4</div>
+                      <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0">4</div>
                         <div>
-                          <p className="font-semibold text-white text-lg">Good Lighting</p>
-                          <p className="text-sm">Position yourself in a well-lit area for clear video</p>
+                        <p className={`font-semibold text-lg mb-1 ${
+                          isDarkMode ? 'text-white' : 'text-gray-900'
+                        }`}>Good Lighting</p>
+                        <p className={`text-sm ${
+                          isDarkMode ? 'text-gray-300' : 'text-gray-600'
+                        }`}>Position yourself in a well-lit area for clear video</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Camera Preview */}
+                <div className={`backdrop-blur-md border rounded-2xl p-6 flex flex-col ${
+                  isDarkMode 
+                    ? 'bg-white/10 border-white/20' 
+                    : 'bg-white border-gray-200'
+                }`}>
+                  <div className="flex items-center mb-6">
+                    <Camera className={`w-6 h-6 mr-3 ${
+                      isDarkMode ? 'text-white' : 'text-gray-700'
+                    }`} />
+                    <h3 className={`text-2xl font-bold ${
+                      isDarkMode ? 'text-white' : 'text-gray-900'
+                    }`}>Camera Preview</h3>
+                  </div>
+                  
+                  <div className="flex-1 flex flex-col">
+                    <div className={`flex-1 rounded-xl flex items-center justify-center border-2 border-dashed mb-4 ${
+                      isDarkMode 
+                        ? 'bg-gray-800 border-gray-600' 
+                        : 'bg-gray-100 border-gray-300'
+                    }`}>
+                      <div className={`text-center ${
+                        isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                      }`}>
+                        <Camera className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                        <p className="text-sm">Camera will appear here</p>
+                        <p className="text-xs">Click 'Start Camera Setup' to begin</p>
+                      </div>
+                    </div>
+                    
+                    <div className={`space-y-2 text-sm ${
+                      isDarkMode ? 'text-gray-300' : 'text-gray-600'
+                    }`}>
+                      <div className="flex items-center space-x-2">
+                        <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                        <span>Camera will be activated</span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                        <span>Microphone will be enabled</span>
+                      </div>
                         </div>
                       </div>
                     </div>
                   </div>
 
                   {/* Action Button */}
-                  <div className="text-center">
+              <div className="mt-6 text-center">
           {error && (
-                      <div className="bg-red-500/20 backdrop-blur-md border border-red-400/30 rounded-2xl p-4 mb-6">
-                        <p className="text-red-200 text-center">{error}</p>
+                  <div className={`backdrop-blur-md border rounded-xl p-4 mb-4 ${
+                    isDarkMode 
+                      ? 'bg-red-500/20 border-red-400/30' 
+                      : 'bg-red-50 border-red-200'
+                  }`}>
+                    <p className={`text-center ${
+                      isDarkMode ? 'text-red-200' : 'text-red-800'
+                    }`}>{error}</p>
             </div>
           )}
           
           <button
             onClick={startSetup}
             disabled={loading}
-                      className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-600 disabled:to-gray-600 text-white py-4 px-8 rounded-2xl font-semibold transition-all duration-200 transform hover:scale-105 disabled:transform-none shadow-lg text-lg"
+                  className="bg-gradient-to-r from-slate-800 via-blue-600 to-indigo-600 hover:from-slate-700 hover:via-blue-500 hover:to-indigo-500 disabled:from-gray-600 disabled:to-gray-600 text-white py-3 px-8 rounded-xl font-semibold transition-all duration-200 transform hover:scale-105 disabled:transform-none shadow-lg"
                     >
                       {loading ? (
                         <div className="flex items-center justify-center space-x-3">
-                          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
                           <span>Setting up camera and microphone...</span>
                         </div>
                       ) : (
                         <div className="flex items-center justify-center space-x-3">
-                          <Camera className="w-6 h-6" />
+                      <Camera className="w-5 h-5" />
                           <span>Start Camera Setup</span>
                         </div>
                       )}
           </button>
-                  </div>
-                </div>
-
-                {/* Preview Area */}
-                <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-8">
-                  <h3 className="text-xl font-semibold text-white mb-6 text-center">📹 Camera Preview</h3>
-                  <div className="relative">
-                    <div className="w-full h-64 bg-gray-800 rounded-2xl flex items-center justify-center border-2 border-dashed border-gray-600">
-                      <div className="text-center text-gray-400">
-                        <Camera className="h-16 w-16 mx-auto mb-4 opacity-50" />
-                        <p className="text-lg">Camera will appear here</p>
-                        <p className="text-sm">Click "Start Camera Setup" to begin</p>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="mt-6 space-y-3 text-sm text-gray-300">
-                    <div className="flex items-center space-x-2">
-                      <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                      <span>Camera will be activated</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                      <span>Microphone will be enabled</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                      <span>Environment check will begin</span>
-                    </div>
-                  </div>
-                </div>
               </div>
             </div>
           </div>
@@ -1568,7 +1791,11 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
 
   if (step === 'device-check') {
     return (
-      <div className="fixed inset-0 bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 overflow-hidden">
+      <div className={`fixed inset-0 overflow-hidden ${
+        isDarkMode 
+          ? 'bg-gradient-to-br from-slate-900 via-gray-900 to-black' 
+          : 'bg-gradient-to-br from-white via-blue-50 to-indigo-100'
+      }`}>
         <div className="h-full flex flex-col">
           {/* Header */}
           <div className="bg-black/20 backdrop-blur-md border-b border-white/10 px-6 py-4">
@@ -1736,16 +1963,24 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
 
   if (step === 'interview') {
     return (
-      <div className="fixed inset-0 bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 overflow-hidden">
+      <div className={`fixed inset-0 overflow-hidden ${
+        isDarkMode 
+          ? 'bg-gradient-to-br from-slate-900 via-gray-900 to-black' 
+          : 'bg-gradient-to-br from-white via-blue-50 to-indigo-100'
+      }`}>
         {/* Full-screen immersive interview interface */}
         <div className="h-full flex flex-col">
           {/* Top Status Bar */}
-          <div className="bg-black/20 backdrop-blur-md border-b border-white/10 px-6 py-4">
+          <div className={`backdrop-blur-md border-b px-6 py-4 ${
+            isDarkMode 
+              ? 'bg-black/30 border-white/10' 
+              : 'bg-white/90 border-blue-200 shadow-lg'
+          }`}>
               <div className="flex justify-between items-center">
               <div className="flex items-center space-x-6">
-                <div className="text-white">
+                <div className={`${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                   <h1 className="text-xl font-bold">{currentRound?.title || 'Interview'}</h1>
-                  <p className="text-gray-300 text-sm">
+                  <p className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                     Question {questionIndex + 1} of {currentRound?.questions?.length || 1} • Round {roundIndex + 1} of {allRounds.length}
                   </p>
                 </div>
@@ -1755,20 +1990,22 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
                 {/* Time Display */}
                 <div className="text-center">
                   <div className={`flex items-center space-x-2 text-2xl font-mono font-bold ${
-                    timeRemaining < 60 ? 'text-red-400 animate-pulse' : 'text-white'
+                    timeRemaining < 60 
+                      ? 'text-red-400 animate-pulse' 
+                      : isDarkMode ? 'text-white' : 'text-gray-900'
                   }`}>
                     <Clock className="h-6 w-6" />
                     <span>{formatTime(timeRemaining)}</span>
                   </div>
-                  <p className="text-gray-400 text-xs">Time Remaining</p>
+                  <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Time Remaining</p>
                 </div>
                 
                 {/* Recording Status */}
                 <div className="flex items-center space-x-2">
                   <div className={`w-3 h-3 rounded-full ${
-                    isRecording ? 'bg-red-500 animate-pulse' : 'bg-gray-400'
+                    isRecording ? 'bg-red-500 animate-pulse' : isDarkMode ? 'bg-gray-400' : 'bg-gray-500'
                   }`}></div>
-                  <span className="text-white text-sm font-medium">
+                  <span className={`text-sm font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                     {isRecording ? 'Recording' : 'Ready'}
                   </span>
                 </div>
@@ -1776,33 +2013,56 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
               </div>
               
               {/* Progress Bar */}
-            <div className="mt-4 bg-white/10 rounded-full h-1">
+            <div className={`mt-4 rounded-full h-2 ${
+              isDarkMode ? 'bg-white/10' : 'bg-blue-100'
+            }`}>
                 <div 
-                className="bg-gradient-to-r from-blue-400 to-purple-400 h-1 rounded-full transition-all duration-500"
+                className={`h-2 rounded-full transition-all duration-700 shadow-lg relative overflow-hidden ${
+                  isDarkMode 
+                    ? 'bg-gradient-to-r from-slate-800 via-blue-600 to-indigo-600' 
+                    : 'bg-gradient-to-r from-blue-500 via-blue-600 to-indigo-600'
+                }`}
                   style={{ 
-                    width: `${((roundIndex * (allRounds[0]?.questions?.length || 1) + questionIndex + 1) / 
-                             (allRounds.reduce((total, round) => total + (round.questions?.length || 1), 0))) * 100}%` 
+                    width: `${((roundIndex * 5 + questionIndex + 1) / (allRounds.length * 5)) * 100}%` 
                   }}
-                ></div>
+                >
+                  {/* Animated Shimmer Effect */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-pulse"></div>
+                </div>
               </div>
             </div>
 
           {/* Main Content Area */}
-          <div className="flex-1 flex flex-col lg:flex-row">
+          <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
             {/* Left Side - Question and Controls */}
-            <div className="flex-1 flex flex-col justify-center px-8 lg:px-12">
+            <div className="flex-1 flex flex-col px-6 lg:px-8 py-4 overflow-y-auto">
                    {/* Question Start Countdown */}
                    {questionStartCountdown > 0 && (
-                 <div className="mb-8 bg-purple-500/20 backdrop-blur-md border border-purple-400/30 rounded-2xl p-6">
+                 <div className={`mb-3 backdrop-blur-md border-2 rounded-2xl p-4 transition-all duration-500 transform hover:scale-105 ${
+                   isDarkMode 
+                     ? 'bg-gradient-to-br from-slate-800/60 via-blue-600/20 to-indigo-600/10 border-blue-400/40 shadow-2xl shadow-blue-500/30' 
+                     : 'bg-gradient-to-br from-white via-blue-50 to-indigo-100 border-blue-400 shadow-2xl shadow-blue-300/50'
+                 }`}>
                    <div className="flex items-center space-x-4">
-                     <div className="p-3 bg-purple-500/30 rounded-full">
-                       <div className="h-8 w-8 text-purple-300 text-2xl font-bold flex items-center justify-center">
+                     <div className="relative">
+                       <div className={`p-3 rounded-2xl shadow-2xl ${
+                         isDarkMode 
+                           ? 'bg-gradient-to-br from-slate-700 via-blue-600 to-indigo-700' 
+                           : 'bg-gradient-to-br from-blue-100 via-blue-200 to-indigo-300'
+                       }`}>
+                         <div className={`h-10 w-10 text-2xl font-black flex items-center justify-center animate-bounce ${
+                           isDarkMode ? 'text-white' : 'text-slate-900'
+                         }`}>
                          {questionStartCountdown}
                        </div>
+                       </div>
+                       {/* Animated Rings */}
+                       <div className="absolute inset-0 rounded-2xl border-2 border-blue-400/40 animate-ping"></div>
+                       <div className="absolute inset-0 rounded-2xl border border-cyan-400/60 animate-pulse"></div>
                      </div>
                          <div>
-                       <h3 className="text-xl font-semibold text-white">Get Ready!</h3>
-                       <p className="text-purple-200">First question starting in {questionStartCountdown} seconds...</p>
+                       <h3 className={`text-xl font-black ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Get Ready!</h3>
+                       <p className={`text-sm ${isDarkMode ? 'text-blue-200' : 'text-blue-700'}`}>First question starting in {questionStartCountdown} seconds...</p>
                          </div>
                        </div>
                      </div>
@@ -1810,46 +2070,164 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
 
                    {/* AI Speaking Indicator */}
                    {isAISpeaking && (
-                 <div className="mb-8 bg-blue-500/20 backdrop-blur-md border border-blue-400/30 rounded-2xl p-6">
+                 <div className={`mb-3 backdrop-blur-md border-2 rounded-2xl p-4 transition-all duration-500 transform hover:scale-105 ${
+                   isDarkMode 
+                     ? 'bg-gradient-to-br from-blue-600/20 via-cyan-500/15 to-indigo-600/10 border-cyan-400/40 shadow-2xl shadow-cyan-500/30' 
+                     : 'bg-gradient-to-br from-white via-cyan-50 to-indigo-100 border-cyan-400 shadow-2xl shadow-cyan-300/50'
+                 }`}>
                    <div className="flex items-center space-x-4">
-                     <div className="p-3 bg-blue-500/30 rounded-full">
-                       <Volume2 className="h-8 w-8 text-blue-300 animate-pulse" />
+                     <div className="relative">
+                       <div className={`p-3 rounded-2xl shadow-2xl ${
+                         isDarkMode 
+                           ? 'bg-gradient-to-br from-blue-600 via-cyan-500 to-indigo-600' 
+                           : 'bg-gradient-to-br from-cyan-100 via-cyan-200 to-indigo-300'
+                       }`}>
+                         <Volume2 className={`h-8 w-8 animate-pulse ${
+                           isDarkMode ? 'text-white' : 'text-slate-900'
+                         }`} />
+                       </div>
+                       {/* Animated Rings */}
+                       <div className="absolute inset-0 rounded-2xl border-2 border-cyan-400/40 animate-ping"></div>
+                       <div className="absolute inset-0 rounded-2xl border border-indigo-400/60 animate-pulse"></div>
                      </div>
                          <div>
-                       <h3 className="text-xl font-semibold text-white">AI is speaking...</h3>
-                       <p className="text-blue-200">Please listen to the question carefully</p>
+                       <h3 className={`text-xl font-black ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>AI is speaking...</h3>
+                       <p className={`text-sm ${isDarkMode ? 'text-cyan-200' : 'text-cyan-700'}`}>Please listen to the question carefully</p>
                          </div>
                        </div>
                      </div>
                    )}
 
                   {/* Question Display */}
-              <div className="mb-12">
-                <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-3xl p-8">
-                  <div className="flex items-center space-x-3 mb-6">
-                    <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
-                      <span className="text-white font-bold text-lg">{questionIndex + 1}</span>
+              <div className="mb-3">
+                <div className={`backdrop-blur-md border-2 rounded-2xl p-4 transition-all duration-500 transform hover:scale-105 ${
+                  isDarkMode 
+                    ? 'bg-gradient-to-br from-slate-800/60 via-gray-900/40 to-black/30 border-slate-600/40 shadow-2xl shadow-slate-500/30' 
+                    : 'bg-gradient-to-br from-white via-blue-50 to-indigo-100 border-blue-300 shadow-2xl shadow-blue-200/50'
+                }`}>
+                  <div className="flex items-center space-x-3 mb-3">
+                    <div className="relative">
+                      <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shadow-2xl ${
+                        isDarkMode 
+                          ? 'bg-gradient-to-br from-slate-700 via-blue-600 to-indigo-700' 
+                          : 'bg-gradient-to-br from-blue-100 via-blue-200 to-indigo-300'
+                      }`}>
+                        <span className={`text-base font-black ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{questionIndex + 1}</span>
                     </div>
-                    <h2 className="text-2xl font-bold text-white">Question</h2>
-                    {isAISpeaking && <Volume2 className="h-6 w-6 text-blue-400 animate-pulse" />}
+                      {/* Animated Rings */}
+                      <div className="absolute inset-0 rounded-2xl border-2 border-blue-400/40 animate-ping"></div>
+                      <div className="absolute inset-0 rounded-2xl border border-indigo-400/60 animate-pulse"></div>
                   </div>
-                  <p className="text-xl text-gray-100 leading-relaxed">{currentQuestion?.question}</p>
+                    <h2 className={`text-lg font-black ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Question</h2>
+                    {isAISpeaking && <Volume2 className={`h-5 w-5 animate-pulse ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} />}
+                  </div>
+                  <p className={`text-base leading-relaxed ${isDarkMode ? 'text-gray-100' : 'text-gray-800'}`}>{currentQuestion?.question}</p>
                 </div>
                   </div>
 
-              {/* Live Transcription */}
-              <div className="mb-8">
-                <div className="bg-black/30 backdrop-blur-md border border-white/10 rounded-2xl p-6">
-                  <div className="flex items-center space-x-3 mb-4">
-                    <div className={`w-3 h-3 rounded-full ${
-                      isRecording ? 'bg-red-500 animate-pulse' : 'bg-gray-400'
-                    }`}></div>
-                    <h3 className="text-lg font-semibold text-white">Live Transcription</h3>
+              {/* Code Editor for Coding Questions */}
+              {(() => {
+                const isCodingQuestion = currentQuestion?.codeEditor?.enabled || 
+                  (currentQuestion?.question && (
+                    currentQuestion.question.toLowerCase().includes('code editor') ||
+                    currentQuestion.question.toLowerCase().includes('write a function') ||
+                    currentQuestion.question.toLowerCase().includes('implement') ||
+                    currentQuestion.question.toLowerCase().includes('coding') ||
+                    currentQuestion.question.toLowerCase().includes('program') ||
+                    currentQuestion.question.toLowerCase().includes('algorithm') ||
+                    currentQuestion.question.toLowerCase().includes('debug') ||
+                    currentQuestion.question.toLowerCase().includes('reverse') ||
+                    currentQuestion.question.toLowerCase().includes('palindrome') ||
+                    currentQuestion.question.toLowerCase().includes('factorial')
+                  ));
+                return isCodingQuestion;
+              })() && (
+                <div className="mb-3">
+                  <div className={`backdrop-blur-md border-2 rounded-2xl p-4 transition-all duration-500 transform hover:scale-105 ${
+                    isDarkMode 
+                      ? 'bg-gradient-to-br from-slate-900/60 via-gray-900/40 to-black/30 border-slate-600/40 shadow-2xl shadow-slate-500/30' 
+                      : 'bg-gradient-to-br from-white via-blue-50 to-indigo-100 border-blue-300 shadow-2xl shadow-blue-200/50'
+                  }`}>
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center space-x-3">
+                        <div className={`w-3 h-3 rounded-full ${
+                          isDarkMode ? 'bg-blue-500' : 'bg-blue-600'
+                        }`}></div>
+                        <h3 className={`text-lg font-black ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Code Editor</h3>
+                      </div>
+                      {!showCodeEditor && (
+                        <button
+                          onClick={() => setShowCodeEditor(true)}
+                          className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-slate-700 via-blue-600 to-indigo-600 hover:from-slate-600 hover:via-blue-500 hover:to-indigo-500 text-white rounded-xl font-bold transition-all duration-300 transform hover:scale-105 shadow-lg"
+                        >
+                          <Code className="h-4 w-4" />
+                          <span>Open Code Editor</span>
+                        </button>
+                      )}
+                    </div>
+                    
+                    {showCodeEditor && (
+                      <div className="bg-white rounded-lg p-4">
+                        <div className="flex items-center justify-between mb-4">
+                          <h4 className="text-lg font-semibold text-gray-800">Code Editor</h4>
+                          <button
+                            onClick={() => setShowCodeEditor(false)}
+                            className="text-gray-500 hover:text-gray-700 text-sm"
+                          >
+                            Hide Editor
+                          </button>
+                        </div>
+                        <CodeEditor
+                          language={currentQuestion.codeEditor?.language || 'javascript'}
+                          starterCode={currentQuestion.codeEditor?.starterCode || '// Write your code here\nfunction solution() {\n    // Your implementation\n}'}
+                          testCases={currentQuestion.codeEditor?.testCases || []}
+                          onCodeChange={(code) => {
+                            setCodeAnswer(code);
+                          }}
+                          disabled={false}
+                        />
+                      </div>
+                    )}
+                    
+                    {!showCodeEditor && (
+                      <div className="text-center py-6">
+                        <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-2xl ${
+                          isDarkMode 
+                            ? 'bg-gradient-to-br from-slate-700 via-blue-600 to-indigo-700' 
+                            : 'bg-gradient-to-br from-blue-100 via-blue-200 to-indigo-300'
+                        }`}>
+                          <Code className={`h-8 w-8 ${isDarkMode ? 'text-white' : 'text-slate-900'}`} />
+                        </div>
+                        <p className={`text-sm mb-2 ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                          This question includes a code editor for hands-on coding.
+                        </p>
+                        <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                          Click "Open Code Editor" above to start coding, or continue with voice answers.
+                        </p>
+                      </div>
+                    )}
                   </div>
-                  <div className="min-h-[120px] max-h-48 overflow-y-auto">
-                    <p className="text-gray-200 text-lg leading-relaxed">
+                </div>
+              )}
+
+
+              {/* Live Transcription */}
+              <div className="mb-3">
+                <div className={`backdrop-blur-md border-2 rounded-2xl p-4 transition-all duration-500 transform hover:scale-105 ${
+                  isDarkMode 
+                    ? 'bg-gradient-to-br from-slate-900/60 via-gray-900/40 to-black/30 border-slate-600/40 shadow-2xl shadow-slate-500/30' 
+                    : 'bg-gradient-to-br from-white via-blue-50 to-indigo-100 border-blue-300 shadow-2xl shadow-blue-200/50'
+                }`}>
+                  <div className="flex items-center space-x-3 mb-3">
+                    <div className={`w-3 h-3 rounded-full ${
+                      isRecording ? 'bg-red-500 animate-pulse' : isDarkMode ? 'bg-gray-400' : 'bg-gray-500'
+                    }`}></div>
+                    <h3 className={`text-lg font-black ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Live Transcription</h3>
+                  </div>
+                  <div className="min-h-[80px] max-h-32 overflow-y-auto">
+                    <p className={`text-sm leading-relaxed ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>
                       {transcription || (
-                        <span className="text-gray-400 italic">
+                        <span className={`italic ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                           {isRecording ? 'Start speaking...' : 'Recording will start automatically when you begin speaking'}
                         </span>
                       )}
@@ -1859,71 +2237,94 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
               </div>
 
               {/* Action Buttons */}
-              <div className="flex justify-center space-x-6">
+              <div className="flex justify-center space-x-4">
                 {/* Skip Button */}
                       <button
                   onClick={skipQuestion}
                         disabled={loading || isAISpeaking}
-                  className="flex items-center space-x-3 px-8 py-4 bg-gray-600/50 hover:bg-gray-600/70 disabled:bg-gray-800/50 text-white rounded-2xl font-semibold transition-all duration-200 backdrop-blur-md border border-white/20"
+                  className={`flex items-center space-x-2 px-6 py-3 rounded-xl font-bold transition-all duration-300 transform hover:scale-105 disabled:transform-none backdrop-blur-md border-2 ${
+                    isDarkMode 
+                      ? 'bg-slate-800/60 hover:bg-slate-700/70 disabled:bg-gray-800/50 text-white border-slate-600/40' 
+                      : 'bg-blue-100/80 hover:bg-blue-200/90 disabled:bg-gray-200/50 text-slate-900 border-blue-300 shadow-lg'
+                  }`}
                 >
-                  <SkipForward className="h-5 w-5" />
+                  <SkipForward className="h-4 w-4" />
                   <span>Skip Question</span>
                       </button>
+                      
+                {/* Answer Status Indicator */}
+                {(transcription.trim() || codeAnswer.trim()) && (
+                  <div className="mb-4 text-center">
+                    <div className="inline-flex items-center space-x-2 bg-green-500/20 backdrop-blur-md border border-green-400/30 rounded-full px-4 py-2">
+                      <CheckCircle className="h-4 w-4 text-green-400" />
+                      <span className="text-green-200 text-sm font-medium">
+                        {codeAnswer.trim() ? 'Code answer ready' : 'Voice answer ready'}
+                      </span>
+                    </div>
+                  </div>
+                )}
                       
                 {/* Submit Button */}
                       <button
                   onClick={submitAnswer}
-                  disabled={loading || !transcription.trim() || isAISpeaking}
-                  className="flex items-center space-x-3 px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-600 disabled:to-gray-600 text-white rounded-2xl font-semibold transition-all duration-200 transform hover:scale-105 disabled:transform-none shadow-lg"
+                  disabled={loading || (!transcription.trim() && !codeAnswer.trim()) || isAISpeaking}
+                  className={`flex items-center space-x-2 px-8 py-3 text-white rounded-xl font-black text-base transition-all duration-300 transform hover:scale-105 hover:-translate-y-1 disabled:transform-none shadow-2xl relative overflow-hidden ${
+                    isDarkMode 
+                      ? 'bg-gradient-to-r from-slate-800 via-blue-600 to-indigo-600 hover:from-slate-700 hover:via-blue-500 hover:to-indigo-500 disabled:from-gray-600 disabled:to-gray-600' 
+                      : 'bg-gradient-to-r from-blue-500 via-blue-600 to-indigo-600 hover:from-blue-400 hover:via-blue-500 hover:to-indigo-500 disabled:from-gray-400 disabled:to-gray-500'
+                  }`}
                 >
+                  {/* Animated Background */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-blue-400/20 via-cyan-400/20 to-indigo-400/20 opacity-0 hover:opacity-100 transition-opacity duration-500"></div>
+                  
+                  {/* Button Content */}
+                  <div className="relative z-10 flex items-center space-x-2">
                   {loading ? (
                     <>
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                       <span>Submitting...</span>
                     </>
                   ) : (
                     <>
-                      <CheckCircle className="h-5 w-5" />
+                        <CheckCircle className="h-4 w-4" />
                       <span>Submit Answer</span>
+                        <div className="w-1.5 h-1.5 bg-white rounded-full animate-ping"></div>
                     </>
                   )}
+                  </div>
                       </button>
                     </div>
 
               {/* Auto Progress Indicator */}
-              <div className="mt-6 text-center">
-                <div className="inline-flex items-center space-x-2 bg-green-500/20 backdrop-blur-md border border-green-400/30 rounded-full px-4 py-2">
-                  <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                  <span className="text-green-200 text-sm font-medium">
-                    Auto-progress enabled - will move to next question automatically
+              <div className="mt-3 text-center">
+                <div className="inline-flex items-center space-x-2 bg-green-500/20 backdrop-blur-md border border-green-400/30 rounded-full px-3 py-1">
+                  <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></div>
+                  <span className="text-green-200 text-xs font-medium">
+                    Auto-progress enabled
                   </span>
                 </div>
                     </div>
 
               {/* Debug Info */}
-              <div className="mt-4 text-center">
-                <div className="inline-flex items-center space-x-4 text-xs text-gray-400">
-                  <span>Recording: {isRecording ? 'ON' : 'OFF'}</span>
-                  <span>AI Speaking: {isAISpeaking ? 'ON' : 'OFF'}</span>
-                  <span>Auto-Record: {shouldAutoRecord ? 'PENDING' : 'OFF'}</span>
-                  <span>Device Detection: {deviceDetectionActive ? 'ON' : 'OFF'}</span>
-                  <span>Device Found: {electronicDeviceDetected ? 'YES' : 'NO'}</span>
-                  <span>Countdown: {removalCountdown}</span>
-                  <span>Camera: {cameraStatus}</span>
-                  <span>Q Start: {questionStartCountdown}</span>
+              <div className="mt-2 text-center">
+                <div className="inline-flex items-center space-x-2 text-xs text-gray-400">
+                  <span>Rec: {isRecording ? 'ON' : 'OFF'}</span>
+                  <span>AI: {isAISpeaking ? 'ON' : 'OFF'}</span>
+                  <span>Dev: {deviceDetectionActive ? 'ON' : 'OFF'}</span>
+                  <span>Cam: {cameraStatus}</span>
                 </div>
                     </div>
 
               {/* Debug Buttons */}
-              <div className="mt-4 text-center space-x-4">
+              <div className="mt-2 text-center space-x-2">
                       <button
                   onClick={() => {
                     console.log('🧪 Manual device detection test triggered');
                     testDeviceDetection();
                   }}
-                  className="px-4 py-2 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-400/30 rounded-lg text-purple-200 text-sm transition-all duration-200"
+                  className="px-3 py-1 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-400/30 rounded-lg text-blue-200 text-xs transition-all duration-200"
                 >
-                  🧪 Test Device Detection
+                  🧪 Test Device
                 </button>
                 
                 <button
@@ -1932,18 +2333,18 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
                     await ensureCameraActive();
                   }}
                   disabled={isCameraRestarting}
-                  className="px-4 py-2 bg-blue-600/20 hover:bg-blue-600/30 disabled:bg-gray-600/20 disabled:cursor-not-allowed border border-blue-400/30 rounded-lg text-blue-200 text-sm transition-all duration-200"
+                  className="px-3 py-1 bg-blue-600/20 hover:bg-blue-600/30 disabled:bg-gray-600/20 disabled:cursor-not-allowed border border-blue-400/30 rounded-lg text-blue-200 text-xs transition-all duration-200"
                 >
                   {isCameraRestarting ? '🔄 Restarting...' : '📹 Restart Camera'}
                 </button>
                   </div>
 
                   {error && (
-                <div className="mt-6 bg-red-500/20 backdrop-blur-md border border-red-400/30 rounded-2xl p-4">
-                  <p className="text-red-200 text-center">{error}</p>
+                <div className="mt-3 bg-red-500/20 backdrop-blur-md border border-red-400/30 rounded-xl p-3">
+                  <p className="text-red-200 text-center text-sm">{error}</p>
                       <button
                         onClick={() => setError(null)}
-                    className="text-red-300 text-sm underline mt-2 block mx-auto"
+                    className="text-red-300 text-xs underline mt-1 block mx-auto"
                       >
                         Dismiss
                       </button>
@@ -1952,14 +2353,16 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
                 </div>
 
             {/* Right Side - Large Video Feed */}
-            <div className="w-full lg:w-2/3 flex flex-col items-center justify-center px-6 py-8">
+            <div className="w-full lg:w-2/3 flex flex-col items-center px-4 py-4 overflow-y-auto">
               <div className="relative w-full max-w-4xl">
                     <video
                       ref={videoRef}
                       autoPlay
                       muted
                   playsInline
-                  className="w-full h-96 lg:h-[500px] bg-black rounded-3xl object-cover shadow-2xl border-4 border-white/20"
+                  className={`w-full h-64 lg:h-[300px] bg-black rounded-2xl object-cover shadow-2xl border-4 ${
+                    isDarkMode ? 'border-white/20' : 'border-blue-200'
+                  }`}
                   onLoadedMetadata={() => {
                     console.log('📹 Interview video metadata loaded');
                     console.log('📹 Video dimensions:', videoRef.current?.videoWidth, 'x', videoRef.current?.videoHeight);
@@ -1980,19 +2383,19 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
                 
                 {/* Camera Status Overlay for Interview */}
                 {cameraStatus !== 'playing' && (
-                  <div className="absolute inset-0 bg-black/80 rounded-3xl flex items-center justify-center">
+                  <div className="absolute inset-0 bg-black/80 rounded-2xl flex items-center justify-center">
                     <div className="text-center text-white">
                       {cameraStatus === 'error' ? (
                         <>
-                          <Camera className="h-16 w-16 mx-auto mb-4 text-red-400" />
-                          <h3 className="text-xl font-semibold mb-2">Camera Error</h3>
-                          <p className="text-gray-300">Camera not available during interview</p>
+                          <Camera className="h-12 w-12 mx-auto mb-3 text-red-400" />
+                          <h3 className="text-lg font-semibold mb-1">Camera Error</h3>
+                          <p className="text-gray-300 text-sm">Camera not available</p>
                         </>
                       ) : (
                         <>
-                          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-white mx-auto mb-4"></div>
-                          <h3 className="text-xl font-semibold mb-2">Connecting Camera...</h3>
-                          <p className="text-gray-300">Setting up video feed for interview</p>
+                          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-3"></div>
+                          <h3 className="text-lg font-semibold mb-1">Connecting Camera...</h3>
+                          <p className="text-gray-300 text-sm">Setting up video feed</p>
                         </>
                       )}
                     </div>
@@ -2009,10 +2412,12 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
                 {deviceDetectionActive && !electronicDeviceDetected && (
                   <div className="absolute inset-0 pointer-events-none">
                     <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                      <div className="w-16 h-16 border-4 border-purple-400/50 border-t-purple-400 rounded-full animate-spin"></div>
+                      <div className="w-16 h-16 border-4 border-blue-400/50 border-t-blue-400 rounded-full animate-spin"></div>
                     </div>
                     <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2">
-                      <div className="bg-purple-600/80 backdrop-blur-sm text-white px-3 py-1 rounded-full text-xs font-medium">
+                      <div className={`backdrop-blur-sm text-white px-4 py-2 rounded-full text-sm font-bold ${
+                        isDarkMode ? 'bg-blue-600/80' : 'bg-blue-600/90'
+                      }`}>
                         🔍 Scanning for devices...
                       </div>
                     </div>
@@ -2020,37 +2425,39 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
                 )}
                 
                 {/* Status Overlay */}
-                <div className="absolute top-6 left-6 flex flex-col space-y-3">
-                  <div className="flex items-center space-x-2 bg-green-600/90 backdrop-blur-sm text-white px-4 py-2 rounded-full text-sm font-medium">
-                    <div className="w-3 h-3 bg-white rounded-full animate-pulse"></div>
+                <div className="absolute top-4 left-4 flex flex-col space-y-2">
+                  <div className="flex items-center space-x-2 bg-green-600/90 backdrop-blur-sm text-white px-3 py-1 rounded-full text-xs font-medium">
+                    <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
                         <span>Live</span>
                       </div>
                       
                       {isRecording && (
-                    <div className="flex items-center space-x-2 bg-red-600/90 backdrop-blur-sm text-white px-4 py-2 rounded-full text-sm font-medium">
-                      <div className="w-3 h-3 bg-white rounded-full animate-pulse"></div>
+                    <div className="flex items-center space-x-2 bg-red-600/90 backdrop-blur-sm text-white px-3 py-1 rounded-full text-xs font-medium">
+                      <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
                           <span>Recording</span>
                         </div>
                       )}
                       
                       {isAISpeaking && (
-                    <div className="flex items-center space-x-2 bg-blue-600/90 backdrop-blur-sm text-white px-4 py-2 rounded-full text-sm font-medium">
-                      <Volume2 className="w-4 h-4 animate-pulse" />
+                    <div className="flex items-center space-x-2 bg-blue-600/90 backdrop-blur-sm text-white px-3 py-1 rounded-full text-xs font-medium">
+                      <Volume2 className="w-3 h-3 animate-pulse" />
                           <span>AI Speaking</span>
                         </div>
                       )}
 
                   {deviceDetectionActive && (
-                    <div className="flex items-center space-x-2 bg-purple-600/90 backdrop-blur-sm text-white px-4 py-2 rounded-full text-sm font-medium">
-                      <div className="w-3 h-3 bg-white rounded-full animate-pulse"></div>
+                    <div className={`flex items-center space-x-2 backdrop-blur-sm text-white px-3 py-1 rounded-full text-xs font-bold ${
+                      isDarkMode ? 'bg-blue-600/90' : 'bg-blue-600/90'
+                    }`}>
+                      <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
                       <span>Device Monitoring</span>
-                      <div className="w-2 h-2 bg-purple-300 rounded-full animate-ping"></div>
+                      <div className="w-1.5 h-1.5 bg-blue-300 rounded-full animate-ping"></div>
                     </div>
                   )}
 
                   {electronicDeviceDetected && (
-                    <div className="flex items-center space-x-2 bg-red-600/90 backdrop-blur-sm text-white px-4 py-2 rounded-full text-sm font-medium animate-pulse">
-                      <div className="w-3 h-3 bg-white rounded-full"></div>
+                    <div className="flex items-center space-x-2 bg-red-600/90 backdrop-blur-sm text-white px-3 py-1 rounded-full text-xs font-medium animate-pulse">
+                      <div className="w-2 h-2 bg-white rounded-full"></div>
                       <span>Device Detected!</span>
                     </div>
                   )}
@@ -2079,51 +2486,85 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
           </div>
 
               {/* Interview Stats */}
-              <div className="mt-8 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6 w-full max-w-4xl">
-                <h3 className="text-xl font-semibold text-white mb-6 text-center">Interview Progress</h3>
+              <div className={`mt-4 backdrop-blur-md border-2 rounded-2xl p-4 w-full max-w-4xl transition-all duration-500 transform hover:scale-105 ${
+                isDarkMode 
+                  ? 'bg-gradient-to-br from-slate-800/60 via-gray-900/40 to-black/30 border-slate-600/40 shadow-2xl shadow-slate-500/30' 
+                  : 'bg-gradient-to-br from-white via-blue-50 to-indigo-100 border-blue-300 shadow-2xl shadow-blue-200/50'
+              }`}>
+                <h3 className={`text-xl font-black mb-4 text-center ${
+                  isDarkMode ? 'text-white' : 'text-slate-900'
+                }`}>Interview Progress</h3>
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-white">{currentRound?.title}</div>
-                    <div className="text-gray-300">Current Round</div>
+                    <div className={`text-lg font-black mb-1 ${
+                      isDarkMode ? 'text-white' : 'text-slate-900'
+                    }`}>{currentRound?.title}</div>
+                    <div className={`text-xs font-medium ${
+                      isDarkMode ? 'text-gray-300' : 'text-gray-600'
+                    }`}>Current Round</div>
         </div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-white">{questionIndex + 1}/{currentRound?.questions?.length}</div>
-                    <div className="text-gray-300">Questions</div>
+                    <div className={`text-lg font-black mb-1 ${
+                      isDarkMode ? 'text-white' : 'text-slate-900'
+                    }`}>{questionIndex + 1}/{currentRound?.questions?.length}</div>
+                    <div className={`text-xs font-medium ${
+                      isDarkMode ? 'text-gray-300' : 'text-gray-600'
+                    }`}>Questions</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-white">{allRounds.length}</div>
-                    <div className="text-gray-300">Total Rounds</div>
+                    <div className={`text-lg font-black mb-1 ${
+                      isDarkMode ? 'text-white' : 'text-slate-900'
+                    }`}>{allRounds.length}</div>
+                    <div className={`text-xs font-medium ${
+                      isDarkMode ? 'text-gray-300' : 'text-gray-600'
+                    }`}>Total Rounds</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-green-400">ON</div>
-                    <div className="text-gray-300">Auto-progress</div>
+                    <div className="text-lg font-black mb-1 text-green-500">ON</div>
+                    <div className={`text-xs font-medium ${
+                      isDarkMode ? 'text-gray-300' : 'text-gray-600'
+                    }`}>Auto-progress</div>
                   </div>
                 </div>
               </div>
 
               {/* Device Monitoring Status */}
-              <div className="mt-6 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6 w-full max-w-4xl">
-                <h3 className="text-xl font-semibold text-white mb-4 text-center">🔍 Security Monitoring</h3>
+              <div className={`mt-4 backdrop-blur-md border-2 rounded-2xl p-4 w-full max-w-4xl transition-all duration-500 transform hover:scale-105 ${
+                isDarkMode 
+                  ? 'bg-gradient-to-br from-slate-800/60 via-gray-900/40 to-black/30 border-slate-600/40 shadow-2xl shadow-slate-500/30' 
+                  : 'bg-gradient-to-br from-white via-blue-50 to-indigo-100 border-blue-300 shadow-2xl shadow-blue-200/50'
+              }`}>
+                <h3 className={`text-xl font-black mb-4 text-center ${
+                  isDarkMode ? 'text-white' : 'text-slate-900'
+                }`}>🔍 Security Monitoring</h3>
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 text-sm">
                   <div className="text-center">
-                    <div className={`text-2xl font-bold ${deviceDetectionActive ? 'text-green-400' : 'text-gray-400'}`}>
+                    <div className={`text-lg font-black mb-1 ${deviceDetectionActive ? 'text-green-500' : isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                       {deviceDetectionActive ? 'ACTIVE' : 'INACTIVE'}
                     </div>
-                    <div className="text-gray-300">Device Detection</div>
+                    <div className={`text-xs font-medium ${
+                      isDarkMode ? 'text-gray-300' : 'text-gray-600'
+                    }`}>Device Detection</div>
                   </div>
                   <div className="text-center">
-                    <div className={`text-2xl font-bold ${electronicDeviceDetected ? 'text-red-400' : 'text-green-400'}`}>
+                    <div className={`text-lg font-black mb-1 ${electronicDeviceDetected ? 'text-red-500' : 'text-green-500'}`}>
                       {electronicDeviceDetected ? 'DETECTED' : 'CLEAN'}
                     </div>
-                    <div className="text-gray-300">Environment Status</div>
+                    <div className={`text-xs font-medium ${
+                      isDarkMode ? 'text-gray-300' : 'text-gray-600'
+                    }`}>Environment Status</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-blue-400">1s</div>
-                    <div className="text-gray-300">Scan Interval</div>
+                    <div className={`text-lg font-black mb-1 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>1s</div>
+                    <div className={`text-xs font-medium ${
+                      isDarkMode ? 'text-gray-300' : 'text-gray-600'
+                    }`}>Scan Interval</div>
                   </div>
                 </div>
                 <div className="mt-4 text-center">
-                  <p className="text-gray-300 text-sm">
+                  <p className={`text-xs ${
+                    isDarkMode ? 'text-gray-300' : 'text-gray-600'
+                  }`}>
                     {deviceDetectionActive 
                       ? '🛡️ Continuously monitoring for electronic devices every second' 
                       : '⚠️ Device monitoring is not active'

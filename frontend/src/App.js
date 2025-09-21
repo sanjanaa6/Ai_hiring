@@ -49,9 +49,9 @@ function AppShell() {
   );
 
   return (
-    <div className="App">
+    <div className="App min-h-screen flex flex-col">
       {!hideGlobalNavbar && <Header />}
-      <main>
+      <main className="flex-1">
         <Routes>
           {/* Landing Page */}
           <Route path="/" element={<LandingPage />} />

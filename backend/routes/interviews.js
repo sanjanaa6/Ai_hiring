@@ -109,7 +109,7 @@ If any information is missing, make reasonable assumptions based on the context.
       
       // Generate interview with fallback data
       const interviewData = createStructuredInterview(userPrompt, jobDetails);
-      const finalData = ensureFiveRounds(interviewData, jobDetails);
+      const finalData = ensureSixRounds(interviewData, jobDetails);
       
       // Save to database
       const interview = new Interview({
@@ -179,34 +179,56 @@ Job Details:
 - Level: ${level}
 - Duration: ${duration} minutes
 
-Create a structured interview with exactly 5 hiring rounds that are SPECIFICALLY tailored to this role:
+Create a structured interview with exactly 6 hiring rounds that are HIGHLY SPECIALIZED and PRACTICAL for this specific role. Each round must have exactly 5 questions with hands-on challenges:
 
-ROUND 1: Technical Fundamentals (15-20 minutes)
-- 3-4 technical questions directly related to ${title} role
-- Focus on core technologies and concepts mentioned in requirements
-- Assess depth of technical knowledge for this specific position
+ROUND 1: Role-Specific Technical Fundamentals (20-25 minutes)
+- 5 technical questions with practical applications
+- For Developers: Coding challenges with code editor, algorithm problems, code review scenarios
+- For Data Analysts: Excel formulas, SQL queries, data manipulation tasks
+- For Hiring Managers: Resume evaluation, candidate comparison scenarios
+- For Designers: Design challenges, portfolio review, creative problem-solving
+- Focus on core skills and tools specific to ${title} role
 
-ROUND 2: Role-Specific Experience (15-20 minutes)
-- 3-4 questions about past experience relevant to ${title}
-- STAR method questions specific to this role's challenges
-- Real-world scenarios this position would face
+ROUND 2: Practical Skills Assessment (20-25 minutes)
+- 5 hands-on challenges and real-world scenarios
+- For Developers: Live coding sessions with code editor, debugging exercises, system design
+- For Data Analysts: VLOOKUP/HLOOKUP tests, pivot tables, data visualization
+- For Hiring Managers: Interview simulation, decision-making scenarios
+- For Sales: Objection handling, negotiation scenarios, pitch presentations
+- Assess practical application of skills in realistic situations
 
 ROUND 3: Problem-Solving & Critical Thinking (15-20 minutes)
-- 2-3 complex scenarios specific to ${title} role
-- Industry-specific problem-solving approaches
-- Decision-making under pressure relevant to this position
+- 5 complex scenarios with role-specific challenges
+- For Developers: Performance optimization, scalability issues, architecture decisions
+- For Data Analysts: Data quality issues, statistical analysis, reporting challenges
+- For Hiring Managers: Difficult hiring decisions, team conflict resolution
+- For Marketing: Campaign optimization, market analysis, ROI evaluation
+- Industry-specific problem-solving approaches and decision-making
 
-ROUND 4: Team Collaboration & Leadership (10-15 minutes)
-- Questions about working in teams for ${title} role
-- Leadership scenarios relevant to this position level
-- Communication skills for this specific role
+ROUND 4: Advanced Technical & Tool Proficiency (15-20 minutes)
+- 5 advanced technical questions and tool-specific challenges
+- For Developers: Framework-specific questions, API integration, security best practices
+- For Data Analysts: Advanced Excel functions, database queries, BI tools
+- For Hiring Managers: ATS systems, recruitment metrics, talent assessment tools
+- For Finance: Financial modeling, risk assessment, compliance scenarios
+- Deep dive into specialized tools and advanced techniques
 
-ROUND 5: Cultural Fit & Industry Knowledge (10-15 minutes)
-- Current trends and technologies in the ${title} field
-- Alignment with company values and work culture
-- Career goals and motivation for this specific role
+ROUND 5: Leadership & Team Collaboration (12-15 minutes)
+- 5 questions about working in teams and leadership scenarios
+- For Senior roles: Team management, mentoring, project leadership
+- For Individual contributors: Cross-functional collaboration, knowledge sharing
+- For Managers: Performance management, team building, conflict resolution
+- Communication skills and team dynamics specific to this role level
 
-IMPORTANT: Format your response as valid JSON with this exact structure:
+ROUND 6: Industry Knowledge & Strategic Thinking (12-15 minutes)
+- 5 questions about industry trends, strategic thinking, and future planning
+- For Developers: Technology trends, architecture evolution, innovation
+- For Data Analysts: Data science trends, analytics evolution, business intelligence
+- For Hiring Managers: Talent market trends, recruitment strategies, HR technology
+- For Business roles: Market analysis, competitive landscape, strategic planning
+- Assess industry awareness and long-term thinking capabilities
+
+IMPORTANT: Format your response as valid JSON with this exact structure. You MUST include exactly 6 rounds, each with exactly 5 questions:
 {
   "interviewId": "interview_${Date.now()}",
   "title": "AI Multi-Round Interview - ${title}",
@@ -221,17 +243,505 @@ IMPORTANT: Format your response as valid JSON with this exact structure:
       "questions": [
         {
           "id": "q1_1",
-          "type": "technical",
-          "question": "Your technical question here",
-          "expectedAnswer": "What to look for in the answer",
+          "type": "coding-challenge",
+          "question": "Write a function to reverse a string. Use the code editor provided.",
+          "expectedAnswer": "Look for coding skills, algorithm understanding, and clean code",
           "timeLimit": 5,
+          "difficulty": "easy",
+          "followUpQuestions": ["Can you optimize this further?", "How would you test this function?"],
+          "codeEditor": {
+            "enabled": true,
+            "language": "javascript",
+            "starterCode": "function reverseString(str) {\n    // Your code here\n}",
+            "testCases": [
+              {"input": "\"hello\"", "expected": "\"olleh\""},
+              {"input": "\"world\"", "expected": "\"dlrow\""}
+            ]
+          }
+        },
+        {
+          "id": "q1_2",
+          "type": "technical",
+          "question": "Explain the difference between REST and GraphQL APIs.",
+          "expectedAnswer": "Look for API design knowledge and practical understanding",
+          "timeLimit": 3,
           "difficulty": "medium",
-          "followUpQuestions": ["Follow-up question 1", "Follow-up question 2"]
+          "followUpQuestions": ["Can you give examples of each?", "What are the trade-offs?"]
+        },
+        {
+          "id": "q1_3",
+          "type": "coding-challenge",
+          "question": "Implement a function to find the factorial of a number using recursion.",
+          "expectedAnswer": "Assess recursion understanding and algorithm implementation",
+          "timeLimit": 4,
+          "difficulty": "medium",
+          "followUpQuestions": ["What's the time complexity?", "How would you handle edge cases?"],
+          "codeEditor": {
+            "enabled": true,
+            "language": "javascript",
+            "starterCode": "function factorial(n) {\n    // Your recursive code here\n}",
+            "testCases": [
+              {"input": "5", "expected": "120"},
+              {"input": "3", "expected": "6"}
+            ]
+          }
+        },
+        {
+          "id": "q1_4",
+          "type": "technical",
+          "question": "How do you handle database migrations in production?",
+          "expectedAnswer": "Look for DevOps knowledge and production experience",
+          "timeLimit": 3,
+          "difficulty": "medium",
+          "followUpQuestions": ["What if the migration fails?", "How do you rollback?"]
+        },
+        {
+          "id": "q1_5",
+          "type": "coding-challenge",
+          "question": "Write a function to check if a string is a palindrome.",
+          "expectedAnswer": "Assess string manipulation and algorithm skills",
+          "timeLimit": 4,
+          "difficulty": "easy",
+          "followUpQuestions": ["Can you do this without extra space?", "How would you handle case sensitivity?"],
+          "codeEditor": {
+            "enabled": true,
+            "language": "javascript",
+            "starterCode": "function isPalindrome(str) {\n    // Your code here\n}",
+            "testCases": [
+              {"input": "\"racecar\"", "expected": "true"},
+              {"input": "\"hello\"", "expected": "false"}
+            ]
+          }
         }
       ],
       "evaluationCriteria": {
         "technical": "How to evaluate technical knowledge and skills",
         "problemSolving": "How to evaluate problem-solving approach"
+      }
+    },
+    {
+      "roundId": "round_2",
+      "roundNumber": 2,
+      "title": "Role-Specific Experience",
+      "description": "Assess relevant experience and practical application",
+      "duration": 20,
+      "questions": [
+        {
+          "id": "q2_1",
+          "type": "experience",
+          "question": "Experience question 1",
+          "expectedAnswer": "What to look for",
+          "timeLimit": 3,
+          "difficulty": "medium",
+          "followUpQuestions": ["Follow-up 1", "Follow-up 2"]
+        },
+        {
+          "id": "q2_2",
+          "type": "experience",
+          "question": "Experience question 2",
+          "expectedAnswer": "What to look for",
+          "timeLimit": 3,
+          "difficulty": "medium",
+          "followUpQuestions": ["Follow-up 1", "Follow-up 2"]
+        },
+        {
+          "id": "q2_3",
+          "type": "experience",
+          "question": "Experience question 3",
+          "expectedAnswer": "What to look for",
+          "timeLimit": 3,
+          "difficulty": "medium",
+          "followUpQuestions": ["Follow-up 1", "Follow-up 2"]
+        },
+        {
+          "id": "q2_4",
+          "type": "experience",
+          "question": "Experience question 4",
+          "expectedAnswer": "What to look for",
+          "timeLimit": 3,
+          "difficulty": "medium",
+          "followUpQuestions": ["Follow-up 1", "Follow-up 2"]
+        },
+        {
+          "id": "q2_5",
+          "type": "experience",
+          "question": "Experience question 5",
+          "expectedAnswer": "What to look for",
+          "timeLimit": 3,
+          "difficulty": "hard",
+          "followUpQuestions": ["Follow-up 1", "Follow-up 2"]
+        },
+        {
+          "id": "q2_6",
+          "type": "experience",
+          "question": "Experience question 6",
+          "expectedAnswer": "What to look for",
+          "timeLimit": 3,
+          "difficulty": "medium",
+          "followUpQuestions": ["Follow-up 1", "Follow-up 2"]
+        },
+        {
+          "id": "q2_7",
+          "type": "experience",
+          "question": "Experience question 7",
+          "expectedAnswer": "What to look for",
+          "timeLimit": 3,
+          "difficulty": "medium",
+          "followUpQuestions": ["Follow-up 1", "Follow-up 2"]
+        },
+        {
+          "id": "q2_8",
+          "type": "experience",
+          "question": "Experience question 8",
+          "expectedAnswer": "What to look for",
+          "timeLimit": 3,
+          "difficulty": "hard",
+          "followUpQuestions": ["Follow-up 1", "Follow-up 2"]
+        }
+      ],
+      "evaluationCriteria": {
+        "experience": "How to evaluate experience depth",
+        "application": "How to evaluate practical application"
+      }
+    },
+    {
+      "roundId": "round_3",
+      "roundNumber": 3,
+      "title": "Problem-Solving & Critical Thinking",
+      "description": "Test analytical and problem-solving capabilities",
+      "duration": 20,
+      "questions": [
+        {
+          "id": "q3_1",
+          "type": "problem-solving",
+          "question": "Problem-solving question 1",
+          "expectedAnswer": "What to look for",
+          "timeLimit": 3,
+          "difficulty": "hard",
+          "followUpQuestions": ["Follow-up 1", "Follow-up 2"]
+        },
+        {
+          "id": "q3_2",
+          "type": "problem-solving",
+          "question": "Problem-solving question 2",
+          "expectedAnswer": "What to look for",
+          "timeLimit": 3,
+          "difficulty": "hard",
+          "followUpQuestions": ["Follow-up 1", "Follow-up 2"]
+        },
+        {
+          "id": "q3_3",
+          "type": "problem-solving",
+          "question": "Problem-solving question 3",
+          "expectedAnswer": "What to look for",
+          "timeLimit": 3,
+          "difficulty": "medium",
+          "followUpQuestions": ["Follow-up 1", "Follow-up 2"]
+        },
+        {
+          "id": "q3_4",
+          "type": "problem-solving",
+          "question": "Problem-solving question 4",
+          "expectedAnswer": "What to look for",
+          "timeLimit": 3,
+          "difficulty": "hard",
+          "followUpQuestions": ["Follow-up 1", "Follow-up 2"]
+        },
+        {
+          "id": "q3_5",
+          "type": "problem-solving",
+          "question": "Problem-solving question 5",
+          "expectedAnswer": "What to look for",
+          "timeLimit": 3,
+          "difficulty": "medium",
+          "followUpQuestions": ["Follow-up 1", "Follow-up 2"]
+        },
+        {
+          "id": "q3_6",
+          "type": "problem-solving",
+          "question": "Problem-solving question 6",
+          "expectedAnswer": "What to look for",
+          "timeLimit": 3,
+          "difficulty": "hard",
+          "followUpQuestions": ["Follow-up 1", "Follow-up 2"]
+        },
+        {
+          "id": "q3_7",
+          "type": "problem-solving",
+          "question": "Problem-solving question 7",
+          "expectedAnswer": "What to look for",
+          "timeLimit": 3,
+          "difficulty": "medium",
+          "followUpQuestions": ["Follow-up 1", "Follow-up 2"]
+        },
+        {
+          "id": "q3_8",
+          "type": "problem-solving",
+          "question": "Problem-solving question 8",
+          "expectedAnswer": "What to look for",
+          "timeLimit": 3,
+          "difficulty": "hard",
+          "followUpQuestions": ["Follow-up 1", "Follow-up 2"]
+        }
+      ],
+      "evaluationCriteria": {
+        "analysis": "How to evaluate analytical thinking",
+        "decision": "How to evaluate decision-making process"
+      }
+    },
+    {
+      "roundId": "round_4",
+      "roundNumber": 4,
+      "title": "Team Collaboration & Leadership",
+      "description": "Evaluate teamwork and leadership potential",
+      "duration": 15,
+      "questions": [
+        {
+          "id": "q4_1",
+          "type": "teamwork",
+          "question": "Teamwork question 1",
+          "expectedAnswer": "What to look for",
+          "timeLimit": 3,
+          "difficulty": "medium",
+          "followUpQuestions": ["Follow-up 1", "Follow-up 2"]
+        },
+        {
+          "id": "q4_2",
+          "type": "leadership",
+          "question": "Leadership question 1",
+          "expectedAnswer": "What to look for",
+          "timeLimit": 3,
+          "difficulty": "medium",
+          "followUpQuestions": ["Follow-up 1", "Follow-up 2"]
+        },
+        {
+          "id": "q4_3",
+          "type": "teamwork",
+          "question": "Teamwork question 2",
+          "expectedAnswer": "What to look for",
+          "timeLimit": 3,
+          "difficulty": "medium",
+          "followUpQuestions": ["Follow-up 1", "Follow-up 2"]
+        },
+        {
+          "id": "q4_4",
+          "type": "leadership",
+          "question": "Leadership question 2",
+          "expectedAnswer": "What to look for",
+          "timeLimit": 3,
+          "difficulty": "hard",
+          "followUpQuestions": ["Follow-up 1", "Follow-up 2"]
+        },
+        {
+          "id": "q4_5",
+          "type": "teamwork",
+          "question": "Teamwork question 3",
+          "expectedAnswer": "What to look for",
+          "timeLimit": 3,
+          "difficulty": "easy",
+          "followUpQuestions": ["Follow-up 1", "Follow-up 2"]
+        },
+        {
+          "id": "q4_6",
+          "type": "leadership",
+          "question": "Leadership question 3",
+          "expectedAnswer": "What to look for",
+          "timeLimit": 3,
+          "difficulty": "hard",
+          "followUpQuestions": ["Follow-up 1", "Follow-up 2"]
+        },
+        {
+          "id": "q4_7",
+          "type": "teamwork",
+          "question": "Teamwork question 4",
+          "expectedAnswer": "What to look for",
+          "timeLimit": 3,
+          "difficulty": "medium",
+          "followUpQuestions": ["Follow-up 1", "Follow-up 2"]
+        },
+        {
+          "id": "q4_8",
+          "type": "leadership",
+          "question": "Leadership question 4",
+          "expectedAnswer": "What to look for",
+          "timeLimit": 3,
+          "difficulty": "medium",
+          "followUpQuestions": ["Follow-up 1", "Follow-up 2"]
+        }
+      ],
+      "evaluationCriteria": {
+        "collaboration": "How to evaluate teamwork skills",
+        "leadership": "How to evaluate leadership potential"
+      }
+    },
+    {
+      "roundId": "round_5",
+      "roundNumber": 5,
+      "title": "Cultural Fit & Industry Knowledge",
+      "description": "Assess cultural alignment and industry awareness",
+      "duration": 15,
+      "questions": [
+        {
+          "id": "q5_1",
+          "type": "industry",
+          "question": "Industry question 1",
+          "expectedAnswer": "What to look for",
+          "timeLimit": 3,
+          "difficulty": "medium",
+          "followUpQuestions": ["Follow-up 1", "Follow-up 2"]
+        },
+        {
+          "id": "q5_2",
+          "type": "motivation",
+          "question": "Motivation question 1",
+          "expectedAnswer": "What to look for",
+          "timeLimit": 3,
+          "difficulty": "easy",
+          "followUpQuestions": ["Follow-up 1", "Follow-up 2"]
+        },
+        {
+          "id": "q5_3",
+          "type": "culture",
+          "question": "Culture question 1",
+          "expectedAnswer": "What to look for",
+          "timeLimit": 3,
+          "difficulty": "easy",
+          "followUpQuestions": ["Follow-up 1", "Follow-up 2"]
+        },
+        {
+          "id": "q5_4",
+          "type": "industry",
+          "question": "Industry question 2",
+          "expectedAnswer": "What to look for",
+          "timeLimit": 3,
+          "difficulty": "medium",
+          "followUpQuestions": ["Follow-up 1", "Follow-up 2"]
+        },
+        {
+          "id": "q5_5",
+          "type": "culture",
+          "question": "Culture question 2",
+          "expectedAnswer": "What to look for",
+          "timeLimit": 3,
+          "difficulty": "easy",
+          "followUpQuestions": ["Follow-up 1", "Follow-up 2"]
+        },
+        {
+          "id": "q5_6",
+          "type": "motivation",
+          "question": "Motivation question 2",
+          "expectedAnswer": "What to look for",
+          "timeLimit": 3,
+          "difficulty": "medium",
+          "followUpQuestions": ["Follow-up 1", "Follow-up 2"]
+        },
+        {
+          "id": "q5_7",
+          "type": "industry",
+          "question": "Industry question 3",
+          "expectedAnswer": "What to look for",
+          "timeLimit": 3,
+          "difficulty": "medium",
+          "followUpQuestions": ["Follow-up 1", "Follow-up 2"]
+        },
+        {
+          "id": "q5_8",
+          "type": "culture",
+          "question": "Culture question 3",
+          "expectedAnswer": "What to look for",
+          "timeLimit": 3,
+          "difficulty": "easy",
+          "followUpQuestions": ["Follow-up 1", "Follow-up 2"]
+        }
+      ],
+      "evaluationCriteria": {
+        "industry": "How to evaluate industry knowledge",
+        "culture": "How to evaluate cultural fit"
+      }
+    },
+    {
+      "roundId": "round_6",
+      "roundNumber": 6,
+      "title": "Advanced Technical & Behavioral Assessment",
+      "description": "Deep dive into specialized knowledge and complex scenarios",
+      "duration": 15,
+      "questions": [
+        {
+          "id": "q6_1",
+          "type": "technical",
+          "question": "Advanced technical question 1",
+          "expectedAnswer": "What to look for",
+          "timeLimit": 3,
+          "difficulty": "hard",
+          "followUpQuestions": ["Follow-up 1", "Follow-up 2"]
+        },
+        {
+          "id": "q6_2",
+          "type": "behavioral",
+          "question": "Advanced behavioral question 1",
+          "expectedAnswer": "What to look for",
+          "timeLimit": 3,
+          "difficulty": "medium",
+          "followUpQuestions": ["Follow-up 1", "Follow-up 2"]
+        },
+        {
+          "id": "q6_3",
+          "type": "technical",
+          "question": "Advanced technical question 2",
+          "expectedAnswer": "What to look for",
+          "timeLimit": 3,
+          "difficulty": "hard",
+          "followUpQuestions": ["Follow-up 1", "Follow-up 2"]
+        },
+        {
+          "id": "q6_4",
+          "type": "behavioral",
+          "question": "Advanced behavioral question 2",
+          "expectedAnswer": "What to look for",
+          "timeLimit": 3,
+          "difficulty": "hard",
+          "followUpQuestions": ["Follow-up 1", "Follow-up 2"]
+        },
+        {
+          "id": "q6_5",
+          "type": "technical",
+          "question": "Advanced technical question 3",
+          "expectedAnswer": "What to look for",
+          "timeLimit": 3,
+          "difficulty": "medium",
+          "followUpQuestions": ["Follow-up 1", "Follow-up 2"]
+        },
+        {
+          "id": "q6_6",
+          "type": "behavioral",
+          "question": "Advanced behavioral question 3",
+          "expectedAnswer": "What to look for",
+          "timeLimit": 3,
+          "difficulty": "hard",
+          "followUpQuestions": ["Follow-up 1", "Follow-up 2"]
+        },
+        {
+          "id": "q6_7",
+          "type": "technical",
+          "question": "Advanced technical question 4",
+          "expectedAnswer": "What to look for",
+          "timeLimit": 3,
+          "difficulty": "medium",
+          "followUpQuestions": ["Follow-up 1", "Follow-up 2"]
+        },
+        {
+          "id": "q6_8",
+          "type": "behavioral",
+          "question": "Advanced behavioral question 4",
+          "expectedAnswer": "What to look for",
+          "timeLimit": 3,
+          "difficulty": "hard",
+          "followUpQuestions": ["Follow-up 1", "Follow-up 2"]
+        }
+      ],
+      "evaluationCriteria": {
+        "technical": "How to evaluate advanced technical knowledge",
+        "behavioral": "How to evaluate complex behavioral scenarios"
       }
     }
   ],
@@ -251,7 +761,17 @@ IMPORTANT: Format your response as valid JSON with this exact structure:
   }
 }
 
-Make sure the JSON is valid and properly formatted with all 5 rounds.`;
+CRITICAL REQUIREMENTS - STRICT ENFORCEMENT:
+1. You MUST generate exactly 6 rounds (round_1 through round_6) - NO MORE, NO LESS
+2. Each round MUST contain exactly 5 questions (q1_1 through q1_5, q2_1 through q2_5, etc.) - STRICTLY 5 QUESTIONS PER ROUND
+3. Do NOT generate fewer than 6 rounds
+4. Do NOT generate more than 6 rounds
+5. Do NOT generate fewer than 5 questions per round
+6. Do NOT generate more than 5 questions per round
+7. For coding challenges, include codeEditor object with enabled: true, language, starterCode, and testCases
+8. Make sure the JSON is valid and properly formatted with all 6 rounds, each containing exactly 5 questions
+9. VALIDATION: Count your questions - each round must have exactly 5 questions before submitting
+10. If you cannot generate exactly 5 questions for a round, use generic questions to reach the count of 5`;
 
     console.log('🤖 [INTERVIEW GENERATE] Calling OpenRouter API...');
     console.log('🔑 [INTERVIEW GENERATE] API Key present:', !!process.env.OPENROUTER_API_KEY);
@@ -310,7 +830,7 @@ Make sure the JSON is valid and properly formatted with all 5 rounds.`;
       
       // Create interview with structured fallback
       const interviewData = createStructuredInterview("AI Generated Interview", { title, description, requirements, level, duration });
-      const finalData = ensureFiveRounds(interviewData, { title, description, requirements, level, duration });
+      const finalData = ensureSixRounds(interviewData, { title, description, requirements, level, duration });
       
       // Save to database
       const interview = new Interview({
@@ -360,12 +880,29 @@ Make sure the JSON is valid and properly formatted with all 5 rounds.`;
       interviewData = createStructuredInterview(aiData, { title, description, requirements, level, duration });
     }
 
-    // Ensure exactly 5 rounds exist
+    // Ensure exactly 6 rounds exist with exactly 5 questions each
     try {
-      interviewData = ensureFiveRounds(interviewData, { title, description, requirements, level, duration });
-      console.log('✅ [INTERVIEW GENERATE] ensureFiveRounds applied:', interviewData.rounds?.length || 0);
+      interviewData = ensureSixRounds(interviewData, { title, description, requirements, level, duration });
+      console.log('✅ [INTERVIEW GENERATE] ensureSixRounds applied:', interviewData.rounds?.length || 0);
+      
+      // Additional validation: Log question counts for each round
+      if (interviewData.rounds) {
+        interviewData.rounds.forEach((round, index) => {
+          const questionCount = round.questions ? round.questions.length : 0;
+          console.log(`📊 [INTERVIEW GENERATE] Round ${index + 1} (${round.title}): ${questionCount} questions`);
+          if (questionCount !== 5) {
+            console.log(`⚠️ [INTERVIEW GENERATE] Round ${index + 1} has ${questionCount} questions instead of 5 - this should be fixed by ensureSixRounds`);
+          }
+        });
+      }
     } catch (e) {
-      console.log('⚠️ [INTERVIEW GENERATE] ensureFiveRounds error:', e.message);
+      console.log('⚠️ [INTERVIEW GENERATE] ensureSixRounds error:', e.message);
+    }
+
+    // Final validation before saving
+    const isValidStructure = validateInterviewStructure(interviewData);
+    if (!isValidStructure) {
+      console.log('⚠️ [INTERVIEW GENERATE] Interview structure validation failed, but continuing with ensureSixRounds applied data');
     }
 
     console.log('💾 [INTERVIEW GENERATE] Creating interview in database...');
@@ -514,7 +1051,9 @@ router.post('/:interviewId/round/:roundId/start', async (req, res) => {
           timeLimit: firstQuestion.timeLimit,
           difficulty: firstQuestion.difficulty,
           questionNumber: 1,
-          totalQuestions: round.questions.length
+          totalQuestions: round.questions.length,
+          codeEditor: firstQuestion.codeEditor || null,
+          followUpQuestions: firstQuestion.followUpQuestions || []
         },
         instructions: {
           voiceRequired: true,
@@ -1147,21 +1686,193 @@ router.post('/:interviewId/round/:roundId/complete', async (req, res) => {
 function createStructuredInterview(textResponse, jobDetails) {
   const interviewId = `interview_${Date.now()}`;
   
-  // Generate 5 comprehensive rounds based on job details
+  // Generate 6 comprehensive rounds based on job details with role-specific challenges
+  const isDeveloper = jobDetails.title.toLowerCase().includes('developer') || jobDetails.title.toLowerCase().includes('engineer') || jobDetails.title.toLowerCase().includes('programmer');
+  const isDataAnalyst = jobDetails.title.toLowerCase().includes('analyst') || jobDetails.title.toLowerCase().includes('data') || jobDetails.title.toLowerCase().includes('excel');
+  const isHiringManager = jobDetails.title.toLowerCase().includes('manager') || jobDetails.title.toLowerCase().includes('hr') || jobDetails.title.toLowerCase().includes('recruiter');
+  const isDesigner = jobDetails.title.toLowerCase().includes('designer') || jobDetails.title.toLowerCase().includes('ui') || jobDetails.title.toLowerCase().includes('ux');
+  const isSales = jobDetails.title.toLowerCase().includes('sales') || jobDetails.title.toLowerCase().includes('business development');
+  const isFinance = jobDetails.title.toLowerCase().includes('finance') || jobDetails.title.toLowerCase().includes('accounting') || jobDetails.title.toLowerCase().includes('financial');
+
   const rounds = [
     {
       roundId: "round_1",
       roundNumber: 1,
-      title: "Technical Fundamentals",
-      description: "Evaluate technical skills and problem-solving abilities",
-      duration: 15,
-      questions: [
+      title: "Role-Specific Technical Fundamentals",
+      description: "Evaluate technical skills and practical applications specific to this role",
+      duration: 25,
+      questions: isDeveloper ? [
+        {
+          id: "q1_1",
+          type: "coding-challenge",
+          question: `Write a function to reverse a string. Use the code editor provided.`,
+          expectedAnswer: "Look for coding skills, algorithm understanding, and clean code",
+          timeLimit: 5,
+          difficulty: "easy",
+          followUpQuestions: ["Can you optimize this further?", "How would you test this function?"],
+          codeEditor: {
+            enabled: true,
+            language: "javascript",
+            starterCode: "function reverseString(str) {\n    // Your code here\n}",
+            testCases: [
+              {"input": "\"hello\"", "expected": "\"olleh\""},
+              {"input": "\"world\"", "expected": "\"dlrow\""}
+            ]
+          }
+        },
+        {
+          id: "q1_2",
+          type: "coding-challenge",
+          question: `Implement a function to find the factorial of a number using recursion.`,
+          expectedAnswer: "Assess recursion understanding and algorithm implementation",
+          timeLimit: 4,
+          difficulty: "medium",
+          followUpQuestions: ["What's the time complexity?", "How would you handle edge cases?"],
+          codeEditor: {
+            enabled: true,
+            language: "javascript",
+            starterCode: "function factorial(n) {\n    // Your recursive code here\n}",
+            testCases: [
+              {"input": "5", "expected": "120"},
+              {"input": "3", "expected": "6"}
+            ]
+          }
+        },
+        {
+          id: "q1_3",
+          type: "system-design",
+          question: `Design a URL shortener service like bit.ly. What components would you need?`,
+          expectedAnswer: "Look for system design thinking, scalability considerations, and architecture knowledge",
+          timeLimit: 6,
+          difficulty: "hard",
+          followUpQuestions: ["How would you handle 1 million requests per second?", "What database would you choose?"]
+        },
+        {
+          id: "q1_4",
+          type: "technical",
+          question: `Explain the difference between REST and GraphQL APIs. When would you use each?`,
+          expectedAnswer: "Look for API design knowledge and practical understanding",
+          timeLimit: 3,
+          difficulty: "medium",
+          followUpQuestions: ["Can you give examples of each?", "What are the trade-offs?"]
+        },
+        {
+          id: "q1_5",
+          type: "coding-challenge",
+          question: `Write a function to check if a string is a palindrome.`,
+          expectedAnswer: "Assess string manipulation and algorithm skills",
+          timeLimit: 4,
+          difficulty: "easy",
+          followUpQuestions: ["Can you do this without extra space?", "How would you handle case sensitivity?"],
+          codeEditor: {
+            enabled: true,
+            language: "javascript",
+            starterCode: "function isPalindrome(str) {\n    // Your code here\n}",
+            testCases: [
+              {"input": "\"racecar\"", "expected": "true"},
+              {"input": "\"hello\"", "expected": "false"}
+            ]
+          }
+        }
+      ] : isDataAnalyst ? [
+        {
+          id: "q1_1",
+          type: "excel-challenge",
+          question: `Create a VLOOKUP formula to find employee salaries from a separate table. The lookup value is in column A, and you need to return the salary from column 3.`,
+          expectedAnswer: "Look for Excel proficiency and formula understanding",
+          timeLimit: 3,
+          difficulty: "easy",
+          followUpQuestions: ["What if there are duplicate names?", "How would you handle errors?"]
+        },
+        {
+          id: "q1_2",
+          type: "sql-challenge",
+          question: `Write a SQL query to find the top 10 customers by total purchase amount, including their names and total spent.`,
+          expectedAnswer: "Assess SQL skills and query optimization",
+          timeLimit: 4,
+          difficulty: "medium",
+          followUpQuestions: ["How would you optimize this query?", "What indexes would you add?"]
+        },
+        {
+          id: "q1_3",
+          type: "data-analysis",
+          question: `You have a dataset with missing values. Walk me through your approach to handle this.`,
+          expectedAnswer: "Look for data cleaning methodology and statistical knowledge",
+          timeLimit: 4,
+          difficulty: "medium",
+          followUpQuestions: ["What methods would you use?", "How do you validate your approach?"]
+        },
+        {
+          id: "q1_4",
+          type: "excel-challenge",
+          question: `Create a pivot table to show monthly sales by product category. Then create a chart to visualize the trends.`,
+          expectedAnswer: "Assess Excel advanced features and data visualization skills",
+          timeLimit: 4,
+          difficulty: "medium",
+          followUpQuestions: ["How would you make this dynamic?", "What other visualizations would you consider?"]
+        },
+        {
+          id: "q1_5",
+          type: "statistical",
+          question: `Explain the difference between correlation and causation. Give an example.`,
+          expectedAnswer: "Look for statistical understanding and critical thinking",
+          timeLimit: 3,
+          difficulty: "medium",
+          followUpQuestions: ["How do you test for causation?", "What are common pitfalls?"]
+        }
+      ] : isHiringManager ? [
+        {
+          id: "q1_1",
+          type: "resume-evaluation",
+          question: `Here are three resumes for a Senior Developer position. Compare them and tell me which candidate you would hire and why.`,
+          expectedAnswer: "Look for evaluation criteria, decision-making process, and role understanding",
+          timeLimit: 5,
+          difficulty: "medium",
+          followUpQuestions: ["What questions would you ask in the interview?", "How do you verify their claims?"]
+        },
+        {
+          id: "q1_2",
+          type: "interview-simulation",
+          question: `Simulate conducting a technical interview. Ask me 3 questions you would ask a candidate for this ${jobDetails.title} position.`,
+          expectedAnswer: "Assess interview skills, role knowledge, and questioning techniques",
+          timeLimit: 4,
+          difficulty: "medium",
+          followUpQuestions: ["How do you evaluate their answers?", "What red flags do you look for?"]
+        },
+        {
+          id: "q1_3",
+          type: "decision-making",
+          question: `You have two equally qualified candidates but can only hire one. One has more experience, the other has better cultural fit. How do you decide?`,
+          expectedAnswer: "Look for decision-making framework and prioritization skills",
+          timeLimit: 4,
+          difficulty: "hard",
+          followUpQuestions: ["What additional information would you gather?", "How do you communicate the decision?"]
+        },
+        {
+          id: "q1_4",
+          type: "ats-systems",
+          question: `Explain how you would use an ATS system to streamline the hiring process for this role.`,
+          expectedAnswer: "Assess technology knowledge and process optimization skills",
+          timeLimit: 3,
+          difficulty: "medium",
+          followUpQuestions: ["What features are most important?", "How do you measure success?"]
+        },
+        {
+          id: "q1_5",
+          type: "talent-assessment",
+          question: `How do you assess soft skills during the interview process?`,
+          expectedAnswer: "Look for assessment methodology and behavioral interview knowledge",
+          timeLimit: 3,
+          difficulty: "medium",
+          followUpQuestions: ["What questions do you ask?", "How do you avoid bias?"]
+        }
+      ] : [
         {
           id: "q1_1",
           type: "technical",
           question: `What are the key technical skills and technologies required for a ${jobDetails.title} position?`,
           expectedAnswer: "Look for relevant technical knowledge and current industry practices",
-          timeLimit: 4,
+          timeLimit: 3,
           difficulty: "medium",
           followUpQuestions: ["Can you walk me through your experience with these technologies?", "How do you stay current with industry developments?"]
         },
@@ -1170,29 +1881,275 @@ function createStructuredInterview(textResponse, jobDetails) {
           type: "technical",
           question: `Describe a challenging technical problem you've solved in your previous role.`,
           expectedAnswer: "Assess problem-solving approach and technical depth",
-          timeLimit: 5,
+          timeLimit: 3,
           difficulty: "medium",
           followUpQuestions: ["What alternative approaches did you consider?", "How would you optimize this solution?"]
+        },
+        {
+          id: "q1_3",
+          type: "technical",
+          question: `How do you approach debugging complex issues in your work?`,
+          expectedAnswer: "Look for systematic debugging methodology and technical reasoning",
+          timeLimit: 3,
+          difficulty: "medium",
+          followUpQuestions: ["Can you give a specific example?", "What tools do you use for debugging?"]
+        },
+        {
+          id: "q1_4",
+          type: "technical",
+          question: `What tools and technologies are you most comfortable with for this role?`,
+          expectedAnswer: "Assess technical proficiency and depth of knowledge",
+          timeLimit: 3,
+          difficulty: "easy",
+          followUpQuestions: ["How did you learn these technologies?", "What's your experience level with each?"]
+        },
+        {
+          id: "q1_5",
+          type: "technical",
+          question: `How do you ensure quality and accuracy in your work?`,
+          expectedAnswer: "Look for understanding of best practices and quality assurance",
+          timeLimit: 3,
+          difficulty: "medium",
+          followUpQuestions: ["What quality control processes do you use?", "How do you handle errors?"]
         }
       ],
       evaluationCriteria: {
-        technical: "Technical knowledge depth and application",
+        technical: "Technical knowledge depth and practical application",
         problemSolving: "Analytical thinking and solution design"
       }
     },
     {
       roundId: "round_2",
       roundNumber: 2,
-      title: "Role-Specific Experience",
-      description: "Assess relevant experience and practical application",
-      duration: 15,
-      questions: [
+      title: "Practical Skills Assessment",
+      description: "Hands-on challenges and real-world scenarios specific to this role",
+      duration: 25,
+      questions: isDeveloper ? [
+        {
+          id: "q2_1",
+          type: "live-coding",
+          question: `Write a function to reverse a linked list. You can use any programming language.`,
+          expectedAnswer: "Look for coding skills, algorithm understanding, and problem-solving approach",
+          timeLimit: 6,
+          difficulty: "medium",
+          followUpQuestions: ["Can you do this iteratively and recursively?", "What's the time and space complexity?"]
+        },
+        {
+          id: "q2_2",
+          type: "debugging-exercise",
+          question: `This code has a bug that causes infinite recursion. Identify and fix it: [Code with recursive call without base case]`,
+          expectedAnswer: "Assess debugging skills and understanding of recursion",
+          timeLimit: 4,
+          difficulty: "medium",
+          followUpQuestions: ["How would you test the fix?", "What other issues do you see?"]
+        },
+        {
+          id: "q2_3",
+          type: "system-design",
+          question: `Design a chat application that can handle 10,000 concurrent users. What components would you need?`,
+          expectedAnswer: "Look for system design thinking, scalability knowledge, and architecture skills",
+          timeLimit: 7,
+          difficulty: "hard",
+          followUpQuestions: ["How would you handle message delivery?", "What about offline users?"]
+        },
+        {
+          id: "q2_4",
+          type: "code-optimization",
+          question: `This function is too slow for large datasets. How would you optimize it? [Inefficient nested loop code]`,
+          expectedAnswer: "Assess optimization skills and performance analysis",
+          timeLimit: 5,
+          difficulty: "hard",
+          followUpQuestions: ["What's the new time complexity?", "How would you test the performance?"]
+        },
+        {
+          id: "q2_5",
+          type: "api-design",
+          question: `Design a REST API for a blog system. What endpoints would you create?`,
+          expectedAnswer: "Look for API design knowledge and REST principles understanding",
+          timeLimit: 4,
+          difficulty: "medium",
+          followUpQuestions: ["How would you handle authentication?", "What about pagination?"]
+        },
+        {
+          id: "q2_6",
+          type: "database-design",
+          question: `Design a database schema for an e-commerce platform. What tables would you need?`,
+          expectedAnswer: "Assess database design skills and normalization understanding",
+          timeLimit: 5,
+          difficulty: "medium",
+          followUpQuestions: ["How would you handle user reviews?", "What about inventory management?"]
+        },
+        {
+          id: "q2_7",
+          type: "testing",
+          question: `Write unit tests for this function: [Simple function with edge cases]`,
+          expectedAnswer: "Look for testing knowledge and edge case consideration",
+          timeLimit: 4,
+          difficulty: "medium",
+          followUpQuestions: ["What edge cases did you consider?", "How would you test error conditions?"]
+        },
+        {
+          id: "q2_8",
+          type: "deployment",
+          question: `How would you deploy this application to production? Walk me through your process.`,
+          expectedAnswer: "Assess DevOps knowledge and deployment best practices",
+          timeLimit: 4,
+          difficulty: "medium",
+          followUpQuestions: ["How do you handle rollbacks?", "What about monitoring?"]
+        }
+      ] : isDataAnalyst ? [
+        {
+          id: "q2_1",
+          type: "excel-practical",
+          question: `Given a dataset with sales data, create a formula to calculate the percentage change from the previous month.`,
+          expectedAnswer: "Look for Excel formula skills and data analysis understanding",
+          timeLimit: 4,
+          difficulty: "medium",
+          followUpQuestions: ["How would you handle the first month?", "What if there are missing values?"]
+        },
+        {
+          id: "q2_2",
+          type: "sql-practical",
+          question: `Write a query to find customers who made purchases in the last 30 days but not in the previous 30 days.`,
+          expectedAnswer: "Assess SQL skills and date manipulation",
+          timeLimit: 5,
+          difficulty: "hard",
+          followUpQuestions: ["How would you optimize this query?", "What indexes would help?"]
+        },
+        {
+          id: "q2_3",
+          type: "data-cleaning",
+          question: `You have a dataset with inconsistent date formats, duplicate entries, and missing values. Walk me through your cleaning process.`,
+          expectedAnswer: "Look for data cleaning methodology and attention to detail",
+          timeLimit: 5,
+          difficulty: "medium",
+          followUpQuestions: ["What tools would you use?", "How do you validate your cleaning?"]
+        },
+        {
+          id: "q2_4",
+          type: "pivot-table",
+          question: `Create a pivot table showing quarterly sales by region and product category. Then create a chart to visualize the trends.`,
+          expectedAnswer: "Assess Excel advanced features and data visualization skills",
+          timeLimit: 4,
+          difficulty: "medium",
+          followUpQuestions: ["How would you make this dynamic?", "What insights do you see?"]
+        },
+        {
+          id: "q2_5",
+          type: "statistical-analysis",
+          question: `Calculate the correlation coefficient between advertising spend and sales. What does this tell you?`,
+          expectedAnswer: "Look for statistical knowledge and business interpretation",
+          timeLimit: 4,
+          difficulty: "medium",
+          followUpQuestions: ["Is this correlation significant?", "What other factors might influence sales?"]
+        },
+        {
+          id: "q2_6",
+          type: "dashboard-design",
+          question: `Design a KPI dashboard for a retail manager. What metrics would you include and how would you visualize them?`,
+          expectedAnswer: "Assess business understanding and visualization skills",
+          timeLimit: 5,
+          difficulty: "medium",
+          followUpQuestions: ["How would you make it interactive?", "What tools would you use?"]
+        },
+        {
+          id: "q2_7",
+          type: "data-validation",
+          question: `How would you validate the accuracy of this sales report? What checks would you perform?`,
+          expectedAnswer: "Look for data validation skills and quality assurance",
+          timeLimit: 3,
+          difficulty: "medium",
+          followUpQuestions: ["What red flags would you look for?", "How do you document your findings?"]
+        },
+        {
+          id: "q2_8",
+          type: "forecasting",
+          question: `Using this historical sales data, how would you forecast next quarter's sales?`,
+          expectedAnswer: "Assess forecasting knowledge and analytical thinking",
+          timeLimit: 5,
+          difficulty: "hard",
+          followUpQuestions: ["What method would you use?", "How do you measure accuracy?"]
+        }
+      ] : isHiringManager ? [
+        {
+          id: "q2_1",
+          type: "interview-simulation",
+          question: `Conduct a 5-minute interview with me for a ${jobDetails.title} position. Ask me 3 relevant questions.`,
+          expectedAnswer: "Assess interview skills, role knowledge, and questioning techniques",
+          timeLimit: 5,
+          difficulty: "medium",
+          followUpQuestions: ["How would you evaluate my answers?", "What follow-up questions would you ask?"]
+        },
+        {
+          id: "q2_2",
+          type: "candidate-comparison",
+          question: `Here are two candidates with different strengths. Candidate A has 5 years experience but limited soft skills. Candidate B has 2 years experience but excellent communication. Which would you hire and why?`,
+          expectedAnswer: "Look for decision-making framework and evaluation criteria",
+          timeLimit: 4,
+          difficulty: "hard",
+          followUpQuestions: ["What additional information would you gather?", "How do you communicate this decision?"]
+        },
+        {
+          id: "q2_3",
+          type: "reference-check",
+          question: `How would you conduct a reference check for a senior-level candidate? What questions would you ask?`,
+          expectedAnswer: "Assess reference checking skills and verification process",
+          timeLimit: 3,
+          difficulty: "medium",
+          followUpQuestions: ["How do you handle negative references?", "What if references don't respond?"]
+        },
+        {
+          id: "q2_4",
+          type: "salary-negotiation",
+          question: `A candidate is asking for 20% more than your budget. How do you handle this negotiation?`,
+          expectedAnswer: "Look for negotiation skills and budget management",
+          timeLimit: 4,
+          difficulty: "medium",
+          followUpQuestions: ["What alternatives could you offer?", "How do you maintain the relationship?"]
+        },
+        {
+          id: "q2_5",
+          type: "onboarding-plan",
+          question: `Create a 30-day onboarding plan for a new ${jobDetails.title} hire. What would you include?`,
+          expectedAnswer: "Assess onboarding knowledge and employee experience focus",
+          timeLimit: 4,
+          difficulty: "medium",
+          followUpQuestions: ["How do you measure onboarding success?", "What if they're not meeting expectations?"]
+        },
+        {
+          id: "q2_6",
+          type: "team-conflict",
+          question: `Two team members are having a conflict that's affecting productivity. How do you resolve this?`,
+          expectedAnswer: "Look for conflict resolution skills and team management",
+          timeLimit: 4,
+          difficulty: "hard",
+          followUpQuestions: ["What if the conflict continues?", "How do you prevent future conflicts?"]
+        },
+        {
+          id: "q2_7",
+          type: "performance-review",
+          question: `How would you conduct a performance review for an underperforming employee?`,
+          expectedAnswer: "Assess performance management skills and difficult conversation handling",
+          timeLimit: 4,
+          difficulty: "hard",
+          followUpQuestions: ["What if they don't improve?", "How do you document the process?"]
+        },
+        {
+          id: "q2_8",
+          type: "retention-strategy",
+          question: `A top performer is considering leaving. How do you retain them?`,
+          expectedAnswer: "Look for retention strategies and employee engagement knowledge",
+          timeLimit: 3,
+          difficulty: "medium",
+          followUpQuestions: ["What if you can't meet their demands?", "How do you prevent this in the future?"]
+        }
+      ] : [
         {
           id: "q2_1",
           type: "experience",
           question: `Tell me about your experience with the main responsibilities of a ${jobDetails.title}.`,
           expectedAnswer: "Evaluate relevant experience and practical knowledge",
-          timeLimit: 5,
+          timeLimit: 3,
           difficulty: "medium",
           followUpQuestions: ["What was your biggest achievement in this area?", "What challenges did you face?"]
         },
@@ -1201,14 +2158,68 @@ function createStructuredInterview(textResponse, jobDetails) {
           type: "scenario",
           question: `How would you approach a project where you need to ${jobDetails.level === 'senior' || jobDetails.level === 'lead' ? 'lead a team and' : ''} deliver results under tight deadlines?`,
           expectedAnswer: "Look for project management skills and prioritization",
-          timeLimit: 4,
+          timeLimit: 3,
           difficulty: "medium",
           followUpQuestions: ["How do you handle scope changes?", "How do you communicate progress to stakeholders?"]
+        },
+        {
+          id: "q2_3",
+          type: "experience",
+          question: `Describe a project where you had to learn a new technology or skill quickly.`,
+          expectedAnswer: "Assess learning agility and adaptability",
+          timeLimit: 3,
+          difficulty: "medium",
+          followUpQuestions: ["How did you approach the learning process?", "What was the outcome?"]
+        },
+        {
+          id: "q2_4",
+          type: "scenario",
+          question: `Tell me about a time when you had to work with stakeholders who had different priorities.`,
+          expectedAnswer: "Look for stakeholder management and negotiation skills",
+          timeLimit: 3,
+          difficulty: "medium",
+          followUpQuestions: ["How did you resolve the conflict?", "What was the final outcome?"]
+        },
+        {
+          id: "q2_5",
+          type: "experience",
+          question: `What's the most complex project you've worked on, and what was your role?`,
+          expectedAnswer: "Assess project complexity handling and role clarity",
+          timeLimit: 3,
+          difficulty: "hard",
+          followUpQuestions: ["What made it complex?", "How did you contribute to its success?"]
+        },
+        {
+          id: "q2_6",
+          type: "scenario",
+          question: `How do you handle situations where requirements change mid-project?`,
+          expectedAnswer: "Look for adaptability and change management skills",
+          timeLimit: 3,
+          difficulty: "medium",
+          followUpQuestions: ["Can you give a specific example?", "How do you communicate changes to the team?"]
+        },
+        {
+          id: "q2_7",
+          type: "experience",
+          question: `Describe a time when you had to mentor or train someone on your team.`,
+          expectedAnswer: "Assess mentoring and knowledge transfer abilities",
+          timeLimit: 3,
+          difficulty: "medium",
+          followUpQuestions: ["What was your approach?", "How did you measure success?"]
+        },
+        {
+          id: "q2_8",
+          type: "scenario",
+          question: `Tell me about a project that didn't go as planned. How did you handle it?`,
+          expectedAnswer: "Look for problem-solving and resilience under pressure",
+          timeLimit: 3,
+          difficulty: "hard",
+          followUpQuestions: ["What went wrong?", "What did you learn from the experience?"]
         }
       ],
       evaluationCriteria: {
-        experience: "Depth and relevance of past experience",
-        application: "Ability to apply knowledge to real scenarios"
+        practical: "Hands-on skills and real-world application",
+        problemSolving: "Ability to solve practical challenges"
       }
     },
     {
@@ -1216,14 +2227,14 @@ function createStructuredInterview(textResponse, jobDetails) {
       roundNumber: 3,
       title: "Problem-Solving & Critical Thinking",
       description: "Test analytical and problem-solving capabilities",
-      duration: 15,
+      duration: 20,
       questions: [
         {
           id: "q3_1",
           type: "problem-solving",
           question: `A ${jobDetails.title} project is behind schedule and stakeholders are concerned. Walk me through your approach to get it back on track.`,
           expectedAnswer: "Assess systematic problem-solving and stakeholder management",
-          timeLimit: 6,
+          timeLimit: 3,
           difficulty: "hard",
           followUpQuestions: ["How would you prevent this in future projects?", "How do you balance quality vs. timeline?"]
         },
@@ -1232,9 +2243,63 @@ function createStructuredInterview(textResponse, jobDetails) {
           type: "critical-thinking",
           question: `If you had to make a recommendation between two competing technical solutions, how would you evaluate and present your decision?`,
           expectedAnswer: "Look for structured decision-making and communication skills",
-          timeLimit: 4,
+          timeLimit: 3,
           difficulty: "medium",
           followUpQuestions: ["What factors would be most important?", "How would you handle disagreement from team members?"]
+        },
+        {
+          id: "q3_3",
+          type: "problem-solving",
+          question: `How would you approach debugging a production issue that's affecting multiple users?`,
+          expectedAnswer: "Assess crisis management and systematic debugging approach",
+          timeLimit: 3,
+          difficulty: "hard",
+          followUpQuestions: ["What's your first step?", "How do you prioritize fixes?"]
+        },
+        {
+          id: "q3_4",
+          type: "critical-thinking",
+          question: `Describe a time when you had to make a difficult technical decision with limited information.`,
+          expectedAnswer: "Look for decision-making under uncertainty and risk assessment",
+          timeLimit: 3,
+          difficulty: "hard",
+          followUpQuestions: ["How did you gather more information?", "What was the outcome?"]
+        },
+        {
+          id: "q3_5",
+          type: "problem-solving",
+          question: `How do you approach optimizing a slow-performing application?`,
+          expectedAnswer: "Assess systematic performance analysis and optimization methodology",
+          timeLimit: 3,
+          difficulty: "medium",
+          followUpQuestions: ["What tools would you use?", "How do you measure improvement?"]
+        },
+        {
+          id: "q3_6",
+          type: "critical-thinking",
+          question: `If you had to choose between implementing a quick fix or a proper long-term solution, how would you decide?`,
+          expectedAnswer: "Look for understanding of technical debt and business priorities",
+          timeLimit: 3,
+          difficulty: "medium",
+          followUpQuestions: ["What factors influence your decision?", "How do you communicate this to stakeholders?"]
+        },
+        {
+          id: "q3_7",
+          type: "problem-solving",
+          question: `Describe how you would handle a situation where a critical team member leaves mid-project.`,
+          expectedAnswer: "Assess contingency planning and knowledge transfer strategies",
+          timeLimit: 3,
+          difficulty: "hard",
+          followUpQuestions: ["How do you minimize impact?", "What's your knowledge transfer process?"]
+        },
+        {
+          id: "q3_8",
+          type: "critical-thinking",
+          question: `How do you evaluate the trade-offs between different architectural approaches?`,
+          expectedAnswer: "Look for architectural thinking and technical decision-making process",
+          timeLimit: 3,
+          difficulty: "hard",
+          followUpQuestions: ["What criteria do you use?", "How do you document your decisions?"]
         }
       ],
       evaluationCriteria: {
@@ -1247,14 +2312,14 @@ function createStructuredInterview(textResponse, jobDetails) {
       roundNumber: 4,
       title: "Team Collaboration & Leadership",
       description: "Evaluate teamwork and leadership potential",
-      duration: 12,
+      duration: 15,
       questions: [
         {
           id: "q4_1",
           type: "teamwork",
           question: `Describe a time when you had to work with a difficult team member or stakeholder. How did you handle it?`,
           expectedAnswer: "Assess interpersonal skills and conflict resolution",
-          timeLimit: 5,
+          timeLimit: 3,
           difficulty: "medium",
           followUpQuestions: ["What would you do differently?", "How do you build trust with team members?"]
         },
@@ -1267,9 +2332,63 @@ function createStructuredInterview(textResponse, jobDetails) {
           expectedAnswer: jobDetails.level === 'senior' || jobDetails.level === 'lead'
             ? "Look for mentoring and development skills"
             : "Assess collaboration and team contribution",
-          timeLimit: 4,
+          timeLimit: 3,
           difficulty: "medium",
           followUpQuestions: ["Can you give a specific example?", "What's your approach to giving feedback?"]
+        },
+        {
+          id: "q4_3",
+          type: "teamwork",
+          question: `How do you handle disagreements with team members about technical decisions?`,
+          expectedAnswer: "Look for conflict resolution and collaborative decision-making",
+          timeLimit: 3,
+          difficulty: "medium",
+          followUpQuestions: ["Can you give an example?", "How do you reach consensus?"]
+        },
+        {
+          id: "q4_4",
+          type: "leadership",
+          question: `Describe a time when you had to motivate a team during a challenging project.`,
+          expectedAnswer: "Assess motivational and leadership skills",
+          timeLimit: 3,
+          difficulty: "medium",
+          followUpQuestions: ["What strategies did you use?", "What was the outcome?"]
+        },
+        {
+          id: "q4_5",
+          type: "teamwork",
+          question: `How do you ensure effective communication within your team?`,
+          expectedAnswer: "Look for communication strategies and team coordination",
+          timeLimit: 3,
+          difficulty: "easy",
+          followUpQuestions: ["What tools do you use?", "How do you handle remote collaboration?"]
+        },
+        {
+          id: "q4_6",
+          type: "leadership",
+          question: `Tell me about a time when you had to make an unpopular decision for the team.`,
+          expectedAnswer: "Assess decision-making courage and team management",
+          timeLimit: 3,
+          difficulty: "hard",
+          followUpQuestions: ["How did you communicate it?", "How did the team react?"]
+        },
+        {
+          id: "q4_7",
+          type: "teamwork",
+          question: `How do you handle situations where team members have different working styles?`,
+          expectedAnswer: "Look for adaptability and team harmony management",
+          timeLimit: 3,
+          difficulty: "medium",
+          followUpQuestions: ["Can you give an example?", "How do you find common ground?"]
+        },
+        {
+          id: "q4_8",
+          type: "leadership",
+          question: `Describe your approach to giving constructive feedback to team members.`,
+          expectedAnswer: "Assess feedback delivery and team development skills",
+          timeLimit: 3,
+          difficulty: "medium",
+          followUpQuestions: ["What's your feedback framework?", "How do you ensure it's well-received?"]
         }
       ],
       evaluationCriteria: {
@@ -1282,14 +2401,14 @@ function createStructuredInterview(textResponse, jobDetails) {
       roundNumber: 5,
       title: "Cultural Fit & Industry Knowledge",
       description: "Assess cultural alignment and industry awareness",
-      duration: 13,
+      duration: 15,
       questions: [
         {
           id: "q5_1",
           type: "industry",
           question: `What trends do you see shaping the ${jobDetails.title.includes('Developer') || jobDetails.title.includes('Engineer') ? 'technology' : 'industry'} landscape, and how do you stay informed?`,
           expectedAnswer: "Evaluate industry awareness and continuous learning",
-          timeLimit: 4,
+          timeLimit: 3,
           difficulty: "medium",
           followUpQuestions: ["How do these trends affect your work?", "What resources do you use to stay updated?"]
         },
@@ -1298,7 +2417,7 @@ function createStructuredInterview(textResponse, jobDetails) {
           type: "motivation",
           question: `Why are you interested in this ${jobDetails.title} position, and what are your career goals for the next few years?`,
           expectedAnswer: "Assess motivation, cultural fit, and long-term potential",
-          timeLimit: 4,
+          timeLimit: 3,
           difficulty: "easy",
           followUpQuestions: ["What excites you most about this role?", "How does this position align with your career plans?"]
         },
@@ -1310,11 +2429,141 @@ function createStructuredInterview(textResponse, jobDetails) {
           timeLimit: 3,
           difficulty: "easy",
           followUpQuestions: ["Can you give an example of how feedback helped you improve?", "What's your approach to self-improvement?"]
+        },
+        {
+          id: "q5_4",
+          type: "industry",
+          question: `What do you think are the biggest challenges facing the ${jobDetails.title.includes('Developer') || jobDetails.title.includes('Engineer') ? 'technology' : 'industry'} industry today?`,
+          expectedAnswer: "Look for industry insight and critical thinking about challenges",
+          timeLimit: 3,
+          difficulty: "medium",
+          followUpQuestions: ["How would you address these challenges?", "What opportunities do you see?"]
+        },
+        {
+          id: "q5_5",
+          type: "culture",
+          question: `Describe your ideal work environment and team culture.`,
+          expectedAnswer: "Assess cultural preferences and team fit",
+          timeLimit: 3,
+          difficulty: "easy",
+          followUpQuestions: ["What motivates you most?", "How do you contribute to team culture?"]
+        },
+        {
+          id: "q5_6",
+          type: "motivation",
+          question: `What aspects of this role excite you most, and what concerns you?`,
+          expectedAnswer: "Look for honest self-assessment and role understanding",
+          timeLimit: 3,
+          difficulty: "medium",
+          followUpQuestions: ["How would you address your concerns?", "What support would you need?"]
+        },
+        {
+          id: "q5_7",
+          type: "industry",
+          question: `How do you see your role evolving in the next 5 years in this industry?`,
+          expectedAnswer: "Assess long-term vision and career planning",
+          timeLimit: 3,
+          difficulty: "medium",
+          followUpQuestions: ["What skills will you need to develop?", "How do you plan to stay relevant?"]
+        },
+        {
+          id: "q5_8",
+          type: "culture",
+          question: `How do you balance work-life integration, and what does that look like for you?`,
+          expectedAnswer: "Look for realistic expectations and personal values alignment",
+          timeLimit: 3,
+          difficulty: "easy",
+          followUpQuestions: ["How do you manage stress?", "What activities help you recharge?"]
         }
       ],
       evaluationCriteria: {
         industry: "Knowledge of industry trends and continuous learning",
         culture: "Alignment with company values and growth mindset"
+      }
+    },
+    {
+      roundId: "round_6",
+      roundNumber: 6,
+      title: "Advanced Technical & Behavioral Assessment",
+      description: "Deep dive into specialized knowledge and complex scenarios",
+      duration: 15,
+      questions: [
+        {
+          id: "q6_1",
+          type: "technical",
+          question: `Describe a complex system you've designed or architected. What were the key challenges?`,
+          expectedAnswer: "Assess system design thinking and architectural knowledge",
+          timeLimit: 3,
+          difficulty: "hard",
+          followUpQuestions: ["How did you handle scalability?", "What would you do differently?"]
+        },
+        {
+          id: "q6_2",
+          type: "behavioral",
+          question: `Tell me about a time when you had to learn a completely new technology stack for a project.`,
+          expectedAnswer: "Look for learning agility and adaptability",
+          timeLimit: 3,
+          difficulty: "medium",
+          followUpQuestions: ["How did you approach the learning?", "What was the outcome?"]
+        },
+        {
+          id: "q6_3",
+          type: "technical",
+          question: `How would you design a system to handle millions of concurrent users?`,
+          expectedAnswer: "Assess scalability thinking and distributed systems knowledge",
+          timeLimit: 3,
+          difficulty: "hard",
+          followUpQuestions: ["What components would you consider?", "How would you handle failures?"]
+        },
+        {
+          id: "q6_4",
+          type: "behavioral",
+          question: `Describe a situation where you had to work with a team that had very different technical opinions.`,
+          expectedAnswer: "Look for collaboration and consensus-building skills",
+          timeLimit: 3,
+          difficulty: "medium",
+          followUpQuestions: ["How did you resolve the differences?", "What was the final decision?"]
+        },
+        {
+          id: "q6_5",
+          type: "technical",
+          question: `What's your approach to ensuring security in applications you develop?`,
+          expectedAnswer: "Assess security awareness and best practices knowledge",
+          timeLimit: 3,
+          difficulty: "medium",
+          followUpQuestions: ["What security tools do you use?", "How do you stay updated on threats?"]
+        },
+        {
+          id: "q6_6",
+          type: "behavioral",
+          question: `Tell me about a time when you had to deliver bad news to stakeholders about a project.`,
+          expectedAnswer: "Look for communication skills and stakeholder management",
+          timeLimit: 3,
+          difficulty: "hard",
+          followUpQuestions: ["How did you prepare for the conversation?", "What was the response?"]
+        },
+        {
+          id: "q6_7",
+          type: "technical",
+          question: `How do you approach code reviews, and what do you look for?`,
+          expectedAnswer: "Assess code quality standards and review process understanding",
+          timeLimit: 3,
+          difficulty: "medium",
+          followUpQuestions: ["What's your feedback style?", "How do you handle disagreements?"]
+        },
+        {
+          id: "q6_8",
+          type: "behavioral",
+          question: `Describe a time when you had to make a significant technical decision that affected the entire team.`,
+          expectedAnswer: "Look for decision-making process and team impact consideration",
+          timeLimit: 3,
+          difficulty: "hard",
+          followUpQuestions: ["How did you gather input?", "What was the team's reaction?"]
+        }
+      ],
+      evaluationCriteria: {
+        technical: "Advanced technical knowledge and system thinking",
+        behavioral: "Complex scenario handling and decision-making"
       }
     }
   ];
@@ -1342,45 +2591,121 @@ function createStructuredInterview(textResponse, jobDetails) {
   };
 }
 
-// Ensure exactly five rounds by duplicating/adapting the first round if needed
-function ensureFiveRounds(interviewData, jobDetails) {
+// Ensure exactly six rounds with exactly 5 questions each
+function ensureSixRounds(interviewData, jobDetails) {
   const data = interviewData || {};
   data.rounds = Array.isArray(data.rounds) ? data.rounds : [];
-  if (data.rounds.length >= 5) {
-    // If more than 5 rounds, trim to exactly 5
-    data.rounds = data.rounds.slice(0, 5);
-    return data;
+  
+    // If more than 6 rounds, trim to exactly 6
+  if (data.rounds.length >= 6) {
+    data.rounds = data.rounds.slice(0, 6);
   }
 
-  const base = data.rounds[0] || {
-    roundId: 'round_1',
-    roundNumber: 1,
+  // Ensure each round has exactly 5 questions
+  data.rounds = data.rounds.map((round, roundIndex) => {
+    const questions = Array.isArray(round.questions) ? round.questions : [];
+    
+    // If less than 5 questions, pad with generic questions
+    while (questions.length < 5) {
+      const questionIndex = questions.length + 1;
+      questions.push({
+        id: `q${roundIndex + 1}_${questionIndex}`,
+        type: 'technical',
+        question: `Question ${questionIndex} for ${jobDetails.title} role: Please describe your experience and approach.`,
+        expectedAnswer: 'Comprehensive answer expected',
+        timeLimit: 3,
+        difficulty: 'medium',
+        followUpQuestions: []
+      });
+    }
+    
+    // If more than 5 questions, trim to exactly 5
+    if (questions.length > 5) {
+      questions.splice(5);
+    }
+    
+    // Ensure question IDs are properly formatted
+    questions.forEach((q, qIndex) => {
+      q.id = `q${roundIndex + 1}_${qIndex + 1}`;
+    });
+    
+    return {
+      ...round,
+      roundId: `round_${roundIndex + 1}`,
+      roundNumber: roundIndex + 1,
+      questions: questions
+    };
+  });
+
+  // If less than 6 rounds, create additional rounds
+  while (data.rounds.length < 6) {
+    const idx = data.rounds.length + 1;
+    const baseRound = data.rounds[0] || {
     title: 'Technical Fundamentals',
     description: 'Evaluate fundamentals',
-    duration: 10,
-    questions: [
-      { id: 'q1_1', type: 'conceptual', question: `What are key concepts for ${jobDetails.title}?`, expectedAnswer: 'Core concepts', timeLimit: 3, difficulty: 'easy', followUpQuestions: [] }
-    ],
+    duration: 15,
     evaluationCriteria: { technical: 'Concept understanding' }
   };
 
-  while (data.rounds.length < 5) {
-    const idx = data.rounds.length + 1;
     data.rounds.push({
-      ...base,
       roundId: `round_${idx}`,
       roundNumber: idx,
-      title: base.title + ` (${idx})`,
-      questions: (base.questions || []).map((q, i) => ({
-        ...q,
-        id: `q${idx}_${i + 1}`
-      }))
+      title: baseRound.title + ` (Round ${idx})`,
+      description: baseRound.description,
+      duration: baseRound.duration,
+      evaluationCriteria: baseRound.evaluationCriteria,
+      questions: [
+        { id: `q${idx}_1`, type: 'conceptual', question: `What are key concepts for ${jobDetails.title}?`, expectedAnswer: 'Core concepts', timeLimit: 3, difficulty: 'easy', followUpQuestions: [] },
+        { id: `q${idx}_2`, type: 'technical', question: `Describe your experience with ${jobDetails.title} technologies.`, expectedAnswer: 'Technical experience', timeLimit: 3, difficulty: 'medium', followUpQuestions: [] },
+        { id: `q${idx}_3`, type: 'problem-solving', question: `How do you approach technical challenges?`, expectedAnswer: 'Problem-solving approach', timeLimit: 3, difficulty: 'medium', followUpQuestions: [] },
+        { id: `q${idx}_4`, type: 'experience', question: `Tell me about a relevant project you've worked on.`, expectedAnswer: 'Project experience', timeLimit: 3, difficulty: 'medium', followUpQuestions: [] },
+        { id: `q${idx}_5`, type: 'technical', question: `What tools and technologies do you use regularly?`, expectedAnswer: 'Tool proficiency', timeLimit: 3, difficulty: 'easy', followUpQuestions: [] }
+      ]
     });
   }
 
-  // Normalize roundNumber sequence
-  data.rounds = data.rounds.map((r, i) => ({ ...r, roundNumber: i + 1, roundId: `round_${i + 1}` }));
+  // Final validation: ensure exactly 6 rounds with exactly 5 questions each
+  data.rounds = data.rounds.slice(0, 6).map((round, index) => ({
+    ...round,
+    roundId: `round_${index + 1}`,
+    roundNumber: index + 1,
+    questions: (round.questions || []).slice(0, 5).map((q, qIndex) => ({
+        ...q,
+      id: `q${index + 1}_${qIndex + 1}`
+    }))
+  }));
+  
   return data;
+}
+
+// Validate interview structure - ensure exactly 6 rounds with exactly 5 questions each
+function validateInterviewStructure(interviewData) {
+  if (!interviewData || !Array.isArray(interviewData.rounds)) {
+    console.log('❌ [VALIDATION] Invalid interview data structure');
+    return false;
+  }
+  
+  if (interviewData.rounds.length !== 6) {
+    console.log(`❌ [VALIDATION] Expected 6 rounds, got ${interviewData.rounds.length}`);
+    return false;
+  }
+  
+  let isValid = true;
+  interviewData.rounds.forEach((round, index) => {
+    if (!round.questions || !Array.isArray(round.questions)) {
+      console.log(`❌ [VALIDATION] Round ${index + 1} has no questions array`);
+      isValid = false;
+    } else if (round.questions.length !== 5) {
+      console.log(`❌ [VALIDATION] Round ${index + 1} has ${round.questions.length} questions, expected exactly 5`);
+      isValid = false;
+    }
+  });
+  
+  if (isValid) {
+    console.log('✅ [VALIDATION] Interview structure is valid: 6 rounds with 5 questions each');
+  }
+  
+  return isValid;
 }
 
 // Compute next unanswered question for a candidate
@@ -1441,7 +2766,9 @@ function getNextQuestionInSequence(interview, candidateId, currentRoundId, curre
         timeLimit: q.timeLimit,
         difficulty: q.difficulty,
         questionNumber: i + 1,
-        totalQuestions: currentRound.questions.length
+        totalQuestions: currentRound.questions.length,
+        codeEditor: q.codeEditor || null,
+        followUpQuestions: q.followUpQuestions || []
       };
     }
   }
@@ -1463,7 +2790,9 @@ function getNextQuestionInSequence(interview, candidateId, currentRoundId, curre
           difficulty: q.difficulty,
           questionNumber: questionIndex + 1,
           totalQuestions: round.questions.length,
-          newRound: true
+          newRound: true,
+          codeEditor: q.codeEditor || null,
+          followUpQuestions: q.followUpQuestions || []
         };
       }
     }
@@ -1474,7 +2803,7 @@ function getNextQuestionInSequence(interview, candidateId, currentRoundId, curre
 
 // Compute progress for a candidate
 function getProgress(interview, candidateId) {
-  const total = (interview.rounds || []).reduce((acc, r) => acc + (r.questions?.length || 0), 0);
+  const total = (interview.rounds || []).length * 5; // Always 5 questions per round
   const answered = (interview.candidateAnswers || []).filter(a => a.candidateId === candidateId).length;
   return { answered, total, completed: answered >= total };
 }
@@ -1725,7 +3054,7 @@ async function evaluateRoundAnswers(round, candidateAnswers, criteria, performan
   // Check if we have the required API key
   if (!process.env.OPENROUTER_API_KEY) {
     console.error('❌ [EVALUATE ROUND] Missing OPENROUTER_API_KEY');
-    return createFallbackRoundEvaluation(round, candidateAnswers);
+    return createEnhancedFallbackEvaluation(round, candidateAnswers);
   }
   
   try {
@@ -1776,57 +3105,68 @@ COMMUNICATION ANALYSIS:
 `;
     }
 
-    const evaluationPrompt = `You are a strict, experienced HR professional and technical interviewer with very high standards. Evaluate this candidate's performance critically and provide honest, tough feedback.
+    const evaluationPrompt = `You are an expert technical interviewer and HR professional. Generate personalized feedback in the exact format shown below.
 
-ROUND DETAILS:
-- Title: ${round.title}
-- Description: ${round.description}
-- Total Questions: ${round.questions.length}
-- Questions Answered: ${candidateAnswers.length}
+CANDIDATE: ${candidateName}
+INTERVIEW ROUND: ${round.title}
+ROUND DESCRIPTION: ${round.description}
+TOTAL QUESTIONS: ${round.questions.length}
+QUESTIONS ANSWERED: ${candidateAnswers.length}
 
-QUESTIONS AND ANSWERS:
+DETAILED Q&A ANALYSIS:
 ${roundData.answers.map((item, index) => `
-Question ${index + 1}: ${item.question}
-Answer: ${item.answer}
-Time Spent: ${item.timeSpent || 'Not recorded'}
-`).join('\n')}
+QUESTION ${index + 1}: ${item.question}
+CANDIDATE'S ANSWER: ${item.answer}
+TIME SPENT: ${item.timeSpent || 'Not recorded'}
+---`).join('\n')}
 
 ${performanceAnalysis}
 
-EVALUATION CRITERIA:
-${JSON.stringify(criteria, null, 2)}
-
 INSTRUCTIONS:
-1. Be CRITICAL and HONEST - do not inflate scores
-2. If answers are vague, incomplete, or show lack of knowledge, score LOW
-3. "No idea" or similar responses indicate poor performance
-4. Only give high scores for genuinely excellent, detailed, technical answers
-5. Provide SPECIFIC, CONSTRUCTIVE, and OBJECTIVE feedback following these guidelines:
-   - Focus on specific behaviors or responses observed
-   - Provide actionable suggestions for improvement
-   - Base feedback on observable facts, not personal opinions
-   - Evaluate: Communication skills, Problem-solving approach, Relevance of experience, Attitude and enthusiasm
-6. Score from 0-100 (overall score) - be strict with scoring
+Generate feedback in this EXACT format with personal greeting and structured sections:
 
-SCORING GUIDELINES:
-- 0-30: Poor performance, "no idea" responses, major knowledge gaps
-- 31-50: Below average, basic technical terms mentioned but lacks depth
-- 51-70: Average performance, some understanding with examples but missing key elements
-- 71-85: Good performance, solid technical knowledge with specific examples
-- 86-100: Excellent performance, outstanding technical depth and problem-solving
+1. Start with: "Hi ${candidateName.toLowerCase()},"
+2. Add: "Thank you for your time today. Along with technical assessment, here is feedback on your communication and presentation:"
+3. Create 4 sections with specific content:
 
-IMPORTANT: If answers mention technical terms (programming languages, frameworks, databases, etc.) or provide examples, the overall score should be at least 31-50, not 0-30.
+STRENGTHS:
+- Only include strengths if they are genuinely demonstrated
+- List specific strengths with examples from their actual answers
+- Focus on communication, confidence, and technical clarity
+- Use bullet points with "•" format
 
-IMPORTANT: Only provide individual scores for questions that were actually answered by the candidate. Do not create scores for unanswered questions.
+AREAS TO IMPROVE:
+- List specific areas for improvement with actionable advice
+- Focus on communication style, confidence, and technical depth
+- Provide clear, constructive guidance
+- Use bullet points with "•" format
 
-RESPOND WITH VALID JSON ONLY (no markdown, no extra text):
+OVERALL IMPRESSION:
+- Write 2-3 sentences summarizing their overall performance
+- Be encouraging but honest about their potential
+- Focus on their interview presence and communication
+
+AI SOFT SKILLS SCORE:
+- Rate each skill out of 10 based on their actual performance:
+  * Clarity of Communication: X/10
+  * Vocabulary & Grammar: X/10  
+  * Confidence & Body Language: X/10
+  * Listening & Responsiveness: X/10
+
+RESPOND WITH VALID JSON ONLY:
 {
-  "overallScore": 40,
-  "feedback": "The candidate demonstrated basic awareness of technical concepts by mentioning programming languages and frameworks. However, responses lacked specific examples and depth. Communication was unclear at times, and problem-solving approach needs improvement. Focus on providing concrete examples from experience and elaborating on your thought process.",
-  "strengths": ["Only list if there are genuine strengths - be specific and observable"],
-  "areasForImprovement": ["Specific, actionable suggestions - focus on observable behaviors and provide clear guidance"],
-  "recommendation": "Needs significant improvement" or "Proceed to next round" or "Strong candidate",
-  "individualScores": [40, 45]
+  "overallScore": 75,
+  "feedback": "Hi ${candidateName.toLowerCase()},\\n\\nThank you for your time today. Along with technical assessment, here is feedback on your communication and presentation:\\n\\n**Strengths:**\\n• [Only include if genuinely demonstrated - specific strength with example]\\n\\n**Areas to Improve:**\\n• [Specific improvement area with actionable advice]\\n• [Another improvement area with guidance]\\n• [Third improvement area with suggestions]\\n\\n**Overall Impression:**\\n[2-3 sentences summarizing performance and potential]\\n\\n**AI Soft Skills Score:**\\n• Clarity of Communication: X/10\\n• Vocabulary & Grammar: X/10\\n• Confidence & Body Language: X/10\\n• Listening & Responsiveness: X/10",
+  "strengths": ["Specific strength 1", "Specific strength 2", "Specific strength 3"],
+  "areasForImprovement": ["Improvement area 1", "Improvement area 2", "Improvement area 3"],
+  "recommendation": "Proceed to next round" or "Needs significant improvement" or "Strong candidate",
+  "individualScores": [75, 80, 70, 85, 65],
+  "softSkillsScores": {
+    "clarity": 8,
+    "vocabulary": 7,
+    "confidence": 8,
+    "listening": 9
+  }
 }`;
 
     console.log('🚀 [EVALUATE ROUND] Sending request to AI...');
@@ -1951,7 +3291,7 @@ RESPOND WITH VALID JSON ONLY (no markdown, no extra text):
       status: error.response?.status
     });
     
-    return createFallbackRoundEvaluation(round, candidateAnswers);
+    return createEnhancedFallbackEvaluation(round, candidateAnswers);
   }
 }
 
@@ -2062,6 +3402,258 @@ function createFallbackRoundEvaluation(round, candidateAnswers) {
     areasForImprovement: improvements.length > 0 ? improvements : ["Consider providing more detailed responses"],
     recommendation: overallScore >= 70 ? "Proceed to next round" : "Needs improvement",
     individualScores: individualScores
+  };
+}
+
+// Enhanced fallback evaluation function with better AI-like feedback
+function createEnhancedFallbackEvaluation(round, candidateAnswers) {
+  console.log('🤖 [ENHANCED FALLBACK] Creating AI-enhanced fallback evaluation');
+  
+  // Calculate comprehensive metrics
+  const totalAnswers = candidateAnswers.length;
+  const totalQuestions = round.questions.length;
+  const completionRate = (totalAnswers / totalQuestions) * 100;
+  
+  // Enhanced analysis of answer quality
+  const avgAnswerLength = candidateAnswers.reduce((sum, answer) => 
+    sum + (answer.answer ? answer.answer.length : 0), 0) / totalAnswers;
+  
+  // Technical knowledge indicators
+  const technicalKeywords = [
+    'javascript', 'python', 'java', 'react', 'node', 'database', 'api', 'function',
+    'algorithm', 'framework', 'library', 'html', 'css', 'sql', 'git', 'docker',
+    'kubernetes', 'aws', 'azure', 'microservices', 'rest', 'graphql', 'mongodb',
+    'mysql', 'postgresql', 'redis', 'elasticsearch', 'jenkins', 'ci/cd', 'testing',
+    'unit test', 'integration test', 'agile', 'scrum', 'devops', 'security'
+  ];
+  
+  const hasTechnicalTerms = candidateAnswers.some(answer => 
+    answer.answer && technicalKeywords.some(keyword => 
+      answer.answer.toLowerCase().includes(keyword)
+    )
+  );
+  
+  // Experience and examples indicators
+  const experienceKeywords = [
+    'example', 'project', 'experience', 'worked', 'built', 'developed', 'created',
+    'implemented', 'designed', 'architected', 'managed', 'led', 'collaborated',
+    'team', 'client', 'user', 'requirement', 'challenge', 'solution', 'result'
+  ];
+  
+  const hasExamples = candidateAnswers.some(answer => 
+    answer.answer && experienceKeywords.some(keyword => 
+      answer.answer.toLowerCase().includes(keyword)
+    )
+  );
+  
+  // Problem-solving indicators
+  const problemSolvingKeywords = [
+    'approach', 'method', 'strategy', 'process', 'step', 'analyze', 'debug',
+    'troubleshoot', 'optimize', 'improve', 'refactor', 'design pattern', 'best practice'
+  ];
+  
+  const hasProblemSolving = candidateAnswers.some(answer => 
+    answer.answer && problemSolvingKeywords.some(keyword => 
+      answer.answer.toLowerCase().includes(keyword)
+    )
+  );
+  
+  // Negative indicators
+  const negativeKeywords = [
+    'no idea', 'not sure', 'don\'t know', 'unclear', 'confused', 'forgot',
+    'not familiar', 'never used', 'can\'t remember'
+  ];
+  
+  const hasNegativeResponses = candidateAnswers.some(answer => 
+    answer.answer && negativeKeywords.some(keyword => 
+      answer.answer.toLowerCase().includes(keyword)
+    )
+  );
+  
+  // Calculate comprehensive score
+  let overallScore = 30; // Start with base score
+  const strengths = [];
+  const improvements = [];
+  
+  // Technical knowledge scoring
+  if (hasTechnicalTerms) {
+    overallScore += 25;
+    strengths.push("Demonstrated technical knowledge and familiarity with relevant technologies");
+  } else {
+    improvements.push("Include specific technical terms, frameworks, and tools relevant to the role");
+  }
+  
+  // Experience and examples scoring
+  if (hasExamples) {
+    overallScore += 20;
+    strengths.push("Shared practical experience and real-world examples");
+  } else {
+    improvements.push("Provide concrete examples from your projects and work experience");
+  }
+  
+  // Problem-solving approach scoring
+  if (hasProblemSolving) {
+    overallScore += 15;
+    strengths.push("Showed structured approach to problem-solving");
+  } else {
+    improvements.push("Explain your problem-solving methodology and thought process");
+  }
+  
+  // Response quality scoring
+  if (avgAnswerLength > 150) {
+    overallScore += 10;
+    strengths.push("Provided detailed and comprehensive responses");
+  } else if (avgAnswerLength < 50) {
+    overallScore -= 10;
+    improvements.push("Provide more detailed explanations and expand on your answers");
+  }
+  
+  // Completion rate scoring
+  if (completionRate >= 100) {
+    overallScore += 10;
+    strengths.push("Completed all questions in the round");
+  } else if (completionRate >= 80) {
+    overallScore += 5;
+    strengths.push("Completed most questions in the round");
+  } else {
+    improvements.push("Aim to answer all questions to demonstrate full engagement");
+  }
+  
+  // Negative response penalties
+  if (hasNegativeResponses) {
+    overallScore -= 20;
+    improvements.push("Avoid responses indicating uncertainty - show confidence in your knowledge");
+  }
+  
+  // Ensure score is within bounds
+  overallScore = Math.max(0, Math.min(100, Math.round(overallScore)));
+  
+  // Generate personalized feedback in the new format
+  const candidateName = candidateAnswers[0]?.candidateName || "Candidate";
+  
+  let feedback = `Hi ${candidateName.toLowerCase()},\n\n`;
+  feedback += `Thank you for your time today. Along with technical assessment, here is feedback on your communication and presentation:\n\n`;
+  
+  // Calculate soft skills scores based on performance
+  const clarityScore = Math.min(10, Math.max(1, Math.round((overallScore / 100) * 10)));
+  const vocabularyScore = hasTechnicalTerms ? Math.min(10, clarityScore + 1) : Math.max(1, clarityScore - 2);
+  const confidenceScore = hasNegativeResponses ? Math.max(1, clarityScore - 2) : Math.min(10, clarityScore + 1);
+  const listeningScore = completionRate >= 100 ? Math.min(10, clarityScore + 2) : Math.max(1, clarityScore - 1);
+  
+  // Strengths section - only show if there are actual strengths
+  const strengthsList = [];
+  if (hasTechnicalTerms) {
+    strengthsList.push("You demonstrated technical knowledge by mentioning relevant technologies and frameworks in your responses.");
+  }
+  if (hasExamples) {
+    strengthsList.push("You provided concrete examples from your experience, showing practical application of your skills.");
+  }
+  if (hasProblemSolving) {
+    strengthsList.push("You showed a structured approach to problem-solving with clear methodology.");
+  }
+  if (avgAnswerLength > 100) {
+    strengthsList.push("You provided detailed and comprehensive responses that demonstrated thorough thinking.");
+  }
+  if (completionRate >= 100) {
+    strengthsList.push("You completed all questions in the round, showing full engagement.");
+  }
+  
+  if (strengthsList.length > 0) {
+    feedback += `**Strengths:**\n`;
+    strengthsList.forEach(strength => {
+      feedback += `• ${strength}\n`;
+    });
+  }
+  
+  // Areas to Improve section
+  const improvementsList = [];
+  if (!hasTechnicalTerms) {
+    improvementsList.push("Include more specific technical terms, frameworks, and tools relevant to the role in your responses.");
+  }
+  if (!hasExamples) {
+    improvementsList.push("Provide concrete examples from your projects and work experience to demonstrate practical skills.");
+  }
+  if (!hasProblemSolving) {
+    improvementsList.push("Explain your problem-solving methodology and thought process more clearly.");
+  }
+  if (avgAnswerLength < 50) {
+    improvementsList.push("Provide more detailed explanations and expand on your answers with specific details.");
+  }
+  if (hasNegativeResponses) {
+    improvementsList.push("Avoid responses indicating uncertainty - show confidence in your knowledge and experience.");
+  }
+  if (completionRate < 100) {
+    improvementsList.push("Aim to answer all questions to demonstrate full engagement and commitment.");
+  }
+  
+  if (improvementsList.length > 0) {
+    feedback += `\n**Areas to Improve:**\n`;
+    improvementsList.forEach(improvement => {
+      feedback += `• ${improvement}\n`;
+    });
+  }
+  
+  // Overall Impression section
+  feedback += `\n**Overall Impression:**\n`;
+  if (overallScore >= 80) {
+    feedback += `You came across as confident, technically knowledgeable, and a strong communicator. Your responses demonstrated solid understanding and practical experience. With continued practice, you'll excel in technical interviews.\n`;
+  } else if (overallScore >= 60) {
+    feedback += `You showed good potential with some strong technical knowledge and communication skills. With refinement in providing more detailed examples and clearer explanations, your interview performance will be even stronger.\n`;
+  } else if (overallScore >= 40) {
+    feedback += `You demonstrated basic technical awareness but need to work on providing more detailed responses and concrete examples. Focus on building confidence and articulating your experience more clearly.\n`;
+  } else {
+    feedback += `You participated in the interview but need significant improvement in technical knowledge and communication. Consider preparing more thoroughly and practicing articulating your skills and experience.\n`;
+  }
+  
+  // AI Soft Skills Score section
+  feedback += `\n**AI Soft Skills Score:**\n`;
+  feedback += `• Clarity of Communication: ${clarityScore}/10\n`;
+  feedback += `• Vocabulary & Grammar: ${vocabularyScore}/10\n`;
+  feedback += `• Confidence & Body Language: ${confidenceScore}/10\n`;
+  feedback += `• Listening & Responsiveness: ${listeningScore}/10`;
+  
+  // Individual question scores
+  const uniqueQuestionIds = [...new Set(candidateAnswers.map(answer => answer.questionId))];
+  const individualScores = uniqueQuestionIds.map(questionId => {
+    const questionAnswers = candidateAnswers.filter(answer => answer.questionId === questionId);
+    const latestAnswer = questionAnswers[questionAnswers.length - 1];
+    
+    // Calculate individual score based on answer quality
+    let questionScore = overallScore;
+    if (latestAnswer?.answer) {
+      const answerLength = latestAnswer.answer.length;
+      const hasTech = technicalKeywords.some(keyword => 
+        latestAnswer.answer.toLowerCase().includes(keyword)
+      );
+      const hasExp = experienceKeywords.some(keyword => 
+        latestAnswer.answer.toLowerCase().includes(keyword)
+      );
+      
+      if (hasTech && hasExp && answerLength > 100) {
+        questionScore = Math.min(100, overallScore + 15);
+      } else if (hasTech || hasExp) {
+        questionScore = Math.min(100, overallScore + 5);
+      } else if (answerLength < 30) {
+        questionScore = Math.max(0, overallScore - 15);
+      }
+    }
+    
+    return Math.round(questionScore);
+  });
+
+  return {
+    overallScore: overallScore,
+    feedback: feedback,
+    strengths: strengths.length > 0 ? strengths : ["Participated in the interview round"],
+    areasForImprovement: improvements.length > 0 ? improvements : ["Provide more detailed and specific responses"],
+    recommendation: overallScore >= 70 ? "Proceed to next round" : overallScore >= 50 ? "Needs improvement" : "Needs significant improvement",
+    individualScores: individualScores,
+    softSkillsScores: {
+      clarity: clarityScore,
+      vocabulary: vocabularyScore,
+      confidence: confidenceScore,
+      listening: listeningScore
+    }
   };
 }
 
