@@ -1,22 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
-import { motion, useAnimation, useInView } from 'framer-motion';
-import { ArrowRight, Play, Users, Building2, TrendingUp, Sparkles, Zap, Target, Brain, Rocket, Star } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { ArrowRight, Play, Users, Building2, TrendingUp, Sparkles, Zap, Target, Brain, Rocket, Cpu, Network } from 'lucide-react';
 
 const Hero = () => {
   const { isDarkMode } = useTheme();
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-  const controls = useAnimation();
   
-  useEffect(() => {
-    const handleMouseMove = (e) => {
-      setMousePosition({ x: e.clientX, y: e.clientY });
-    };
-    
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, []);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -42,16 +32,6 @@ const Hero = () => {
     }
   };
 
-  const floatingVariants = {
-    float: {
-      y: [-20, 20, -20],
-      transition: {
-        duration: 6,
-        repeat: Infinity,
-        ease: "easeInOut"
-      }
-    }
-  };
   
   return (
     <section className={`relative pt-16 min-h-screen flex items-center overflow-hidden ${
@@ -461,312 +441,262 @@ const Hero = () => {
               </div>
             </motion.div>
 
+            {/* 3D AI Brain Visualization Card */}
             <motion.div
-              className={`relative rounded-3xl shadow-2xl p-8 space-y-6 backdrop-blur-xl border ${
+              className={`relative rounded-3xl shadow-2xl p-8 backdrop-blur-xl border ${
                 isDarkMode 
-                  ? 'bg-gray-800/80 border-gray-700/50' 
-                  : 'bg-white/80 border-gray-200/50'
+                  ? 'bg-gradient-to-br from-gray-800/90 to-gray-900/90 border-gray-700/50' 
+                  : 'bg-gradient-to-br from-white/90 to-gray-50/90 border-gray-200/50'
               }`}
               whileHover={{ scale: 1.02, y: -5 }}
               transition={{ duration: 0.3 }}
             >
-              {/* Animated Header */}
-              <motion.div 
-                className="flex items-center justify-between"
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 2.7, duration: 0.6 }}
-              >
-                <div className="flex items-center space-x-3">
+              {/* Animated Background */}
+              <div className="absolute inset-0 overflow-hidden rounded-3xl">
+                {/* Floating Neural Network */}
+                {[...Array(30)].map((_, i) => (
                   <motion.div
-                    animate={{ rotate: [0, 360] }}
-                    transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
-                    className={`p-2 rounded-lg ${
-                      isDarkMode ? 'bg-blue-500/20' : 'bg-blue-100'
-                    }`}
-                  >
-                    <Zap className={`w-5 h-5 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} />
-                  </motion.div>
-                  <h3 className={`text-xl font-bold ${
-                  isDarkMode ? 'text-white' : 'text-gray-900'
-                  }`}>AI Interview Dashboard</h3>
-                </div>
-                <div className="flex space-x-2">
-                  <motion.div 
-                    className="w-3 h-3 bg-red-400 rounded-full"
-                    animate={{ scale: [1, 1.2, 1] }}
-                    transition={{ duration: 2, repeat: Infinity }}
-                  ></motion.div>
-                  <motion.div 
-                    className="w-3 h-3 bg-yellow-400 rounded-full"
-                    animate={{ scale: [1, 1.2, 1] }}
-                    transition={{ duration: 2, repeat: Infinity, delay: 0.5 }}
-                  ></motion.div>
-                  <motion.div 
-                    className="w-3 h-3 bg-green-400 rounded-full"
-                    animate={{ scale: [1, 1.2, 1] }}
-                    transition={{ duration: 2, repeat: Infinity, delay: 1 }}
-                  ></motion.div>
-                </div>
-              </motion.div>
-
-              {/* Animated Interview Cards */}
-              <div className="space-y-4">
-                {[
-                  {
-                    name: "John Smith",
-                    role: "Software Engineer",
-                    match: "85%",
-                    status: "Completed",
-                    color: "blue",
-                    delay: 0
-                  },
-                  {
-                    name: "Sarah Johnson", 
-                    role: "Product Manager",
-                    match: "92%",
-                    status: "In Progress",
-                    color: "emerald",
-                    delay: 0.2
-                  },
-                  {
-                    name: "Mike Chen",
-                    role: "Data Scientist", 
-                    match: "78%",
-                    status: "Scheduled",
-                    color: "orange",
-                    delay: 0.4
-                  }
-                ].map((candidate, index) => (
-                  <motion.div
-                    key={candidate.name}
-                    className={`group relative overflow-hidden rounded-xl p-5 border-l-4 ${
-                      candidate.color === 'blue' ? 'bg-blue-50/80 border-blue-500' :
-                      candidate.color === 'emerald' ? 'bg-emerald-50/80 border-emerald-500' :
-                      'bg-orange-50/80 border-orange-500'
-                    } ${isDarkMode ? 'bg-gray-700/50' : ''} backdrop-blur-sm hover:backdrop-blur-md transition-all duration-300`}
-                    initial={{ opacity: 0, x: 50 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 2.9 + candidate.delay, duration: 0.6 }}
-                    whileHover={{ scale: 1.02, y: -2 }}
-                  >
-                    {/* Animated background gradient */}
-                    <div className={`absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-300 bg-gradient-to-r ${
-                      candidate.color === 'blue' ? 'from-blue-500 to-cyan-500' :
-                      candidate.color === 'emerald' ? 'from-emerald-500 to-teal-500' :
-                      'from-orange-500 to-red-500'
-                    }`}></div>
-
-                    <div className="relative flex items-center justify-between">
-                      <div className="flex items-center space-x-4">
-                        {/* Animated Avatar */}
-                        <motion.div
-                          className={`w-12 h-12 rounded-full bg-gradient-to-r ${
-                            candidate.color === 'blue' ? 'from-blue-500 to-cyan-500' :
-                            candidate.color === 'emerald' ? 'from-emerald-500 to-teal-500' :
-                            'from-orange-500 to-red-500'
-                          } flex items-center justify-center text-white font-bold text-lg`}
-                          whileHover={{ scale: 1.1, rotate: 360 }}
-                          transition={{ duration: 0.5 }}
-                        >
-                          {candidate.name.split(' ').map(n => n[0]).join('')}
-                        </motion.div>
-
-                    <div>
-                          <h4 className={`font-bold text-lg ${
-                        isDarkMode ? 'text-white' : 'text-gray-900'
-                          }`}>{candidate.name}</h4>
-                          <p className={`text-sm ${
-                        isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                          }`}>{candidate.role}</p>
-                  </div>
-                </div>
-
-                    <div className="text-right">
-                        <motion.div
-                          className={`text-2xl font-bold ${
-                            candidate.color === 'blue' ? 'text-blue-600' :
-                            candidate.color === 'emerald' ? 'text-emerald-600' :
-                            'text-orange-600'
-                          }`}
-                          initial={{ scale: 0 }}
-                          animate={{ scale: 1 }}
-                          transition={{ 
-                            delay: 3.1 + candidate.delay, 
-                            type: "spring", 
-                            stiffness: 200 
-                          }}
-                        >
-                          {candidate.match}
-                        </motion.div>
-                        <div className={`text-xs font-medium ${
-                        isDarkMode ? 'text-gray-400' : 'text-gray-500'
-                        }`}>{candidate.status}</div>
-                </div>
-                    </div>
-
-                    {/* Progress bar */}
-                    <motion.div
-                      className={`mt-3 h-2 rounded-full ${
-                        isDarkMode ? 'bg-gray-600' : 'bg-gray-200'
-                      } overflow-hidden`}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: 3.3 + candidate.delay }}
-                    >
-                      <motion.div
-                        className={`h-full rounded-full bg-gradient-to-r ${
-                          candidate.color === 'blue' ? 'from-blue-500 to-cyan-500' :
-                          candidate.color === 'emerald' ? 'from-emerald-500 to-teal-500' :
-                          'from-orange-500 to-red-500'
-                        }`}
-                        initial={{ width: 0 }}
-                        animate={{ width: candidate.match }}
-                        transition={{ 
-                          delay: 3.5 + candidate.delay, 
-                          duration: 1.5, 
-                          ease: "easeOut" 
-                        }}
-                      />
-                    </motion.div>
-
-                    {/* Floating particles on hover */}
-                    <div className="absolute inset-0 overflow-hidden rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                      {[...Array(3)].map((_, i) => (
-                        <motion.div
-                          key={i}
-                          className={`absolute w-1 h-1 rounded-full bg-gradient-to-r ${
-                            candidate.color === 'blue' ? 'from-blue-500 to-cyan-500' :
-                            candidate.color === 'emerald' ? 'from-emerald-500 to-teal-500' :
-                            'from-orange-500 to-red-500'
-                          }`}
-                          style={{
-                            left: `${20 + i * 30}%`,
-                            top: `${30 + i * 20}%`,
-                          }}
-                          animate={{
-                            y: [0, -30, 0],
-                            opacity: [0, 1, 0],
-                            scale: [0, 1, 0],
-                          }}
-                          transition={{
-                            duration: 2,
-                            repeat: Infinity,
-                            delay: i * 0.3,
-                          }}
-                        />
-                      ))}
-                    </div>
-                  </motion.div>
+                    key={`neural-${i}`}
+                    className={`absolute w-1 h-1 ${
+                      ['bg-blue-400', 'bg-green-400', 'bg-orange-400', 'bg-purple-400', 'bg-pink-400'][i % 5]
+                    } rounded-full opacity-60`}
+                    style={{
+                      left: `${Math.random() * 100}%`,
+                      top: `${Math.random() * 100}%`,
+                    }}
+                    animate={{
+                      y: [0, -30, 0],
+                      opacity: [0.3, 1, 0.3],
+                      scale: [0.5, 1, 0.5],
+                    }}
+                    transition={{
+                      duration: 3 + Math.random() * 2,
+                      repeat: Infinity,
+                      delay: Math.random() * 2,
+                      ease: "easeInOut"
+                    }}
+                  />
                 ))}
+
+                {/* Gradient Waves */}
+                <motion.div
+                  className={`absolute inset-0 ${
+                    isDarkMode
+                      ? 'bg-gradient-to-r from-blue-900/10 via-transparent to-purple-900/10'
+                      : 'bg-gradient-to-r from-blue-100/30 via-transparent to-purple-100/30'
+                  }`}
+                  animate={{
+                    backgroundPosition: ['0% 50%', '100% 50%', '0% 50%']
+                  }}
+                  transition={{
+                    duration: 8,
+                    repeat: Infinity,
+                    ease: "easeInOut"
+                  }}
+                />
               </div>
 
-              {/* Animated AI Analysis */}
+              {/* Header */}
+              <div className="relative z-10 text-center mb-8">
+                <motion.div
+                  className="flex items-center justify-center space-x-3 mb-4"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 2.7, duration: 0.6 }}
+                >
+                  <motion.div
+                    className={`p-3 rounded-2xl bg-gradient-to-r from-blue-500 to-purple-600`}
+                    animate={{ 
+                      scale: [1, 1.1, 1],
+                      boxShadow: [
+                        "0 0 20px rgba(59, 130, 246, 0.3)",
+                        "0 0 40px rgba(147, 51, 234, 0.5)",
+                        "0 0 20px rgba(59, 130, 246, 0.3)"
+                      ]
+                    }}
+                    transition={{ duration: 3, repeat: Infinity }}
+                  >
+                    <Brain className="w-8 h-8 text-white" />
+                  </motion.div>
+                  <div>
+                    <h3 className={`text-2xl font-bold ${
+                      isDarkMode ? 'text-white' : 'text-gray-900'
+                    }`}>
+                      AI Hiring Intelligence
+                    </h3>
+                    <p className={`text-sm ${
+                      isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                    }`}>
+                      Smart candidate assessment system
+                    </p>
+                  </div>
+                </motion.div>
+              </div>
+
+              {/* 3D Brain Visualization */}
+              <div className="relative flex items-center justify-center mb-8">
+                <motion.div
+                  className={`relative w-64 h-64 rounded-full flex items-center justify-center shadow-2xl ${
+                    isDarkMode ? 'bg-gray-800/70 border border-gray-700/50' : 'bg-white/70 border border-gray-200/50'
+                  } backdrop-blur-xl`}
+                  whileHover={{ scale: 1.02 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  {/* Outer Rings */}
+                  <motion.div
+                    className={`absolute w-full h-full rounded-full border-2 ${isDarkMode ? 'border-blue-500/30' : 'border-blue-300/30'}`}
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                  />
+                  <motion.div
+                    className={`absolute w-[80%] h-[80%] rounded-full border-2 ${isDarkMode ? 'border-purple-500/30' : 'border-purple-300/30'}`}
+                    animate={{ rotate: -360 }}
+                    transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
+                  />
+                  <motion.div
+                    className={`absolute w-[60%] h-[60%] rounded-full border-2 ${isDarkMode ? 'border-emerald-500/30' : 'border-emerald-300/30'}`}
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
+                  />
+
+                  {/* Central Brain */}
+                  <motion.div
+                    className={`relative w-32 h-32 rounded-full flex items-center justify-center bg-gradient-to-br from-blue-600 to-purple-600 shadow-xl`}
+                    animate={{
+                      scale: [1, 1.05, 1],
+                      boxShadow: [
+                        `0 0 20px rgba(59, 130, 246, 0.5)`,
+                        `0 0 40px rgba(168, 85, 247, 0.7)`,
+                        `0 0 20px rgba(59, 130, 246, 0.5)`
+                      ]
+                    }}
+                    transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                  >
+                    <Brain className="w-16 h-16 text-white" strokeWidth={1.5} />
+                    {/* Pulsing glow */}
+                    <motion.div
+                      className="absolute inset-0 rounded-full bg-white opacity-0"
+                      animate={{ opacity: [0, 0.3, 0] }}
+                      transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                    />
+                  </motion.div>
+
+                  {/* Neural Network Particles */}
+                  {[...Array(20)].map((_, i) => (
+                    <motion.div
+                      key={`ai-particle-${i}`}
+                      className={`absolute w-2 h-2 rounded-full ${
+                        ['bg-blue-400', 'bg-purple-400', 'bg-emerald-400'][i % 3]
+                      } opacity-70`}
+                      style={{
+                        left: `${50 + Math.cos(i * 18) * 40}%`,
+                        top: `${50 + Math.sin(i * 18) * 40}%`,
+                      }}
+                      animate={{
+                        x: [0, Math.random() * 20 - 10, 0],
+                        y: [0, Math.random() * 20 - 10, 0],
+                        opacity: [0.5, 1, 0.5],
+                        scale: [0.8, 1.2, 0.8],
+                      }}
+                      transition={{
+                        duration: 3 + Math.random() * 2,
+                        repeat: Infinity,
+                        ease: "easeInOut",
+                        delay: Math.random() * 2
+                      }}
+                    />
+                  ))}
+                </motion.div>
+              </div>
+
+              {/* AI Processing Indicators */}
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                {[
+                  { label: "Processing", value: "247", icon: Cpu, color: "from-blue-500 to-cyan-500" },
+                  { label: "Neural Nodes", value: "1.2K", icon: Network, color: "from-purple-500 to-pink-500" },
+                  { label: "Accuracy", value: "98.7%", icon: Target, color: "from-emerald-500 to-teal-500" },
+                  { label: "Speed", value: "0.3ms", icon: Zap, color: "from-orange-500 to-red-500" }
+                ].map((indicator, i) => {
+                  const Icon = indicator.icon;
+                  return (
+                    <motion.div
+                      key={i}
+                      className={`p-4 rounded-xl shadow-lg flex items-center space-x-3 ${
+                        isDarkMode ? 'bg-gray-700/80' : 'bg-white/80'
+                      } backdrop-blur-md border ${isDarkMode ? 'border-gray-600/50' : 'border-gray-200/50'}`}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 3.0 + i * 0.2, duration: 0.6 }}
+                      whileHover={{ scale: 1.05, y: -5 }}
+                    >
+                      <motion.div
+                        className={`w-10 h-10 rounded-xl bg-gradient-to-r ${indicator.color} flex items-center justify-center`}
+                        whileHover={{ rotate: 360, scale: 1.1 }}
+                        transition={{ duration: 0.6 }}
+                      >
+                        <Icon className="w-5 h-5 text-white" />
+                      </motion.div>
+                      <div>
+                        <div className={`text-lg font-bold bg-gradient-to-r ${indicator.color} bg-clip-text text-transparent`}>
+                          {indicator.value}
+                        </div>
+                        <div className={`text-xs font-medium ${
+                          isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                        }`}>
+                          {indicator.label}
+                        </div>
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </div>
+
+              {/* Live Status */}
               <motion.div 
-                className={`relative overflow-hidden rounded-2xl p-6 backdrop-blur-sm border ${
+                className={`flex items-center justify-center space-x-3 p-4 rounded-2xl backdrop-blur-sm border ${
                   isDarkMode 
                     ? 'bg-gradient-to-r from-gray-700/50 to-gray-600/50 border-gray-600/30' 
                     : 'bg-gradient-to-r from-gray-50/80 to-gray-100/80 border-gray-200/50'
                 }`}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
                 transition={{ delay: 3.8, duration: 0.6 }}
-                whileHover={{ scale: 1.02 }}
               >
-                {/* Animated background */}
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-cyan-500/5 opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
-                
-                <div className="relative flex items-center space-x-3 mb-3">
-                  <motion.div
-                    className="flex items-center space-x-2"
-                    animate={{ scale: [1, 1.1, 1] }}
-                    transition={{ duration: 2, repeat: Infinity }}
-                  >
-                    <motion.div 
-                      className="w-3 h-3 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full"
-                      animate={{ 
-                        scale: [1, 1.5, 1],
-                        opacity: [1, 0.5, 1]
-                      }}
-                      transition={{ duration: 1.5, repeat: Infinity }}
-                    ></motion.div>
-                    <motion.div 
-                      className="w-2 h-2 bg-gradient-to-r from-cyan-500 to-emerald-500 rounded-full"
-                      animate={{ 
-                        scale: [1, 1.3, 1],
-                        opacity: [0.7, 1, 0.7]
-                      }}
-                      transition={{ duration: 1.5, repeat: Infinity, delay: 0.5 }}
-                    ></motion.div>
-                    <motion.div 
-                      className="w-1 h-1 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full"
-                      animate={{ 
-                        scale: [1, 1.2, 1],
-                        opacity: [0.5, 1, 0.5]
-                      }}
-                      transition={{ duration: 1.5, repeat: Infinity, delay: 1 }}
-                    ></motion.div>
-                  </motion.div>
-                  
-                  <motion.span 
-                    className={`text-sm font-bold ${
-                      isDarkMode ? 'text-gray-200' : 'text-gray-800'
-                    }`}
-                    animate={{ opacity: [1, 0.7, 1] }}
-                    transition={{ duration: 2, repeat: Infinity }}
-                  >
-                    AI Analysis in Progress
-                  </motion.span>
-                </div>
-                
-                <motion.p 
-                  className={`text-sm leading-relaxed ${
-                    isDarkMode ? 'text-gray-300' : 'text-gray-600'
-                  }`}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 4.0, duration: 0.8 }}
+                <motion.div
+                  className="flex items-center space-x-2"
+                  animate={{ scale: [1, 1.1, 1] }}
+                  transition={{ duration: 2, repeat: Infinity }}
                 >
-                  <motion.span
-                    animate={{ opacity: [1, 0.5, 1] }}
+                  <motion.div 
+                    className="w-2 h-2 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full"
+                    animate={{ 
+                      scale: [1, 1.5, 1],
+                      opacity: [1, 0.5, 1]
+                    }}
                     transition={{ duration: 1.5, repeat: Infinity }}
-                  >
-                  Analyzing candidate responses for technical skills, cultural fit, and communication abilities...
-                  </motion.span>
-                </motion.p>
-
-                {/* Progress indicators */}
-                <div className="flex space-x-1 mt-3">
-                  {[...Array(5)].map((_, i) => (
-                    <motion.div
-                      key={i}
-                      className={`h-1 rounded-full ${
-                        isDarkMode ? 'bg-gray-600' : 'bg-gray-300'
-                      }`}
-                      style={{ width: `${20 + i * 10}%` }}
-                      initial={{ scaleX: 0 }}
-                      animate={{ scaleX: 1 }}
-                      transition={{ 
-                        delay: 4.2 + i * 0.1, 
-                        duration: 0.5,
-                        ease: "easeOut"
-                      }}
-                    >
-                      <motion.div
-                        className="h-full rounded-full bg-gradient-to-r from-blue-500 to-cyan-500"
-                        animate={{ 
-                          opacity: [0.3, 1, 0.3],
-                          scaleX: [0.8, 1, 0.8]
-                        }}
-                        transition={{ 
-                          duration: 2,
-                          repeat: Infinity,
-                          delay: i * 0.2
-                        }}
-                      />
-                    </motion.div>
-                  ))}
-            </div>
+                  />
+                  <motion.div 
+                    className="w-2 h-2 bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-full"
+                    animate={{ 
+                      scale: [1, 1.3, 1],
+                      opacity: [0.7, 1, 0.7]
+                    }}
+                    transition={{ duration: 1.5, repeat: Infinity, delay: 0.5 }}
+                  />
+                  <motion.div 
+                    className="w-2 h-2 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full"
+                    animate={{ 
+                      scale: [1, 1.2, 1],
+                      opacity: [0.5, 1, 0.5]
+                    }}
+                    transition={{ duration: 1.5, repeat: Infinity, delay: 1 }}
+                  />
+                </motion.div>
+                <span className={`text-sm font-medium ${
+                  isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                }`}>
+                  AI Neural Network Active
+                </span>
               </motion.div>
             </motion.div>
           </motion.div>
