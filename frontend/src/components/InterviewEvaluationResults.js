@@ -62,12 +62,78 @@ const InterviewEvaluationResults = ({ evaluation, candidateInfo, interviewData }
   };
 
   const scoreCategories = [
-    { key: 'technical', label: 'Technical Skills', icon: Brain, description: 'Technical knowledge and expertise' },
-    { key: 'communication', label: 'Communication', icon: MessageSquare, description: 'Clarity and articulation' },
-    { key: 'problemSolving', label: 'Problem Solving', icon: Target, description: 'Analytical and creative thinking' },
-    { key: 'engagement', label: 'Engagement', icon: TrendingUp, description: 'Motivation and enthusiasm' },
-    { key: 'culturalFit', label: 'Cultural Fit', icon: Users, description: 'Team compatibility' },
-    { key: 'responseQuality', label: 'Response Quality', icon: Star, description: 'Answer completeness and relevance' }
+    { 
+      key: 'technical', 
+      label: 'Technical Skills', 
+      icon: Brain, 
+      description: 'Technical knowledge and expertise',
+      subcategories: [
+        { key: 'knowledge', label: 'Knowledge Depth', weight: 0.4 },
+        { key: 'application', label: 'Practical Application', weight: 0.3 },
+        { key: 'problemSolving', label: 'Technical Problem Solving', weight: 0.2 },
+        { key: 'innovation', label: 'Innovation & Creativity', weight: 0.1 }
+      ]
+    },
+    { 
+      key: 'communication', 
+      label: 'Communication', 
+      icon: MessageSquare, 
+      description: 'Clarity and articulation',
+      subcategories: [
+        { key: 'clarity', label: 'Clarity of Expression', weight: 0.4 },
+        { key: 'structure', label: 'Thought Organization', weight: 0.3 },
+        { key: 'listening', label: 'Active Listening', weight: 0.2 },
+        { key: 'adaptability', label: 'Communication Adaptability', weight: 0.1 }
+      ]
+    },
+    { 
+      key: 'problemSolving', 
+      label: 'Problem Solving', 
+      icon: Target, 
+      description: 'Analytical and creative thinking',
+      subcategories: [
+        { key: 'approach', label: 'Systematic Approach', weight: 0.3 },
+        { key: 'creativity', label: 'Creative Thinking', weight: 0.25 },
+        { key: 'analysis', label: 'Analytical Depth', weight: 0.25 },
+        { key: 'implementation', label: 'Implementation Skills', weight: 0.2 }
+      ]
+    },
+    { 
+      key: 'engagement', 
+      label: 'Engagement', 
+      icon: TrendingUp, 
+      description: 'Motivation and enthusiasm',
+      subcategories: [
+        { key: 'enthusiasm', label: 'Passion & Motivation', weight: 0.4 },
+        { key: 'curiosity', label: 'Intellectual Curiosity', weight: 0.3 },
+        { key: 'participation', label: 'Active Participation', weight: 0.2 },
+        { key: 'energy', label: 'Positive Energy', weight: 0.1 }
+      ]
+    },
+    { 
+      key: 'culturalFit', 
+      label: 'Cultural Fit', 
+      icon: Users, 
+      description: 'Team compatibility',
+      subcategories: [
+        { key: 'values', label: 'Value Alignment', weight: 0.4 },
+        { key: 'teamwork', label: 'Collaborative Mindset', weight: 0.3 },
+        { key: 'adaptability', label: 'Cultural Adaptability', weight: 0.2 },
+        { key: 'leadership', label: 'Leadership Potential', weight: 0.1 }
+      ]
+    },
+    { 
+      key: 'responseQuality', 
+      label: 'Response Quality', 
+      icon: Star, 
+      description: 'Answer completeness and relevance',
+      subcategories: [
+        { key: 'completeness', label: 'Answer Completeness', weight: 0.4 },
+        { key: 'relevance', label: 'Relevance to Question', weight: 0.3 },
+        { key: 'depth', label: 'Depth of Insight', weight: 0.2 },
+        { key: 'examples', label: 'Use of Examples', weight: 0.1 }
+      ]
+    }
   ];
 
   return (
@@ -151,6 +217,8 @@ const InterviewEvaluationResults = ({ evaluation, candidateInfo, interviewData }
                 {scoreCategories.map((category) => {
                   const Icon = category.icon;
                   const score = evaluation.scores?.[category.key] || 0;
+                  const subcategoryScores = evaluation.subcategoryScores?.[category.key] || {};
+                  
                   return (
                     <div key={category.key} className="border rounded-lg p-4">
                       <div className="flex items-center justify-between mb-2">
@@ -162,8 +230,10 @@ const InterviewEvaluationResults = ({ evaluation, candidateInfo, interviewData }
                           {score}/10
                         </span>
                       </div>
-                      <p className="text-xs text-gray-500 mb-2">{category.description}</p>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
+                      <p className="text-xs text-gray-500 mb-3">{category.description}</p>
+                      
+                      {/* Main progress bar */}
+                      <div className="w-full bg-gray-200 rounded-full h-2 mb-3">
                         <div 
                           className={`h-2 rounded-full transition-all duration-1000 ${
                             score >= 8 ? 'bg-green-500' : 
@@ -173,9 +243,80 @@ const InterviewEvaluationResults = ({ evaluation, candidateInfo, interviewData }
                           style={{ width: `${(score / 10) * 100}%` }}
                         />
                       </div>
+
+                      {/* Subcategory breakdown */}
+                      <div className="space-y-2">
+                        {category.subcategories.map((subcategory) => {
+                          const subScore = subcategoryScores[subcategory.key] || 0;
+                          return (
+                            <div key={subcategory.key} className="flex items-center justify-between">
+                              <div className="flex items-center space-x-2">
+                                <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+                                <span className="text-xs text-gray-600">{subcategory.label}</span>
+                                <span className="text-xs text-gray-400">({(subcategory.weight * 100).toFixed(0)}%)</span>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <div className="w-16 bg-gray-200 rounded-full h-1">
+                                  <div 
+                                    className={`h-1 rounded-full transition-all duration-1000 ${
+                                      subScore >= 8 ? 'bg-green-500' : 
+                                      subScore >= 6 ? 'bg-yellow-500' : 
+                                      subScore >= 4 ? 'bg-orange-500' : 'bg-red-500'
+                                    }`}
+                                    style={{ width: `${(subScore / 10) * 100}%` }}
+                                  />
+                                </div>
+                                <span className={`text-xs font-medium ${getScoreColor(subScore)}`}>
+                                  {subScore.toFixed(1)}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
                   );
                 })}
+              </div>
+            </div>
+
+            {/* Question-by-Question Analysis */}
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
+                <MessageSquare className="h-5 w-5 mr-2" />
+                Question-by-Question Analysis
+              </h2>
+              <div className="space-y-4">
+                {evaluation.questionAnalysis?.map((question, index) => (
+                  <div key={index} className="border rounded-lg p-4">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-gray-900 mb-2">
+                          Question {index + 1}
+                        </h3>
+                        <p className="text-sm text-gray-600 mb-2">{question.question}</p>
+                        <p className="text-xs text-gray-500 italic">{question.feedback}</p>
+                      </div>
+                    </div>
+                    
+                    {/* Question scores */}
+                    <div className="flex flex-wrap gap-2">
+                      {Object.entries(question.scores || {}).map(([category, score]) => (
+                        <span
+                          key={category}
+                          className={`px-2 py-1 rounded text-xs font-medium ${getScoreColor(score)}`}
+                        >
+                          {category}: {score}/10
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )) || (
+                  <div className="text-center py-8 text-gray-500">
+                    <MessageSquare className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                    <p>No detailed question analysis available</p>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -268,6 +409,58 @@ const InterviewEvaluationResults = ({ evaluation, candidateInfo, interviewData }
                 </div>
               </div>
             )}
+
+            {/* Performance Benchmarks */}
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
+                <BarChart3 className="h-5 w-5 mr-2 text-blue-500" />
+                Performance Benchmarks
+              </h2>
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Industry Average</span>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-20 bg-gray-200 rounded-full h-2">
+                      <div className="bg-blue-500 h-2 rounded-full" style={{ width: '72%' }}></div>
+                    </div>
+                    <span className="font-semibold text-sm">72%</span>
+                  </div>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Company Average</span>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-20 bg-gray-200 rounded-full h-2">
+                      <div className="bg-green-500 h-2 rounded-full" style={{ width: '75%' }}></div>
+                    </div>
+                    <span className="font-semibold text-sm">75%</span>
+                  </div>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Position Target</span>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-20 bg-gray-200 rounded-full h-2">
+                      <div className="bg-purple-500 h-2 rounded-full" style={{ width: '80%' }}></div>
+                    </div>
+                    <span className="font-semibold text-sm">80%</span>
+                  </div>
+                </div>
+                <div className="flex justify-between items-center border-t pt-3">
+                  <span className="text-sm font-medium text-gray-900">Candidate Score</span>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-20 bg-gray-200 rounded-full h-2">
+                      <div 
+                        className={`h-2 rounded-full ${
+                          evaluation.overallScore >= 80 ? 'bg-green-500' : 
+                          evaluation.overallScore >= 70 ? 'bg-yellow-500' : 'bg-red-500'
+                        }`} 
+                        style={{ width: `${evaluation.overallScore}%` }}
+                      ></div>
+                    </div>
+                    <span className="font-bold text-sm">{evaluation.overallScore}%</span>
+                  </div>
+                </div>
+              </div>
+            </div>
 
             {/* Interviewer Notes */}
             {evaluation.interviewerNotes && (

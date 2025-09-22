@@ -30,8 +30,21 @@ router.post('/generate', auth, async (req, res) => {
 
     console.log('✅ [INTERVIEW GENERATE] Validation passed, extracting job details from prompt...');
 
-    // First, extract job details from the prompt
-    const extractionPrompt = `Extract job details from this user prompt and format as JSON:
+    // Check if this is a role-specific prompt (contains structured interview rounds)
+    const isRoleSpecificPrompt = userPrompt.includes('**Introduction & Self Intro**') || 
+                                 userPrompt.includes('**Self Introduction**') ||
+                                 userPrompt.includes('**Coding Round**') ||
+                                 userPrompt.includes('**Sales Pitch/Role-play**');
+
+    let extractionPrompt;
+    
+    if (isRoleSpecificPrompt) {
+      // Use the role-specific prompt directly
+      console.log('🎯 [INTERVIEW GENERATE] Detected role-specific prompt, using directly...');
+      extractionPrompt = userPrompt;
+    } else {
+      // Extract job details from the prompt (legacy behavior)
+      extractionPrompt = `Extract job details from this user prompt and format as JSON:
 
 User Prompt: "${userPrompt}"
 
@@ -46,56 +59,115 @@ Extract and format the following information as valid JSON:
 }
 
 If any information is missing, make reasonable assumptions based on the context.`;
+    }
 
     console.log('🤖 [INTERVIEW GENERATE] Extracting job details...');
     
     let extractionResponse;
-    try {
-      // Try multiple models for job extraction
-      const modelsToTry = [KIMI_MODEL, FALLBACK_MODEL, 'openai/gpt-3.5-turbo'];
-      let lastError = null;
-      
-      for (const model of modelsToTry) {
-        try {
-          console.log('🎯 [INTERVIEW GENERATE] Trying extraction model:', model);
-          
-      extractionResponse = await axios.post(OPENROUTER_API_URL, {
-            model: model,
-        messages: [
-          {
-            role: 'system',
-            content: 'You are an expert at extracting structured job information from natural language descriptions. Always respond with valid JSON only.'
-          },
-          {
-            role: 'user',
-            content: extractionPrompt
+    let extractedJobDetails;
+    
+    if (isRoleSpecificPrompt) {
+      // For role-specific prompts, extract basic job info and use the prompt directly
+      console.log('🎯 [INTERVIEW GENERATE] Processing role-specific prompt...');
+      try {
+        const basicExtractionPrompt = `Extract basic job information from this interview prompt and return as JSON:
+
+"${userPrompt}"
+
+Return only this JSON format:
+{
+  "title": "Job title",
+  "description": "Brief job description",
+  "requirements": "Key requirements",
+  "level": "junior|mid|senior|lead",
+  "duration": 30,
+  "company": "Company name"
+}`;
+
+        extractionResponse = await axios.post(OPENROUTER_API_URL, {
+          model: KIMI_MODEL,
+          messages: [
+            {
+              role: 'system',
+              content: 'You are an expert at extracting basic job information. Always respond with valid JSON only.'
+            },
+            {
+              role: 'user',
+              content: basicExtractionPrompt
+            }
+          ],
+          max_tokens: 500,
+          temperature: 0.3
+        }, {
+          headers: {
+            'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+            'Content-Type': 'application/json',
+            'HTTP-Referer': process.env.FRONTEND_URL || 'http://localhost:3000',
+            'X-Title': 'AI Hiring Platform'
           }
-        ],
-        max_tokens: 1000,
-        temperature: 0.3
-      }, {
-        headers: {
-          'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
-          'Content-Type': 'application/json',
-          'HTTP-Referer': process.env.FRONTEND_URL || 'http://localhost:3000',
-          'X-Title': 'AI Hiring Platform'
-        }
-      });
-          
-          console.log('✅ [INTERVIEW GENERATE] Extraction success with model:', model);
-          break; // Success, exit the loop
-          
-        } catch (error) {
-          console.log('❌ [INTERVIEW GENERATE] Extraction failed with model:', model, error.response?.status || error.message);
-          lastError = error;
-          continue; // Try next model
-        }
+        });
+        
+        extractedJobDetails = JSON.parse(extractionResponse.data.choices[0].message.content);
+        console.log('✅ [INTERVIEW GENERATE] Basic job details extracted:', extractedJobDetails.title);
+      } catch (error) {
+        console.log('⚠️ [INTERVIEW GENERATE] Basic extraction failed, using fallback');
+        extractedJobDetails = {
+          title: 'AI Generated Job',
+          description: userPrompt.substring(0, 200) + '...',
+          requirements: 'As specified in job description',
+          level: 'mid',
+          duration: 30,
+          company: 'Company'
+        };
       }
-      
-      if (!extractionResponse) {
-        throw lastError || new Error('All extraction models failed');
-      }
-    } catch (apiError) {
+    } else {
+      // Original extraction logic for non-role-specific prompts
+      try {
+        // Try multiple models for job extraction
+        const modelsToTry = [KIMI_MODEL, FALLBACK_MODEL, 'openai/gpt-3.5-turbo'];
+        let lastError = null;
+        
+        for (const model of modelsToTry) {
+          try {
+            console.log('🎯 [INTERVIEW GENERATE] Trying extraction model:', model);
+            
+        extractionResponse = await axios.post(OPENROUTER_API_URL, {
+              model: model,
+          messages: [
+            {
+              role: 'system',
+              content: 'You are an expert at extracting structured job information from natural language descriptions. Always respond with valid JSON only.'
+            },
+            {
+              role: 'user',
+              content: extractionPrompt
+            }
+          ],
+          max_tokens: 1000,
+          temperature: 0.3
+        }, {
+          headers: {
+            'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+            'Content-Type': 'application/json',
+            'HTTP-Referer': process.env.FRONTEND_URL || 'http://localhost:3000',
+            'X-Title': 'AI Hiring Platform'
+          }
+        });
+            
+            console.log('✅ [INTERVIEW GENERATE] Extraction success with model:', model);
+            break; // Success, exit the loop
+            
+          } catch (error) {
+            console.log('❌ [INTERVIEW GENERATE] Extraction failed with model:', model, error.response?.status || error.message);
+            lastError = error;
+            continue; // Try next model
+          }
+        }
+        
+        if (!extractionResponse) {
+          throw lastError || new Error('All extraction models failed');
+        }
+      } catch (apiError) {
       console.log('⚠️ [INTERVIEW GENERATE] OpenRouter API extraction failed, using fallback:', apiError.response?.status || apiError.message);
       // Skip extraction step and use fallback immediately
       const jobDetails = {
@@ -137,6 +209,7 @@ If any information is missing, make reasonable assumptions based on the context.
         }
       });
     }
+    }
 
     let jobDetails;
     try {
@@ -147,16 +220,16 @@ If any information is missing, make reasonable assumptions based on the context.
       const jsonMatch = extractedContent.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
       const jsonContent = jsonMatch ? jsonMatch[1] : extractedContent;
       
-      jobDetails = JSON.parse(jsonContent);
+      extractedJobDetails = JSON.parse(jsonContent);
       console.log('✅ [INTERVIEW GENERATE] Job details extracted:', {
-        title: jobDetails.title,
-        level: jobDetails.level,
-        duration: jobDetails.duration
+        title: extractedJobDetails.title,
+        level: extractedJobDetails.level,
+        duration: extractedJobDetails.duration
       });
     } catch (parseError) {
       console.log('⚠️ [INTERVIEW GENERATE] Failed to parse job details, using fallbacks');
       // Fallback to basic extraction
-      jobDetails = {
+      extractedJobDetails = {
         title: extractBasicTitle(userPrompt),
         description: userPrompt,
         requirements: "Requirements to be determined based on the role",
@@ -166,8 +239,41 @@ If any information is missing, make reasonable assumptions based on the context.
       };
     }
 
-    const { title, description, requirements, level, duration } = jobDetails;
-    console.log('✅ [INTERVIEW GENERATE] Using job details for interview generation...');
+    // For role-specific prompts, use the structured interview directly
+    if (isRoleSpecificPrompt) {
+      console.log('🎯 [INTERVIEW GENERATE] Using role-specific interview structure...');
+      const interviewData = createRoleSpecificInterview(userPrompt, extractedJobDetails);
+      const finalData = ensureSixRounds(interviewData, extractedJobDetails);
+      
+      // Save to database
+      const interview = new Interview({
+        ...finalData,
+        jobTitle: extractedJobDetails.title,
+        jobDescription: extractedJobDetails.description,
+        jobRequirements: extractedJobDetails.requirements,
+        jobLevel: extractedJobDetails.level,
+        company: extractedJobDetails.company,
+        originalPrompt: userPrompt,
+        createdBy: req.user.id
+      });
+
+      await interview.save();
+      console.log('✅ [INTERVIEW GENERATE] Role-specific interview saved, ID:', interview.interviewId);
+
+      return res.json({
+        success: true,
+        data: {
+          interviewId: interview.interviewId,
+          title: interview.title,
+          totalDuration: interview.totalDuration,
+          rounds: interview.rounds,
+          link: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/interview/${interview.interviewId}`
+        }
+      });
+    }
+
+    const { title, description, requirements, level, duration } = extractedJobDetails;
+    console.log('✅ [INTERVIEW GENERATE] Using job details for AI interview generation...');
 
     // Generate interview using AI
     const interviewPrompt = `You are an expert HR professional and technical interviewer. Generate a comprehensive multi-round interview process specifically tailored for a ${level}-level ${title} position.
@@ -839,7 +945,7 @@ CRITICAL REQUIREMENTS - STRICT ENFORCEMENT:
         jobDescription: description,
         jobRequirements: requirements,
         jobLevel: level,
-        company: jobDetails.company || 'Company',
+        company: extractedJobDetails.company || 'Company',
         originalPrompt: userPrompt,
         createdBy: req.user.id
       });
@@ -1682,9 +1788,663 @@ router.post('/:interviewId/round/:roundId/complete', async (req, res) => {
   }
 });
 
+// Helper function to create role-specific interview from structured prompt
+function createRoleSpecificInterview(prompt, jobDetails) {
+  const interviewId = `interview_${Date.now()}`;
+  
+  // Determine if this is a developer or sales interview based on the prompt
+  const isDeveloperInterview = prompt.includes('**Coding Round**') || prompt.includes('React fundamentals');
+  const isSalesInterview = prompt.includes('**Sales Pitch/Role-play**') || prompt.includes('**Objection Handling**');
+  
+  let rounds = [];
+  
+  if (isDeveloperInterview) {
+    rounds = [
+      {
+        title: "Introduction & Self Intro",
+        description: "Get to know the candidate's background and motivation",
+        duration: 5,
+        questions: [
+          {
+            id: "q1_1",
+            type: "behavioral",
+            question: "Tell me about yourself and your background in software development.",
+            expectedAnswer: "Look for relevant experience, technical background, and career progression",
+            timeLimit: 3,
+            difficulty: "easy",
+            followUpQuestions: []
+          },
+          {
+            id: "q1_2",
+            type: "experience",
+            question: "What projects have you worked on that you're most proud of?",
+            expectedAnswer: "Assess project complexity, technical skills, and impact",
+            timeLimit: 3,
+            difficulty: "medium",
+            followUpQuestions: []
+          },
+          {
+            id: "q1_3",
+            type: "motivation",
+            question: "What are you looking for in your next role?",
+            expectedAnswer: "Evaluate career goals and role alignment",
+            timeLimit: 2,
+            difficulty: "easy",
+            followUpQuestions: []
+          },
+          {
+            id: "q1_4",
+            type: "behavioral",
+            question: "What motivates you in your career as a developer?",
+            expectedAnswer: "Assess passion, drive, and long-term commitment",
+            timeLimit: 2,
+            difficulty: "easy",
+            followUpQuestions: []
+          },
+          {
+            id: "q1_5",
+            type: "learning",
+            question: "How do you stay updated with the latest technologies?",
+            expectedAnswer: "Evaluate continuous learning and adaptability",
+            timeLimit: 2,
+            difficulty: "easy",
+            followUpQuestions: []
+          }
+        ]
+      },
+      {
+        title: "Basic Technical Questions",
+        description: "Assess fundamental technical knowledge",
+        duration: 10,
+        questions: [
+          {
+            id: "q2_1",
+            type: "technical",
+            question: "Explain the difference between props and state in React.",
+            expectedAnswer: "Props are read-only data passed from parent to child, state is mutable data managed within component",
+            timeLimit: 3,
+            difficulty: "medium",
+            followUpQuestions: []
+          },
+          {
+            id: "q2_2",
+            type: "technical",
+            question: "What are React hooks and how do they work?",
+            expectedAnswer: "Hooks allow functional components to use state and lifecycle features",
+            timeLimit: 4,
+            difficulty: "medium",
+            followUpQuestions: []
+          },
+          {
+            id: "q2_3",
+            type: "technical",
+            question: "How does JavaScript's event loop work?",
+            expectedAnswer: "Event loop handles asynchronous operations using call stack, callback queue, and microtask queue",
+            timeLimit: 4,
+            difficulty: "hard",
+            followUpQuestions: []
+          },
+          {
+            id: "q2_4",
+            type: "technical",
+            question: "What is the difference between let, const, and var?",
+            expectedAnswer: "var is function-scoped and hoisted, let/const are block-scoped, const is immutable",
+            timeLimit: 3,
+            difficulty: "easy",
+            followUpQuestions: []
+          },
+          {
+            id: "q2_5",
+            type: "technical",
+            question: "Explain the concept of closures in JavaScript.",
+            expectedAnswer: "Closures allow inner functions to access outer function variables even after outer function returns",
+            timeLimit: 4,
+            difficulty: "hard",
+            followUpQuestions: []
+          }
+        ]
+      },
+      {
+        title: "Interactive Coding Round",
+        description: "AI-guided hands-on coding assessment with real-time feedback and modifications",
+        duration: 20,
+        questions: [
+          {
+            id: "q3_1",
+            type: "interactive-coding",
+            question: "Let's start with a simple task. I'll guide you through building a todo app. First, create a basic React component structure. I'll review your code and ask for improvements.",
+            expectedAnswer: "AI will review code, suggest improvements, ask for modifications, and guide through iterations",
+            timeLimit: 6,
+            difficulty: "medium",
+            followUpQuestions: [
+              "Great! Now add state management for the todos. Show me your implementation.",
+              "I see you used useState. Can you modify it to use useReducer instead?",
+              "Good! Now add the delete functionality. How would you implement it?",
+              "Perfect! Let's add a toggle feature. Can you show me how you'd handle the completed state?"
+            ]
+          },
+          {
+            id: "q3_2",
+            type: "interactive-coding",
+            question: "Now let's work on API integration. I want you to fetch data from an API and display it. Start with a basic fetch implementation, and I'll help you improve it.",
+            expectedAnswer: "AI will review API implementation, suggest error handling, loading states, and optimization",
+            timeLimit: 5,
+            difficulty: "medium",
+            followUpQuestions: [
+              "Good start! Now add proper error handling. What would you do if the API fails?",
+              "Excellent! Can you add a loading state while the data is being fetched?",
+              "Nice! Now let's optimize it. Can you implement caching to avoid unnecessary API calls?",
+              "Perfect! How would you handle the case where the API returns an empty array?"
+            ]
+          },
+          {
+            id: "q3_3",
+            type: "interactive-coding",
+            question: "Let's build a search/filter component together. Start with a basic input field, and I'll guide you through making it more sophisticated.",
+            expectedAnswer: "AI will review filtering logic, suggest performance improvements, and guide through advanced features",
+            timeLimit: 5,
+            difficulty: "medium",
+            followUpQuestions: [
+              "Good! Now add real-time filtering as the user types. How would you implement this?",
+              "Great! Can you add debouncing to improve performance?",
+              "Excellent! Now let's add multiple filter criteria. How would you handle filtering by multiple fields?",
+              "Perfect! Can you add a clear filter button and show the number of results?"
+            ]
+          }
+        ]
+      },
+      {
+        title: "Advanced Technical Questions",
+        description: "Deep dive into advanced concepts",
+        duration: 10,
+        questions: [
+          {
+            id: "q4_1",
+            type: "technical",
+            question: "How would you optimize a React application for performance?",
+            expectedAnswer: "Use React.memo, useMemo, useCallback, code splitting, lazy loading, and proper state management",
+            timeLimit: 4,
+            difficulty: "hard",
+            followUpQuestions: []
+          },
+          {
+            id: "q4_2",
+            type: "technical",
+            question: "Explain different state management solutions (Redux, Context API).",
+            expectedAnswer: "Redux for complex state, Context API for simple state, consider performance implications",
+            timeLimit: 4,
+            difficulty: "hard",
+            followUpQuestions: []
+          },
+          {
+            id: "q4_3",
+            type: "technical",
+            question: "How do you handle API integration and error handling?",
+            expectedAnswer: "Use proper HTTP methods, implement retry logic, handle loading states, and user feedback",
+            timeLimit: 3,
+            difficulty: "medium",
+            followUpQuestions: []
+          },
+          {
+            id: "q4_4",
+            type: "technical",
+            question: "What testing strategies do you use for frontend applications?",
+            expectedAnswer: "Unit tests, integration tests, E2E tests, mocking, and test-driven development",
+            timeLimit: 3,
+            difficulty: "medium",
+            followUpQuestions: []
+          },
+          {
+            id: "q4_5",
+            type: "technical",
+            question: "How would you debug a memory leak in a web application?",
+            expectedAnswer: "Use browser dev tools, check for event listeners, closures, and proper cleanup",
+            timeLimit: 4,
+            difficulty: "hard",
+            followUpQuestions: []
+          }
+        ]
+      },
+      {
+        title: "Behavioral/Soft Skills",
+        description: "Assess communication and teamwork",
+        duration: 8,
+        questions: [
+          {
+            id: "q5_1",
+            type: "behavioral",
+            question: "Tell me about a time you had to learn a new technology quickly.",
+            expectedAnswer: "Assess learning ability, adaptability, and problem-solving approach",
+            timeLimit: 3,
+            difficulty: "medium",
+            followUpQuestions: []
+          },
+          {
+            id: "q5_2",
+            type: "behavioral",
+            question: "How do you handle disagreements with team members?",
+            expectedAnswer: "Look for conflict resolution skills, communication, and teamwork",
+            timeLimit: 3,
+            difficulty: "medium",
+            followUpQuestions: []
+          },
+          {
+            id: "q5_3",
+            type: "behavioral",
+            question: "Describe a challenging problem you solved recently.",
+            expectedAnswer: "Evaluate problem-solving methodology and technical skills",
+            timeLimit: 4,
+            difficulty: "medium",
+            followUpQuestions: []
+          },
+          {
+            id: "q5_4",
+            type: "behavioral",
+            question: "How do you prioritize tasks when working on multiple projects?",
+            expectedAnswer: "Assess time management, organization, and decision-making skills",
+            timeLimit: 3,
+            difficulty: "easy",
+            followUpQuestions: []
+          },
+          {
+            id: "q5_5",
+            type: "behavioral",
+            question: "What's your approach to code reviews and feedback?",
+            expectedAnswer: "Evaluate collaboration, learning mindset, and professional growth",
+            timeLimit: 3,
+            difficulty: "easy",
+            followUpQuestions: []
+          }
+        ]
+      },
+      {
+        title: "Interactive Final Discussion",
+        description: "AI-guided conversational wrap-up with dynamic feedback and next steps",
+        duration: 10,
+        questions: [
+          {
+            id: "q6_1",
+            type: "interactive-discussion",
+            question: "Great job on the technical rounds! I was impressed with your coding skills. Now, let's have a more personal conversation. What questions do you have about this role and our company culture? I'm here to answer anything you'd like to know.",
+            expectedAnswer: "AI will engage in natural conversation, answer questions, and assess candidate engagement",
+            timeLimit: 4,
+            difficulty: "easy",
+            followUpQuestions: [
+              "That's a great question! Let me explain our development process in detail...",
+              "I'm glad you asked about that. Here's how we handle that situation...",
+              "Excellent question! This shows you're thinking about the role seriously. Let me share more details...",
+              "I appreciate your interest in that aspect. Here's what you can expect..."
+            ]
+          },
+          {
+            id: "q6_2",
+            type: "interactive-discussion",
+            question: "Based on our conversation today, I can see you'd be a great fit for our team. Let's discuss the practical aspects. What are your thoughts on compensation and what would make this opportunity attractive to you?",
+            expectedAnswer: "AI will engage in salary discussion, provide feedback on expectations, and assess negotiation skills",
+            timeLimit: 3,
+            difficulty: "medium",
+            followUpQuestions: [
+              "That's a reasonable expectation. Let me share our compensation structure...",
+              "I understand your perspective. Here's how we typically structure offers...",
+              "Great question about benefits! Let me walk you through our package...",
+              "I appreciate your transparency. Let's discuss how we can make this work..."
+            ]
+          },
+          {
+            id: "q6_3",
+            type: "interactive-discussion",
+            question: "I'm excited about the possibility of working together! Let's talk about timing. When would you ideally like to start, and do you have any concerns or questions about the transition?",
+            expectedAnswer: "AI will discuss start dates, address concerns, and provide reassurance about the process",
+            timeLimit: 3,
+            difficulty: "easy",
+            followUpQuestions: [
+              "That timeline works well for us. Let me explain our onboarding process...",
+              "I understand your situation. Here's how we can accommodate that...",
+              "Great! Let me share what the first few weeks would look like...",
+              "Perfect timing! Here's what you can expect during the transition..."
+            ]
+          }
+        ]
+      }
+    ];
+  } else if (isSalesInterview) {
+    rounds = [
+      {
+        title: "Self Introduction",
+        description: "Get to know the candidate's sales background",
+        duration: 5,
+        questions: [
+          {
+            id: "q1_1",
+            type: "behavioral",
+            question: "Tell me about yourself and your experience in sales.",
+            expectedAnswer: "Look for relevant sales experience, achievements, and career progression",
+            timeLimit: 3,
+            difficulty: "easy",
+            followUpQuestions: []
+          },
+          {
+            id: "q1_2",
+            type: "achievement",
+            question: "What sales achievements are you most proud of?",
+            expectedAnswer: "Assess sales performance, metrics, and impact",
+            timeLimit: 3,
+            difficulty: "medium",
+            followUpQuestions: []
+          },
+          {
+            id: "q1_3",
+            type: "motivation",
+            question: "What motivates you in a sales career?",
+            expectedAnswer: "Evaluate passion, drive, and long-term commitment to sales",
+            timeLimit: 2,
+            difficulty: "easy",
+            followUpQuestions: []
+          },
+          {
+            id: "q1_4",
+            type: "career",
+            question: "What are you looking for in your next sales role?",
+            expectedAnswer: "Assess career goals and role alignment",
+            timeLimit: 2,
+            difficulty: "easy",
+            followUpQuestions: []
+          },
+          {
+            id: "q1_5",
+            type: "definition",
+            question: "How do you define sales success?",
+            expectedAnswer: "Evaluate understanding of sales metrics and success criteria",
+            timeLimit: 2,
+            difficulty: "easy",
+            followUpQuestions: []
+          }
+        ]
+      },
+      {
+        title: "Basic Sales Questions",
+        description: "Assess fundamental sales knowledge",
+        duration: 10,
+        questions: [
+          {
+            id: "q2_1",
+            type: "process",
+            question: "Walk me through your sales process from lead to close.",
+            expectedAnswer: "Assess understanding of sales methodology and process",
+            timeLimit: 4,
+            difficulty: "medium",
+            followUpQuestions: []
+          },
+          {
+            id: "q2_2",
+            type: "qualification",
+            question: "How do you identify and qualify prospects?",
+            expectedAnswer: "Evaluate lead qualification skills and criteria",
+            timeLimit: 3,
+            difficulty: "medium",
+            followUpQuestions: []
+          },
+          {
+            id: "q2_3",
+            type: "technical",
+            question: "What CRM systems have you used?",
+            expectedAnswer: "Assess technical proficiency with sales tools",
+            timeLimit: 2,
+            difficulty: "easy",
+            followUpQuestions: []
+          },
+          {
+            id: "q2_4",
+            type: "strategy",
+            question: "How do you handle lead generation?",
+            expectedAnswer: "Evaluate prospecting strategies and techniques",
+            timeLimit: 3,
+            difficulty: "medium",
+            followUpQuestions: []
+          },
+          {
+            id: "q2_5",
+            type: "relationship",
+            question: "What's your approach to building customer relationships?",
+            expectedAnswer: "Assess relationship-building skills and customer focus",
+            timeLimit: 3,
+            difficulty: "medium",
+            followUpQuestions: []
+          }
+        ]
+      },
+      {
+        title: "Interactive Sales Role-play",
+        description: "AI-guided sales demonstrations with real-time feedback and coaching",
+        duration: 18,
+        questions: [
+          {
+            id: "q3_1",
+            type: "interactive-pitch",
+            question: "Let's do a role-play! I'm a potential customer interested in our product. Start by introducing yourself and our product. I'll respond as a customer would, and we'll have a natural conversation. I'll give you feedback and ask you to adjust your approach.",
+            expectedAnswer: "AI will role-play as customer, provide real-time feedback, and guide sales techniques",
+            timeLimit: 6,
+            difficulty: "hard",
+            followUpQuestions: [
+              "Good start! But I'm not sure I understand the value. Can you explain it differently?",
+              "I like that approach better. Now, what if I tell you I'm already using a competitor's solution?",
+              "Excellent! You handled that well. Now, I'm concerned about the price. How would you address that?",
+              "Great response! Now, let's say I'm interested but need to discuss with my team. How would you handle that?"
+            ]
+          },
+          {
+            id: "q3_2",
+            type: "interactive-objection",
+            question: "Now let's practice objection handling. I'll present different objections, and you respond. I'll give you feedback and ask you to try different approaches until we find what works best.",
+            expectedAnswer: "AI will present various objections, provide feedback on responses, and coach on better techniques",
+            timeLimit: 6,
+            difficulty: "hard",
+            followUpQuestions: [
+              "Good response, but let me challenge you with this: 'Your price is too high compared to others.'",
+              "I see your approach. Now try this objection: 'We don't have budget right now.'",
+              "Interesting strategy. What if I say: 'We're happy with our current solution'?",
+              "Excellent! You're getting the hang of it. One more: 'I need to think about it.'"
+            ]
+          },
+          {
+            id: "q3_3",
+            type: "interactive-closing",
+            question: "Perfect! Now let's work on closing. I'll be a warm prospect who's shown interest. Guide me through the closing process, and I'll give you feedback on your approach. Don't be afraid to ask for the sale!",
+            expectedAnswer: "AI will role-play as interested prospect, provide feedback on closing techniques, and coach on confidence",
+            timeLimit: 6,
+            difficulty: "hard",
+            followUpQuestions: [
+              "Good attempt, but I'm still hesitant. How would you create more urgency?",
+              "I like that approach! Now, what if I say yes? What would be your next steps?",
+              "Excellent closing technique! How would you handle it if I said I need to discuss with my manager?",
+              "Perfect! You've got the right mindset. Let's practice one more closing scenario..."
+            ]
+          }
+        ]
+      },
+      {
+        title: "Objection Handling",
+        description: "Test ability to overcome sales objections",
+        duration: 10,
+        questions: [
+          {
+            id: "q4_1",
+            type: "objection",
+            question: "How do you handle the objection 'Your price is too high'?",
+            expectedAnswer: "Assess value communication and price justification skills",
+            timeLimit: 3,
+            difficulty: "medium",
+            followUpQuestions: []
+          },
+          {
+            id: "q4_2",
+            type: "objection",
+            question: "What do you do when a prospect says 'We're not interested'?",
+            expectedAnswer: "Evaluate persistence and qualification techniques",
+            timeLimit: 3,
+            difficulty: "medium",
+            followUpQuestions: []
+          },
+          {
+            id: "q4_3",
+            type: "objection",
+            question: "How do you respond to 'We already have a solution'?",
+            expectedAnswer: "Assess competitive positioning and differentiation",
+            timeLimit: 3,
+            difficulty: "medium",
+            followUpQuestions: []
+          },
+          {
+            id: "q4_4",
+            type: "objection",
+            question: "What's your approach to 'I need to discuss with my team'?",
+            expectedAnswer: "Evaluate stakeholder management and follow-up skills",
+            timeLimit: 3,
+            difficulty: "medium",
+            followUpQuestions: []
+          },
+          {
+            id: "q4_5",
+            type: "objection",
+            question: "How do you handle 'We don't have budget right now'?",
+            expectedAnswer: "Assess budget qualification and timing management",
+            timeLimit: 3,
+            difficulty: "medium",
+            followUpQuestions: []
+          }
+        ]
+      },
+      {
+        title: "Communication & Confidence Check",
+        description: "Assess communication and confidence",
+        duration: 8,
+        questions: [
+          {
+            id: "q5_1",
+            type: "communication",
+            question: "How do you build rapport with new prospects?",
+            expectedAnswer: "Assess relationship-building and communication skills",
+            timeLimit: 3,
+            difficulty: "medium",
+            followUpQuestions: []
+          },
+          {
+            id: "q5_2",
+            type: "communication",
+            question: "Describe your communication style with different types of customers.",
+            expectedAnswer: "Evaluate adaptability and customer-centric approach",
+            timeLimit: 3,
+            difficulty: "medium",
+            followUpQuestions: []
+          },
+          {
+            id: "q5_3",
+            type: "resilience",
+            question: "How do you handle rejection in sales?",
+            expectedAnswer: "Assess resilience, persistence, and mental toughness",
+            timeLimit: 3,
+            difficulty: "medium",
+            followUpQuestions: []
+          },
+          {
+            id: "q5_4",
+            type: "negotiation",
+            question: "What's your approach to negotiating deals?",
+            expectedAnswer: "Evaluate negotiation skills and win-win mindset",
+            timeLimit: 3,
+            difficulty: "medium",
+            followUpQuestions: []
+          },
+          {
+            id: "q5_5",
+            type: "motivation",
+            question: "How do you maintain confidence during difficult sales periods?",
+            expectedAnswer: "Assess self-motivation and mental resilience",
+            timeLimit: 3,
+            difficulty: "medium",
+            followUpQuestions: []
+          }
+        ]
+      },
+      {
+        title: "Interactive Final Discussion",
+        description: "AI-guided conversational wrap-up with dynamic feedback and next steps",
+        duration: 10,
+        questions: [
+          {
+            id: "q6_1",
+            type: "interactive-discussion",
+            question: "Excellent work on the sales role-play! I was impressed with your natural sales instincts and ability to adapt. Now, let's have a more personal conversation. What questions do you have about this sales role and our company? I'm here to answer anything you'd like to know.",
+            expectedAnswer: "AI will engage in natural conversation, answer questions about sales role, and assess candidate engagement",
+            timeLimit: 4,
+            difficulty: "easy",
+            followUpQuestions: [
+              "That's a great question about our sales process! Let me explain how we structure our sales cycles...",
+              "I'm glad you asked about that. Here's how we handle that situation in sales...",
+              "Excellent question! This shows you're thinking about the role seriously. Let me share more details...",
+              "I appreciate your interest in that aspect. Here's what you can expect in this sales environment..."
+            ]
+          },
+          {
+            id: "q6_2",
+            type: "interactive-discussion",
+            question: "Based on our conversation today, I can see you'd be a great addition to our sales team. Let's discuss the practical aspects. What are your thoughts on sales targets, commission structure, and what would make this opportunity attractive to you?",
+            expectedAnswer: "AI will engage in compensation discussion, provide feedback on expectations, and assess sales motivation",
+            timeLimit: 3,
+            difficulty: "medium",
+            followUpQuestions: [
+              "That's a reasonable expectation for our market. Let me share our commission structure...",
+              "I understand your perspective. Here's how we typically structure our sales compensation...",
+              "Great question about sales targets! Let me walk you through our goal-setting process...",
+              "I appreciate your transparency. Let's discuss how we can make this sales opportunity work for you..."
+            ]
+          },
+          {
+            id: "q6_3",
+            type: "interactive-discussion",
+            question: "I'm excited about the possibility of having you on our sales team! Let's talk about timing and next steps. When would you ideally like to start, and do you have any concerns or questions about transitioning into this sales role?",
+            expectedAnswer: "AI will discuss start dates, address concerns about sales role, and provide reassurance about the process",
+            timeLimit: 3,
+            difficulty: "easy",
+            followUpQuestions: [
+              "That timeline works well for us. Let me explain our sales onboarding process...",
+              "I understand your situation. Here's how we can accommodate that in our sales team...",
+              "Great! Let me share what the first few weeks in sales would look like...",
+              "Perfect timing! Here's what you can expect during the sales transition..."
+            ]
+          }
+        ]
+      }
+    ];
+  }
+  
+  return {
+    interviewId,
+    title: `${jobDetails.title} Interview`,
+    totalDuration: rounds.reduce((total, round) => total + round.duration, 0),
+    rounds: rounds,
+    jobTitle: jobDetails.title,
+    jobDescription: jobDetails.description,
+    jobRequirements: jobDetails.requirements,
+    jobLevel: jobDetails.level,
+    company: jobDetails.company
+  };
+}
+
 // Helper function to create structured interview from text
 function createStructuredInterview(textResponse, jobDetails) {
   const interviewId = `interview_${Date.now()}`;
+  
+  // Check if this is a role-specific prompt
+  const isRoleSpecificPrompt = textResponse.includes('**Introduction & Self Intro**') || 
+                               textResponse.includes('**Self Introduction**') ||
+                               textResponse.includes('**Coding Round**') ||
+                               textResponse.includes('**Sales Pitch/Role-play**');
+  
+  if (isRoleSpecificPrompt) {
+    console.log('🎯 [INTERVIEW GENERATE] Using role-specific prompt structure');
+    return createRoleSpecificInterview(textResponse, jobDetails);
+  }
   
   // Generate 6 comprehensive rounds based on job details with role-specific challenges
   const isDeveloper = jobDetails.title.toLowerCase().includes('developer') || jobDetails.title.toLowerCase().includes('engineer') || jobDetails.title.toLowerCase().includes('programmer');

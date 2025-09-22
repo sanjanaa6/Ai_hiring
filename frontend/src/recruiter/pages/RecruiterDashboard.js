@@ -42,7 +42,7 @@ const RecruiterDashboard = () => {
   const [interviewLink, setInterviewLink] = useState('');
   const [linkCopied, setLinkCopied] = useState(false);
   const [jobs, setJobs] = useState([]);
-  const [activeTab, setActiveTab] = useState('jobs'); // 'jobs', 'candidates', 'analytics', 'answers'
+  const [activeTab, setActiveTab] = useState('jobs'); // 'jobs', 'candidates', 'analytics', 'answers', 'manage-jobs'
   const [interviewStats, setInterviewStats] = useState(null);
   const [selectedInterviewId, setSelectedInterviewId] = useState(null);
 
@@ -59,8 +59,10 @@ const RecruiterDashboard = () => {
   const [candidateFilters, setCandidateFilters] = useState({
     status: '',
     experience: '',
-    skills: ''
+    skills: '',
+    jobId: ''
   });
+  const [recruiterJobs, setRecruiterJobs] = useState([]);
   const [candidateViewType, setCandidateViewType] = useState('interview'); // 'interview' or 'applied'
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
@@ -140,146 +142,86 @@ const RecruiterDashboard = () => {
   const loadCandidates = async () => {
     try {
       setCandidatesLoading(true);
-      // In a real app, you'd fetch candidates from your API
-      // For now, we'll create mock data with both interview and applied candidates
-      const mockCandidates = {
-        interview: [
-          {
-            _id: 'interview1',
-            name: 'John Smith',
-            email: 'john.smith@email.com',
-            phone: '+1 (555) 123-4567',
-            experience: '5 years',
-            skills: ['React', 'Node.js', 'JavaScript', 'MongoDB'],
-            status: 'interviewed',
-            appliedDate: '2024-01-15',
-            interviewDate: '2024-01-20',
-            jobTitle: 'Senior React Developer',
-            interviewScore: 4.2,
-            technicalScore: 4.5,
-            communicationScore: 4.0,
-            problemSolvingScore: 4.1,
-            culturalFitScore: 4.2,
-            overallScore: 4.2,
-            interviewNotes: 'Strong technical background, good communication skills. Demonstrated excellent problem-solving abilities.',
-            strengths: ['React expertise', 'Clean code practices', 'Team collaboration'],
-            weaknesses: ['Limited backend experience', 'Needs improvement in system design'],
-            recommendation: 'Strong hire - would be a great addition to the team'
-          },
-          {
-            _id: 'interview2',
-            name: 'Sarah Johnson',
-            email: 'sarah.johnson@email.com',
-            phone: '+1 (555) 987-6543',
-            experience: '3 years',
-            skills: ['Python', 'Django', 'PostgreSQL', 'AWS'],
-            status: 'interviewed',
-            appliedDate: '2024-01-14',
-            interviewDate: '2024-01-19',
-            jobTitle: 'Backend Developer',
-            interviewScore: 3.8,
-            technicalScore: 4.0,
-            communicationScore: 3.5,
-            problemSolvingScore: 3.8,
-            culturalFitScore: 3.9,
-            overallScore: 3.8,
-            interviewNotes: 'Good problem-solving skills, needs more frontend experience. Strong in backend technologies.',
-            strengths: ['Python expertise', 'Database design', 'API development'],
-            weaknesses: ['Limited frontend knowledge', 'System architecture'],
-            recommendation: 'Consider for hire with mentoring support'
-          },
-          {
-            _id: 'interview3',
-            name: 'Mike Chen',
-            email: 'mike.chen@email.com',
-            phone: '+1 (555) 456-7890',
-            experience: '7 years',
-            skills: ['Full Stack', 'React', 'Node.js', 'TypeScript', 'Docker'],
-            status: 'interviewed',
-            appliedDate: '2024-01-13',
-            interviewDate: '2024-01-18',
-            jobTitle: 'Full Stack Developer',
-            interviewScore: 4.5,
-            technicalScore: 4.7,
-            communicationScore: 4.3,
-            problemSolvingScore: 4.6,
-            culturalFitScore: 4.4,
-            overallScore: 4.5,
-            interviewNotes: 'Excellent candidate, strong in both frontend and backend. Leadership potential.',
-            strengths: ['Full-stack expertise', 'Leadership skills', 'System design'],
-            weaknesses: ['None significant'],
-            recommendation: 'Strong hire - potential for senior role'
+      
+      const token = localStorage.getItem('token');
+      
+      // Fetch both applications and jobs in parallel
+      const [applicationsResponse, jobsResponse] = await Promise.all([
+        fetch('/api/applications/recruiter', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
           }
-        ],
-        applied: [
-          {
-            _id: 'applied1',
-            name: 'Emily Davis',
-            email: 'emily.davis@email.com',
-            phone: '+1 (555) 234-5678',
-            experience: '2 years',
-            skills: ['JavaScript', 'React', 'CSS', 'HTML'],
-            status: 'applied',
-            appliedDate: '2024-01-16',
-            jobTitle: 'Frontend Developer',
-            resume: 'emily_davis_resume.pdf',
-            coverLetter: 'I am a passionate frontend developer with 2 years of experience in React and modern web technologies. I am excited about the opportunity to contribute to your team and grow my skills in a dynamic environment.',
-            portfolio: 'https://emilydavis.dev',
-            linkedin: 'https://linkedin.com/in/emilydavis',
-            github: 'https://github.com/emilydavis',
-            education: 'Bachelor of Computer Science - University of Tech',
-            previousCompany: 'TechStart Inc.',
-            expectedSalary: '$70,000 - $80,000',
-            availability: '2 weeks notice',
-            notes: 'Junior developer with good potential, strong portfolio'
-          },
-          {
-            _id: 'applied2',
-            name: 'David Wilson',
-            email: 'david.wilson@email.com',
-            phone: '+1 (555) 345-6789',
-            experience: '4 years',
-            skills: ['Java', 'Spring Boot', 'MySQL', 'Microservices'],
-            status: 'applied',
-            appliedDate: '2024-01-17',
-            jobTitle: 'Backend Developer',
-            resume: 'david_wilson_resume.pdf',
-            coverLetter: 'I have 4 years of experience in Java development with Spring Boot and microservices architecture. I am looking for a challenging role where I can contribute to building scalable backend systems.',
-            portfolio: 'https://davidwilson.dev',
-            linkedin: 'https://linkedin.com/in/davidwilson',
-            github: 'https://github.com/davidwilson',
-            education: 'Master of Software Engineering - Tech University',
-            previousCompany: 'Enterprise Solutions Ltd.',
-            expectedSalary: '$85,000 - $95,000',
-            availability: '1 month notice',
-            notes: 'Experienced backend developer, good with enterprise systems'
-          },
-          {
-            _id: 'applied3',
-            name: 'Lisa Brown',
-            email: 'lisa.brown@email.com',
-            phone: '+1 (555) 456-7890',
-            experience: '6 years',
-            skills: ['Python', 'Machine Learning', 'TensorFlow', 'Data Science'],
-            status: 'applied',
-            appliedDate: '2024-01-18',
-            jobTitle: 'Data Scientist',
-            resume: 'lisa_brown_resume.pdf',
-            coverLetter: 'I am a data scientist with 6 years of experience in machine learning and AI. I have worked on various projects involving predictive modeling and data analysis. I am excited to bring my expertise to your team.',
-            portfolio: 'https://lisabrown.dev',
-            linkedin: 'https://linkedin.com/in/lisabrown',
-            github: 'https://github.com/lisabrown',
-            education: 'PhD in Data Science - University of AI',
-            previousCompany: 'AI Research Corp.',
-            expectedSalary: '$100,000 - $120,000',
-            availability: '3 weeks notice',
-            notes: 'Senior data scientist, strong research background'
+        }),
+        fetch('/api/jobs/my/jobs', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
           }
-        ]
+        })
+      ]);
+
+      if (!applicationsResponse.ok) {
+        throw new Error('Failed to fetch applications');
+      }
+      if (!jobsResponse.ok) {
+        throw new Error('Failed to fetch jobs');
+      }
+
+      const applications = await applicationsResponse.json();
+      const jobs = await jobsResponse.json();
+      
+      // Set recruiter jobs for filtering
+      setRecruiterJobs(jobs);
+      
+      // Transform API data to match UI expectations
+      const transformedApplications = applications.map(app => ({
+        _id: app._id,
+        name: app.candidate?.name || 'Unknown Candidate',
+        email: app.candidate?.email || '',
+        phone: app.candidate?.profile?.phone || '',
+        experience: app.candidate?.profile?.experience || 'Not specified',
+        skills: app.candidate?.profile?.skills || [],
+        status: app.status,
+        appliedDate: app.createdAt,
+        jobTitle: app.job?.title || 'Unknown Job',
+        jobCompany: app.job?.company || 'Unknown Company',
+        jobLocation: app.job?.location || 'Unknown Location',
+        coverLetter: app.coverLetter,
+        resume: app.resume,
+        notes: app.notes || '',
+        // Add interview-related fields if they exist
+        interviewDate: app.interviewDate,
+        interviewScore: app.interviewScore,
+        technicalScore: app.technicalScore,
+        communicationScore: app.communicationScore,
+        problemSolvingScore: app.problemSolvingScore,
+        culturalFitScore: app.culturalFitScore,
+        overallScore: app.overallScore,
+        interviewNotes: app.interviewNotes,
+        strengths: app.strengths || [],
+        weaknesses: app.weaknesses || [],
+        recommendation: app.recommendation
+      }));
+      
+      // Separate applications into different categories
+      const candidatesData = {
+        interview: transformedApplications.filter(app => 
+          app.status === 'shortlisted' || app.status === 'hired' || app.interviewDate
+        ),
+        applied: transformedApplications.filter(app => 
+          app.status === 'pending' || app.status === 'reviewing'
+        )
       };
-      setCandidates(mockCandidates);
+
+      setCandidates(candidatesData);
     } catch (error) {
       console.error('Error loading candidates:', error);
+      // Fallback to empty arrays if API fails
+      setCandidates({
+        interview: [],
+        applied: []
+      });
     } finally {
       setCandidatesLoading(false);
     }
@@ -317,12 +259,43 @@ const RecruiterDashboard = () => {
   };
 
   // Candidate management handlers
-  const handleCandidateStatusChange = (candidateId, newStatus) => {
-    setCandidates(prev => prev.map(candidate => 
-      candidate._id === candidateId 
-        ? { ...candidate, status: newStatus }
-        : candidate
-    ));
+  const handleCandidateStatusChange = async (candidateId, newStatus) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`/api/applications/${candidateId}/status`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update application status');
+      }
+
+      // Update local state
+      setCandidates(prev => ({
+        ...prev,
+        applied: prev.applied.map(candidate => 
+          candidate._id === candidateId 
+            ? { ...candidate, status: newStatus }
+            : candidate
+        ),
+        interview: prev.interview.map(candidate => 
+          candidate._id === candidateId 
+            ? { ...candidate, status: newStatus }
+            : candidate
+        )
+      }));
+
+      // Show success message
+      console.log('Application status updated successfully');
+    } catch (error) {
+      console.error('Error updating application status:', error);
+      // You could add a toast notification here
+    }
   };
 
   const handleCandidateFilterChange = (key, value) => {
@@ -332,16 +305,131 @@ const RecruiterDashboard = () => {
     }));
   };
 
+  // Job management functions
+  const handleJobStatusChange = async (jobId, newStatus) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`/api/jobs/${jobId}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update job status');
+      }
+
+      // Update local state
+      setRecruiterJobs(prev => prev.map(job => 
+        job._id === jobId 
+          ? { ...job, status: newStatus }
+          : job
+      ));
+
+      console.log('Job status updated successfully');
+    } catch (error) {
+      console.error('Error updating job status:', error);
+    }
+  };
+
+  const handleDeleteJob = async (jobId) => {
+    if (!window.confirm('Are you sure you want to delete this job? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`/api/jobs/${jobId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete job');
+      }
+
+      // Remove from local state
+      setRecruiterJobs(prev => prev.filter(job => job._id !== jobId));
+
+      console.log('Job deleted successfully');
+    } catch (error) {
+      console.error('Error deleting job:', error);
+    }
+  };
+
   const filteredCandidates = candidates[candidateViewType]?.filter(candidate => {
+    // Filter by job if selected
+    if (candidateFilters.jobId) {
+      const selectedJob = recruiterJobs.find(job => job._id === candidateFilters.jobId);
+      if (selectedJob && candidate.jobTitle !== selectedJob.title) return false;
+    }
+    
+    // Filter by status
     if (candidateFilters.status && candidate.status !== candidateFilters.status) return false;
+    
+    // Filter by experience
     if (candidateFilters.experience && !candidate.experience.includes(candidateFilters.experience)) return false;
+    
+    // Filter by skills
     if (candidateFilters.skills && !candidate.skills.some(skill => 
       skill.toLowerCase().includes(candidateFilters.skills.toLowerCase())
     )) return false;
+    
     return true;
   }) || [];
 
   const [jobPrompt, setJobPrompt] = useState('');
+  const [jobType, setJobType] = useState('developer'); // 'developer' or 'sales'
+
+  const createRoleSpecificPrompt = (jobDescription, roleType) => {
+    const basePrompt = `Create a comprehensive interview for this job: ${jobDescription}`;
+    
+    if (roleType === 'developer') {
+      return `${basePrompt}
+
+Please structure the interview with these specific rounds:
+
+1. **Introduction & Self Intro** – Ask about themselves, background, past projects, career goals, and what they're looking for in their next role. NO CODING QUESTIONS - only conversational questions about experience and motivation.
+
+2. **Basic Technical Questions** – React fundamentals including JSX, props, state, hooks, routing, component lifecycle, and basic JavaScript concepts. NO CODING - only theoretical/conceptual questions about how these technologies work.
+
+3. **Coding Round** – ONLY ROUND WITH CODING. Small hands-on task such as building a todo app, API fetch implementation, search/filter functionality, or component creation. This is the ONLY round where actual coding should be involved.
+
+4. **Advanced Technical Questions** – State management (Redux, Context), performance optimization, API integration, testing, debugging, and system design basics. NO CODING - only discussion about concepts, best practices, and theoretical knowledge.
+
+5. **Behavioral/Soft Skills** – Communication skills, teamwork, problem-solving approach, handling pressure, learning new technologies, and confidence in technical discussions. NO CODING - only behavioral and soft skills questions.
+
+6. **Final Feedback & Decision** – Discuss strengths, areas for improvement, technical fit, cultural fit, and next steps (offer or decline). NO CODING - only feedback and decision discussion.
+
+IMPORTANT: Only Round 3 (Coding Round) should involve actual coding. All other rounds must be strictly non-coding - use theoretical questions, discussions, and behavioral assessments only.`;
+    } else if (roleType === 'sales') {
+      return `${basePrompt}
+
+Please structure the interview with these specific rounds:
+
+1. **Self Introduction** – Ask about their background, sales experience, achievements, motivation for sales, and career aspirations.
+
+2. **Basic Sales Questions** – Understanding of sales process, lead generation, customer relationship management, sales tools, and industry knowledge.
+
+3. **Sales Pitch/Role-play** – Present a product or service scenario and ask them to pitch it, demonstrate their sales approach, and show their persuasive skills.
+
+4. **Objection Handling** – Present common sales objections and assess how they handle rejection, overcome customer concerns, and maintain persistence.
+
+5. **Communication & Confidence Check** – Evaluate their communication style, listening skills, confidence level, negotiation abilities, and how they build rapport with clients.
+
+6. **Final Feedback & Decision** – Discuss their sales potential, areas for development, cultural fit, and next steps (offer or decline).
+
+Each round should have 3-5 relevant questions that progressively assess the candidate's sales skills, communication abilities, and cultural fit.`;
+    }
+    
+    return basePrompt;
+  };
 
   const generateAIInterview = async () => {
     if (!jobPrompt || jobPrompt.trim().length < 10) {
@@ -351,7 +439,9 @@ const RecruiterDashboard = () => {
 
     setLoading(true);
     try {
-      const result = await apiService.generateInterview({ prompt: jobPrompt });
+      // Create role-specific interview structure
+      const roleSpecificPrompt = createRoleSpecificPrompt(jobPrompt, jobType);
+      const result = await apiService.generateInterview({ prompt: roleSpecificPrompt });
       
       if (result.success) {
         setGeneratedInterview(result.data);
@@ -408,6 +498,7 @@ const RecruiterDashboard = () => {
   // Sidebar navigation items
   const sidebarItems = [
     { id: 'jobs', label: 'Jobs', icon: Briefcase, description: 'Manage job postings' },
+    { id: 'manage-jobs', label: 'Job Management', icon: Settings, description: 'View, edit, activate jobs' },
     { id: 'candidates', label: 'Candidates', icon: Users, description: 'Review applications' },
     { id: 'analytics', label: 'Analytics', icon: BarChart3, description: 'Performance insights' },
     { id: 'answers', label: 'Interview Results', icon: Award, description: 'AI interview analysis' },
@@ -446,7 +537,7 @@ const RecruiterDashboard = () => {
                 <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
                   <Bot className="h-5 w-5 text-white" />
                 </div>
-                <div>
+              <div>
                   <h1 className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                     AI Hiring
                   </h1>
@@ -468,14 +559,14 @@ const RecruiterDashboard = () => {
             >
               <X className={`h-5 w-5 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`} />
             </button>
-          </div>
         </div>
+            </div>
 
         {/* Sidebar Navigation */}
         <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
           {sidebarItems.map((item) => {
             const Icon = item.icon;
-            return (
+                return (
               <button
                 key={item.id}
                 onClick={() => {
@@ -501,46 +592,16 @@ const RecruiterDashboard = () => {
                     <div className="font-medium">{item.label}</div>
                     <div className={`text-xs ${activeTab === item.id ? 'text-blue-100' : isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                       {item.description}
-                    </div>
+                </div>
                   </div>
                 )}
               </button>
-            );
-          })}
-        </nav>
+                );
+              })}
+            </nav>
 
         {/* Sidebar Footer */}
         <div className={`p-4 border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
-          {/* Theme Toggle */}
-          <div className="mb-4">
-            <button
-              onClick={toggleTheme}
-              className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg transition-all duration-200 ${
-                isDarkMode 
-                  ? 'text-gray-300 hover:bg-gray-800 hover:text-white' 
-                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-              }`}
-              title={!sidebarOpen ? 'Toggle Theme' : ''}
-            >
-              {isDarkMode ? (
-                <svg className="h-5 w-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-                </svg>
-              ) : (
-                <svg className="h-5 w-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-                </svg>
-              )}
-              {sidebarOpen && (
-                <div className="flex-1 text-left">
-                  <div className="font-medium">Toggle Theme</div>
-                  <div className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                    {isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
-                  </div>
-                </div>
-              )}
-            </button>
-          </div>
           
           {/* User Profile */}
           <div className="flex items-center space-x-3">
@@ -548,7 +609,7 @@ const RecruiterDashboard = () => {
               <span className="text-white text-sm font-bold">
                 {user?.name?.charAt(0) || 'R'}
               </span>
-            </div>
+          </div>
             {sidebarOpen && (
               <div className="flex-1">
                 <div className={`text-sm font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
@@ -578,20 +639,6 @@ const RecruiterDashboard = () => {
               AI Hiring Portal
             </h1>
             <div className="flex items-center space-x-2">
-              <button
-                onClick={toggleTheme}
-                className={`p-2 rounded-lg ${isDarkMode ? 'hover:bg-gray-800' : 'hover:bg-gray-100'}`}
-              >
-                {isDarkMode ? (
-                  <svg className="h-5 w-5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-                  </svg>
-                ) : (
-                  <svg className="h-5 w-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-                  </svg>
-                )}
-              </button>
               <div className="w-8 h-8 bg-gradient-to-r from-green-500 to-blue-500 rounded-full flex items-center justify-center">
                 <span className="text-white text-sm font-bold">
                   {user?.name?.charAt(0) || 'R'}
@@ -604,50 +651,6 @@ const RecruiterDashboard = () => {
         {/* Scrollable Content Area */}
         <div className={`flex-1 overflow-y-auto ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
           <div className="w-full px-4 sm:px-6 lg:px-8 py-6">
-        {/* Enhanced Header with Glassmorphism */}
-          <motion.div 
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease: "easeOut" }}
-            className={`mb-6 p-8 rounded-2xl border backdrop-blur-xl ${isDarkMode 
-              ? 'bg-black/30 border-blue-500/40 shadow-2xl shadow-blue-500/10' 
-              : 'bg-white/80 border-blue-200/50 shadow-2xl shadow-blue-500/5'
-            }`}
-          >
-            <div className="flex items-center space-x-4 mb-4">
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-                className={`p-3 rounded-xl ${isDarkMode ? 'bg-blue-500/20' : 'bg-blue-100'}`}
-              >
-                <Bot className={`h-8 w-8 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} />
-              </motion.div>
-              <div>
-                <motion.h1 
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.3, duration: 0.6 }}
-                  className={`text-3xl font-bold bg-gradient-to-r ${isDarkMode 
-                    ? 'from-white to-blue-200 bg-clip-text text-transparent' 
-                    : 'from-gray-900 to-blue-600 bg-clip-text text-transparent'
-                  }`}
-                >
-              AI Hiring Platform
-                </motion.h1>
-                <motion.p 
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.4, duration: 0.6 }}
-                  className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}
-                >
-              Create jobs with AI-powered multi-round interviews and manage candidates
-                </motion.p>
-        </div>
-            </div>
-          </motion.div>
-
-
         {/* Tab Content */}
         <div className="flex-1 overflow-y-auto">
         {activeTab === 'jobs' && (
@@ -1000,6 +1003,54 @@ const RecruiterDashboard = () => {
                             >
                               Describe the job you want to hire for. Be as detailed as possible - include job title, level, requirements, responsibilities, company info, etc. AI will extract all details and create tailored interview questions.
                             </motion.p>
+
+                            {/* Job Type Selector */}
+                            <motion.div 
+                              initial={{ opacity: 0, y: 20 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: 1.05, duration: 0.6 }}
+                              className="mb-4"
+                            >
+                              <label className={`block text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'} mb-2`}>
+                                Interview Type
+                              </label>
+                              <div className="flex space-x-4">
+                                <button
+                                  onClick={() => setJobType('developer')}
+                                  className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+                                    jobType === 'developer'
+                                      ? isDarkMode
+                                        ? 'bg-blue-600 text-white shadow-lg'
+                                        : 'bg-blue-600 text-white shadow-lg'
+                                      : isDarkMode
+                                        ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                  }`}
+                                >
+                                  💻 Developer Interview
+                                </button>
+                                <button
+                                  onClick={() => setJobType('sales')}
+                                  className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+                                    jobType === 'sales'
+                                      ? isDarkMode
+                                        ? 'bg-blue-600 text-white shadow-lg'
+                                        : 'bg-blue-600 text-white shadow-lg'
+                                      : isDarkMode
+                                        ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                  }`}
+                                >
+                                  💼 Sales Interview
+                                </button>
+                              </div>
+                              <p className={`text-xs mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                                {jobType === 'developer' 
+                                  ? 'Technical rounds: Intro (no coding), Basic Tech (theory only), Coding (hands-on), Advanced Tech (concepts), Behavioral, Final Feedback'
+                                  : 'Sales rounds: Self Intro, Basic Sales, Sales Pitch, Objection Handling, Communication, Final Feedback'
+                                }
+                              </p>
+                            </motion.div>
                             
                             <motion.div 
                               initial={{ opacity: 0, y: 20 }}
@@ -1016,7 +1067,10 @@ const RecruiterDashboard = () => {
                                     ? 'bg-black/30 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 hover:border-blue-400' 
                                     : 'bg-white/80 border-gray-300 text-gray-900 placeholder-gray-500 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 hover:border-blue-400'
                                 }`}
-                                placeholder="Example: I need to hire a Senior React Developer for our fintech startup. The role involves building modern web applications using React, TypeScript, and Node.js. Requirements include 5+ years of React experience, strong knowledge of JavaScript/TypeScript, experience with Redux, REST APIs, and Git. The person will work remotely, salary range $100k-$140k. They'll be responsible for developing new features, maintaining existing code, and mentoring junior developers..."
+                                placeholder={jobType === 'developer' 
+                                  ? "Example: I need to hire a Senior React Developer for our fintech startup. The role involves building modern web applications using React, TypeScript, and Node.js. Requirements include 5+ years of React experience, strong knowledge of JavaScript/TypeScript, experience with Redux, REST APIs, and Git. The person will work remotely, salary range $100k-$140k. They'll be responsible for developing new features, maintaining existing code, and mentoring junior developers..."
+                                  : "Example: I need to hire a Sales Manager for our SaaS company. The role involves managing a team of 5 sales representatives, developing sales strategies, meeting quarterly targets, and building relationships with enterprise clients. Requirements include 3+ years of sales management experience, proven track record of meeting/exceeding targets, experience with CRM systems, and strong leadership skills. The person will work in our downtown office, salary range $80k-$120k plus commission. They'll be responsible for team performance, client acquisition, and revenue growth..."
+                                }
                               />
                               
                               {/* Animated character counter */}
@@ -1652,15 +1706,46 @@ const RecruiterDashboard = () => {
                 </button>
               </div>
 
-              {/* Filters */}
+              {/* Job-based Filters */}
               <div className="mb-6">
                 <h3 className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'} mb-4`}>
-                  🔍 Filter {candidateViewType === 'interview' ? 'Interview' : 'Applied'} Candidates
+                  🔍 Filter by Job Postings
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                
+                {/* Job Selection with Application Counts */}
+                <div className="mb-4">
+                  <label className={`block text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'} mb-2`}>
+                    Select Job to View Applications
+                  </label>
+                  <select
+                    value={candidateFilters.jobId}
+                    onChange={(e) => handleCandidateFilterChange('jobId', e.target.value)}
+                    className={`w-full px-3 py-2 rounded-lg border-2 transition-all duration-200 ${
+                      isDarkMode 
+                        ? 'bg-gray-800 border-gray-600 text-white focus:border-blue-500' 
+                        : 'bg-white border-gray-300 text-gray-900 focus:border-blue-500'
+                    }`}
+                  >
+                    <option value="">All Jobs</option>
+                    {recruiterJobs.map(job => {
+                      const applicationCount = candidates.applied?.filter(app => app.jobTitle === job.title).length || 0;
+                      const interviewCount = candidates.interview?.filter(app => app.jobTitle === job.title).length || 0;
+                      const totalCount = applicationCount + interviewCount;
+                      
+                      return (
+                        <option key={job._id} value={job._id}>
+                          {job.title} - {totalCount} {totalCount === 1 ? 'application' : 'applications'} ({applicationCount} applied, {interviewCount} interviewed)
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+
+                {/* Additional Filters */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className={`block text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'} mb-2`}>
-                      Status
+                      Application Status
                     </label>
                     <select
                       value={candidateFilters.status}
@@ -1681,7 +1766,8 @@ const RecruiterDashboard = () => {
                         </>
                       ) : (
                         <>
-                          <option value="applied">Applied</option>
+                          <option value="pending">Pending</option>
+                          <option value="reviewing">Reviewing</option>
                           <option value="shortlisted">Shortlisted</option>
                           <option value="rejected">Rejected</option>
                         </>
@@ -1690,34 +1776,13 @@ const RecruiterDashboard = () => {
                   </div>
                   <div>
                     <label className={`block text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'} mb-2`}>
-                      Experience Level
-                    </label>
-                    <select
-                      value={candidateFilters.experience}
-                      onChange={(e) => handleCandidateFilterChange('experience', e.target.value)}
-                      className={`w-full px-3 py-2 rounded-lg border-2 transition-all duration-200 ${
-                        isDarkMode 
-                          ? 'bg-gray-800 border-gray-600 text-white focus:border-blue-500' 
-                          : 'bg-white border-gray-300 text-gray-900 focus:border-blue-500'
-                      }`}
-                    >
-                      <option value="">All Levels</option>
-                      <option value="1">1+ years</option>
-                      <option value="2">2+ years</option>
-                      <option value="3">3+ years</option>
-                      <option value="5">5+ years</option>
-                      <option value="7">7+ years</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className={`block text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'} mb-2`}>
-                      Skills
+                      Skills Search
                     </label>
                     <input
                       type="text"
                       value={candidateFilters.skills}
                       onChange={(e) => handleCandidateFilterChange('skills', e.target.value)}
-                      placeholder="e.g., React, Python"
+                      placeholder="e.g., React, Python, JavaScript"
                       className={`w-full px-3 py-2 rounded-lg border-2 transition-all duration-200 ${
                         isDarkMode 
                           ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500' 
@@ -1728,6 +1793,44 @@ const RecruiterDashboard = () => {
                 </div>
               </div>
             </div>
+
+            {/* Job Application Summary */}
+            {recruiterJobs.length > 0 && (
+              <div className={`${isDarkMode ? 'bg-white/10 border border-white/10 backdrop-blur' : 'bg-white'} rounded-2xl shadow-lg p-6 mb-6`}>
+                <h3 className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'} mb-4`}>
+                  📊 Application Summary by Job
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {recruiterJobs.map(job => {
+                    const applicationCount = candidates.applied?.filter(app => app.jobTitle === job.title).length || 0;
+                    const interviewCount = candidates.interview?.filter(app => app.jobTitle === job.title).length || 0;
+                    const totalCount = applicationCount + interviewCount;
+                    
+                    return (
+                      <div key={job._id} className={`${isDarkMode ? 'bg-gray-800/50 border border-gray-700' : 'bg-gray-50 border border-gray-200'} rounded-lg p-4`}>
+                        <h4 className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'} mb-2`}>
+                          {job.title}
+                        </h4>
+                        <div className="space-y-1 text-sm">
+                          <div className={`flex justify-between ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                            <span>Total Applications:</span>
+                            <span className="font-medium">{totalCount}</span>
+                          </div>
+                          <div className={`flex justify-between ${isDarkMode ? 'text-blue-300' : 'text-blue-600'}`}>
+                            <span>Applied:</span>
+                            <span className="font-medium">{applicationCount}</span>
+                          </div>
+                          <div className={`flex justify-between ${isDarkMode ? 'text-green-300' : 'text-green-600'}`}>
+                            <span>Interviewed:</span>
+                            <span className="font-medium">{interviewCount}</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* Candidates List */}
             {candidatesLoading ? (
@@ -2425,6 +2528,172 @@ const RecruiterDashboard = () => {
                 </p>
               </div>
             )}
+          </div>
+        )}
+
+        {activeTab === 'manage-jobs' && (
+          <div className="space-y-6">
+            {/* Job Management Header */}
+            <div className={`${isDarkMode ? 'bg-gradient-to-r from-blue-900/50 to-slate-900/50 border border-blue-500/30 backdrop-blur' : 'bg-gradient-to-r from-blue-600 to-slate-700'} rounded-2xl shadow-2xl p-6`}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-white'} mb-2`}>
+                    📋 Job Management
+                  </h2>
+                  <p className={`${isDarkMode ? 'text-blue-200' : 'text-blue-100'}`}>
+                    Manage your job postings - view, edit, activate, pause, or delete
+                  </p>
+                </div>
+                <div className="flex items-center space-x-4">
+                  <div className={`${isDarkMode ? 'bg-white/20' : 'bg-white/20'} rounded-xl p-4`}>
+                    <div className="text-2xl font-bold text-white">
+                      {recruiterJobs.length}
+                    </div>
+                    <div className="text-sm text-blue-100">Total Jobs</div>
+                  </div>
+                  <div className={`${isDarkMode ? 'bg-white/20' : 'bg-white/20'} rounded-xl p-4`}>
+                    <div className="text-2xl font-bold text-white">
+                      {recruiterJobs.filter(job => job.status === 'active').length}
+                    </div>
+                    <div className="text-sm text-blue-100">Active</div>
+                  </div>
+                  <div className={`${isDarkMode ? 'bg-white/20' : 'bg-white/20'} rounded-xl p-4`}>
+                    <div className="text-2xl font-bold text-white">
+                      {recruiterJobs.filter(job => job.status === 'paused').length}
+                    </div>
+                    <div className="text-sm text-blue-100">Paused</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Job Management List */}
+            <div className={`${isDarkMode ? 'bg-white/10 border border-white/10 backdrop-blur' : 'bg-white'} rounded-2xl shadow-lg p-6`}>
+              <h3 className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'} mb-4`}>
+                Your Job Postings
+              </h3>
+              
+              {recruiterJobs.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className={`text-6xl mb-4 ${isDarkMode ? 'text-gray-600' : 'text-gray-400'}`}>📝</div>
+                  <h3 className={`text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'} mb-2`}>
+                    No Jobs Posted Yet
+                  </h3>
+                  <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'} mb-6`}>
+                    Start by creating your first job posting to attract candidates.
+                  </p>
+                  <button
+                    onClick={() => setActiveTab('jobs')}
+                    className="btn btn-primary"
+                  >
+                    Create Your First Job
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {recruiterJobs.map((job) => {
+                    const applicationCount = candidates.applied?.filter(app => app.jobTitle === job.title).length || 0;
+                    const interviewCount = candidates.interview?.filter(app => app.jobTitle === job.title).length || 0;
+                    const totalApplications = applicationCount + interviewCount;
+                    
+                    return (
+                      <div key={job._id} className={`${isDarkMode ? 'bg-gray-800/50 border border-gray-700' : 'bg-gray-50 border border-gray-200'} rounded-xl p-6`}>
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-3 mb-2">
+                              <h4 className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                                {job.title}
+                              </h4>
+                              <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                                job.status === 'active' 
+                                  ? 'bg-green-100 text-green-800' 
+                                  : job.status === 'paused'
+                                  ? 'bg-yellow-100 text-yellow-800'
+                                  : 'bg-gray-100 text-gray-800'
+                              }`}>
+                                {job.status}
+                              </span>
+                            </div>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                              <div>
+                                <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Company</p>
+                                <p className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{job.company}</p>
+                              </div>
+                              <div>
+                                <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Location</p>
+                                <p className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{job.location}</p>
+                              </div>
+                              <div>
+                                <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Applications</p>
+                                <p className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                                  {totalApplications} total ({applicationCount} applied, {interviewCount} interviewed)
+                                </p>
+                              </div>
+                            </div>
+                            
+                            <p className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} line-clamp-2`}>
+                              {job.description}
+                            </p>
+                          </div>
+                          
+                          <div className="flex flex-col space-y-2 ml-4">
+                            {/* View Button */}
+                            <button
+                              onClick={() => window.open(`/jobs/${job._id}`, '_blank')}
+                              className={`px-3 py-1 text-sm rounded-lg transition-all duration-200 ${
+                                isDarkMode 
+                                  ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                                  : 'bg-blue-600 hover:bg-blue-700 text-white'
+                              }`}
+                            >
+                              👁️ View
+                            </button>
+                            
+                            {/* Status Toggle Buttons */}
+                            {job.status === 'active' ? (
+                              <button
+                                onClick={() => handleJobStatusChange(job._id, 'paused')}
+                                className={`px-3 py-1 text-sm rounded-lg transition-all duration-200 ${
+                                  isDarkMode 
+                                    ? 'bg-yellow-600 hover:bg-yellow-700 text-white' 
+                                    : 'bg-yellow-600 hover:bg-yellow-700 text-white'
+                                }`}
+                              >
+                                ⏸️ Pause
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => handleJobStatusChange(job._id, 'active')}
+                                className={`px-3 py-1 text-sm rounded-lg transition-all duration-200 ${
+                                  isDarkMode 
+                                    ? 'bg-green-600 hover:bg-green-700 text-white' 
+                                    : 'bg-green-600 hover:bg-green-700 text-white'
+                                }`}
+                              >
+                                ▶️ Activate
+                              </button>
+                            )}
+                            
+                            {/* Delete Button */}
+                            <button
+                              onClick={() => handleDeleteJob(job._id)}
+                              className={`px-3 py-1 text-sm rounded-lg transition-all duration-200 ${
+                                isDarkMode 
+                                  ? 'bg-red-600 hover:bg-red-700 text-white' 
+                                  : 'bg-red-600 hover:bg-red-700 text-white'
+                              }`}
+                            >
+                              🗑️ Delete
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
         )}
 

@@ -44,6 +44,7 @@ app.use('/api/applications', require('./routes/applications'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/interviews', require('./routes/interviews'));
 app.use('/api/ai', require('./routes/ai'));
+app.use('/api/ai', require('./routes/aiEvaluation'));
 
 // Serve static files from React app in production
 if (process.env.NODE_ENV === 'production') {

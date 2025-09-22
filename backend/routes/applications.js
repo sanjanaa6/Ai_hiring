@@ -77,6 +77,33 @@ router.get('/my', auth, authorize('candidate'), async (req, res) => {
   }
 });
 
+// Get all applications for recruiter's jobs
+router.get('/recruiter', [
+  auth,
+  authorize('recruiter', 'admin')
+], async (req, res) => {
+  try {
+    // Get all jobs posted by this recruiter
+    const jobs = await Job.find({ postedBy: req.user._id });
+    const jobIds = jobs.map(job => job._id);
+
+    if (jobIds.length === 0) {
+      return res.json([]);
+    }
+
+    // Get all applications for these jobs
+    const applications = await Application.find({ job: { $in: jobIds } })
+      .populate('candidate', 'name email profile')
+      .populate('job', 'title company location type')
+      .sort({ createdAt: -1 });
+
+    res.json(applications);
+  } catch (error) {
+    console.error('Get recruiter applications error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // Get applications for a job (recruiters only)
 router.get('/job/:jobId', [
   auth,
