@@ -3,11 +3,17 @@ import { useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from 'react-query';
 import axios from 'axios';
 import { toast } from 'react-toastify';
-import { Plus, X } from 'lucide-react';
+import { Plus, X, Save, ArrowLeft, Sparkles } from 'lucide-react';
+import AIJobPrompt from '../components/AIJobPrompt';
+import QuickJobCreator from '../components/QuickJobCreator';
+import OnePromptJobCreator from '../components/OnePromptJobCreator';
 
-const CreateJob = () => {
+const JobCreate = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [showAIPrompt, setShowAIPrompt] = useState(false);
+  const [showQuickCreator, setShowQuickCreator] = useState(false);
+  const [showOnePromptCreator, setShowOnePromptCreator] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -22,7 +28,8 @@ const CreateJob = () => {
     },
     requirements: [''],
     skills: [''],
-    benefits: ['']
+    benefits: [''],
+    status: 'active'
   });
 
   const createJobMutation = useMutation(
@@ -33,8 +40,8 @@ const CreateJob = () => {
     {
       onSuccess: () => {
         toast.success('Job created successfully!');
-        queryClient.invalidateQueries('jobs');
-        navigate('/dashboard');
+        queryClient.invalidateQueries('recruiter-jobs');
+        navigate('/jobs/manage');
       },
       onError: (error) => {
         toast.error(error.response?.data?.message || 'Failed to create job');
@@ -101,15 +108,66 @@ const CreateJob = () => {
     createJobMutation.mutate(cleanedData);
   };
 
+  const handleAIJobGenerated = (aiJobData) => {
+    setFormData(prev => ({
+      ...prev,
+      title: aiJobData.title || prev.title,
+      description: aiJobData.description || prev.description,
+      requirements: aiJobData.requirements || prev.requirements,
+      skills: aiJobData.skills || prev.skills,
+      benefits: aiJobData.benefits || prev.benefits
+    }));
+    setShowAIPrompt(false);
+    toast.success('AI-generated content has been applied to your job posting!');
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-gray-50 pt-24 pb-8">
       <div className="container mx-auto px-4">
         <div className="max-w-4xl mx-auto">
+          {/* Header */}
           <div className="mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <button
+                onClick={() => navigate('/jobs/manage')}
+                className="flex items-center text-gray-600 hover:text-gray-900"
+              >
+                <ArrowLeft className="h-5 w-5 mr-1" />
+                Back to Jobs
+              </button>
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => setShowOnePromptCreator(true)}
+                  className="btn btn-primary flex items-center space-x-2"
+                >
+                  <Sparkles className="h-5 w-5" />
+                  <span>One-Prompt Create</span>
+                </button>
+                <button
+                  onClick={() => setShowQuickCreator(true)}
+                  className="btn btn-outline flex items-center space-x-2"
+                >
+                  <Sparkles className="h-5 w-5" />
+                  <span>Step-by-Step</span>
+                </button>
+                <button
+                  onClick={() => setShowAIPrompt(true)}
+                  className="btn btn-outline flex items-center space-x-2"
+                >
+                  <Sparkles className="h-5 w-5" />
+                  <span>AI Assistant</span>
+                </button>
+              </div>
+            </div>
             <h1 className="text-3xl font-bold text-gray-900 mb-2">Post a New Job</h1>
             <p className="text-gray-600">
-              Create a job posting to attract the best candidates for your open position.
+              Create a job posting to attract the best candidates for your open position. Choose your preferred method:
             </p>
+            <div className="mt-3 text-sm text-gray-500">
+              <p><strong>One-Prompt Create:</strong> Describe your job in one sentence, AI fills all details and posts it</p>
+              <p><strong>Step-by-Step:</strong> AI generates content, then you review and customize before posting</p>
+              <p><strong>AI Assistant:</strong> Generate content to copy and paste into the manual form below</p>
+            </div>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-8">
@@ -186,6 +244,20 @@ const CreateJob = () => {
                     <option value="mid">Mid Level</option>
                     <option value="senior">Senior Level</option>
                     <option value="executive">Executive</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="form-label">Status</label>
+                  <select
+                    name="status"
+                    className="form-select"
+                    value={formData.status}
+                    onChange={handleChange}
+                  >
+                    <option value="active">Active</option>
+                    <option value="paused">Paused</option>
+                    <option value="draft">Draft</option>
                   </select>
                 </div>
               </div>
@@ -356,7 +428,7 @@ const CreateJob = () => {
             <div className="flex justify-end space-x-4">
               <button
                 type="button"
-                onClick={() => navigate('/dashboard')}
+                onClick={() => navigate('/jobs/manage')}
                 className="btn btn-secondary"
               >
                 Cancel
@@ -364,16 +436,47 @@ const CreateJob = () => {
               <button
                 type="submit"
                 disabled={createJobMutation.isLoading}
-                className="btn btn-primary"
+                className="btn btn-primary flex items-center space-x-2"
               >
-                {createJobMutation.isLoading ? 'Creating Job...' : 'Post Job'}
+                <Save className="h-5 w-5" />
+                <span>{createJobMutation.isLoading ? 'Creating Job...' : 'Post Job'}</span>
               </button>
             </div>
           </form>
         </div>
       </div>
+
+      {/* AI Job Prompt Modal */}
+      {showAIPrompt && (
+        <AIJobPrompt
+          onJobGenerated={handleAIJobGenerated}
+          onClose={() => setShowAIPrompt(false)}
+        />
+      )}
+
+      {/* One-Prompt Job Creator Modal */}
+      {showOnePromptCreator && (
+        <OnePromptJobCreator
+          onJobCreated={() => {
+            setShowOnePromptCreator(false);
+            navigate('/jobs/manage');
+          }}
+          onClose={() => setShowOnePromptCreator(false)}
+        />
+      )}
+
+      {/* Quick Job Creator Modal */}
+      {showQuickCreator && (
+        <QuickJobCreator
+          onJobCreated={() => {
+            setShowQuickCreator(false);
+            navigate('/jobs/manage');
+          }}
+          onClose={() => setShowQuickCreator(false)}
+        />
+      )}
     </div>
   );
 };
 
-export default CreateJob;
+export default JobCreate;

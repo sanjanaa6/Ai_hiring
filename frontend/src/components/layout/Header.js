@@ -5,19 +5,12 @@ import { useTheme } from '../../context/ThemeContext';
 import ThemeSwitcher from '../common/ThemeSwitcher';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  ChevronDown, 
-  FileText, 
   Settings, 
-  Users,  
-  Layout,
   Download,
   Zap,
   Menu,
   X,
   ArrowRight,
-  Home as HomeIcon,
-  Briefcase,
-  Grid3x3,
   Sparkles,
   ExternalLink
 } from 'lucide-react';
@@ -56,17 +49,11 @@ const Header = () => {
     };
   }, []);
 
-  const commonNav = [
-    { name: 'Home', path: '/', icon: HomeIcon },
-    { name: 'Jobs', path: '/jobs', icon: Briefcase },
-  ];
+  // Removed navigation items - only show logo and essential elements
+  const commonNav = [];
+  const authNav = [];
 
-  const authNav = [
-    { name: 'Dashboard', path: '/dashboard', icon: Layout },
-    { name: 'Applications', path: '/applications', icon: FileText },
-  ];
-
-  const isActive = (path) => location.pathname === path;
+  // Removed isActive function as navigation items are removed
   const isScrolled = scrollY > 50;
 
   return (
@@ -109,47 +96,7 @@ const Header = () => {
             </motion.span>
           </Link>
 
-          <div className="hidden lg:flex items-center space-x-8">
-            <div className="flex items-center space-x-6">
-              {[...commonNav, ...(user ? authNav : [])].map((item, index) => (
-                <motion.div
-                  key={item.name}
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                >
-                  <Link
-                    to={item.path}
-                    className={`group relative flex items-center space-x-2 px-4 py-2 rounded-xl text-sm font-bold transition-all duration-300 ${
-                      isActive(item.path)
-                        ? 'text-white shadow-lg'
-                        : `${isDarkMode ? 'text-white/90 hover:text-white' : 'text-gray-700 hover:text-gray-900'} hover:bg-white/10`
-                    }`}
-                    style={{
-                      backgroundColor: isActive(item.path) ? '#17a2b8' : undefined,
-                      boxShadow: isActive(item.path) ? '0 4px 20px rgba(23, 162, 184, 0.4)' : 'none'
-                    }}
-                  >
-                    {!isActive(item.path) && (
-                      <motion.div
-                        className="absolute inset-0 rounded-xl bg-gradient-to-r from-teal-400/20 to-purple-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                        whileHover={{ scale: 1.05 }}
-                      />
-                    )}
-                    
-                    <motion.div
-                      whileHover={{ scale: 1.1 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <item.icon className="w-4 h-4 relative z-10" />
-                    </motion.div>
-                    <span className="relative z-10">{item.name}</span>
-                    
-                  </Link>
-                </motion.div>
-              ))}
-            </div>
-          </div>
+          {/* Navigation items removed - only show logo and essential elements */}
 
           <div className="hidden lg:flex items-center space-x-6">
             {/* Apps grid button */}
@@ -366,28 +313,7 @@ const Header = () => {
                       <p className="text-sm text-gray-400 truncate">{user.email || ''}</p>
                     </div>
                   </motion.div>
-                  {[...commonNav, ...authNav].map((item, index) => (
-                    <motion.div
-                      key={item.name}
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.3 + index * 0.1 }}
-                    >
-                      <Link
-                        to={item.path}
-                        className={`flex items-center space-x-4 px-6 py-4 rounded-2xl transition-all duration-300 ${
-                          isActive(item.path)
-                            ? 'text-white bg-gradient-to-r from-purple-500 to-pink-500'
-                            : 'text-gray-300 hover:text-white hover:bg-white/10'
-                        }`}
-                        onClick={() => setIsMobileMenuOpen(false)}
-                      >
-                        <item.icon className="w-6 h-6" />
-                        <span className="font-bold">{item.name}</span>
-                        <ArrowRight className="w-4 h-4 ml-auto opacity-50" />
-                      </Link>
-                    </motion.div>
-                  ))}
+                  {/* Navigation items removed - only show user profile and logout */}
                   <div className="border-t border-white/20 mt-8 pt-8 space-y-4">
                     <motion.div
                       initial={{ opacity: 0, x: 20 }}
@@ -429,20 +355,17 @@ const Header = () => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.3 }}
                 >
-                  {[...commonNav, { name: 'Login', path: '/login', icon: ArrowRight }].map((item) => (
-                    <Link 
-                      key={item.name}
-                      to={item.path} 
-                      className="flex items-center justify-center space-x-3 w-full py-4 text-white rounded-2xl font-bold overflow-hidden"
-                      style={{
-                        background: 'linear-gradient(135deg, #9333ea 0%, #ec4899 50%, #3b82f6 100%)',
-                      }}
-                      onClick={() => setIsMobileMenuOpen(false)}
-                    >
-                      <item.icon className="w-5 h-5" />
-                      <span>{item.name}</span>
-                    </Link>
-                  ))}
+                  <Link 
+                    to="/login" 
+                    className="flex items-center justify-center space-x-3 w-full py-4 text-white rounded-2xl font-bold overflow-hidden"
+                    style={{
+                      background: 'linear-gradient(135deg, #9333ea 0%, #ec4899 50%, #3b82f6 100%)',
+                    }}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <ArrowRight className="w-5 h-5" />
+                    <span>Login</span>
+                  </Link>
                 </motion.div>
               )}
             </div>

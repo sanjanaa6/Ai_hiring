@@ -1,9 +1,9 @@
 import React from 'react';
-import UserNavbar from './UserNavbar';
 import { useTheme } from '../../context/ThemeContext';
 
 const UserLayout = ({ children }) => {
   const { isDarkMode } = useTheme();
+  
   return (
     <div
       className="h-screen flex flex-col overflow-hidden"
@@ -13,7 +13,6 @@ const UserLayout = ({ children }) => {
           : '#f9fafb'
       }}
     >
-      <UserNavbar />
       <main className="flex-1 overflow-hidden pt-16">
         {children}
       </main>

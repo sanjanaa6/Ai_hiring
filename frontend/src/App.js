@@ -11,20 +11,22 @@ import { AuthProvider } from './context/AuthContext';
 import Header from './components/layout/Header';
 import { ThemeProvider } from './context/ThemeContext';
 import ProtectedRoute from './components/ProtectedRoute';
+import ConditionalLanding from './components/ConditionalLanding';
 
 // Pages
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
-import Jobs from './pages/Jobs';
 import JobDetails from './pages/JobDetails';
-import CreateJob from './pages/CreateJob';
 import Applications from './pages/Applications';
 import Profile from './pages/Profile';
 import Interview from './pages/Interview';
 import StyleTest from './components/StyleTest';
 import OpenRouterTest from './components/OpenRouterTest';
 import NotFound from './pages/NotFound';
+
+// Job components
+import { JobSearch, JobManagement, JobCreate } from './jobs';
 
 // Landing Pages
 import LandingPage from './landing/LandingPage';
@@ -65,9 +67,9 @@ function AppShell() {
       {!hideGlobalNavbar && <Header />}
       <main className="flex-1">
         <Routes>
-          {/* Landing Page */}
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/landing" element={<LandingPage />} />
+          {/* Landing Page - Only shows when not logged in */}
+          <Route path="/" element={<ConditionalLanding />} />
+          <Route path="/landing" element={<ConditionalLanding />} />
           
           {/* Legal Pages */}
           <Route path="/terms" element={<TermsOfService />} />
@@ -79,7 +81,7 @@ function AppShell() {
           {/* Public Routes */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
-          <Route path="/jobs" element={<Jobs />} />
+          <Route path="/jobs" element={<JobSearch />} />
           <Route path="/jobs/:id" element={<JobDetails />} />
           <Route path="/interview/:interviewId" element={<Interview />} />
           <Route path="/style-test" element={<StyleTest />} />
@@ -91,9 +93,75 @@ function AppShell() {
               <Dashboard />
             </ProtectedRoute>
           } />
+          
+          {/* Recruiter Routes */}
+          <Route path="/recruiter" element={
+            <ProtectedRoute allowedRoles={["recruiter", "admin"]}>
+              <Dashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/recruiter/jobs" element={
+            <ProtectedRoute allowedRoles={["recruiter", "admin"]}>
+              <JobManagement />
+            </ProtectedRoute>
+          } />
+          <Route path="/recruiter/create-job" element={
+            <ProtectedRoute allowedRoles={["recruiter", "admin"]}>
+              <JobCreate />
+            </ProtectedRoute>
+          } />
+          <Route path="/recruiter/applications" element={
+            <ProtectedRoute allowedRoles={["recruiter", "admin"]}>
+              <Applications />
+            </ProtectedRoute>
+          } />
+          <Route path="/recruiter/candidates" element={
+            <ProtectedRoute allowedRoles={["recruiter", "admin"]}>
+              <Applications />
+            </ProtectedRoute>
+          } />
+          <Route path="/recruiter/analytics" element={
+            <ProtectedRoute allowedRoles={["recruiter", "admin"]}>
+              <Dashboard />
+            </ProtectedRoute>
+          } />
+          
+          {/* User/Candidate Routes */}
+          <Route path="/user" element={
+            <ProtectedRoute allowedRoles={["candidate", "user"]}>
+              <Dashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/user/jobs" element={
+            <ProtectedRoute allowedRoles={["candidate", "user"]}>
+              <JobSearch />
+            </ProtectedRoute>
+          } />
+          <Route path="/user/applications" element={
+            <ProtectedRoute allowedRoles={["candidate", "user"]}>
+              <Applications />
+            </ProtectedRoute>
+          } />
+          <Route path="/user/profile" element={
+            <ProtectedRoute allowedRoles={["candidate", "user"]}>
+              <Profile />
+            </ProtectedRoute>
+          } />
+          
+          {/* Legacy Routes */}
           <Route path="/create-job" element={
             <ProtectedRoute allowedRoles={["recruiter", "admin"]}>
-              <CreateJob />
+              <JobCreate />
+            </ProtectedRoute>
+          } />
+          <Route path="/jobs/create" element={
+            <ProtectedRoute allowedRoles={["recruiter", "admin"]}>
+              <JobCreate />
+            </ProtectedRoute>
+          } />
+          <Route path="/jobs/manage" element={
+            <ProtectedRoute allowedRoles={["recruiter", "admin"]}>
+              <JobManagement />
             </ProtectedRoute>
           } />
           <Route path="/applications" element={

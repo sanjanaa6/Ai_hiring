@@ -169,4 +169,39 @@ router.get('/my/jobs', auth, authorize('recruiter', 'admin'), async (req, res) =
   }
 });
 
+// Update job status (recruiters only)
+router.patch('/:id/status', [
+  auth,
+  authorize('recruiter', 'admin')
+], async (req, res) => {
+  try {
+    const { status } = req.body;
+    
+    if (!['active', 'paused', 'draft', 'closed'].includes(status)) {
+      return res.status(400).json({ message: 'Invalid status' });
+    }
+
+    const job = await Job.findById(req.params.id);
+    
+    if (!job) {
+      return res.status(404).json({ message: 'Job not found' });
+    }
+
+    if (job.postedBy.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Not authorized to update this job' });
+    }
+
+    job.status = status;
+    await job.save();
+
+    res.json({
+      message: 'Job status updated successfully',
+      job
+    });
+  } catch (error) {
+    console.error('Update job status error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 module.exports = router;

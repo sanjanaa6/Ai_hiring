@@ -22,7 +22,7 @@ const Register = () => {
 
   useEffect(() => {
     if (isAuthenticated) {
-      navigate('/dashboard');
+      navigate('/');
     }
   }, [isAuthenticated, navigate]);
 
@@ -56,7 +56,7 @@ const Register = () => {
       
       if (result.success) {
         toast.success('Registration successful!');
-        navigate('/dashboard');
+        navigate('/');
       } else {
         toast.error(result.message);
       }
