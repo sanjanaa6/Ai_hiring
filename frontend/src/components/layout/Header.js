@@ -118,6 +118,21 @@ const Header = () => {
               </div>
             </button>
 
+            {/* Coding Tutor link */}
+            <Link
+              to="/coding-tutor"
+              className="relative h-10 flex items-center gap-2 px-4 rounded-2xl text-white hover:scale-105 transition-all duration-200"
+              style={{
+                background: 'linear-gradient(135deg, rgba(34,197,94,.45), rgba(59,130,246,.45))',
+                boxShadow: 'inset 0 0 0 2px rgba(34,197,94,.35), 0 10px 28px rgba(34,197,94,.28)'
+              }}
+            >
+              <span className="flex items-center justify-center w-6 h-6 rounded-full bg-green-600">
+                <ExternalLink className="w-4 h-4" />
+              </span>
+              <span className="font-semibold">Coding Tutor</span>
+            </Link>
+
             {/* Portal pill */}
             <Link
               to={user ? '/dashboard' : '/login'}
@@ -313,8 +328,24 @@ const Header = () => {
                       <p className="text-sm text-gray-400 truncate">{user.email || ''}</p>
                     </div>
                   </motion.div>
-                  {/* Navigation items removed - only show user profile and logout */}
+                  {/* Navigation items */}
                   <div className="border-t border-white/20 mt-8 pt-8 space-y-4">
+                    <motion.div
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.5 }}
+                    >
+                      <Link 
+                        to="/coding-tutor"
+                        className="flex items-center space-x-4 px-6 py-4 text-white hover:bg-white/10 rounded-2xl transition-all duration-300"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                      >
+                        <ExternalLink className="w-6 h-6 text-blue-400" />
+                        <span className="font-bold">Coding Tutor</span>
+                        <ArrowRight className="w-4 h-4 ml-auto opacity-50" />
+                      </Link>
+                    </motion.div>
+                    
                     <motion.div
                       initial={{ opacity: 0, x: 20 }}
                       animate={{ opacity: 1, x: 0 }}

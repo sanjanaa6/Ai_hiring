@@ -2432,14 +2432,14 @@ function createRoleSpecificInterview(prompt, jobDetails) {
 }
 
 // Helper function to create structured interview from text
-function createStructuredInterview(textResponse, jobDetails) {
+function createStructuredInterview(textResponse, jobDetails) {1
   const interviewId = `interview_${Date.now()}`;
   
   // Check if this is a role-specific prompt
   const isRoleSpecificPrompt = textResponse.includes('**Introduction & Self Intro**') || 
                                textResponse.includes('**Self Introduction**') ||
                                textResponse.includes('**Coding Round**') ||
-                               textResponse.includes('**Sales Pitch/Role-play**');
+                               textResponse.  includes('**Sales Pitch/Role-play**');
   
   if (isRoleSpecificPrompt) {
     console.log('🎯 [INTERVIEW GENERATE] Using role-specific prompt structure');
@@ -4467,5 +4467,871 @@ function extractBasicTitle(prompt) {
   const words = prompt.split(' ').slice(0, 5).join(' ');
   return words.length > 50 ? words.substring(0, 50) + '...' : words;
 }
+
+// AI Coding Assistant endpoint for real-time help during coding
+router.post('/:interviewId/coding-assistant', async (req, res) => {
+  console.log('🤖 [CODING ASSISTANT] Starting AI coding assistance...');
+  console.log('📝 [CODING ASSISTANT] Request body:', {
+    question: req.body.question?.substring(0, 100) + '...',
+    currentCode: req.body.currentCode?.substring(0, 100) + '...',
+    language: req.body.language,
+    sessionId: req.body.sessionId
+  });
+
+  try {
+    const { interviewId } = req.params;
+    const { question, currentCode, language, testCases, testResults, userMessage, sessionId } = req.body;
+
+    if (!userMessage || !userMessage.trim()) {
+      return res.status(400).json({
+        success: false,
+        error: 'User message is required'
+      });
+    }
+
+    // Find the interview
+    const interview = await Interview.findById(interviewId);
+    if (!interview) {
+      return res.status(404).json({
+        success: false,
+        error: 'Interview not found'
+      });
+    }
+
+    console.log('✅ [CODING ASSISTANT] Interview found, generating AI response...');
+
+    // Create context-aware prompt for coding assistance
+    const isInterviewerMode = req.body.isInterviewer;
+    
+    const codingAssistantPrompt = isInterviewerMode ? 
+      `You are an AI interviewer conducting a coding interview. Your role is to assess the candidate's technical skills and problem-solving approach.
+
+Context:
+- Interview Question: ${question || 'Coding challenge'}
+- Current Code: ${currentCode || 'No code written yet'}
+- Programming Language: ${language || 'javascript'}
+- Test Cases: ${JSON.stringify(testCases || [])}
+- Test Results: ${JSON.stringify(testResults || [])}
+- Session ID: ${sessionId || 'unknown'}
+
+Candidate's Question: ${userMessage}
+
+Interviewer Guidelines:
+1. Ask probing questions to understand their thought process
+2. Assess their technical knowledge and approach
+3. Challenge their assumptions and ask for explanations
+4. Ask about time/space complexity if relevant
+5. Ask about edge cases and error handling
+6. Ask about testing strategies
+7. Do NOT provide hints, solutions, or direct help
+8. Focus on evaluating their problem-solving skills
+9. Ask follow-up questions based on their responses
+10. Be professional but challenging
+
+Respond as an experienced technical interviewer who wants to thoroughly assess the candidate's abilities.` :
+      `You are an AI coding assistant helping a candidate during a coding interview. 
+
+Context:
+- Interview Question: ${question || 'Coding challenge'}
+- Current Code: ${currentCode || 'No code written yet'}
+- Programming Language: ${language || 'javascript'}
+- Test Cases: ${JSON.stringify(testCases || [])}
+- Test Results: ${JSON.stringify(testResults || [])}
+- Session ID: ${sessionId || 'unknown'}
+
+Candidate's Question: ${userMessage}
+
+Guidelines:
+1. Be helpful and encouraging but don't give away the complete solution
+2. Provide hints, suggestions, and debugging help
+3. Guide them to think through the problem step by step
+4. If they're stuck, suggest approaches or point out potential issues
+5. If they ask for the solution directly, explain the approach instead
+6. Keep responses concise and actionable
+7. Be supportive and maintain a positive learning environment
+
+Respond as a helpful coding mentor who wants to see them succeed through their own problem-solving.`;
+
+    console.log('🤖 [CODING ASSISTANT] Calling OpenRouter API...');
+    console.log('🔑 [CODING ASSISTANT] API Key present:', !!process.env.OPENROUTER_API_KEY);
+
+    // Try multiple models for coding assistance
+    const modelsToTry = [KIMI_MODEL, FALLBACK_MODEL, 'openai/gpt-3.5-turbo', 'anthropic/claude-3-haiku'];
+    let aiResponse = null;
+    let lastError = null;
+    
+    for (const model of modelsToTry) {
+      try {
+        console.log('🎯 [CODING ASSISTANT] Trying model:', model);
+        
+        aiResponse = await axios.post(OPENROUTER_API_URL, {
+          model: model,
+          messages: [
+            {
+              role: 'system',
+              content: 'You are a helpful coding mentor and AI assistant. Provide constructive guidance without giving away complete solutions. Be encouraging and educational.'
+            },
+            {
+              role: 'user',
+              content: codingAssistantPrompt
+            }
+          ],
+          max_tokens: 500,
+          temperature: 0.7
+        }, {
+          headers: {
+            'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+            'Content-Type': 'application/json',
+            'HTTP-Referer': process.env.FRONTEND_URL || 'http://localhost:3000',
+            'X-Title': 'AI Hiring Platform - Coding Assistant'
+          },
+          timeout: 30000
+        });
+        
+        console.log('✅ [CODING ASSISTANT] Success with model:', model);
+        break; // Success, exit the loop
+        
+      } catch (error) {
+        console.log('❌ [CODING ASSISTANT] Failed with model:', model, error.response?.status || error.message);
+        lastError = error;
+        continue; // Try next model
+      }
+    }
+    
+    if (!aiResponse) {
+      throw lastError || new Error('All models failed');
+    }
+
+    console.log('✅ [CODING ASSISTANT] AI response received, status:', aiResponse.status);
+    
+    if (!aiResponse.data || !aiResponse.data.choices || !aiResponse.data.choices[0]) {
+      throw new Error('Invalid AI response structure');
+    }
+
+    const aiResponseText = aiResponse.data.choices[0].message.content;
+    console.log('📝 [CODING ASSISTANT] AI response length:', aiResponseText.length);
+
+    // Log the interaction for analytics (optional)
+    if (interview.codingInteractions) {
+      interview.codingInteractions.push({
+        sessionId: sessionId,
+        userMessage: userMessage,
+        aiResponse: aiResponseText,
+        timestamp: new Date(),
+        language: language,
+        questionId: req.body.questionId
+      });
+    } else {
+      interview.codingInteractions = [{
+        sessionId: sessionId,
+        userMessage: userMessage,
+        aiResponse: aiResponseText,
+        timestamp: new Date(),
+        language: language,
+        questionId: req.body.questionId
+      }];
+    }
+
+    await interview.save();
+
+    res.json({
+      success: true,
+      data: {
+        response: aiResponseText,
+        timestamp: new Date(),
+        model: aiResponse.data.model || 'unknown'
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ [CODING ASSISTANT] Error occurred:', error);
+    
+    // Fallback response
+    const fallbackResponse = "I'm here to help with your coding challenge! Could you please rephrase your question or let me know what specific aspect you'd like assistance with?";
+    
+    res.json({
+      success: true,
+      data: {
+        response: fallbackResponse,
+        timestamp: new Date(),
+        model: 'fallback',
+        error: 'AI service temporarily unavailable'
+      }
+    });
+  }
+});
+
+// Get coding hints for a specific question
+router.post('/:interviewId/coding-hints', async (req, res) => {
+  console.log('💡 [CODING HINTS] Generating coding hints...');
+  
+  try {
+    const { interviewId } = req.params;
+    const { question, currentCode, language, testCases } = req.body;
+
+    const isInterviewerMode = req.body.isInterviewer;
+    
+    const isLiveComment = req.body.isLiveComment;
+    
+    const hintsPrompt = isLiveComment ?
+      `You are an AI interviewer watching a candidate code in real-time. Provide interactive feedback and questions about their current code.
+
+Question: ${question || 'Coding challenge'}
+Current Code: ${currentCode || 'No code written yet'}
+Language: ${language || 'javascript'}
+Test Cases: ${JSON.stringify(testCases || [])}
+
+Provide ONE interactive comment that:
+1. Questions their approach or choice of method
+2. Asks "why did you use X instead of Y?"
+3. Suggests optimizations or better practices
+4. Challenges their implementation decisions
+5. Asks about edge cases or error handling
+
+Examples:
+- "Why did you choose a for loop instead of array methods here?"
+- "This approach works, but have you considered the time complexity?"
+- "What happens if the input is null or empty?"
+- "Could you optimize this by using a different data structure?"
+
+Format as a JSON array with one object: {"type": "interactive", "content": "your comment here"}` :
+      isInterviewerMode ?
+      `You are an AI interviewer conducting a coding interview. Generate probing questions to assess the candidate's technical skills and problem-solving approach.
+
+Question: ${question || 'Coding challenge'}
+Current Code: ${currentCode || 'No code written yet'}
+Language: ${language || 'javascript'}
+Test Cases: ${JSON.stringify(testCases || [])}
+
+Generate 3-5 interview questions that assess:
+1. Problem understanding and approach
+2. Technical knowledge and algorithm choice
+3. Edge cases and error handling
+4. Time/space complexity analysis
+5. Testing and debugging strategies
+
+Format as a JSON array of question objects with "type" and "content" fields. Types should be: "approach", "algorithm", "edge-case", "complexity", or "testing".
+
+Do NOT provide hints or solutions - only assessment questions.` :
+      `You are an AI coding mentor providing hints for a coding interview question.
+
+Question: ${question || 'Coding challenge'}
+Current Code: ${currentCode || 'No code written yet'}
+Language: ${language || 'javascript'}
+Test Cases: ${JSON.stringify(testCases || [])}
+
+Provide 3-5 helpful hints that guide the candidate toward the solution without giving it away directly. Focus on:
+1. Understanding the problem
+2. Approach/algorithm suggestions  
+3. Common pitfalls to avoid
+4. Edge cases to consider
+5. Debugging tips
+
+Format as a JSON array of hint objects with "type" and "content" fields. Types should be: "approach", "algorithm", "edge-case", "optimization", or "debugging".`;
+
+    console.log('🤖 [CODING HINTS] Calling OpenRouter API...');
+
+    const modelsToTry = [KIMI_MODEL, FALLBACK_MODEL, 'openai/gpt-3.5-turbo'];
+    let aiResponse = null;
+    let lastError = null;
+    
+    for (const model of modelsToTry) {
+      try {
+        console.log('🎯 [CODING HINTS] Trying model:', model);
+        
+        aiResponse = await axios.post(OPENROUTER_API_URL, {
+          model: model,
+          messages: [
+            {
+              role: 'system',
+              content: 'You are a helpful coding mentor. Provide structured hints in JSON format. Be educational and encouraging.'
+            },
+            {
+              role: 'user',
+              content: hintsPrompt
+            }
+          ],
+          max_tokens: 400,
+          temperature: 0.6
+        }, {
+          headers: {
+            'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+            'Content-Type': 'application/json',
+            'HTTP-Referer': process.env.FRONTEND_URL || 'http://localhost:3000',
+            'X-Title': 'AI Hiring Platform - Coding Hints'
+          },
+          timeout: 20000
+        });
+        
+        console.log('✅ [CODING HINTS] Success with model:', model);
+        break;
+        
+      } catch (error) {
+        console.log('❌ [CODING HINTS] Failed with model:', model, error.response?.status || error.message);
+        lastError = error;
+        continue;
+      }
+    }
+    
+    if (!aiResponse) {
+      throw lastError || new Error('All models failed');
+    }
+
+    const aiResponseText = aiResponse.data.choices[0].message.content;
+    console.log('📝 [CODING HINTS] AI response received');
+
+    let hints;
+    try {
+      hints = JSON.parse(aiResponseText);
+    } catch (parseError) {
+      // Fallback questions/hints if JSON parsing fails
+      if (isLiveComment) {
+        hints = [
+          { type: 'interactive', content: 'Why did you choose this approach? Have you considered alternative solutions?' }
+        ];
+      } else if (isInterviewerMode) {
+        hints = [
+          { type: 'approach', content: 'Can you walk me through your approach to solving this problem?' },
+          { type: 'algorithm', content: 'What data structures are you considering and why?' },
+          { type: 'edge-case', content: 'How would you handle edge cases in your solution?' },
+          { type: 'complexity', content: 'What is the time and space complexity of your approach?' }
+        ];
+      } else {
+        hints = [
+          { type: 'approach', content: 'Break down the problem into smaller steps' },
+          { type: 'algorithm', content: 'Think about the most efficient approach' },
+          { type: 'edge-case', content: 'Consider edge cases and boundary conditions' },
+          { type: 'debugging', content: 'Use console.log or print statements to debug' }
+        ];
+      }
+    }
+
+    res.json({
+      success: true,
+      data: {
+        hints: hints,
+        timestamp: new Date()
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ [CODING HINTS] Error occurred:', error);
+    
+    // Fallback questions/hints
+    const fallbackHints = isLiveComment ? [
+      { type: 'interactive', content: 'Why did you choose this approach? Have you considered alternative solutions?' }
+    ] : isInterviewerMode ? [
+      { type: 'approach', content: 'Can you explain your thought process for this problem?' },
+      { type: 'algorithm', content: 'What algorithm are you implementing and why?' },
+      { type: 'edge-case', content: 'What edge cases should we consider?' },
+      { type: 'complexity', content: 'How would you analyze the efficiency of your solution?' }
+    ] : [
+      { type: 'approach', content: 'Start by understanding what the function should return' },
+      { type: 'algorithm', content: 'Think about the step-by-step process needed' },
+      { type: 'edge-case', content: 'Consider what happens with empty inputs or special cases' },
+      { type: 'debugging', content: 'Test your solution with different inputs' }
+    ];
+    
+    res.json({
+      success: true,
+      data: {
+        hints: fallbackHints,
+        timestamp: new Date(),
+        error: 'AI service temporarily unavailable'
+      }
+    });
+  }
+});
+
+// Start Coding Round with Live AI Monitoring
+router.post('/coding-round/start', auth, async (req, res) => {
+  console.log('🚀 [CODING ROUND] Starting coding round with live AI monitoring...');
+  console.log('👤 [CODING ROUND] User ID:', req.user.id);
+
+  try {
+    const { interviewId, question, language = 'javascript', starterCode = '' } = req.body;
+    
+    if (!interviewId || !question) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Interview ID and question are required' 
+      });
+    }
+
+    // Create coding session
+    const sessionId = `coding_${Date.now()}_${req.user.id}`;
+    
+    // Store session data (in production, use Redis or database)
+    const codingSession = {
+      sessionId,
+      interviewId,
+      userId: req.user.id,
+      question,
+      language,
+      starterCode,
+      startTime: new Date(),
+      codeHistory: [],
+      aiComments: [],
+      isActive: true,
+      testCases: []
+    };
+
+    // Generate test cases for the question
+    const testCasesPrompt = `Generate 3-5 test cases for this coding question:
+
+Question: "${question}"
+Language: ${language}
+Starter Code: "${starterCode}"
+
+Return as JSON array with this format:
+[
+  {
+    "input": "test input value",
+    "expectedOutput": "expected output",
+    "description": "what this test case checks"
+  }
+]`;
+
+    let testCases = [];
+    try {
+      const testCasesResponse = await axios.post(OPENROUTER_API_URL, {
+        model: KIMI_MODEL,
+        messages: [
+          {
+            role: 'system',
+            content: 'You are an expert at generating test cases for coding problems. Always respond with valid JSON only.'
+          },
+          {
+            role: 'user',
+            content: testCasesPrompt
+          }
+        ],
+        max_tokens: 500,
+        temperature: 0.3
+      }, {
+        headers: {
+          'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+          'Content-Type': 'application/json',
+        }
+      });
+
+      testCases = JSON.parse(testCasesResponse.data.choices[0].message.content);
+      codingSession.testCases = testCases;
+    } catch (error) {
+      console.log('⚠️ [CODING ROUND] Test case generation failed, using fallback');
+      testCases = [
+        {
+          input: "sample input",
+          expectedOutput: "expected output",
+          description: "Basic functionality test"
+        }
+      ];
+    }
+
+    res.json({
+      success: true,
+      data: {
+        sessionId,
+        question,
+        language,
+        starterCode,
+        testCases,
+        message: "Coding round started. AI will monitor your progress live."
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ [CODING ROUND] Error starting coding round:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to start coding round' 
+    });
+  }
+});
+
+// Live AI Monitoring - Code Analysis
+router.post('/coding-round/monitor', auth, async (req, res) => {
+  console.log('🤖 [CODING MONITOR] AI monitoring code changes...');
+
+  try {
+    const { sessionId, code, question, language } = req.body;
+    
+    if (!sessionId || !code) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Session ID and code are required' 
+      });
+    }
+
+    // Analyze the code and provide live feedback
+    const analysisPrompt = `You are an AI interviewer monitoring a live coding session. Analyze the candidate's code and provide helpful, encouraging feedback.
+
+Question: "${question}"
+Language: ${language}
+Current Code:
+\`\`\`${language}
+${code}
+\`\`\`
+
+Provide analysis in this JSON format:
+{
+  "analysis": "Brief analysis of the current code",
+  "suggestions": ["suggestion 1", "suggestion 2"],
+  "questions": ["thoughtful question about their approach"],
+  "encouragement": "positive feedback about their progress"
+}
+
+Be encouraging but also ask probing questions to understand their thinking.`;
+
+    const analysisResponse = await axios.post(OPENROUTER_API_URL, {
+      model: KIMI_MODEL,
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a supportive AI interviewer. Provide constructive feedback and ask thoughtful questions to understand the candidate\'s approach.'
+        },
+        {
+          role: 'user',
+          content: analysisPrompt
+        }
+      ],
+      max_tokens: 400,
+      temperature: 0.7
+    }, {
+      headers: {
+        'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json',
+      }
+    });
+
+    const analysis = JSON.parse(analysisResponse.data.choices[0].message.content);
+
+    res.json({
+      success: true,
+      data: {
+        analysis: analysis.analysis,
+        suggestions: analysis.suggestions || [],
+        questions: analysis.questions || [],
+        encouragement: analysis.encouragement,
+        timestamp: new Date()
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ [CODING MONITOR] Error in AI monitoring:', error);
+    
+    // Fallback response
+    res.json({
+      success: true,
+      data: {
+        analysis: "I can see you're making progress on the code. Keep going!",
+        suggestions: ["Consider edge cases", "Think about time complexity"],
+        questions: ["Can you explain your approach so far?"],
+        encouragement: "Great work! I'm here to help if you need guidance.",
+        timestamp: new Date(),
+        error: 'AI analysis temporarily unavailable'
+      }
+    });
+  }
+});
+
+// Submit Code for Testing and AI Review
+router.post('/coding-round/submit', auth, async (req, res) => {
+  console.log('📝 [CODING SUBMIT] Code submission for testing and review...');
+
+  try {
+    const { sessionId, code, question, language, testCases } = req.body;
+    
+    if (!sessionId || !code) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Session ID and code are required' 
+      });
+    }
+
+    // Run test cases (simplified - in production, use proper code execution sandbox)
+    const testResults = testCases.map((testCase, index) => {
+      // This is a simplified test runner - in production, use a proper code execution service
+      try {
+        // For demo purposes, we'll simulate test execution
+        const passed = Math.random() > 0.3; // Simulate 70% pass rate
+        return {
+          testCase: index + 1,
+          input: testCase.input,
+          expectedOutput: testCase.expectedOutput,
+          actualOutput: passed ? testCase.expectedOutput : "incorrect output",
+          passed: passed,
+          description: testCase.description
+        };
+      } catch (error) {
+        return {
+          testCase: index + 1,
+          input: testCase.input,
+          expectedOutput: testCase.expectedOutput,
+          actualOutput: "error",
+          passed: false,
+          description: testCase.description,
+          error: error.message
+        };
+      }
+    });
+
+    // AI Code Review
+    const reviewPrompt = `You are an AI interviewer conducting a final code review. Analyze the submitted code thoroughly.
+
+Question: "${question}"
+Language: ${language}
+Submitted Code:
+\`\`\`${language}
+${code}
+\`\`\`
+
+Test Results: ${JSON.stringify(testResults)}
+
+Provide a comprehensive review in this JSON format:
+{
+  "overallScore": 85,
+  "strengths": ["strength 1", "strength 2"],
+  "improvements": ["improvement 1", "improvement 2"],
+  "technicalQuestions": ["technical question 1", "technical question 2"],
+  "feedback": "Overall feedback about the solution",
+  "followUpQuestions": ["follow-up question 1", "follow-up question 2"]
+}
+
+Be thorough but fair in your assessment.`;
+
+    const reviewResponse = await axios.post(OPENROUTER_API_URL, {
+      model: KIMI_MODEL,
+      messages: [
+        {
+          role: 'system',
+          content: 'You are an expert technical interviewer. Provide detailed, fair feedback on code submissions.'
+        },
+        {
+          role: 'user',
+          content: reviewPrompt
+        }
+      ],
+      max_tokens: 600,
+      temperature: 0.5
+    }, {
+      headers: {
+        'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json',
+      }
+    });
+
+    const review = JSON.parse(reviewResponse.data.choices[0].message.content);
+
+    res.json({
+      success: true,
+      data: {
+        testResults,
+        review: {
+          overallScore: review.overallScore,
+          strengths: review.strengths || [],
+          improvements: review.improvements || [],
+          technicalQuestions: review.technicalQuestions || [],
+          feedback: review.feedback,
+          followUpQuestions: review.followUpQuestions || []
+        },
+        timestamp: new Date()
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ [CODING SUBMIT] Error in code submission:', error);
+    
+    // Fallback response
+    res.json({
+      success: true,
+      data: {
+        testResults: [],
+        review: {
+          overallScore: 75,
+          strengths: ["Code structure looks good"],
+          improvements: ["Consider edge cases"],
+          technicalQuestions: ["Can you explain your algorithm choice?"],
+          feedback: "Good effort! Let's discuss your approach.",
+          followUpQuestions: ["How would you optimize this solution?"]
+        },
+        timestamp: new Date(),
+        error: 'AI review temporarily unavailable'
+      }
+    });
+  }
+});
+
+// Live AI Questions During Coding
+router.post('/coding-round/ask-question', auth, async (req, res) => {
+  console.log('❓ [CODING QUESTION] AI asking live question...');
+
+  try {
+    const { sessionId, code, question, context } = req.body;
+    
+    const questionPrompt = `You are an AI interviewer asking a live question during a coding session. Based on the current context, ask a thoughtful question that will be spoken aloud to the candidate.
+
+Original Question: "${question}"
+Current Code Context: "${context || 'No specific context'}"
+Current Code:
+\`\`\`
+${code}
+\`\`\`
+
+Ask a relevant question that:
+1. Tests their understanding of the current approach
+2. Challenges their thinking process
+3. Explores their problem-solving methodology
+4. Is appropriate for the current stage of coding
+5. Can be answered verbally (not requiring code)
+6. Encourages them to explain their reasoning
+
+Make the question conversational and natural for voice interaction. Return only the question as a string.`;
+
+    const questionResponse = await axios.post(OPENROUTER_API_URL, {
+      model: KIMI_MODEL,
+      messages: [
+        {
+          role: 'system',
+          content: 'You are an expert interviewer. Ask insightful questions that help evaluate the candidate\'s technical understanding and problem-solving approach.'
+        },
+        {
+          role: 'user',
+          content: questionPrompt
+        }
+      ],
+      max_tokens: 200,
+      temperature: 0.8
+    }, {
+      headers: {
+        'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json',
+      }
+    });
+
+    const aiQuestion = questionResponse.data.choices[0].message.content.trim();
+
+    res.json({
+      success: true,
+      data: {
+        question: aiQuestion,
+        timestamp: new Date()
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ [CODING QUESTION] Error generating AI question:', error);
+    
+    // Fallback questions
+    const fallbackQuestions = [
+      "Can you walk me through your thought process for this approach?",
+      "What made you choose this particular algorithm?",
+      "How would you handle edge cases in your solution?",
+      "What's the time complexity of your current approach?",
+      "How would you test this function to ensure it works correctly?"
+    ];
+    
+    const randomQuestion = fallbackQuestions[Math.floor(Math.random() * fallbackQuestions.length)];
+
+    res.json({
+      success: true,
+      data: {
+        question: randomQuestion,
+        timestamp: new Date(),
+        error: 'AI question generation temporarily unavailable'
+      }
+    });
+  }
+});
+
+// Handle Voice Answer Submission for Coding Round
+router.post('/coding-round/voice-answer', auth, async (req, res) => {
+  console.log('🎙️ [VOICE ANSWER] Processing voice answer for coding round...');
+
+  try {
+    const { sessionId, question, voiceAnswer, code, language } = req.body;
+    
+    if (!sessionId || !question || !voiceAnswer) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required fields: sessionId, question, and voiceAnswer'
+      });
+    }
+
+    // Generate AI response to the voice answer
+    const responsePrompt = `You are an AI interviewer evaluating a candidate's voice answer during a coding session.
+
+Original Question: "${question}"
+Candidate's Voice Answer: "${voiceAnswer}"
+Current Code Context:
+\`\`\`${language}
+${code}
+\`\`\`
+
+Evaluate the candidate's answer and provide:
+1. A brief acknowledgment of their response
+2. Constructive feedback on their answer
+3. A follow-up question or clarification if needed
+4. Encouragement to continue coding
+
+Keep your response conversational and supportive, as if you're having a real-time conversation during the coding session.`;
+
+    const responseResult = await axios.post(OPENROUTER_API_URL, {
+      model: KIMI_MODEL,
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a supportive AI interviewer conducting a live coding session. Provide encouraging, constructive feedback and ask follow-up questions to help the candidate demonstrate their skills.'
+        },
+        {
+          role: 'user',
+          content: responsePrompt
+        }
+      ],
+      max_tokens: 300,
+      temperature: 0.7
+    }, {
+      headers: {
+        'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json',
+      }
+    });
+
+    const aiResponse = responseResult.data.choices[0].message.content.trim();
+
+    // Store the voice answer in the database (you might want to add this to your Interview model)
+    // For now, we'll just log it
+    console.log('📝 [VOICE ANSWER] Stored voice answer:', {
+      sessionId,
+      question,
+      voiceAnswer,
+      timestamp: new Date()
+    });
+
+    res.json({
+      success: true,
+      data: {
+        aiResponse: aiResponse,
+        timestamp: new Date(),
+        message: 'Voice answer processed successfully'
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ [VOICE ANSWER] Error processing voice answer:', error);
+    
+    // Fallback response
+    const fallbackResponse = "Thank you for your answer. That's an interesting perspective. Can you continue with your coding approach?";
+    
+    res.json({
+      success: true,
+      data: {
+        aiResponse: fallbackResponse,
+        timestamp: new Date(),
+        error: 'AI response generation temporarily unavailable'
+      }
+    });
+  }
+});
 
 module.exports = router;

@@ -23,6 +23,7 @@ import Profile from './pages/Profile';
 import Interview from './pages/Interview';
 import StyleTest from './components/StyleTest';
 import OpenRouterTest from './components/OpenRouterTest';
+import InteractiveCodingTutor from './components/InteractiveCodingTutor';
 import NotFound from './pages/NotFound';
 
 // Job components
@@ -86,6 +87,7 @@ function AppShell() {
           <Route path="/interview/:interviewId" element={<Interview />} />
           <Route path="/style-test" element={<StyleTest />} />
           <Route path="/openrouter-test" element={<OpenRouterTest />} />
+          <Route path="/coding-tutor" element={<InteractiveCodingTutor />} />
           
           {/* Protected Routes */}
           <Route path="/dashboard" element={

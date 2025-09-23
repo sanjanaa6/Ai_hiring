@@ -162,6 +162,33 @@ Please include:
 
     return await this.generateResponse(prompt, { userRole: 'recruiter' });
   }
+
+  // Coding Assistant Methods
+  async getCodingAssistant(interviewId, data) {
+    try {
+      const response = await axios.post(`/api/interviews/${interviewId}/coding-assistant`, data);
+      return response.data;
+    } catch (error) {
+      console.error('Coding Assistant Error:', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message
+      };
+    }
+  }
+
+  async getCodingHints(interviewId, data) {
+    try {
+      const response = await axios.post(`/api/interviews/${interviewId}/coding-hints`, data);
+      return response.data;
+    } catch (error) {
+      console.error('Coding Hints Error:', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message
+      };
+    }
+  }
 }
 
 export default new AIService();
