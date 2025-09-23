@@ -27,7 +27,8 @@ const EnhancedCodeEditor = ({
   isFullScreen = false,
   onToggleFullScreen,
   sessionId = null,
-  onAIQuestionGenerated = null
+  onAIQuestionGenerated = null,
+  languageLocked = false
 }) => {
   const [code, setCode] = useState(starterCode);
   const [output, setOutput] = useState('');
@@ -312,14 +313,22 @@ const EnhancedCodeEditor = ({
         {/* Code Editor Header */}
         <div className="bg-gray-50 px-4 py-3 border-b border-gray-300 flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            {/* Language Display (Locked) */}
-            <div className="flex items-center space-x-2 px-3 py-1 text-sm bg-red-100 border border-red-300 rounded">
-              <span className="font-medium text-red-800">
+            {/* Language Display */}
+            <div className={`flex items-center space-x-2 px-3 py-1 text-sm rounded ${
+              languageLocked 
+                ? 'bg-red-100 border border-red-300' 
+                : 'bg-blue-100 border border-blue-300'
+            }`}>
+              <span className={`font-medium ${
+                languageLocked ? 'text-red-800' : 'text-blue-800'
+              }`}>
                 {supportedLanguages.find(lang => lang.value === selectedLanguage)?.label || 'JavaScript'}
               </span>
-              <span className="text-xs text-red-600 bg-red-200 px-2 py-1 rounded">
-                LOCKED
-              </span>
+              {languageLocked && (
+                <span className="text-xs text-red-600 bg-red-200 px-2 py-1 rounded">
+                  LOCKED
+                </span>
+              )}
             </div>
             
             {disabled && (

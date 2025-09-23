@@ -90,76 +90,122 @@ const JobCard = ({
 
   return (
     <motion.div
-      className={`group relative rounded-2xl border shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden ${
+      className={`group relative rounded-2xl border shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden ${
         isDarkMode 
-          ? 'bg-gray-800 border-gray-700 hover:border-blue-500' 
-          : 'bg-white border-gray-200 hover:border-blue-300'
+          ? 'bg-black border-gray-800 hover:border-gray-600' 
+          : 'bg-white border-gray-200 hover:border-gray-400'
       }`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       whileHover={{ y: -4 }}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
+      transition={{ duration: 0.3, ease: "easeOut" }}
     >
-      {/* Gradient overlay on hover */}
-      <div className={`absolute inset-0 bg-gradient-to-br from-blue-50/50 to-purple-50/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
       
       <div className="relative p-6">
         {/* Header with save button */}
         <div className="flex justify-between items-start mb-4">
           <div className="flex-1">
-            {/* Company logo placeholder */}
-            <div className="flex items-center mb-3">
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center text-white font-bold text-lg mr-4">
-                {job.company?.charAt(0) || 'C'}
-              </div>
-              <div>
-                <h2 className={`text-xl font-bold group-hover:text-blue-600 transition-colors ${
-                  isDarkMode ? 'text-white' : 'text-gray-900'
-                }`}>
+            {/* Monochrome company logo and header */}
+            <div className="flex items-center mb-4">
+              <motion.div 
+                className={`relative w-14 h-14 rounded-2xl flex items-center justify-center font-bold text-xl mr-4 shadow-lg ${
+                  isDarkMode 
+                    ? 'bg-white text-black' 
+                    : 'bg-black text-white'
+                }`}
+                whileHover={{ scale: 1.05 }}
+                transition={{ duration: 0.2 }}
+              >
+                <span className="relative z-10">{job.company?.charAt(0) || 'C'}</span>
+              </motion.div>
+              <div className="flex-1">
+                <motion.h2 
+                  className={`text-xl font-bold transition-colors duration-300 ${
+                    isDarkMode ? 'text-white' : 'text-gray-900'
+                  }`}
+                  whileHover={{ x: 5 }}
+                  transition={{ duration: 0.2 }}
+                >
                   {job.title}
-                </h2>
-                <div className={`flex items-center transition-colors ${
-                  isDarkMode ? 'text-gray-300' : 'text-gray-600'
-                }`}>
-                  <Building className="h-4 w-4 mr-1" />
+                </motion.h2>
+                <motion.div 
+                  className={`flex items-center transition-colors duration-300 ${
+                    isDarkMode ? 'text-gray-300' : 'text-gray-600'
+                  }`}
+                  whileHover={{ x: 5 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <Building className="h-4 w-4 mr-2" />
                   <span className="font-medium">{job.company}</span>
-                </div>
+                </motion.div>
               </div>
             </div>
           </div>
           
-          {/* Save button */}
+          {/* Monochrome save button */}
           {isCandidate && (
             <motion.button
               onClick={handleSaveJob}
-              className={`p-2 rounded-full transition-all duration-200 ${
+              className={`p-3 rounded-xl transition-all duration-300 ${
                 isLiked 
-                  ? 'text-red-500 bg-red-50 hover:bg-red-100' 
-                  : 'text-gray-400 hover:text-red-500 hover:bg-red-50'
+                  ? isDarkMode
+                    ? 'text-white bg-gray-800 hover:bg-gray-700 shadow-lg' 
+                    : 'text-black bg-gray-100 hover:bg-gray-200 shadow-lg'
+                  : isDarkMode
+                    ? 'text-gray-400 hover:text-white hover:bg-gray-800 hover:shadow-md'
+                    : 'text-gray-400 hover:text-black hover:bg-gray-100 hover:shadow-md'
               }`}
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.95 }}
+              animate={{ 
+                scale: isLiked ? [1, 1.1, 1] : 1
+              }}
+              transition={{ duration: 0.3 }}
             >
               <Heart className={`h-5 w-5 ${isLiked ? 'fill-current' : ''}`} />
             </motion.button>
           )}
         </div>
 
-        {/* Job type and experience badges */}
-        <div className="flex flex-wrap gap-2 mb-4">
-          <span className={`px-3 py-1 text-xs font-medium rounded-full border ${getJobTypeColor(job.type)}`}>
+        {/* Monochrome job type and experience badges */}
+        <div className="flex flex-wrap gap-3 mb-4">
+          <motion.span 
+            className={`px-4 py-2 text-xs font-semibold rounded-full border shadow-sm ${
+              isDarkMode 
+                ? 'bg-gray-800 text-white border-gray-600' 
+                : 'bg-gray-100 text-black border-gray-300'
+            }`}
+            whileHover={{ scale: 1.05, y: -2 }}
+            transition={{ duration: 0.2 }}
+          >
             {job.type.replace('-', ' ').toUpperCase()}
-          </span>
-          <span className={`px-3 py-1 text-xs font-medium rounded-full ${getExperienceColor(job.experienceLevel)}`}>
+          </motion.span>
+          <motion.span 
+            className={`px-4 py-2 text-xs font-semibold rounded-full shadow-sm ${
+              isDarkMode 
+                ? 'bg-gray-700 text-white' 
+                : 'bg-gray-200 text-black'
+            }`}
+            whileHover={{ scale: 1.05, y: -2 }}
+            transition={{ duration: 0.2 }}
+          >
             {job.experienceLevel.replace('-', ' ').toUpperCase()}
-          </span>
+          </motion.span>
           {job.salary && (job.salary.min || job.salary.max) && (
-            <span className="px-3 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
+            <motion.span 
+              className={`px-4 py-2 text-xs font-semibold rounded-full border shadow-sm ${
+                isDarkMode 
+                  ? 'bg-gray-600 text-white border-gray-500' 
+                  : 'bg-gray-300 text-black border-gray-400'
+              }`}
+              whileHover={{ scale: 1.05, y: -2 }}
+              transition={{ duration: 0.2 }}
+            >
               <DollarSign className="h-3 w-3 inline mr-1" />
               {formatSalary(job.salary)}
-            </span>
+            </motion.span>
           )}
         </div>
 
@@ -180,29 +226,38 @@ const JobCard = ({
           {job.description}
         </p>
 
-        {/* Skills */}
+        {/* Monochrome Skills */}
         {job.skills && job.skills.length > 0 && (
-          <div className="mb-4">
+          <div className="mb-6">
             <div className="flex flex-wrap gap-2">
               {job.skills.slice(0, 4).map((skill, index) => (
                 <motion.span
                   key={index}
-                  className={`px-2 py-1 text-xs rounded-md font-medium border transition-colors ${
+                  className={`px-3 py-1.5 text-xs rounded-lg font-medium border transition-all duration-200 ${
                     isDarkMode 
-                      ? 'bg-blue-900/50 text-blue-300 border-blue-700' 
-                      : 'bg-blue-50 text-blue-700 border-blue-200'
+                      ? 'bg-gray-800 text-white border-gray-600 hover:border-gray-400' 
+                      : 'bg-gray-100 text-black border-gray-300 hover:border-gray-500'
                   }`}
-                  whileHover={{ scale: 1.05 }}
+                  whileHover={{ scale: 1.05, y: -2 }}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 }}
                 >
                   {skill}
                 </motion.span>
               ))}
               {job.skills.length > 4 && (
-                <span className={`px-2 py-1 text-xs rounded-md transition-colors ${
-                  isDarkMode ? 'bg-gray-700 text-gray-400' : 'bg-gray-100 text-gray-600'
-                }`}>
+                <motion.span 
+                  className={`px-3 py-1.5 text-xs rounded-lg font-medium transition-all duration-200 ${
+                    isDarkMode ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                  whileHover={{ scale: 1.05, y: -2 }}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.4 }}
+                >
                   +{job.skills.length - 4} more
-                </span>
+                </motion.span>
               )}
             </div>
           </div>
@@ -210,7 +265,7 @@ const JobCard = ({
 
         {/* Footer */}
         <div className={`flex justify-between items-center pt-4 border-t transition-colors ${
-          isDarkMode ? 'border-gray-700' : 'border-gray-100'
+          isDarkMode ? 'border-gray-800' : 'border-gray-200'
         }`}>
           <div className={`flex items-center space-x-4 text-sm transition-colors ${
             isDarkMode ? 'text-gray-400' : 'text-gray-500'
@@ -259,31 +314,51 @@ const JobCard = ({
                 </>
               ) : (
                 <>
-                  <Link
-                    to={`/jobs/${job._id}`}
-                    className="btn btn-outline btn-sm flex items-center space-x-1"
+                  <motion.div
+                    whileHover={{ scale: 1.05, y: -2 }}
+                    whileTap={{ scale: 0.95 }}
                   >
-                    <ExternalLink className="h-4 w-4" />
-                    <span>View Details</span>
-                  </Link>
+                    <Link
+                      to={`/jobs/${job._id}`}
+                      className={`px-6 py-2.5 border-2 rounded-xl font-semibold text-sm flex items-center space-x-2 transition-all duration-300 shadow-sm hover:shadow-lg ${
+                        isDarkMode 
+                          ? 'border-white text-white hover:bg-white hover:text-black' 
+                          : 'border-black text-black hover:bg-black hover:text-white'
+                      }`}
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                      <span>View Details</span>
+                    </Link>
+                  </motion.div>
                   {!isApplied ? (
                     <motion.button
                       onClick={handleApply}
-                      className="btn btn-primary btn-sm flex items-center space-x-1"
-                      whileHover={{ scale: 1.05 }}
+                      className={`px-6 py-2.5 rounded-xl font-semibold text-sm flex items-center space-x-2 shadow-lg hover:shadow-xl transition-all duration-300 ${
+                        isDarkMode 
+                          ? 'bg-white text-black hover:bg-gray-200' 
+                          : 'bg-black text-white hover:bg-gray-800'
+                      }`}
+                      whileHover={{ scale: 1.05, y: -2 }}
                       whileTap={{ scale: 0.95 }}
                     >
                       <Zap className="h-4 w-4" />
                       <span>Apply Now</span>
                     </motion.button>
                   ) : (
-                    <button
-                      className="btn btn-success btn-sm flex items-center space-x-1"
+                    <motion.button
+                      className={`px-6 py-2.5 rounded-xl font-semibold text-sm flex items-center space-x-2 shadow-lg ${
+                        isDarkMode 
+                          ? 'bg-gray-600 text-white' 
+                          : 'bg-gray-400 text-white'
+                      }`}
                       disabled
+                      initial={{ scale: 0.8 }}
+                      animate={{ scale: 1 }}
+                      transition={{ duration: 0.3 }}
                     >
                       <Award className="h-4 w-4" />
                       <span>Applied</span>
-                    </button>
+                    </motion.button>
                   )}
                 </>
               )}

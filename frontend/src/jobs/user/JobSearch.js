@@ -292,8 +292,8 @@ const JobSearch = () => {
     <div 
       className={`min-h-screen pt-24 pb-8 transition-colors duration-300 ${
         isDarkMode 
-          ? 'bg-gradient-to-br from-gray-900 via-blue-900/20 to-purple-900/20' 
-          : 'bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30'
+          ? 'bg-black' 
+          : 'bg-white'
       }`}
     >
       <div className="container mx-auto px-4">
@@ -431,7 +431,11 @@ const JobSearch = () => {
             {isRecruiter ? (
               <>
                 <motion.div 
-                  className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-lg transition-all duration-300 border border-gray-100"
+                  className={`rounded-2xl p-6 shadow-sm hover:shadow-lg transition-all duration-300 border ${
+                    isDarkMode 
+                      ? 'bg-gray-900 border-gray-800' 
+                      : 'bg-white border-gray-200'
+                  }`}
                   whileHover={{ y: -2 }}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -442,17 +446,23 @@ const JobSearch = () => {
                       <p className="text-sm font-medium text-gray-600 mb-1">My Jobs</p>
                       <p className="text-3xl font-bold text-gray-900">{jobs.filter(job => job.recruiter === user._id).length}</p>
                     </div>
-                    <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl">
+                    <div className="p-3 bg-black rounded-xl">
                       <Briefcase className="h-6 w-6 text-white" />
                     </div>
                   </div>
-                  <div className="mt-4 flex items-center text-sm text-blue-600">
+                  <div className={`mt-4 flex items-center text-sm ${
+                    isDarkMode ? 'text-white' : 'text-black'
+                  }`}>
                     <TrendingUp className="h-4 w-4 mr-1" />
                     <span>Active postings</span>
                   </div>
                 </motion.div>
                 <motion.div 
-                  className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-lg transition-all duration-300 border border-gray-100"
+                  className={`rounded-2xl p-6 shadow-sm hover:shadow-lg transition-all duration-300 border ${
+                    isDarkMode 
+                      ? 'bg-gray-900 border-gray-800' 
+                      : 'bg-white border-gray-200'
+                  }`}
                   whileHover={{ y: -2 }}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -463,17 +473,23 @@ const JobSearch = () => {
                       <p className="text-sm font-medium text-gray-600 mb-1">Total Applications</p>
                       <p className="text-3xl font-bold text-gray-900">0</p>
                     </div>
-                    <div className="p-3 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl">
+                    <div className="p-3 bg-gray-600 rounded-xl">
                       <Users className="h-6 w-6 text-white" />
                     </div>
                   </div>
-                  <div className="mt-4 flex items-center text-sm text-emerald-600">
+                  <div className={`mt-4 flex items-center text-sm ${
+                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                  }`}>
                     <Target className="h-4 w-4 mr-1" />
                     <span>Across all jobs</span>
                   </div>
                 </motion.div>
                 <motion.div 
-                  className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-lg transition-all duration-300 border border-gray-100"
+                  className={`rounded-2xl p-6 shadow-sm hover:shadow-lg transition-all duration-300 border ${
+                    isDarkMode 
+                      ? 'bg-gray-900 border-gray-800' 
+                      : 'bg-white border-gray-200'
+                  }`}
                   whileHover={{ y: -2 }}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -484,17 +500,23 @@ const JobSearch = () => {
                       <p className="text-sm font-medium text-gray-600 mb-1">Active Jobs</p>
                       <p className="text-3xl font-bold text-gray-900">{jobs.filter(job => job.recruiter === user._id && job.status === 'active').length}</p>
                     </div>
-                    <div className="p-3 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl">
+                    <div className="p-3 bg-gray-700 rounded-xl">
                       <CheckCircle className="h-6 w-6 text-white" />
                     </div>
                   </div>
-                  <div className="mt-4 flex items-center text-sm text-purple-600">
+                  <div className={`mt-4 flex items-center text-sm ${
+                    isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                  }`}>
                     <Zap className="h-4 w-4 mr-1" />
                     <span>Live and accepting</span>
                   </div>
                 </motion.div>
                 <motion.div 
-                  className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-lg transition-all duration-300 border border-gray-100"
+                  className={`rounded-2xl p-6 shadow-sm hover:shadow-lg transition-all duration-300 border ${
+                    isDarkMode 
+                      ? 'bg-gray-900 border-gray-800' 
+                      : 'bg-white border-gray-200'
+                  }`}
                   whileHover={{ y: -2 }}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -505,11 +527,13 @@ const JobSearch = () => {
                       <p className="text-sm font-medium text-gray-600 mb-1">Views This Month</p>
                       <p className="text-3xl font-bold text-gray-900">0</p>
                     </div>
-                    <div className="p-3 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl">
+                    <div className="p-3 bg-gray-800 rounded-xl">
                       <BarChart3 className="h-6 w-6 text-white" />
                     </div>
                   </div>
-                  <div className="mt-4 flex items-center text-sm text-orange-600">
+                  <div className={`mt-4 flex items-center text-sm ${
+                    isDarkMode ? 'text-gray-500' : 'text-gray-500'
+                  }`}>
                     <TrendingUp className="h-4 w-4 mr-1" />
                     <span>Job visibility</span>
                   </div>
@@ -518,7 +542,11 @@ const JobSearch = () => {
             ) : (
               <>
                 <motion.div 
-                  className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-lg transition-all duration-300 border border-gray-100"
+                  className={`rounded-2xl p-6 shadow-sm hover:shadow-lg transition-all duration-300 border ${
+                    isDarkMode 
+                      ? 'bg-gray-900 border-gray-800' 
+                      : 'bg-white border-gray-200'
+                  }`}
                   whileHover={{ y: -2 }}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -529,17 +557,23 @@ const JobSearch = () => {
                       <p className="text-sm font-medium text-gray-600 mb-1">Total Jobs</p>
                       <p className="text-3xl font-bold text-gray-900">{data?.total || 0}</p>
                     </div>
-                    <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl">
+                    <div className="p-3 bg-black rounded-xl">
                       <Briefcase className="h-6 w-6 text-white" />
                     </div>
                   </div>
-                  <div className="mt-4 flex items-center text-sm text-blue-600">
+                  <div className={`mt-4 flex items-center text-sm ${
+                    isDarkMode ? 'text-white' : 'text-black'
+                  }`}>
                     <Search className="h-4 w-4 mr-1" />
                     <span>Available positions</span>
                   </div>
                 </motion.div>
                 <motion.div 
-                  className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-lg transition-all duration-300 border border-gray-100"
+                  className={`rounded-2xl p-6 shadow-sm hover:shadow-lg transition-all duration-300 border ${
+                    isDarkMode 
+                      ? 'bg-gray-900 border-gray-800' 
+                      : 'bg-white border-gray-200'
+                  }`}
                   whileHover={{ y: -2 }}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -550,17 +584,23 @@ const JobSearch = () => {
                       <p className="text-sm font-medium text-gray-600 mb-1">Saved Jobs</p>
                       <p className="text-3xl font-bold text-gray-900">{savedJobs.size}</p>
                     </div>
-                    <div className="p-3 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl">
+                    <div className="p-3 bg-gray-600 rounded-xl">
                       <Bookmark className="h-6 w-6 text-white" />
                     </div>
                   </div>
-                  <div className="mt-4 flex items-center text-sm text-emerald-600">
+                  <div className={`mt-4 flex items-center text-sm ${
+                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                  }`}>
                     <Heart className="h-4 w-4 mr-1" />
                     <span>Your favorites</span>
                   </div>
                 </motion.div>
                 <motion.div 
-                  className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-lg transition-all duration-300 border border-gray-100"
+                  className={`rounded-2xl p-6 shadow-sm hover:shadow-lg transition-all duration-300 border ${
+                    isDarkMode 
+                      ? 'bg-gray-900 border-gray-800' 
+                      : 'bg-white border-gray-200'
+                  }`}
                   whileHover={{ y: -2 }}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -571,17 +611,23 @@ const JobSearch = () => {
                       <p className="text-sm font-medium text-gray-600 mb-1">Applied</p>
                       <p className="text-3xl font-bold text-gray-900">{appliedJobs.size}</p>
                     </div>
-                    <div className="p-3 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl">
+                    <div className="p-3 bg-gray-700 rounded-xl">
                       <CheckCircle className="h-6 w-6 text-white" />
                     </div>
                   </div>
-                  <div className="mt-4 flex items-center text-sm text-purple-600">
+                  <div className={`mt-4 flex items-center text-sm ${
+                    isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                  }`}>
                     <Award className="h-4 w-4 mr-1" />
                     <span>Applications sent</span>
                   </div>
                 </motion.div>
                 <motion.div 
-                  className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-lg transition-all duration-300 border border-gray-100"
+                  className={`rounded-2xl p-6 shadow-sm hover:shadow-lg transition-all duration-300 border ${
+                    isDarkMode 
+                      ? 'bg-gray-900 border-gray-800' 
+                      : 'bg-white border-gray-200'
+                  }`}
                   whileHover={{ y: -2 }}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -592,11 +638,13 @@ const JobSearch = () => {
                       <p className="text-sm font-medium text-gray-600 mb-1">Job Alerts</p>
                       <p className="text-3xl font-bold text-gray-900">{jobAlerts.length}</p>
                     </div>
-                    <div className="p-3 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl">
+                    <div className="p-3 bg-gray-800 rounded-xl">
                       <Bell className="h-6 w-6 text-white" />
                     </div>
                   </div>
-                  <div className="mt-4 flex items-center text-sm text-orange-600">
+                  <div className={`mt-4 flex items-center text-sm ${
+                    isDarkMode ? 'text-gray-500' : 'text-gray-500'
+                  }`}>
                     <Target className="h-4 w-4 mr-1" />
                     <span>Active notifications</span>
                   </div>

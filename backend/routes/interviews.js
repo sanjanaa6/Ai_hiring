@@ -5162,6 +5162,79 @@ Be thorough but fair in your assessment.`;
   }
 });
 
+// Live AI Questions During Sales Rounds
+router.post('/sales-round/ask-question', auth, async (req, res) => {
+  console.log('❓ [SALES QUESTION] AI asking live question...');
+
+  try {
+    const { sessionId, answer, question, context } = req.body;
+    
+    const questionPrompt = `You are an AI interviewer conducting a sales interview. Based on the candidate's answer, ask a thoughtful follow-up question that will be spoken aloud to the candidate.
+
+Original Question: "${question}"
+Candidate's Answer: "${answer}"
+Context: "${context || 'Sales round AI questioning'}"
+
+Ask a relevant follow-up question that:
+1. Tests their sales knowledge and experience
+2. Challenges their approach or methodology
+3. Explores their understanding of sales processes
+4. Evaluates their communication skills
+5. Can be answered verbally
+6. Encourages them to elaborate on their sales experience
+7. Tests their problem-solving in sales scenarios
+
+Make the question conversational and natural for voice interaction. Return only the question as a string.`;
+
+    console.log('🤖 [SALES QUESTION] Generating AI question...');
+    
+    const response = await axios.post(OPENROUTER_API_URL, {
+      model: KIMI_MODEL,
+      messages: [
+        {
+          role: 'system',
+          content: 'You are an expert sales interviewer. Generate thoughtful follow-up questions based on candidate responses.'
+        },
+        {
+          role: 'user',
+          content: questionPrompt
+        }
+      ],
+      max_tokens: 150,
+      temperature: 0.7
+    }, {
+      headers: {
+        'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': process.env.OPENROUTER_REFERER || 'http://localhost:3000',
+        'X-Title': 'AI Hiring Platform'
+      }
+    });
+
+    if (response.data && response.data.choices && response.data.choices[0]) {
+      const aiQuestion = response.data.choices[0].message.content.trim();
+      
+      console.log('✅ [SALES QUESTION] AI question generated:', aiQuestion);
+      
+      res.json({
+        success: true,
+        data: {
+          questions: [aiQuestion]
+        }
+      });
+    } else {
+      throw new Error('Invalid response from AI service');
+    }
+  } catch (error) {
+    console.error('❌ [SALES QUESTION] Error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to generate AI question',
+      details: error.message
+    });
+  }
+});
+
 // Live AI Questions During Coding
 router.post('/coding-round/ask-question', auth, async (req, res) => {
   console.log('❓ [CODING QUESTION] AI asking live question...');

@@ -32,9 +32,11 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
   const [cameraStatus, setCameraStatus] = useState('initializing');
   const [questionStartCountdown, setQuestionStartCountdown] = useState(0);
   const [isLiveCodingRound, setIsLiveCodingRound] = useState(false);
+  const [isSalesRound, setIsSalesRound] = useState(false);
   const [isCameraRestarting, setIsCameraRestarting] = useState(false);
   const [codeAnswer, setCodeAnswer] = useState('');
   const [selectedLanguage, setSelectedLanguage] = useState('javascript');
+  const [isLanguageLocked, setIsLanguageLocked] = useState(false);
   const [showCodeEditor, setShowCodeEditor] = useState(false);
   const [isCodeEditorFullscreen, setIsCodeEditorFullscreen] = useState(false);
   const [aiQuestions, setAiQuestions] = useState([]);
@@ -71,15 +73,33 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
       (currentRound?.title && currentRound.title.toLowerCase().includes('interactive coding')) ||
       (currentQuestion?.question && currentQuestion.question.toLowerCase().includes('interactive'));
     
-    console.log('🔍 Coding detection:', {
+    // Check if this is a sales round
+    const isSalesRound = currentRound?.title?.toLowerCase().includes('sales') ||
+      currentRound?.title?.toLowerCase().includes('selling') ||
+      currentRound?.title?.toLowerCase().includes('business development') ||
+      currentRound?.title?.toLowerCase().includes('client acquisition');
+    
+    console.log('🔍 Round detection:', {
       isCodingRound,
       isCodingQuestion,
       isInteractiveCoding,
+      isSalesRound,
       currentQuestion: currentQuestion?.question,
       currentRound: currentRound?.title
     });
     
     setIsLiveCodingRound(isInteractiveCoding);
+    setIsSalesRound(isSalesRound);
+    
+    // Detect and lock language based on round title or question content
+    const detectedLanguage = detectLanguageFromRound(currentRound?.title, currentQuestion?.question);
+    if (detectedLanguage) {
+      setSelectedLanguage(detectedLanguage);
+      setIsLanguageLocked(true);
+      console.log('🔒 Language locked to:', detectedLanguage, 'for round:', currentRound?.title);
+    } else {
+      setIsLanguageLocked(false);
+    }
     
     // Reset states when question changes
     setIsCodeDone(false);
@@ -93,6 +113,124 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
     // In coding rounds, the code editor will be available for all questions
     setShowCodeEditor(false);
   }, [currentQuestion?.questionId, currentQuestion?.codeEditor?.enabled, currentQuestion?.question, currentQuestion?.type, currentRound?.title]);
+
+  // Detect language from round title or question content
+  const detectLanguageFromRound = (roundTitle, question) => {
+    if (!roundTitle && !question) return null;
+    
+    const text = `${roundTitle || ''} ${question || ''}`.toLowerCase();
+    
+    // Python Developer
+    if (text.includes('python developer') || text.includes('python dev') || 
+        text.includes('python programming') || text.includes('python coding') ||
+        text.includes('django') || text.includes('flask') || text.includes('pandas') ||
+        text.includes('numpy') || text.includes('python script')) {
+      return 'python';
+    }
+    
+    // JavaScript Developer
+    if (text.includes('javascript developer') || text.includes('js developer') ||
+        text.includes('node.js') || text.includes('react developer') ||
+        text.includes('angular developer') || text.includes('vue developer') ||
+        text.includes('frontend developer') || text.includes('fullstack developer')) {
+      return 'javascript';
+    }
+    
+    // Java Developer
+    if (text.includes('java developer') || text.includes('java programming') ||
+        text.includes('spring boot') || text.includes('java coding') ||
+        text.includes('maven') || text.includes('gradle')) {
+      return 'java';
+    }
+    
+    // C# Developer
+    if (text.includes('c# developer') || text.includes('csharp developer') ||
+        text.includes('.net developer') || text.includes('dotnet developer') ||
+        text.includes('asp.net') || text.includes('c# programming')) {
+      return 'csharp';
+    }
+    
+    // C++ Developer
+    if (text.includes('c++ developer') || text.includes('cpp developer') ||
+        text.includes('c++ programming') || text.includes('cpp programming') ||
+        text.includes('c plus plus')) {
+      return 'cpp';
+    }
+    
+    // Go Developer
+    if (text.includes('go developer') || text.includes('golang developer') ||
+        text.includes('go programming') || text.includes('golang programming')) {
+      return 'go';
+    }
+    
+    // Rust Developer
+    if (text.includes('rust developer') || text.includes('rust programming') ||
+        text.includes('rust coding')) {
+      return 'rust';
+    }
+    
+    // PHP Developer
+    if (text.includes('php developer') || text.includes('php programming') ||
+        text.includes('laravel') || text.includes('symfony')) {
+      return 'php';
+    }
+    
+    // Ruby Developer
+    if (text.includes('ruby developer') || text.includes('ruby programming') ||
+        text.includes('rails') || text.includes('ruby on rails')) {
+      return 'ruby';
+    }
+    
+    // Swift Developer
+    if (text.includes('swift developer') || text.includes('swift programming') ||
+        text.includes('ios developer') || text.includes('swift coding')) {
+      return 'swift';
+    }
+    
+    // Kotlin Developer
+    if (text.includes('kotlin developer') || text.includes('kotlin programming') ||
+        text.includes('android developer') || text.includes('kotlin coding')) {
+      return 'kotlin';
+    }
+    
+    // TypeScript Developer
+    if (text.includes('typescript developer') || text.includes('ts developer') ||
+        text.includes('typescript programming') || text.includes('ts programming')) {
+      return 'typescript';
+    }
+    
+    return null; // No specific language detected
+  };
+
+  // Get default starter code based on language
+  const getDefaultStarterCode = (language) => {
+    switch (language) {
+      case 'python':
+        return '# Write your Python code here\ndef solution():\n    # Your implementation\n    pass';
+      case 'java':
+        return 'public class Solution {\n    public static void main(String[] args) {\n        // Your implementation\n    }\n}';
+      case 'csharp':
+        return 'using System;\n\npublic class Solution {\n    public static void Main() {\n        // Your implementation\n    }\n}';
+      case 'cpp':
+        return '#include <iostream>\nusing namespace std;\n\nint main() {\n    // Your implementation\n    return 0;\n}';
+      case 'go':
+        return 'package main\n\nimport "fmt"\n\nfunc main() {\n    // Your implementation\n}';
+      case 'rust':
+        return 'fn main() {\n    // Your implementation\n}';
+      case 'php':
+        return '<?php\n// Your implementation\n?>';
+      case 'ruby':
+        return '# Your Ruby implementation\ndef solution\n    # Your code here\nend';
+      case 'swift':
+        return 'import Foundation\n\n// Your Swift implementation\nfunc solution() {\n    // Your code here\n}';
+      case 'kotlin':
+        return 'fun main() {\n    // Your implementation\n}';
+      case 'typescript':
+        return '// Write your TypeScript code here\nfunction solution(): void {\n    // Your implementation\n}';
+      default:
+        return '// Write your code here\nfunction solution() {\n    // Your implementation\n}';
+    }
+  };
 
   const videoRef = useRef(null);
   const mediaRecorderRef = useRef(null);
@@ -383,6 +521,48 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
   };
 
   // Move to next question automatically
+  // Generate AI questions for sales answers
+  const generateSalesAIQuestions = async (answer, question) => {
+    try {
+      console.log('🤖 Generating AI questions for sales answer...');
+      console.log('📝 Answer:', answer);
+      console.log('📝 Question:', question);
+      
+      const response = await fetch('/api/interviews/sales-round/ask-question', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          sessionId: interviewId,
+          answer: answer,
+          question: question,
+          context: 'Sales round AI questioning'
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('📡 Response status:', response.status);
+      console.log('📡 Response data:', result);
+
+      if (result.success && result.data && result.data.questions) {
+        console.log('✅ AI questions generated successfully:', result.data.questions);
+        return result.data.questions;
+      } else {
+        console.error('❌ Failed to generate AI questions:', result);
+        throw new Error(result.message || 'Failed to generate AI questions');
+      }
+    } catch (error) {
+      console.error('❌ Error generating sales AI questions:', error);
+      throw error;
+    }
+  };
+
   // Generate AI questions for coding solution
   const generateAIQuestions = async (code, question) => {
     try {
@@ -476,6 +656,35 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
     
     // Don't automatically start AI questioning - wait for Done button
     console.log('⚠️ Live coding round completed, but AI questioning will start when Done is clicked');
+  };
+
+  // Handle sales round AI questioning
+  const handleSalesAIQuestioning = async (answer) => {
+    try {
+      console.log('🎯 Starting sales AI questioning for answer:', answer);
+      
+      // Generate AI questions for the sales answer
+      const questions = await generateSalesAIQuestions(answer, currentQuestion?.question);
+      console.log('📋 Generated sales AI questions:', questions);
+      
+    setAiQuestions(questions);
+    setCurrentAiQuestionIndex(0);
+    setIsAiQuestioning(true);
+    setAiQuestionAnswers([]);
+      setIsAiQuestionAnswered(false);
+    
+    // Start with the first AI question
+      console.log('🗣️ Speaking first sales AI question:', questions[0]);
+    await speakQuestion(questions[0]);
+    // Start listening for the answer after AI finishes speaking
+    setTimeout(() => {
+        console.log('🎙️ Starting voice recording for sales AI...');
+      startVoiceRecordingForAI();
+    }, 2000); // Wait 2 seconds after AI finishes speaking
+    } catch (error) {
+      console.error('❌ Error in handleSalesAIQuestioning:', error);
+      setError('Failed to generate sales AI questions: ' + error.message);
+    }
   };
 
   // Handle AI question generated by code editor
@@ -635,7 +844,7 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
           
           recognitionRef.current.onstart = () => {
             console.log('✅ Speech recognition started for AI question');
-            setIsRecording(true);
+      setIsRecording(true);
           };
         } else {
           setError('Speech recognition not supported in this browser');
@@ -1149,10 +1358,24 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
         // Proceed with submission
         await submitCurrentAnswer();
         await moveToNextQuestion();
-      } else {
-        // Regular submission for non-coding questions
+      } else if (isSalesRound && transcription.trim()) {
+        // For sales rounds, check if AI question is answered
+        if (isAiQuestioning && !isAiQuestionAnswered) {
+          setError('Please answer the AI question before submitting');
+          return;
+        }
+        // If no AI questioning is active, start it
+        if (!isAiQuestioning) {
+          await handleSalesAIQuestioning(transcription.trim());
+          return; // Don't submit yet, wait for AI question to be answered
+        }
+        // Proceed with submission after AI question is answered
         await submitCurrentAnswer();
         await moveToNextQuestion();
+      } else {
+        // Regular submission for non-coding, non-sales questions
+      await submitCurrentAnswer();
+      await moveToNextQuestion();
       }
       
     } catch (err) {
@@ -2465,21 +2688,21 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
                               Step 1: Write your code solution
                             </span>
                           </div>
-                          <div className="flex justify-center space-x-4">
-                            {/* Skip Button */}
-                            <button
-                              onClick={skipQuestion}
-                              disabled={loading || isAISpeaking}
-                              className={`flex items-center space-x-2 px-6 py-3 rounded-xl font-bold transition-all duration-300 transform hover:scale-105 disabled:transform-none backdrop-blur-md border-2 ${
-                                isDarkMode 
-                                  ? 'bg-slate-800/60 hover:bg-slate-700/70 disabled:bg-gray-800/50 text-white border-slate-600/40' 
+                    <div className="flex justify-center space-x-4">
+                      {/* Skip Button */}
+                      <button
+                        onClick={skipQuestion}
+                        disabled={loading || isAISpeaking}
+                        className={`flex items-center space-x-2 px-6 py-3 rounded-xl font-bold transition-all duration-300 transform hover:scale-105 disabled:transform-none backdrop-blur-md border-2 ${
+                          isDarkMode 
+                            ? 'bg-slate-800/60 hover:bg-slate-700/70 disabled:bg-gray-800/50 text-white border-slate-600/40' 
                                   : 'bg-gray-100/80 hover:bg-gray-200/90 disabled:bg-gray-200/50 text-slate-900 border-gray-300 shadow-lg'
-                              }`}
-                            >
-                              <SkipForward className="h-4 w-4" />
-                              <span>Skip Question</span>
-                            </button>
-                            
+                        }`}
+                      >
+                        <SkipForward className="h-4 w-4" />
+                        <span>Skip Question</span>
+                      </button>
+                      
                             {/* Done Button - Show when code is written */}
                             {(() => {
                               console.log('🔍 Done button check:', {
@@ -2489,7 +2712,7 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
                               });
                               return codeAnswer.trim() && !isCodeDone;
                             })() && (
-                              <button
+                      <button
                                 onClick={handleCodeDone}
                                 disabled={loading || isAISpeaking}
                                 className="flex items-center space-x-2 px-8 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold transition-all duration-300 transform hover:scale-105 disabled:transform-none shadow-lg"
@@ -2515,7 +2738,7 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
                               onClick={skipQuestion}
                               disabled={loading || isAISpeaking}
                               className={`flex items-center space-x-2 px-6 py-3 rounded-xl font-bold transition-all duration-300 transform hover:scale-105 disabled:transform-none backdrop-blur-md border-2 ${
-                                isDarkMode 
+                          isDarkMode 
                                   ? 'bg-slate-800/60 hover:bg-slate-700/70 disabled:bg-gray-800/50 text-white border-slate-600/40' 
                                   : 'bg-gray-100/80 hover:bg-gray-200/90 disabled:bg-gray-200/50 text-slate-900 border-gray-300 shadow-lg'
                               }`}
@@ -2553,11 +2776,14 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
                             <button
                               onClick={submitAnswer}
                               disabled={(() => {
-                                const isDisabled = loading || isAISpeaking || (isLiveCodingRound && isAiQuestioning && !isAiQuestionAnswered);
+                                const isDisabled = loading || isAISpeaking || 
+                                  (isLiveCodingRound && isAiQuestioning && !isAiQuestionAnswered) ||
+                                  (isSalesRound && isAiQuestioning && !isAiQuestionAnswered);
                                 console.log('🔍 Step-by-step Submit button disabled check:', {
                                   loading,
                                   isAISpeaking,
                                   isLiveCodingRound,
+                                  isSalesRound,
                                   isAiQuestioning,
                                   isAiQuestionAnswered,
                                   isDisabled
@@ -2566,18 +2792,18 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
                               })()}
                               className="flex items-center space-x-2 px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold transition-all duration-300 transform hover:scale-105 disabled:transform-none shadow-lg"
                             >
-                              {loading ? (
-                                <>
-                                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                                  <span>Submitting...</span>
-                                </>
-                              ) : (
-                                <>
-                                  <CheckCircle className="h-4 w-4" />
+                          {loading ? (
+                            <>
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                              <span>Submitting...</span>
+                            </>
+                          ) : (
+                            <>
+                              <CheckCircle className="h-4 w-4" />
                                   <span>Submit Answer</span>
-                                </>
-                              )}
-                            </button>
+                            </>
+                          )}
+                      </button>
                           </div>
                         </div>
                       )}
@@ -2592,9 +2818,9 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
                             isCodeDone ? 'bg-green-500 text-white' : 'bg-gray-300 text-gray-600'
                           }`}>
                             1
-                          </div>
-                          <span className="text-sm font-medium">Write Code</span>
                         </div>
+                          <span className="text-sm font-medium">Write Code</span>
+                      </div>
                         
                         <div className={`w-8 h-0.5 ${isCodeDone ? 'bg-green-500' : 'bg-gray-300'}`}></div>
                         
@@ -2773,25 +2999,25 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
                           ))}
                         </div>
                       )}
-
-                        {/* Voice Status */}
-                        <div className="flex items-center justify-center space-x-2">
-                          {isRecording ? (
-                            <>
-                              <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-                              <span className={`text-xs font-medium ${
-                                isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                              }`}>
-                                Recording...
-                              </span>
-                            </>
-                          ) : (
+                      
+                      {/* Voice Status */}
+                      <div className="flex items-center justify-center space-x-2">
+                        {isRecording ? (
+                          <>
+                            <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                            <span className={`text-xs font-medium ${
+                              isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                            }`}>
+                              Recording...
+                            </span>
+                          </>
+                        ) : (
                             <div className="flex items-center space-x-2">
-                              <span className={`text-xs font-medium ${
-                                isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                              }`}>
-                                🎤 Listen to AI question, then speak your answer
-                              </span>
+                          <span className={`text-xs font-medium ${
+                            isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                          }`}>
+                            🎤 Listen to AI question, then speak your answer
+                          </span>
                               <button
                                 onClick={startVoiceRecordingForAI}
                                 className={`px-3 py-1 rounded-lg text-xs font-medium transition-all duration-200 ${
@@ -2804,8 +3030,8 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
                                 {isRecording ? 'Stop' : 'Start'} Recording
                               </button>
                             </div>
-                          )}
-                        </div>
+                        )}
+                      </div>
                       
                       {transcription && (
                         <div className={`mt-2 p-2 rounded-lg ${
@@ -2874,8 +3100,8 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
                         </div>
                       )}
                       <EnhancedCodeEditor
-                language={currentQuestion?.codeEditor?.language || 'javascript'}
-                        starterCode={currentQuestion?.codeEditor?.starterCode || '// Write your code here\nfunction solution() {\n    // Your implementation\n}'}
+                language={currentQuestion?.codeEditor?.language || selectedLanguage}
+                        starterCode={currentQuestion?.codeEditor?.starterCode || getDefaultStarterCode(selectedLanguage)}
                         testCases={currentQuestion?.codeEditor?.testCases || []}
                         question={currentQuestion?.question || ''}
                         onCodeChange={(code) => {
@@ -2887,6 +3113,7 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
                         isFullScreen={isCodeEditorFullscreen}
                         onToggleFullScreen={() => setIsCodeEditorFullscreen(!isCodeEditorFullscreen)}
                         sessionId={interviewId}
+                        languageLocked={isLanguageLocked}
                       />
                     </div>
                   </div>
@@ -3063,8 +3290,8 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
                          currentRound?.title?.toLowerCase().includes('programming') ||
                          currentQuestion?.codeEditor?.enabled ? (
                           <EnhancedCodeEditor
-                            language={currentQuestion.codeEditor?.language || 'javascript'}
-                            starterCode={currentQuestion.codeEditor?.starterCode || '// Write your code here\nfunction solution() {\n    // Your implementation\n}'}
+                            language={currentQuestion.codeEditor?.language || selectedLanguage}
+                            starterCode={currentQuestion.codeEditor?.starterCode || getDefaultStarterCode(selectedLanguage)}
                             testCases={currentQuestion.codeEditor?.testCases || []}
                             question={currentQuestion?.question || ''}
                             onCodeChange={(code) => {
@@ -3076,11 +3303,12 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
                             isFullScreen={isCodeEditorFullscreen}
                             onToggleFullScreen={() => setIsCodeEditorFullscreen(!isCodeEditorFullscreen)}
                             sessionId={interviewId}
+                            languageLocked={isLanguageLocked}
                           />
                         ) : (
                           <CodeEditor
-                            language={currentQuestion.codeEditor?.language || 'javascript'}
-                            starterCode={currentQuestion.codeEditor?.starterCode || '// Write your code here\nfunction solution() {\n    // Your implementation\n}'}
+                            language={currentQuestion.codeEditor?.language || selectedLanguage}
+                            starterCode={currentQuestion.codeEditor?.starterCode || getDefaultStarterCode(selectedLanguage)}
                             testCases={currentQuestion.codeEditor?.testCases || []}
                             onCodeChange={(code) => {
                               console.log('📝 Code changed (editor 2):', code);
@@ -3173,10 +3401,10 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
                   <span>Skip Question</span>
                       </button>
                       
-                 {/* Answer Status Indicator */}
-                 {(transcription.trim() || codeAnswer.trim()) && (
-                   <div className="mb-4 text-center">
-                     {isLiveCodingRound && isAiQuestioning && !isAiQuestionAnswered ? (
+                {/* Answer Status Indicator */}
+                {(transcription.trim() || codeAnswer.trim()) && (
+                  <div className="mb-4 text-center">
+                     {(isLiveCodingRound || isSalesRound) && isAiQuestioning && !isAiQuestionAnswered ? (
                        <div className="inline-flex items-center space-x-2 bg-yellow-500/20 backdrop-blur-md border border-yellow-400/30 rounded-full px-4 py-2">
                          <AlertTriangle className="h-4 w-4 text-yellow-400" />
                          <span className="text-yellow-200 text-sm font-medium">
@@ -3184,38 +3412,41 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
                          </span>
                        </div>
                      ) : (
-                       <div className="inline-flex items-center space-x-2 bg-green-500/20 backdrop-blur-md border border-green-400/30 rounded-full px-4 py-2">
-                         <CheckCircle className="h-4 w-4 text-green-400" />
-                         <span className="text-green-200 text-sm font-medium">
-                           {codeAnswer.trim() ? 'Code answer ready' : 'Voice answer ready'}
-                         </span>
-                       </div>
+                    <div className="inline-flex items-center space-x-2 bg-green-500/20 backdrop-blur-md border border-green-400/30 rounded-full px-4 py-2">
+                      <CheckCircle className="h-4 w-4 text-green-400" />
+                      <span className="text-green-200 text-sm font-medium">
+                        {codeAnswer.trim() ? 'Code answer ready' : 'Voice answer ready'}
+                      </span>
+                    </div>
                      )}
-                   </div>
-                 )}
+                  </div>
+                )}
                       
-                 {/* Submit Button */}
-                       <button
-                   onClick={submitAnswer}
+                {/* Submit Button */}
+                      <button
+                  onClick={submitAnswer}
                    disabled={(() => {
-                     const isDisabled = loading || (!transcription.trim() && !codeAnswer.trim()) || isAISpeaking || (isLiveCodingRound && isAiQuestioning && !isAiQuestionAnswered);
+                     const isDisabled = loading || (!transcription.trim() && !codeAnswer.trim()) || isAISpeaking || 
+                       (isLiveCodingRound && isAiQuestioning && !isAiQuestionAnswered) ||
+                       (isSalesRound && isAiQuestioning && !isAiQuestionAnswered);
                      console.log('🔍 Submit button disabled check:', {
                        loading,
                        noContent: (!transcription.trim() && !codeAnswer.trim()),
                        isAISpeaking,
                        codingBlock: (isLiveCodingRound && isAiQuestioning && !isAiQuestionAnswered),
+                       salesBlock: (isSalesRound && isAiQuestioning && !isAiQuestionAnswered),
                        isAiQuestioning,
                        isAiQuestionAnswered,
                        isDisabled
                      });
                      return isDisabled;
                    })()}
-                   className={`flex items-center space-x-2 px-8 py-3 text-white rounded-xl font-black text-base transition-all duration-300 transform hover:scale-105 hover:-translate-y-1 disabled:transform-none shadow-2xl relative overflow-hidden ${
-                     isDarkMode 
-                       ? 'bg-gradient-to-r from-slate-800 via-blue-600 to-indigo-600 hover:from-slate-700 hover:via-blue-500 hover:to-indigo-500 disabled:from-gray-600 disabled:to-gray-600' 
-                       : 'bg-gradient-to-r from-blue-500 via-blue-600 to-indigo-600 hover:from-blue-400 hover:via-blue-500 hover:to-indigo-500 disabled:from-gray-400 disabled:to-gray-500'
-                   }`}
-                 >
+                  className={`flex items-center space-x-2 px-8 py-3 text-white rounded-xl font-black text-base transition-all duration-300 transform hover:scale-105 hover:-translate-y-1 disabled:transform-none shadow-2xl relative overflow-hidden ${
+                    isDarkMode 
+                      ? 'bg-gradient-to-r from-slate-800 via-blue-600 to-indigo-600 hover:from-slate-700 hover:via-blue-500 hover:to-indigo-500 disabled:from-gray-600 disabled:to-gray-600' 
+                      : 'bg-gradient-to-r from-blue-500 via-blue-600 to-indigo-600 hover:from-blue-400 hover:via-blue-500 hover:to-indigo-500 disabled:from-gray-400 disabled:to-gray-500'
+                  }`}
+                >
                   {/* Animated Background */}
                   <div className="absolute inset-0 bg-gradient-to-r from-blue-400/20 via-cyan-400/20 to-indigo-400/20 opacity-0 hover:opacity-100 transition-opacity duration-500"></div>
                   
