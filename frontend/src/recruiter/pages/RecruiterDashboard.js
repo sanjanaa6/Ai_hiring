@@ -39,6 +39,7 @@ const RecruiterDashboard = () => {
   const [showCreateJob, setShowCreateJob] = useState(false);
   const [loading, setLoading] = useState(false);
   const [generatedInterview, setGeneratedInterview] = useState(null);
+  const [reviewLink, setReviewLink] = useState('');
   const [interviewLink, setInterviewLink] = useState('');
   const [linkCopied, setLinkCopied] = useState(false);
   const [jobs, setJobs] = useState([]);
@@ -55,7 +56,7 @@ const RecruiterDashboard = () => {
   // Candidates state
   const [candidates, setCandidates] = useState([]);
   const [candidatesLoading, setCandidatesLoading] = useState(false);
-  const [selectedJobForCandidates, setSelectedJobForCandidates] = useState('');
+  // Remove unused state
   const [candidateFilters, setCandidateFilters] = useState({
     status: '',
     experience: '',
@@ -445,7 +446,10 @@ Each round should have 3-5 relevant questions that progressively assess the cand
       
       if (result.success) {
         setGeneratedInterview(result.data);
-        setInterviewLink(result.data.link);
+        const reviewPath = `/recruiter/review/${result.data.interviewId}`;
+        setReviewLink(reviewPath);
+        // Navigate to review page
+        window.location.href = reviewPath;
         
         // Add to jobs list
         const newJob = {

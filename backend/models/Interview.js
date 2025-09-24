@@ -48,6 +48,9 @@ const candidateAnswerSchema = new mongoose.Schema({
 const interviewSchema = new mongoose.Schema({
   interviewId: { type: String, required: true, unique: true },
   title: { type: String, required: true },
+  approvalStatus: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
+  approvedAt: { type: Date },
+  approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   jobTitle: { type: String, required: true },
   jobDescription: { type: String, required: true },
   jobRequirements: { type: String, required: true },

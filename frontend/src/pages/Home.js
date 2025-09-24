@@ -200,6 +200,9 @@ const Home = () => {
             <Link to="/register" className="btn bg-white text-purple-600 hover:bg-gray-100">
               Create Your First Interview
             </Link>
+            <Link to="/dynamic-interview-demo" className="btn btn-outline border-white text-white hover:bg-white hover:text-purple-600">
+              Try Dynamic Interviews
+            </Link>
             <Link to="/openrouter-test" className="btn btn-outline border-white text-white hover:bg-white hover:text-purple-600">
               Test AI Integration
             </Link>

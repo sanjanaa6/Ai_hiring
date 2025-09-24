@@ -41,6 +41,11 @@ const EnhancedCodeEditor = ({
   const [liveComments, setLiveComments] = useState([]);
   const [isLiveMonitoring, setIsLiveMonitoring] = useState(true);
   
+  // Update selected language when language prop changes
+  React.useEffect(() => {
+    setSelectedLanguage(language);
+  }, [language]);
+  
   const editorRef = useRef(null);
   const chatEndRef = useRef(null);
   const codeUpdateTimeoutRef = useRef(null);
@@ -73,15 +78,15 @@ const EnhancedCodeEditor = ({
 
   // Supported programming languages
   const supportedLanguages = [
+    { value: 'jsx', label: 'React (JSX)', extension: 'jsx' },
+    { value: 'typescript', label: 'TypeScript', extension: 'ts' },
+    { value: 'tsx', label: 'React (TSX)', extension: 'tsx' },
     { value: 'javascript', label: 'JavaScript', extension: 'js' },
     { value: 'python', label: 'Python', extension: 'py' },
     { value: 'java', label: 'Java', extension: 'java' },
     { value: 'cpp', label: 'C++', extension: 'cpp' },
     { value: 'c', label: 'C', extension: 'c' },
-    { value: 'csharp', label: 'C#', extension: 'cs' },
-    { value: 'typescript', label: 'TypeScript', extension: 'ts' },
-    { value: 'jsx', label: 'React (JSX)', extension: 'jsx' },
-    { value: 'tsx', label: 'React (TSX)', extension: 'tsx' }
+    { value: 'csharp', label: 'C#', extension: 'cs' }
   ];
 
   const handleEditorDidMount = (editor, monaco) => {
@@ -186,6 +191,13 @@ const EnhancedCodeEditor = ({
 
   const getLanguageForMonaco = (lang) => {
     switch (lang.toLowerCase()) {
+      case 'jsx':
+        return 'javascript';
+      case 'typescript':
+      case 'ts':
+        return 'typescript';
+      case 'tsx':
+        return 'typescript';
       case 'javascript':
       case 'js':
         return 'javascript';
@@ -202,10 +214,6 @@ const EnhancedCodeEditor = ({
       case 'csharp':
       case 'c#':
         return 'csharp';
-      case 'jsx':
-        return 'javascript';
-      case 'tsx':
-        return 'typescript';
       default:
         return 'javascript';
     }
@@ -330,6 +338,23 @@ const EnhancedCodeEditor = ({
                 </span>
               )}
             </div>
+            
+            {/* Language Selector (only show if not locked) */}
+            {!languageLocked && (
+              <div className="relative">
+                <select
+                  value={selectedLanguage}
+                  onChange={(e) => setSelectedLanguage(e.target.value)}
+                  className="px-3 py-1 text-sm bg-white border border-gray-300 rounded hover:bg-gray-50"
+                >
+                  {supportedLanguages.map((lang) => (
+                    <option key={lang.value} value={lang.value}>
+                      {lang.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
             
             {disabled && (
               <span className="text-xs text-gray-500 bg-gray-200 px-2 py-1 rounded">

@@ -4,12 +4,1024 @@ const Interview = require('../models/Interview');
 const { auth } = require('../middleware/auth');
 const axios = require('axios');
 
+// Get interview by ID (handles both candidate and recruiter access)
+router.get('/:interviewId', auth, async (req, res) => {
+  console.log('🔍 [GET INTERVIEW] Fetching interview:', req.params.interviewId);
+  console.log('👤 [GET INTERVIEW] User role:', req.user.role);
+  
+  try {
+    const interview = await Interview.findOne({
+      interviewId: req.params.interviewId
+    });
+
+    if (!interview) {
+      console.log('❌ [GET INTERVIEW] Interview not found:', req.params.interviewId);
+      return res.status(404).json({
+        success: false,
+        error: 'Interview not found'
+      });
+    }
+
+    // Check if user is a recruiter or the interview creator
+    const isRecruiter = req.user.role === 'recruiter' || req.user.role === 'admin';
+    const isCreator = interview.createdBy.toString() === req.user.id.toString();
+
+    // For candidates, only show approved interviews
+    if (!isRecruiter && !isCreator && interview.approvalStatus !== 'approved') {
+      console.log('⚠️ [GET INTERVIEW] Attempt to access unapproved interview');
+      return res.status(403).json({
+        success: false,
+        error: 'This interview is not available yet'
+      });
+    }
+
+    console.log('✅ [GET INTERVIEW] Interview found:', {
+      id: interview.interviewId,
+      title: interview.title,
+      rounds: interview.rounds.length,
+      approvalStatus: interview.approvalStatus
+    });
+
+    // Return full data for recruiters/creators, limited data for candidates
+    const responseData = isRecruiter || isCreator ? interview : {
+      interviewId: interview.interviewId,
+      title: interview.title,
+      totalDuration: interview.totalDuration,
+      rounds: interview.approvalStatus === 'approved' ? interview.rounds : [],
+      approvalStatus: interview.approvalStatus
+    };
+
+    res.json({
+      success: true,
+      data: responseData
+    });
+  } catch (error) {
+    console.error('❌ [GET INTERVIEW] Error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch interview'
+    });
+  }
+});
+
 // OpenRouter API configuration
 const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
 const KIMI_MODEL = 'moonshotai/kimi-vl-a3b-thinking';
 const FALLBACK_MODEL = 'meta-llama/llama-3.1-8b-instruct:free';
 
-// Generate AI interview
+// Helper functions for dynamic interview generation
+function detectProgrammingLanguage(jobDescription) {
+  const description = jobDescription.toLowerCase();
+  
+  // More specific and weighted keyword detection
+  const languagePatterns = [
+    // Python patterns (highest priority for Python)
+    { language: 'python', patterns: [
+      { keywords: ['python', 'django', 'flask', 'fastapi', 'pandas', 'numpy', 'tensorflow', 'pytorch', 'celery', 'py'], weight: 3 },
+      { keywords: ['data science', 'machine learning', 'ai', 'ml', 'data analysis'], weight: 2 },
+      { keywords: ['backend', 'api', 'server'], weight: 1 }
+    ]},
+    
+    // React/JSX patterns
+    { language: 'jsx', patterns: [
+      { keywords: ['react', 'jsx', 'tsx', 'react.js', 'reactjs', 'next.js', 'nextjs', 'gatsby'], weight: 3 },
+      { keywords: ['frontend', 'component', 'hooks', 'redux'], weight: 2 },
+      { keywords: ['ui', 'user interface', 'web app'], weight: 1 }
+    ]},
+    
+    // TypeScript patterns
+    { language: 'typescript', patterns: [
+      { keywords: ['typescript', 'ts', 'angular', 'nestjs'], weight: 3 },
+      { keywords: ['type safety', 'interface', 'generic'], weight: 2 }
+    ]},
+    
+    // JavaScript patterns (non-React)
+    { language: 'javascript', patterns: [
+      { keywords: ['javascript', 'js', 'node.js', 'nodejs', 'express', 'vue', 'vue.js', 'vuejs'], weight: 3 },
+      { keywords: ['vanilla js', 'es6', 'es2015'], weight: 2 }
+    ]},
+    
+    // Java patterns
+    { language: 'java', patterns: [
+      { keywords: ['java', 'spring', 'spring boot', 'hibernate', 'maven', 'gradle'], weight: 3 },
+      { keywords: ['jvm', 'enterprise', 'microservices'], weight: 2 }
+    ]},
+    
+    // C# patterns
+    { language: 'csharp', patterns: [
+      { keywords: ['c#', 'csharp', '.net', 'dotnet', 'asp.net', 'entity framework'], weight: 3 },
+      { keywords: ['xamarin', 'azure', 'microsoft'], weight: 2 }
+    ]},
+    
+    // C++ patterns
+    { language: 'cpp', patterns: [
+      { keywords: ['c++', 'cpp', 'c plus plus', 'qt', 'boost'], weight: 3 },
+      { keywords: ['embedded', 'system programming', 'performance'], weight: 2 }
+    ]}
+  ];
+
+  const languageScores = {};
+
+  // Calculate weighted scores for each language
+  languagePatterns.forEach(({ language, patterns }) => {
+    languageScores[language] = 0;
+    patterns.forEach(({ keywords, weight }) => {
+      keywords.forEach(keyword => {
+        if (description.includes(keyword)) {
+          languageScores[language] += weight;
+        }
+      });
+    });
+  });
+
+  // Find the language with highest score
+  const topLanguage = Object.keys(languageScores).reduce((a, b) => 
+    languageScores[a] > languageScores[b] ? a : b
+  );
+
+  console.log('🔍 Language Detection Results:', {
+    description: description.substring(0, 100) + '...',
+    scores: languageScores,
+    detected: topLanguage,
+    score: languageScores[topLanguage]
+  });
+
+  // Return the top language if it has a score > 0, otherwise default to javascript
+  return languageScores[topLanguage] > 0 ? topLanguage : 'javascript';
+}
+
+function getRoleSpecificConfig(jobTitle, detectedLanguage) {
+  const roleConfigs = {
+    // React/JSX specific roles (highest priority)
+    'react developer': {
+      language: 'jsx',
+      frameworks: ['React', 'Next.js', 'Gatsby', 'React Router', 'Redux'],
+      tools: ['npm', 'yarn', 'webpack', 'babel', 'jest', 'react-testing-library'],
+      concepts: ['JSX', 'Components', 'Props', 'State', 'Hooks', 'Virtual DOM'],
+      starterCode: 'import React from \'react\';\n\nconst Solution = () => {\n    // Write your React component here\n    return (\n        <div>\n            {/* Your JSX here */}\n        </div>\n    );\n};\n\nexport default Solution;',
+      testFramework: 'jest'
+    },
+    'frontend developer': {
+      language: 'jsx',
+      frameworks: ['React', 'Vue', 'Angular', 'Svelte'],
+      tools: ['npm', 'yarn', 'webpack', 'babel', 'jest', 'cypress'],
+      concepts: ['JSX', 'Components', 'Props', 'State', 'Hooks', 'Virtual DOM'],
+      starterCode: 'import React from \'react\';\n\nconst Solution = () => {\n    // Write your React component here\n    return (\n        <div>\n            {/* Your JSX here */}\n        </div>\n    );\n};\n\nexport default Solution;',
+      testFramework: 'jest'
+    },
+    // TypeScript specific roles
+    'typescript developer': {
+      language: 'typescript',
+      frameworks: ['React', 'Angular', 'Node.js', 'Express'],
+      tools: ['npm', 'yarn', 'tsc', 'jest', 'eslint'],
+      concepts: ['Types', 'Interfaces', 'Generics', 'Enums', 'Decorators'],
+      starterCode: 'interface SolutionProps {\n    // Define your props interface here\n}\n\nconst Solution: React.FC<SolutionProps> = () => {\n    // Write your TypeScript component here\n    return (\n        <div>\n            {/* Your JSX here */}\n        </div>\n    );\n};\n\nexport default Solution;',
+      testFramework: 'jest'
+    },
+    // Python developer roles
+    'python developer': {
+      language: 'python',
+      frameworks: ['Django', 'Flask', 'FastAPI'],
+      tools: ['pip', 'virtualenv', 'pytest', 'pandas', 'numpy'],
+      concepts: ['OOP', 'async programming', 'data structures', 'algorithms'],
+      starterCode: 'def solution():\n    # Write your code here\n    pass',
+      testFramework: 'pytest'
+    },
+    // JavaScript developer roles (non-React)
+    'javascript developer': {
+      language: 'javascript',
+      frameworks: ['Node.js', 'Express', 'Vue', 'Angular'],
+      tools: ['npm', 'yarn', 'webpack', 'babel', 'jest'],
+      concepts: ['ES6+', 'async/await', 'closures', 'prototypes', 'DOM manipulation'],
+      starterCode: 'function solution() {\n    // Write your code here\n    return null;\n}',
+      testFramework: 'jest'
+    },
+    'java developer': {
+      language: 'java',
+      frameworks: ['Spring Boot', 'Hibernate', 'Maven', 'Gradle'],
+      tools: ['IntelliJ', 'Eclipse', 'Maven', 'Gradle', 'JUnit'],
+      concepts: ['OOP', 'Collections', 'Streams', 'Spring Framework', 'JVM'],
+      starterCode: 'public class Solution {\n    public static void main(String[] args) {\n        // Write your code here\n    }\n}',
+      testFramework: 'junit'
+    },
+    'c# developer': {
+      language: 'csharp',
+      frameworks: ['.NET', 'ASP.NET', 'Entity Framework', 'Xamarin'],
+      tools: ['Visual Studio', 'NuGet', 'MSBuild', 'NUnit'],
+      concepts: ['LINQ', 'async/await', 'delegates', 'generics', 'reflection'],
+      starterCode: 'using System;\n\nclass Program {\n    static void Main() {\n        // Write your code here\n    }\n}',
+      testFramework: 'nunit'
+    },
+    'c++ developer': {
+      language: 'cpp',
+      frameworks: ['Qt', 'Boost', 'STL'],
+      tools: ['CMake', 'GCC', 'Clang', 'Visual Studio'],
+      concepts: ['Memory management', 'pointers', 'templates', 'STL', 'RAII'],
+      starterCode: '#include <iostream>\nusing namespace std;\n\nint main() {\n    // Write your code here\n    return 0;\n}',
+      testFramework: 'gtest'
+    }
+  };
+
+  // Try to find exact match first
+  const exactMatch = roleConfigs[jobTitle.toLowerCase()];
+  if (exactMatch) {
+    return exactMatch;
+  }
+
+  // Try to find partial match based on detected language
+  const languageBasedMatch = Object.keys(roleConfigs).find(role => 
+    roleConfigs[role].language === detectedLanguage
+  );
+
+  if (languageBasedMatch) {
+    return roleConfigs[languageBasedMatch];
+  }
+
+  // Default configuration
+  return {
+    language: detectedLanguage,
+    frameworks: ['Framework-specific'],
+    tools: ['Language-specific tools'],
+    concepts: ['Core programming concepts'],
+    starterCode: getDefaultStarterCode(detectedLanguage),
+    testFramework: 'default'
+  };
+}
+
+function getDefaultStarterCode(language) {
+  const defaultTemplates = {
+    jsx: 'import React from \'react\';\n\nconst Solution = () => {\n    // Write your React component here\n    return (\n        <div>\n            {/* Your JSX here */}\n        </div>\n    );\n};\n\nexport default Solution;',
+    typescript: 'interface SolutionProps {\n    // Define your props interface here\n}\n\nconst Solution: React.FC<SolutionProps> = () => {\n    // Write your TypeScript component here\n    return (\n        <div>\n            {/* Your JSX here */}\n        </div>\n    );\n};\n\nexport default Solution;',
+    python: 'def solution():\n    # Write your code here\n    pass',
+    javascript: 'function solution() {\n    // Write your code here\n    return null;\n}',
+    java: 'public class Solution {\n    public static void main(String[] args) {\n        // Write your code here\n    }\n}',
+    csharp: 'using System;\n\nclass Program {\n    static void Main() {\n        // Write your code here\n    }\n}',
+    cpp: '#include <iostream>\nusing namespace std;\n\nint main() {\n    // Write your code here\n    return 0;\n}',
+    php: '<?php\n// Write your code here\n?>',
+    ruby: '# Write your code here',
+    go: 'package main\n\nimport "fmt"\n\nfunc main() {\n    // Write your code here\n}',
+    rust: 'fn main() {\n    // Write your code here\n}',
+    swift: 'import Foundation\n\n// Write your code here',
+    kotlin: 'fun main() {\n    // Write your code here\n}',
+    scala: 'object Solution {\n    def main(args: Array[String]): Unit = {\n        // Write your code here\n    }\n}'
+  };
+
+  return defaultTemplates[language] || defaultTemplates.javascript;
+}
+
+async function extractJobDetailsFromPrompt(jobPrompt) {
+  // Simple extraction - you can enhance this
+  return {
+    title: extractJobTitle(jobPrompt),
+    description: jobPrompt,
+    requirements: jobPrompt,
+    level: extractLevel(jobPrompt),
+    duration: 90 // Default duration
+  };
+}
+
+function extractJobTitle(jobPrompt) {
+  // Simple extraction - you can enhance this
+  const titleMatch = jobPrompt.match(/(?:hiring|looking for|need|seeking)\s+([^,]+)/i);
+  return titleMatch ? titleMatch[1].trim() : 'Software Developer';
+}
+
+function extractLevel(jobPrompt) {
+  const levelKeywords = {
+    senior: ['senior', 'lead', 'principal', 'architect'],
+    mid: ['mid', 'intermediate', 'experienced'],
+    junior: ['junior', 'entry', 'graduate', 'trainee']
+  };
+
+  const prompt = jobPrompt.toLowerCase();
+  for (const [level, keywords] of Object.entries(levelKeywords)) {
+    if (keywords.some(keyword => prompt.includes(keyword))) {
+      return level;
+    }
+  }
+  return 'mid'; // Default level
+}
+
+function generateDynamicInterviewPrompt(jobDetails, roleConfig) {
+  const { title, description, requirements, level, duration } = jobDetails;
+  const { language, frameworks, tools, concepts, starterCode } = roleConfig;
+
+  // Simple, direct prompt that focuses on the job description
+  const simplePrompt = `Create a technical interview for a ${title} position.
+
+Job Description: "${description}"
+Programming Language: ${language.toUpperCase()}
+Frameworks: ${frameworks.join(', ')}
+Tools: ${tools.join(', ')}
+
+Generate 6 rounds with 5 questions each. Round 4 MUST be coding challenges only.
+
+Return valid JSON with this exact structure:
+{
+  "interviewId": "interview_${Date.now()}",
+  "title": "AI ${language.toUpperCase()} Interview - ${title}",
+  "totalDuration": ${duration},
+  "language": "${language}",
+  "languageLocked": true,
+  "rounds": [
+    {
+      "roundId": "round_1",
+      "roundNumber": 1,
+      "title": "Introduction & Background",
+      "description": "Get to know the candidate",
+      "duration": 15,
+      "questions": [
+        {
+          "id": "q1_1",
+          "type": "behavioral",
+          "question": "Tell me about yourself and your ${language} experience.",
+          "expectedAnswer": "Look for relevant experience and technical background",
+          "timeLimit": 3,
+          "difficulty": "easy",
+          "followUpQuestions": []
+        }
+      ]
+    },
+    {
+      "roundId": "round_2",
+      "roundNumber": 2,
+      "title": "${language.toUpperCase()} Fundamentals",
+      "description": "Test ${language} core concepts",
+      "duration": 20,
+      "questions": [
+        {
+          "id": "q2_1",
+          "type": "technical",
+          "question": "Explain ${language} concepts relevant to this role.",
+          "expectedAnswer": "Look for understanding of ${language} fundamentals",
+          "timeLimit": 4,
+          "difficulty": "medium",
+          "followUpQuestions": []
+        }
+      ]
+    },
+    {
+      "roundId": "round_3",
+      "roundNumber": 3,
+      "title": "Framework & Technology Stack",
+      "description": "Assess framework knowledge",
+      "duration": 20,
+      "questions": [
+        {
+          "id": "q3_1",
+          "type": "technical",
+          "question": "How would you use ${frameworks[0]} in this role?",
+          "expectedAnswer": "Look for practical framework knowledge",
+          "timeLimit": 4,
+          "difficulty": "medium",
+          "followUpQuestions": []
+        }
+      ]
+    },
+    {
+      "roundId": "round_4",
+      "roundNumber": 4,
+      "title": "CODING CHALLENGES",
+      "description": "Hands-on coding assessment",
+      "duration": 30,
+      "questions": [
+        {
+          "id": "q4_1",
+          "type": "coding-challenge",
+          "question": "Write a ${language} function to solve a problem relevant to this role.",
+          "expectedAnswer": "Look for correct ${language} syntax and problem-solving",
+          "timeLimit": 6,
+          "difficulty": "medium",
+          "followUpQuestions": ["Can you optimize this?", "How would you test this?"],
+          "codeEditor": {
+            "enabled": true,
+            "language": "${language}",
+            "languageLocked": true,
+            "starterCode": "${starterCode}",
+            "testCases": [{"input": "test", "expected": "result"}]
+          }
+        }
+      ]
+    },
+    {
+      "roundId": "round_5",
+      "roundNumber": 5,
+      "title": "Advanced ${language.toUpperCase()} Concepts",
+      "description": "Deep dive into advanced topics",
+      "duration": 20,
+      "questions": [
+        {
+          "id": "q5_1",
+          "type": "technical",
+          "question": "How would you optimize ${language} applications?",
+          "expectedAnswer": "Look for optimization knowledge",
+          "timeLimit": 4,
+          "difficulty": "hard",
+          "followUpQuestions": []
+        }
+      ]
+    },
+    {
+      "roundId": "round_6",
+      "roundNumber": 6,
+      "title": "Industry Knowledge & Soft Skills",
+      "description": "Assess industry knowledge",
+      "duration": 15,
+      "questions": [
+        {
+          "id": "q6_1",
+          "type": "behavioral",
+          "question": "How do you stay updated with ${language} trends?",
+          "expectedAnswer": "Look for continuous learning",
+          "timeLimit": 3,
+          "difficulty": "easy",
+          "followUpQuestions": []
+        }
+      ]
+    }
+  ]
+}
+
+IMPORTANT: Round 4 title must be exactly "CODING CHALLENGES" and contain only coding-challenge type questions.`;
+
+  return simplePrompt;
+}
+
+// Create simple hardcoded interview structure
+function createSimpleInterview(language) {
+  console.log('🔧 [CREATE SIMPLE INTERVIEW] Creating interview for language:', language);
+  
+  const interviewId = `interview_${Date.now()}`;
+  
+  const interview = {
+    interviewId: interviewId,
+    title: `AI ${language.toUpperCase()} Interview`,
+    totalDuration: 120,
+    language: language,
+    languageLocked: true,
+    rounds: [
+      {
+        roundId: "round_1",
+        roundNumber: 1,
+        title: "Introduction & Background",
+        description: "Get to know the candidate",
+        duration: 15,
+        questions: [
+          {
+            id: "q1_1",
+            type: "behavioral",
+            question: `Tell me about yourself and your ${language} experience.`,
+            expectedAnswer: "Look for relevant experience",
+            timeLimit: 3,
+            difficulty: "easy",
+            followUpQuestions: []
+          },
+          {
+            id: "q1_2",
+            type: "behavioral",
+            question: `What projects have you worked on using ${language}?`,
+            expectedAnswer: "Assess project complexity",
+            timeLimit: 3,
+            difficulty: "medium",
+            followUpQuestions: []
+          },
+          {
+            id: "q1_3",
+            type: "behavioral",
+            question: "What are you looking for in your next role?",
+            expectedAnswer: "Evaluate career goals",
+            timeLimit: 2,
+            difficulty: "easy",
+            followUpQuestions: []
+          },
+          {
+            id: "q1_4",
+            type: "behavioral",
+            question: `What motivates you as a ${language} developer?`,
+            expectedAnswer: "Assess passion and drive",
+            timeLimit: 2,
+            difficulty: "easy",
+            followUpQuestions: []
+          },
+          {
+            id: "q1_5",
+            type: "behavioral",
+            question: "How do you stay updated with technologies?",
+            expectedAnswer: "Evaluate continuous learning",
+            timeLimit: 2,
+            difficulty: "easy",
+            followUpQuestions: []
+          }
+        ]
+      },
+      {
+        roundId: "round_2",
+        roundNumber: 2,
+        title: `${language.toUpperCase()} Fundamentals`,
+        description: `Test ${language} core concepts`,
+        duration: 20,
+        questions: [
+          {
+            id: "q2_1",
+            type: "technical",
+            question: `Explain the key features of ${language}.`,
+            expectedAnswer: `Look for understanding of ${language} fundamentals`,
+            timeLimit: 4,
+            difficulty: "medium",
+            followUpQuestions: []
+          },
+          {
+            id: "q2_2",
+            type: "technical",
+            question: `What are the main data structures in ${language}?`,
+            expectedAnswer: `Look for knowledge of ${language} data structures`,
+            timeLimit: 4,
+            difficulty: "medium",
+            followUpQuestions: []
+          },
+          {
+            id: "q2_3",
+            type: "technical",
+            question: `How does memory management work in ${language}?`,
+            expectedAnswer: `Look for understanding of ${language} memory management`,
+            timeLimit: 4,
+            difficulty: "hard",
+            followUpQuestions: []
+          },
+          {
+            id: "q2_4",
+            type: "technical",
+            question: `What are the best practices for ${language}?`,
+            expectedAnswer: `Look for knowledge of ${language} best practices`,
+            timeLimit: 4,
+            difficulty: "medium",
+            followUpQuestions: []
+          },
+          {
+            id: "q2_5",
+            type: "technical",
+            question: `How do you handle errors in ${language}?`,
+            expectedAnswer: `Look for understanding of ${language} error handling`,
+            timeLimit: 4,
+            difficulty: "medium",
+            followUpQuestions: []
+          }
+        ]
+      },
+      {
+        roundId: "round_3",
+        roundNumber: 3,
+        title: "Framework & Technology Stack",
+        description: "Assess framework knowledge",
+        duration: 20,
+        questions: [
+          {
+            id: "q3_1",
+            type: "technical",
+            question: `How would you use frameworks with ${language}?`,
+            expectedAnswer: "Look for practical framework knowledge",
+            timeLimit: 4,
+            difficulty: "medium",
+            followUpQuestions: []
+          },
+          {
+            id: "q3_2",
+            type: "technical",
+            question: `What are the advantages of using ${language}?`,
+            expectedAnswer: "Look for understanding of language benefits",
+            timeLimit: 4,
+            difficulty: "medium",
+            followUpQuestions: []
+          },
+          {
+            id: "q3_3",
+            type: "technical",
+            question: `How do you integrate tools with ${language}?`,
+            expectedAnswer: "Look for knowledge of tool integration",
+            timeLimit: 4,
+            difficulty: "medium",
+            followUpQuestions: []
+          },
+          {
+            id: "q3_4",
+            type: "technical",
+            question: `What testing strategies do you use with ${language}?`,
+            expectedAnswer: "Look for knowledge of testing frameworks",
+            timeLimit: 4,
+            difficulty: "medium",
+            followUpQuestions: []
+          },
+          {
+            id: "q3_5",
+            type: "technical",
+            question: `How do you deploy ${language} applications?`,
+            expectedAnswer: "Look for knowledge of deployment strategies",
+            timeLimit: 4,
+            difficulty: "hard",
+            followUpQuestions: []
+          }
+        ]
+      },
+      {
+        roundId: "round_4",
+        roundNumber: 4,
+        title: "CODING CHALLENGES",
+        description: `Hands-on coding assessment with ${language} challenges`,
+        duration: 30,
+        questions: [
+          {
+            id: "q4_1",
+            type: "coding-challenge",
+            question: `Write a ${language} function to process data.`,
+            expectedAnswer: `Look for correct ${language} syntax and problem-solving`,
+            timeLimit: 6,
+            difficulty: "easy",
+            followUpQuestions: [
+              `Can you optimize this using ${language} features?`,
+              `How would you test this in ${language}?`
+            ],
+            codeEditor: {
+              enabled: true,
+              language: language,
+              languageLocked: true,
+              starterCode: getStarterCode(language),
+              testCases: [
+                {"input": "example_input", "expected": "expected_output"}
+              ]
+            }
+          },
+          {
+            id: "q4_2",
+            type: "coding-challenge",
+            question: `Create a ${language} class to handle operations.`,
+            expectedAnswer: `Look for correct ${language} syntax and OOP concepts`,
+            timeLimit: 6,
+            difficulty: "medium",
+            followUpQuestions: [
+              `Can you optimize this using ${language} features?`,
+              `How would you test this in ${language}?`
+            ],
+            codeEditor: {
+              enabled: true,
+              language: language,
+              languageLocked: true,
+              starterCode: getStarterCode(language),
+              testCases: [
+                {"input": "example_input", "expected": "expected_output"}
+              ]
+            }
+          },
+          {
+            id: "q4_3",
+            type: "coding-challenge",
+            question: `Implement a ${language} function to sort data.`,
+            expectedAnswer: `Look for correct ${language} syntax and algorithm knowledge`,
+            timeLimit: 6,
+            difficulty: "medium",
+            followUpQuestions: [
+              `Can you optimize this using ${language} features?`,
+              `How would you test this in ${language}?`
+            ],
+            codeEditor: {
+              enabled: true,
+              language: language,
+              languageLocked: true,
+              starterCode: getStarterCode(language),
+              testCases: [
+                {"input": "example_input", "expected": "expected_output"}
+              ]
+            }
+          },
+          {
+            id: "q4_4",
+            type: "coding-challenge",
+            question: `Write a ${language} script to parse data.`,
+            expectedAnswer: `Look for correct ${language} syntax and data processing`,
+            timeLimit: 6,
+            difficulty: "hard",
+            followUpQuestions: [
+              `Can you optimize this using ${language} features?`,
+              `How would you test this in ${language}?`
+            ],
+            codeEditor: {
+              enabled: true,
+              language: language,
+              languageLocked: true,
+              starterCode: getStarterCode(language),
+              testCases: [
+                {"input": "example_input", "expected": "expected_output"}
+              ]
+            }
+          },
+          {
+            id: "q4_5",
+            type: "coding-challenge",
+            question: `Create a ${language} function to handle API requests.`,
+            expectedAnswer: `Look for correct ${language} syntax and API knowledge`,
+            timeLimit: 6,
+            difficulty: "hard",
+            followUpQuestions: [
+              `Can you optimize this using ${language} features?`,
+              `How would you test this in ${language}?`
+            ],
+            codeEditor: {
+              enabled: true,
+              language: language,
+              languageLocked: true,
+              starterCode: getStarterCode(language),
+              testCases: [
+                {"input": "example_input", "expected": "expected_output"}
+              ]
+            }
+          }
+        ]
+      },
+      {
+        roundId: "round_5",
+        roundNumber: 5,
+        title: `Advanced ${language.toUpperCase()} Concepts`,
+        description: `Deep dive into advanced ${language} features`,
+        duration: 20,
+        questions: [
+          {
+            id: "q5_1",
+            type: "technical",
+            question: `How would you optimize a ${language} application?`,
+            expectedAnswer: `Look for knowledge of ${language} optimization techniques`,
+            timeLimit: 4,
+            difficulty: "hard",
+            followUpQuestions: []
+          },
+          {
+            id: "q5_2",
+            type: "technical",
+            question: `What are the advanced features of ${language}?`,
+            expectedAnswer: `Look for understanding of ${language} advanced concepts`,
+            timeLimit: 4,
+            difficulty: "hard",
+            followUpQuestions: []
+          },
+          {
+            id: "q5_3",
+            type: "technical",
+            question: `How do you debug complex issues in ${language}?`,
+            expectedAnswer: `Look for debugging skills and problem-solving approach`,
+            timeLimit: 4,
+            difficulty: "hard",
+            followUpQuestions: []
+          },
+          {
+            id: "q5_4",
+            type: "technical",
+            question: `What design patterns are used in ${language}?`,
+            expectedAnswer: `Look for knowledge of ${language} design patterns`,
+            timeLimit: 4,
+            difficulty: "hard",
+            followUpQuestions: []
+          },
+          {
+            id: "q5_5",
+            type: "technical",
+            question: `How do you ensure code quality in ${language}?`,
+            expectedAnswer: `Look for knowledge of code quality tools`,
+            timeLimit: 4,
+            difficulty: "medium",
+            followUpQuestions: []
+          }
+        ]
+      },
+      {
+        roundId: "round_6",
+        roundNumber: 6,
+        title: "Industry Knowledge & Soft Skills",
+        description: "Assess industry knowledge and collaboration skills",
+        duration: 15,
+        questions: [
+          {
+            id: "q6_1",
+            type: "behavioral",
+            question: `How do you stay updated with ${language} ecosystem?`,
+            expectedAnswer: "Look for continuous learning and community engagement",
+            timeLimit: 3,
+            difficulty: "easy",
+            followUpQuestions: []
+          },
+          {
+            id: "q6_2",
+            type: "behavioral",
+            question: "How do you handle disagreements with team members?",
+            expectedAnswer: "Look for conflict resolution skills",
+            timeLimit: 3,
+            difficulty: "medium",
+            followUpQuestions: []
+          },
+          {
+            id: "q6_3",
+            type: "behavioral",
+            question: "Describe a challenging problem you solved recently.",
+            expectedAnswer: "Evaluate problem-solving methodology",
+            timeLimit: 3,
+            difficulty: "medium",
+            followUpQuestions: []
+          },
+          {
+            id: "q6_4",
+            type: "behavioral",
+            question: "How do you prioritize tasks when working on multiple projects?",
+            expectedAnswer: "Assess time management and organization",
+            timeLimit: 3,
+            difficulty: "medium",
+            followUpQuestions: []
+          },
+          {
+            id: "q6_5",
+            type: "behavioral",
+            question: "What's your approach to code reviews and feedback?",
+            expectedAnswer: "Evaluate collaboration and learning mindset",
+            timeLimit: 3,
+            difficulty: "easy",
+            followUpQuestions: []
+          }
+        ]
+      }
+    ]
+  };
+  
+  return interview;
+}
+
+// Simple starter code function
+function getStarterCode(language) {
+  const starterCodes = {
+    python: `def process_data(data):
+    # Your code here
+    pass`,
+    jsx: `import React from 'react';
+
+const Component = () => {
+  // Your code here
+  return (
+    <div>
+      {/* Your JSX here */}
+    </div>
+  );
+};
+
+export default Component;`,
+    javascript: `function processData(data) {
+  // Your code here
+  return data;
+}`,
+    java: `public class DataProcessor {
+    public void processData(Object data) {
+        // Your code here
+    }
+}`
+  };
+  
+  return starterCodes[language] || starterCodes.javascript;
+}
+
+async function callOpenRouterAPI(prompt) {
+  const modelsToTry = [KIMI_MODEL, FALLBACK_MODEL, 'openai/gpt-3.5-turbo'];
+  let lastError = null;
+  
+  for (const model of modelsToTry) {
+    try {
+      console.log(`🤖 [OPENROUTER] Trying model: ${model}`);
+      
+      const response = await fetch(OPENROUTER_API_URL, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': process.env.FRONTEND_URL || 'http://localhost:3000',
+          'X-Title': 'AI Hiring Platform'
+        },
+        body: JSON.stringify({
+          model: model,
+          messages: [
+            {
+              role: 'user',
+              content: prompt
+            }
+          ],
+          max_tokens: 4000,
+          temperature: 0.7
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.choices && data.choices[0] && data.choices[0].message) {
+        const content = data.choices[0].message.content;
+        console.log('✅ [OPENROUTER] Successfully got response from', model);
+        
+        try {
+          const interviewData = JSON.parse(content);
+          return { success: true, data: interviewData };
+        } catch (parseError) {
+          console.error('❌ [OPENROUTER] JSON parse error:', parseError);
+          throw new Error('Invalid JSON response from AI');
+        }
+      } else {
+        throw new Error('Invalid response format from AI');
+      }
+    } catch (error) {
+      console.error(`❌ [OPENROUTER] Model ${model} failed:`, error.message);
+      lastError = error;
+      continue;
+    }
+  }
+  
+  return { success: false, error: lastError?.message || 'All AI models failed' };
+}
+
+async function saveInterviewToDatabase(interview, userId, jobDetails = null) {
+  try {
+    console.log('💾 [SAVE INTERVIEW] Creating interview in database...');
+    
+    // Create interview in database
+    const interviewDoc = new Interview({
+      ...interview,
+      jobTitle: jobDetails?.title || 'Dynamic Interview',
+      jobDescription: jobDetails?.description || 'AI-generated interview',
+      jobRequirements: jobDetails?.requirements || 'Requirements to be determined',
+      jobLevel: jobDetails?.level || 'mid',
+      company: jobDetails?.company || 'Company',
+      originalPrompt: jobDetails?.description || 'Dynamic interview generation',
+      createdBy: userId
+    });
+
+    await interviewDoc.save();
+    console.log('✅ [SAVE INTERVIEW] Interview saved successfully with ID:', interviewDoc.interviewId);
+    
+    return interviewDoc;
+  } catch (error) {
+    console.error('❌ [SAVE INTERVIEW] Error saving interview:', error);
+    throw error;
+  }
+}
+
+// Generate Dynamic AI interview - SIMPLE HARDCODED STRUCTURE
+router.post('/generate-dynamic', auth, async (req, res) => {
+  console.log('🚀 [SIMPLE INTERVIEW] Starting simple interview generation...');
+  
+  try {
+    const { prompt } = req.body;
+    
+    if (!prompt || prompt.trim().length < 10) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Please provide a job description prompt' 
+      });
+    }
+
+    // Simple language detection
+    let language = 'javascript';
+    if (prompt.toLowerCase().includes('python')) language = 'python';
+    if (prompt.toLowerCase().includes('react') || prompt.toLowerCase().includes('jsx')) language = 'jsx';
+    if (prompt.toLowerCase().includes('java') && !prompt.toLowerCase().includes('javascript')) language = 'java';
+    
+    console.log('🔍 [SIMPLE INTERVIEW] Detected language:', language);
+
+    // Create simple hardcoded interview
+    const interview = createSimpleInterview(language);
+    
+    console.log('✅ [SIMPLE INTERVIEW] Interview created with hardcoded structure');
+    console.log('🔍 [SIMPLE INTERVIEW] Round 4 title:', interview.rounds[3].title);
+    console.log('🔍 [SIMPLE INTERVIEW] Round 4 questions count:', interview.rounds[3].questions.length);
+    console.log('🔍 [SIMPLE INTERVIEW] All round titles:', interview.rounds.map(r => r.title));
+
+    // Save to database
+    const savedInterview = await saveInterviewToDatabase(interview, req.user.id, {
+      title: 'Dynamic Interview',
+      description: prompt,
+      requirements: 'Requirements to be determined',
+      level: 'mid',
+      company: 'Company'
+    });
+    
+    console.log('✅ [SIMPLE INTERVIEW] Interview generated and saved successfully');
+    return res.json({
+      success: true,
+      data: savedInterview,
+      message: `Dynamic ${language.toUpperCase()} interview generated successfully!`
+    });
+  } catch (error) {
+    console.error('❌ [SIMPLE INTERVIEW] Error:', error);
+    return res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to generate dynamic interview'
+    });
+  }
+});
+
+// Generate AI interview (legacy)
 router.post('/generate', auth, async (req, res) => {
   console.log('🚀 [INTERVIEW GENERATE] Starting interview generation...');
   console.log('📝 [INTERVIEW GENERATE] Request body:', {
@@ -30,11 +1042,9 @@ router.post('/generate', auth, async (req, res) => {
 
     console.log('✅ [INTERVIEW GENERATE] Validation passed, extracting job details from prompt...');
 
-    // Check if this is a role-specific prompt (contains structured interview rounds)
-    const isRoleSpecificPrompt = userPrompt.includes('**Introduction & Self Intro**') || 
-                                 userPrompt.includes('**Self Introduction**') ||
-                                 userPrompt.includes('**Coding Round**') ||
-                                 userPrompt.includes('**Sales Pitch/Role-play**');
+    // DISABLED: Check if this is a role-specific prompt (contains structured interview rounds)
+    // We now use dynamic generation for ALL prompts to ensure language-specific questions
+    const isRoleSpecificPrompt = false; // Force dynamic generation
 
     let extractionPrompt;
     
@@ -1019,7 +2029,7 @@ CRITICAL REQUIREMENTS - STRICT ENFORCEMENT:
       jobDescription: description,
       jobRequirements: requirements,
       jobLevel: level,
-      company: jobDetails.company || 'Company',
+      company: extractedJobDetails.company || 'Company',
       originalPrompt: userPrompt, // Store the original user prompt
       createdBy: req.user.id
     });
@@ -1034,7 +2044,8 @@ CRITICAL REQUIREMENTS - STRICT ENFORCEMENT:
         title: interview.title,
         totalDuration: interview.totalDuration,
         rounds: interview.rounds,
-        link: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/interview/${interview.interviewId}`
+        approvalStatus: 'pending',
+        reviewLink: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/recruiter/review/${interview.interviewId}`
       }
     };
 
@@ -2435,11 +3446,9 @@ function createRoleSpecificInterview(prompt, jobDetails) {
 function createStructuredInterview(textResponse, jobDetails) {1
   const interviewId = `interview_${Date.now()}`;
   
-  // Check if this is a role-specific prompt
-  const isRoleSpecificPrompt = textResponse.includes('**Introduction & Self Intro**') || 
-                               textResponse.includes('**Self Introduction**') ||
-                               textResponse.includes('**Coding Round**') ||
-                               textResponse.  includes('**Sales Pitch/Role-play**');
+  // DISABLED: Check if this is a role-specific prompt
+  // We now use dynamic generation for ALL prompts to ensure language-specific questions
+  const isRoleSpecificPrompt = false; // Force dynamic generation
   
   if (isRoleSpecificPrompt) {
     console.log('🎯 [INTERVIEW GENERATE] Using role-specific prompt structure');
@@ -5403,6 +6412,46 @@ Keep your response conversational and supportive, as if you're having a real-tim
         timestamp: new Date(),
         error: 'AI response generation temporarily unavailable'
       }
+    });
+  }
+});
+
+// Approve interview and generate shareable link
+router.post('/:interviewId/approve', auth, async (req, res) => {
+  console.log('🚀 [INTERVIEW APPROVE] Starting interview approval process...');
+  try {
+    const interview = await Interview.findOne({ interviewId: req.params.interviewId });
+    
+    if (!interview) {
+      return res.status(404).json({
+        success: false,
+        error: 'Interview not found'
+      });
+    }
+
+    // Update interview with approval status
+    interview.approvalStatus = 'approved';
+    interview.approvedAt = new Date();
+    interview.approvedBy = req.user.id;
+    
+    await interview.save();
+
+    // Generate shareable link only after approval
+    const shareableLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/interview/${interview.interviewId}`;
+    
+    return res.json({
+      success: true,
+      data: {
+        interviewId: interview.interviewId,
+        approvalStatus: 'approved',
+        shareableLink: shareableLink
+      }
+    });
+  } catch (error) {
+    console.error('❌ [INTERVIEW APPROVE] Error:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to approve interview'
     });
   }
 });

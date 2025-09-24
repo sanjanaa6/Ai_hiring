@@ -24,7 +24,16 @@ import Interview from './pages/Interview';
 import StyleTest from './components/StyleTest';
 import OpenRouterTest from './components/OpenRouterTest';
 import InteractiveCodingTutor from './components/InteractiveCodingTutor';
+import DynamicInterviewCreator from './components/DynamicInterviewCreator';
+import DynamicInterviewDemo from './components/DynamicInterviewDemo';
+import LanguageDetectionTest from './components/LanguageDetectionTest';
+import LanguageDetectionDebug from './components/LanguageDetectionDebug';
+import InterviewGenerationTest from './components/InterviewGenerationTest';
+import InterviewTest from './components/InterviewTest';
 import NotFound from './pages/NotFound';
+
+// Recruiter components
+import { InterviewReviewer } from './recruiter/components/InterviewReviewer';
 
 // Job components
 import { JobSearch, JobManagement, JobCreate } from './jobs';
@@ -88,6 +97,12 @@ function AppShell() {
           <Route path="/style-test" element={<StyleTest />} />
           <Route path="/openrouter-test" element={<OpenRouterTest />} />
           <Route path="/coding-tutor" element={<InteractiveCodingTutor />} />
+          <Route path="/dynamic-interview" element={<DynamicInterviewCreator onClose={() => window.history.back()} />} />
+          <Route path="/dynamic-interview-demo" element={<DynamicInterviewDemo />} />
+          <Route path="/language-detection-test" element={<LanguageDetectionTest />} />
+          <Route path="/language-detection-debug" element={<LanguageDetectionDebug />} />
+            <Route path="/interview-generation-test" element={<InterviewGenerationTest />} />
+            <Route path="/interview-test" element={<InterviewTest />} />
           
           {/* Protected Routes */}
           <Route path="/dashboard" element={
@@ -97,6 +112,11 @@ function AppShell() {
           } />
           
           {/* Recruiter Routes */}
+          <Route path="/recruiter/review/:interviewId" element={
+            <ProtectedRoute allowedRoles={["recruiter", "admin"]}>
+              <InterviewReviewer />
+            </ProtectedRoute>
+          } />
           <Route path="/recruiter" element={
             <ProtectedRoute allowedRoles={["recruiter", "admin"]}>
               <Dashboard />

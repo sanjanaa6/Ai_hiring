@@ -7,6 +7,7 @@ import LiveCodingRound from './LiveCodingRound';
 
 const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError }) => {
   const { isDarkMode } = useTheme();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [step, setStep] = useState('setup'); // setup, device-check, interview, round-complete, round-selection, complete
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -46,6 +47,19 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
   const [aiResponses, setAiResponses] = useState([]);
   const [isCodeDone, setIsCodeDone] = useState(false);
   const [isAiQuestionAnswered, setIsAiQuestionAnswered] = useState(false);
+
+  // Check authentication status
+  useEffect(() => {
+    const checkAuth = () => {
+      const token = localStorage.getItem('token');
+      setIsAuthenticated(!!token);
+      if (!token) {
+        setError('Please log in to continue with the interview.');
+        setStep('error');
+      }
+    };
+    checkAuth();
+  }, []);
 
   // Auto-detect if current question is a coding question and reset showCodeEditor accordingly
   useEffect(() => {
@@ -363,7 +377,17 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
       setLoading(true);
       console.log('📋 Loading interview rounds...');
       
-      const response = await fetch(`/api/interviews/${interviewId}`);
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('Authentication required. Please log in.');
+      }
+      
+      const response = await fetch(`/api/interviews/${interviewId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
       const result = await response.json();
       
       if (!result.success) {
@@ -375,7 +399,12 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
       
     } catch (err) {
       console.error('❌ Error loading rounds:', err);
-      setError(err.message || 'Failed to load interview rounds');
+      if (err.message === 'Authentication required. Please log in.') {
+        setError('Please log in to continue with the interview.');
+        window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
+      } else {
+        setError(err.message || 'Failed to load interview rounds');
+      }
     } finally {
       setLoading(false);
     }
