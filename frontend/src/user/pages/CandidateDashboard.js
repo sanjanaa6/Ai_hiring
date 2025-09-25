@@ -7,14 +7,9 @@ import { useNavigate, Link } from 'react-router-dom';
 import { 
   Bot, 
   Link as LinkIcon, 
-  Clock, 
-  CheckCircle, 
   AlertCircle,
   User,
   Calendar,
-  MapPin,
-  DollarSign,
-  Briefcase,
   Search,
   FileText
 } from 'lucide-react';

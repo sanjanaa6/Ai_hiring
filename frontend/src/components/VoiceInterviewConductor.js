@@ -3,8 +3,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Camera, 
   Mic, 
-  MicOff, 
-  Play, 
   Pause, 
   AlertTriangle, 
   CheckCircle, 

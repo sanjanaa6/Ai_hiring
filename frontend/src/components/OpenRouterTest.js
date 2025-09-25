@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import aiService from '../services/aiService';
-import { Bot, Send, Loader, CheckCircle, AlertCircle, Sparkles } from 'lucide-react';
+import { Bot, Send, Loader, CheckCircle, AlertCircle } from 'lucide-react';
 
 const OpenRouterTest = () => {
   const [prompt, setPrompt] = useState('');

@@ -7,30 +7,16 @@ import {
   Crown, 
   ArrowRight, 
   Star, 
-  Zap, 
   Shield, 
-  Rocket, 
-  Brain, 
   Code, 
-  Trophy, 
   Sparkles, 
-  Heart, 
   Target, 
   Award, 
-  Globe, 
-  Lock, 
-  Unlock, 
   TrendingUp, 
-  Users, 
-  Clock,
-  Gift,
+  Users,
   Diamond,
-  Flame,
-  Lightning,
   Infinity,
-  CheckCircle2,
   XCircle,
-  AlertTriangle,
   Info,
   Gamepad2,
   BarChart3
@@ -115,7 +101,6 @@ const Pricing = () => {
   ];
 
   const selectedPlanData = plans.find(plan => plan.id === selectedPlan);
-  const currentPrice = selectedPlanData.price[billingCycle];
   const savings = billingCycle === 'yearly' ? Math.round((selectedPlanData.price.monthly * 12 - selectedPlanData.price.yearly) / (selectedPlanData.price.monthly * 12) * 100) : 0;
 
   const getFeatureIcon = (featureName) => {

@@ -1,9 +1,0 @@
-{
-  "exec": "node --no-deprecation",
-  "ext": "js,json",
-  "ignore": ["node_modules/*", "*.test.js"],
-  "env": {
-    "NODE_ENV": "development"
-  },
-  "watch": ["server.js", "routes/", "models/", "middleware/"]
-}

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import AdminLayout from '../components/AdminLayout';
-import { Users, Briefcase, FileText, TrendingUp, Shield, Eye, Edit, Trash2, CheckCircle, XCircle } from 'lucide-react';
+import { Users, Briefcase, FileText, Shield, Eye, Edit, Trash2, CheckCircle, XCircle } from 'lucide-react';
 
 const AdminDashboard = () => {
   const { user } = useAuth();

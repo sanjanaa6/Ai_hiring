@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Code, MessageSquare, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { Send, Code, MessageSquare, AlertCircle, Loader2 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 
 const InteractiveCodingTutor = () => {

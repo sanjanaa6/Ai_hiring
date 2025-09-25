@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
-  Play, 
   CheckCircle, 
   XCircle, 
   Bot, 
@@ -14,8 +13,7 @@ import {
   AlertCircle,
   ThumbsUp,
   Lightbulb,
-  Volume2,
-  VolumeX
+  Volume2
 } from 'lucide-react';
 import EnhancedCodeEditor from './EnhancedCodeEditor';
 import axios from 'axios';

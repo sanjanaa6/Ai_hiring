@@ -5,7 +5,6 @@ import { toast } from 'react-toastify';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../../context/ThemeContext';
 import { 
-  Plus, 
   Edit, 
   Trash2, 
   Eye, 
@@ -20,16 +19,9 @@ import {
   Archive,
   MessageCircle,
   UserCheck,
-  Clock,
-  Star,
   Download,
-  Mail,
-  Phone,
   MapPin,
   Briefcase,
-  Award,
-  ChevronDown,
-  ChevronUp,
   User,
   Sparkles,
   BarChart3,
@@ -37,11 +29,9 @@ import {
   Zap,
   CheckCircle,
   AlertCircle,
-  X,
   Building
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import JobCard from '../components/JobCard';
 import MessagingSystem from '../../components/MessagingSystem';
 import InterviewScheduler from '../../components/InterviewScheduler';
 
@@ -56,7 +46,6 @@ const JobManagement = () => {
   });
   const [selectedJob, setSelectedJob] = useState(null);
   const [showApplications, setShowApplications] = useState(false);
-  const [expandedJobs, setExpandedJobs] = useState(new Set());
   const [applicationFilters, setApplicationFilters] = useState({
     status: '',
     experience: '',
@@ -184,28 +173,6 @@ const JobManagement = () => {
     }
   );
 
-  // Schedule interview mutation
-  const scheduleInterviewMutation = useMutation(
-    async ({ applicationId, interviewData }) => {
-      const token = localStorage.getItem('token');
-      const response = await axios.post(`/api/applications/${applicationId}/schedule-interview`, interviewData, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      return response.data;
-    },
-    {
-      onSuccess: () => {
-        toast.success('Interview scheduled successfully!');
-        queryClient.invalidateQueries(['job-applications', selectedJob?._id]);
-      },
-      onError: (error) => {
-        toast.error(error.response?.data?.message || 'Failed to schedule interview');
-      }
-    }
-  );
 
   const handleFilterChange = (key, value) => {
     setFilters(prev => ({
@@ -239,22 +206,10 @@ const JobManagement = () => {
     setSelectedJob(null);
   };
 
-  const handleToggleJobExpansion = (jobId) => {
-    setExpandedJobs(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(jobId)) {
-        newSet.delete(jobId);
-      } else {
-        newSet.add(jobId);
-      }
-      return newSet;
-    });
-  };
 
   const handleApplicationStatusChange = (applicationId, status) => {
     updateApplicationStatusMutation.mutate({ applicationId, status });
   };
-
 
   const handleApplicationFilterChange = (key, value) => {
     setApplicationFilters(prev => ({

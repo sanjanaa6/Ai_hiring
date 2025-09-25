@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import aiInterviewService from '../services/aiInterviewService';
 import InterviewEvaluationResults from './InterviewEvaluationResults';
-import { Play, Loader2, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Play, Loader2 } from 'lucide-react';
 
 const EvaluationDemo = () => {
   const [isRunning, setIsRunning] = useState(false);

@@ -4,19 +4,15 @@ import { motion } from 'framer-motion';
 import { useTheme } from '../../context/ThemeContext';
 import { 
   MapPin, 
-  Clock, 
   DollarSign,
   Building,
   Calendar,
   Users,
   Heart,
-  Star,
   Eye,
   Edit,
   Trash2,
-  MessageCircle,
   ExternalLink,
-  TrendingUp,
   Award,
   Zap
 } from 'lucide-react';
@@ -36,7 +32,6 @@ const JobCard = ({
   user = null
 }) => {
   const { isDarkMode } = useTheme();
-  const [isHovered, setIsHovered] = useState(false);
   const [isLiked, setIsLiked] = useState(savedJobs.has(job._id));
   const [isApplied, setIsApplied] = useState(appliedJobs.has(job._id));
 
@@ -48,35 +43,7 @@ const JobCard = ({
     return 'Salary not specified';
   };
 
-  const getJobTypeColor = (type) => {
-    switch (type) {
-      case 'full-time':
-        return 'bg-emerald-100 text-emerald-800 border-emerald-200';
-      case 'part-time':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'contract':
-        return 'bg-purple-100 text-purple-800 border-purple-200';
-      case 'internship':
-        return 'bg-orange-100 text-orange-800 border-orange-200';
-      default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
-  };
 
-  const getExperienceColor = (level) => {
-    switch (level) {
-      case 'entry':
-        return 'bg-green-100 text-green-800';
-      case 'mid':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'senior':
-        return 'bg-red-100 text-red-800';
-      case 'executive':
-        return 'bg-purple-100 text-purple-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
 
   const handleSaveJob = () => {
     setIsLiked(!isLiked);
@@ -95,8 +62,6 @@ const JobCard = ({
           ? 'bg-black border-gray-800 hover:border-gray-600' 
           : 'bg-white border-gray-200 hover:border-gray-400'
       }`}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
       whileHover={{ y: -4 }}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}

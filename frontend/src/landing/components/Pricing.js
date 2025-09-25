@@ -1,40 +1,22 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useTheme } from '../../context/ThemeContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Check, 
   X, 
   Star, 
-  Zap, 
-  Sparkles, 
   Crown, 
-  Rocket, 
-  Shield, 
-  Heart,
+  Rocket,
   ArrowRight,
   Gift,
-  Flame,
   Target,
-  Users,
-  Clock,
-  Award,
-  TrendingUp
+  Users
 } from 'lucide-react';
 
 const Pricing = () => {
   const { isDarkMode } = useTheme();
   const [isAnnual, setIsAnnual] = useState(false);
   const [hoveredPlan, setHoveredPlan] = useState(null);
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-
-  useEffect(() => {
-    const handleMouseMove = (e) => {
-      setMousePosition({ x: e.clientX, y: e.clientY });
-    };
-    
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, []);
 
   const plans = [
     {
@@ -99,34 +81,11 @@ const Pricing = () => {
       popular: false,
       color: "from-orange-500 to-red-500",
       bgColor: "from-orange-50 to-red-50",
-      darkBgColor: "from-orange-900/20 to-red-900/20",
       icon: Crown,
       delay: 0.4
     }
   ];
 
-  const addOns = [
-    {
-      name: "Additional Interviews",
-      description: "Extra interviews beyond your plan limit",
-      price: "$2 per interview"
-    },
-    {
-      name: "Advanced Analytics",
-      description: "Deep insights and custom reporting",
-      price: "$50/month"
-    },
-    {
-      name: "Custom Integrations",
-      description: "Connect with your existing tools",
-      price: "Custom pricing"
-    },
-    {
-      name: "White-label Solution",
-      description: "Fully branded experience",
-      price: "Custom pricing"
-    }
-  ];
 
   const containerVariants = {
     hidden: { opacity: 0 },

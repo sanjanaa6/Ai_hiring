@@ -1,31 +1,30 @@
 import axios from 'axios';
 
-const RAW_API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
-function deriveBaseFromWindow() {
-  try {
-    const { protocol, hostname, port } = window.location;
-    const targetPort = port && port !== '3000' ? port : '5000';
-    return `${protocol}//${hostname}${targetPort ? `:${targetPort}` : ''}/api`;
-  } catch (_) {
-    return 'http://localhost:5000/api';
-  }
-}
+// function deriveBaseFromWindow() {
+//   try {
+//     const { protocol, hostname, port } = window.location;
+//     const targetPort = port && port !== '3000' ? port : '5000';
+//     return `${protocol}//${hostname}${targetPort ? `:${targetPort}` : ''}/api`;
+//   } catch (_) {
+//     return 'http://localhost:5000/api';
+//   }
+// }
 
-function normalizeApiBaseUrl(url) {
-  if (!url) return deriveBaseFromWindow();
-  const trimmed = url.replace(/\/$/, '');
-  // If using localhost but page is not on localhost, derive from window
-  const isLocal = /localhost|127\.0\.0\.1/.test(trimmed);
-  const pageIsLocal = /localhost|127\.0\.0\.1/.test(typeof window !== 'undefined' ? window.location.hostname : '');
-  if (isLocal && !pageIsLocal) {
-    return deriveBaseFromWindow();
-  }
-  if (/\/api$/i.test(trimmed)) return trimmed;
-  return `${trimmed}/api`;
-}
+// function normalizeApiBaseUrl(url) {
+//   if (!url) return deriveBaseFromWindow();
+//   const trimmed = url.replace(/\/$/, '');
+//   // If using localhost but page is not on localhost, derive from window
+//   const isLocal = /localhost|127\.0\.0\.1/.test(trimmed);
+//   const pageIsLocal = /localhost|127\.0\.0\.1/.test(typeof window !== 'undefined' ? window.location.hostname : '');
+//   if (isLocal && !pageIsLocal) {
+//     return deriveBaseFromWindow();
+//   }
+//   if (/\/api$/i.test(trimmed)) return trimmed;
+//   return `${trimmed}/api`;
+// }
 
-const API_BASE_URL = normalizeApiBaseUrl(RAW_API_BASE_URL);
 
 class ApiService {
   constructor() {
@@ -168,4 +167,5 @@ class ApiService {
   }
 }
 
-export default new ApiService();
+const apiService = new ApiService();
+export default apiService;

@@ -4,7 +4,7 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../../context/ThemeContext';
-import { Send, Upload, FileText, User, Mail, Phone, X, CheckCircle, AlertCircle, Sparkles, Zap, Star } from 'lucide-react';
+import { Send, Upload, FileText, User, Phone, X, AlertCircle, Sparkles, Zap, Star } from 'lucide-react';
 
 const JobApplicationForm = ({ jobId, onSuccess, onCancel }) => {
   const { isDarkMode } = useTheme();

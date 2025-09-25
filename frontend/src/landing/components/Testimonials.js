@@ -1,52 +1,26 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useTheme } from '../../context/ThemeContext';
-import { motion, AnimatePresence, useAnimation, useInView } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Star, 
   Quote, 
   ChevronLeft, 
   ChevronRight, 
-  Sparkles, 
   Heart, 
-  ThumbsUp, 
-  Award, 
   TrendingUp,
   Users,
-  Clock,
-  Target,
   Zap,
   Shield,
   Rocket,
   CheckCircle,
   Pause,
-  Play,
-  MessageCircle
+  Play
 } from 'lucide-react';
 
 const Testimonials = () => {
   const { isDarkMode } = useTheme();
   const [currentTestimonial, setCurrentTestimonial] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-  const controls = useAnimation();
-
-  useEffect(() => {
-    const handleMouseMove = (e) => {
-      setMousePosition({ x: e.clientX, y: e.clientY });
-    };
-    
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, []);
-
-  useEffect(() => {
-    if (isAutoPlaying) {
-      const interval = setInterval(() => {
-        setCurrentTestimonial((prev) => (prev + 1) % testimonials.length);
-      }, 5000);
-      return () => clearInterval(interval);
-    }
-  }, [isAutoPlaying]);
 
   const testimonials = [
     {

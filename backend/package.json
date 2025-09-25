@@ -4,8 +4,8 @@
   "description": "Backend for AI Hiring MERN Stack Application",
   "main": "server.js",
   "scripts": {
-    "start": "node --no-deprecation server.js",
-    "dev": "node --no-deprecation server.js",
+    "start": "nodemon server.js",
+    "dev": "nodemon server.js",
     "dev:watch": "nodemon server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },

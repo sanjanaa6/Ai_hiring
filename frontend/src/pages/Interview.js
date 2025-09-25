@@ -1,24 +1,19 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useSearchParams } from 'react-router-dom';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useParams } from 'react-router-dom';
 import SimpleVoiceInterview from '../components/SimpleVoiceInterview';
 import apiService from '../services/apiService';
-import { Bot, AlertCircle, ArrowLeft, User, Mail, Phone, Camera, Mic, Shield } from 'lucide-react';
+import { Bot, AlertCircle, ArrowLeft, User, Camera, Mic, Shield } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const Interview = () => {
   const { interviewId } = useParams();
-  const [searchParams] = useSearchParams();
   const [candidateInfo, setCandidateInfo] = useState(null);
   const [interviewData, setInterviewData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showCandidateForm, setShowCandidateForm] = useState(false);
 
-  useEffect(() => {
-    loadInterviewData();
-  }, [interviewId]);
-
-  const loadInterviewData = async () => {
+  const loadInterviewData = useCallback(async () => {
     try {
       const result = await apiService.getInterview(interviewId);
       
@@ -42,14 +37,17 @@ const Interview = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [interviewId]);
+
+  useEffect(() => {
+    loadInterviewData();
+  }, [interviewId, loadInterviewData]);
 
   const handleCandidateSubmit = (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
     const info = {
       name: formData.get('name'),
-      email: formData.get('email'),
       phone: formData.get('phone')
     };
       setCandidateInfo(info);

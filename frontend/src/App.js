@@ -39,7 +39,6 @@ import { InterviewReviewer } from './recruiter/components/InterviewReviewer';
 import { JobSearch, JobManagement, JobCreate } from './jobs';
 
 // Landing Pages
-import LandingPage from './landing/LandingPage';
 
 // Legal Pages
 import TermsOfService from './landing/legal/TermsOfService';

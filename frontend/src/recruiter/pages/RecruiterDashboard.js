@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
-import RecruiterLayout from '../components/RecruiterLayout';
-import CandidateComparison from '../../components/CandidateComparison';
 import apiService from '../../services/apiService';
 import { motion } from 'framer-motion';
 import { 
@@ -18,30 +16,22 @@ import {
   FileText,
   MapPin,
   DollarSign,
-  Calendar,
   BarChart3,
-  UserCheck,
-  Star,
-  Home,
   Settings,
-  LogOut,
   Menu,
   X,
   MessageSquare,
-  TrendingUp,
   Award,
-  Target,
   ThumbsUp,
   ThumbsDown
 } from 'lucide-react';
 
 const RecruiterDashboard = () => {
   const { user } = useAuth();
-  const { isDarkMode, toggleTheme } = useTheme();
+  const { isDarkMode } = useTheme();
   const [showCreateJob, setShowCreateJob] = useState(false);
   const [loading, setLoading] = useState(false);
   const [generatedInterview, setGeneratedInterview] = useState(null);
-  const [reviewLink, setReviewLink] = useState('');
   const [interviewLink, setInterviewLink] = useState('');
   const [linkCopied, setLinkCopied] = useState(false);
   const [jobs, setJobs] = useState([]);
@@ -477,7 +467,6 @@ The interview should feel natural and relevant to someone applying for this spec
       if (result.success) {
         setGeneratedInterview(result.data);
         const reviewPath = `/recruiter/review/${result.data.interviewId}`;
-        setReviewLink(reviewPath);
         // Navigate to review page
         window.location.href = reviewPath;
         

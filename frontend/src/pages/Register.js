@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'react-toastify';
 import { motion } from 'framer-motion';
-import { Eye, EyeOff, Mail, Lock, User, Briefcase, Brain, Sparkles, ArrowRight, Check } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, User, Briefcase, Sparkles, ArrowRight, Check } from 'lucide-react';
 
 const Register = () => {
   const [formData, setFormData] = useState({

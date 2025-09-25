@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import UserLayout from '../components/UserLayout';
-import { Briefcase, Search, Filter, MapPin, DollarSign, Clock, Star, Bookmark, ExternalLink } from 'lucide-react';
+import { Briefcase, Search, MapPin, DollarSign, Clock, Star, Bookmark, ExternalLink } from 'lucide-react';
 
 const UserJobs = () => {
   const { user } = useAuth();

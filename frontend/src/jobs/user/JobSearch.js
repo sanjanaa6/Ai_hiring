@@ -7,17 +7,9 @@ import { useTheme } from '../../context/ThemeContext';
 import { 
   Briefcase, 
   Heart, 
-  MapPin, 
-  Clock, 
-  DollarSign, 
-  Building, 
-  Calendar, 
-  Users, 
-  Star,
+  Users,
   Filter,
   Bookmark,
-  Eye,
-  MessageCircle,
   TrendingUp,
   Award,
   CheckCircle,
@@ -25,8 +17,6 @@ import {
   ChevronDown,
   ChevronUp,
   Plus,
-  Edit,
-  Trash2,
   Sparkles,
   Zap,
   Target,
@@ -34,8 +24,7 @@ import {
   Grid3X3,
   List,
   Search,
-  Bell,
-  ExternalLink
+  Bell
 } from 'lucide-react';
 import JobFilters from '../components/JobFilters';
 import JobApplicationForm from '../components/JobApplicationForm';
@@ -168,10 +157,6 @@ const JobSearch = () => {
     });
   };
 
-  const handleApply = (jobId) => {
-    setSelectedJobId(jobId);
-    setShowApplicationForm(true);
-  };
 
   const handleSaveJob = (jobId) => {
     setSavedJobs(prev => {
@@ -196,10 +181,6 @@ const JobSearch = () => {
     setShowApplicationForm(true);
   };
 
-  const handleViewJob = (jobId) => {
-    // Track job view for analytics
-    console.log('Job viewed:', jobId);
-  };
 
   const handleCreateJobAlert = () => {
     const alert = {

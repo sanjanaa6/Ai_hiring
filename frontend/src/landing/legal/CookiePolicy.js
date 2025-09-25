@@ -5,25 +5,18 @@ import {
   Cookie, 
   Shield, 
   BarChart3, 
-  Settings, 
-  Eye,
-  Zap,
-  Globe,
-  Lock,
+  Settings,
   Star,
   Trophy,
   Target,
   Sparkles,
-  Heart,
   CheckCircle,
   XCircle,
   ToggleLeft,
   ToggleRight,
   Gamepad2,
-  Gift,
   Coins,
-  Award,
-  Timer
+  Award
 } from 'lucide-react';
 
 const CookiePolicy = () => {

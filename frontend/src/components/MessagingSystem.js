@@ -9,7 +9,6 @@ import {
   Phone,
   Video,
   Search,
-  Filter,
   User,
   CheckCircle,
   X

@@ -3,14 +3,12 @@ import { useTheme } from '../../context/ThemeContext';
 import { motion, useInView, AnimatePresence } from 'framer-motion';
 import { 
   Brain, 
-  Clock, 
   Shield, 
   BarChart3, 
   Users, 
   Zap,
   Sparkles,
   ArrowRight,
-  Star,
   Play,
   Pause,
   RotateCcw,
@@ -18,12 +16,9 @@ import {
   Rocket,
   Heart,
   Crown,
-  Flame,
   Gift,
   Award,
-  CheckCircle,
   TrendingUp,
-  MessageCircle,
   Globe,
   Eye
 } from 'lucide-react';
@@ -34,16 +29,7 @@ const Features = () => {
   const isInView = useInView(ref, { once: true, margin: "-100px" });
   const [activeFeature, setActiveFeature] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
-  useEffect(() => {
-    const handleMouseMove = (e) => {
-      setMousePosition({ x: e.clientX, y: e.clientY });
-    };
-    
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, []);
 
   useEffect(() => {
     if (!isAutoPlaying) return;
@@ -136,30 +122,7 @@ const Features = () => {
     }
   ];
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1,
-        delayChildren: 0.2
-      }
-    }
-  };
 
-  const itemVariants = {
-    hidden: { y: 50, opacity: 0, scale: 0.8 },
-    visible: {
-      y: 0,
-      opacity: 1,
-      scale: 1,
-      transition: {
-        type: "spring",
-        stiffness: 100,
-        damping: 12
-      }
-    }
-  };
 
   return (
     <section 

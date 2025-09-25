@@ -11,17 +11,25 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: '*',
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// MongoDB connection
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/ai-hiring';
 
 console.log('🔗 [SERVER] Attempting to connect to MongoDB...');
 console.log('🌐 [SERVER] MongoDB URI:', MONGODB_URI.replace(/\/\/.*@/, '//***:***@')); // Hide credentials
 
-mongoose.connect(MONGODB_URI)
+mongoose.connect(MONGODB_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+  family: 4
+})
 .then(() => {
   console.log('✅ [SERVER] MongoDB connected successfully');
   console.log('📊 [SERVER] Database:', mongoose.connection.db.databaseName);
@@ -47,14 +55,7 @@ app.use('/api/ai', require('./routes/ai'));
 app.use('/api/ai', require('./routes/aiEvaluation'));
 app.use('/api/coding-tutor', require('./routes/codingTutor'));
 
-// Serve static files from React app in production
-if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, '../frontend/build')));
-  
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../frontend/build', 'index.html'));
-  });
-}
+
 
 // Basic route
 app.get('/api', (req, res) => {

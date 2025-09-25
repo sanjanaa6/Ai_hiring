@@ -5,19 +5,13 @@ import InterviewEvaluationResults from './InterviewEvaluationResults';
 import { 
   Play, 
   Pause, 
-  SkipForward, 
-  Clock, 
   CheckCircle, 
-  AlertCircle,
-  User, 
   Bot,
   ArrowRight,
   ArrowLeft,
-  RotateCcw,
-  Mic,
-  MicOff,
-  Send,
-  Loader2
+  Loader2,
+  MessageSquare,
+  AlertTriangle
 } from 'lucide-react';
 
 const AIInterviewConductor = ({ 

@@ -1,40 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../../context/ThemeContext';
-import { motion, useInView, useAnimation } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { 
   UserPlus, 
   MessageCircle, 
-  Brain, 
-  CheckCircle,
+  Brain,
   ArrowRight,
-  Clock,
-  Users,
-  Target,
   Sparkles,
-  Zap,
   Rocket,
   Shield,
   TrendingUp,
   Star,
   Play,
-  Pause,
-  RotateCcw
+  Pause
 } from 'lucide-react';
 
 const HowItWorks = () => {
   const { isDarkMode } = useTheme();
   const [activeStep, setActiveStep] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-
-  useEffect(() => {
-    const handleMouseMove = (e) => {
-      setMousePosition({ x: e.clientX, y: e.clientY });
-    };
-    
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, []);
 
   useEffect(() => {
     if (isPlaying) {
@@ -138,23 +122,6 @@ const HowItWorks = () => {
     }
   ];
 
-  const benefits = [
-    {
-      icon: Clock,
-      title: "70% Faster Hiring",
-      description: "Reduce time-to-hire with automated screening and instant evaluation"
-    },
-    {
-      icon: Users,
-      title: "Better Candidates",
-      description: "AI identifies top performers you might have missed with traditional methods"
-    },
-    {
-      icon: Target,
-      title: "Higher Accuracy",
-      description: "95% accuracy in predicting candidate success based on data analysis"
-    }
-  ];
 
   const containerVariants = {
     hidden: { opacity: 0 },

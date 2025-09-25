@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import Editor from '@monaco-editor/react';
 import { 
   Play, 
@@ -7,7 +7,6 @@ import {
   XCircle, 
   Bot, 
   MessageSquare, 
-  Code2, 
   Maximize2, 
   Minimize2,
   Send,
@@ -50,6 +49,49 @@ const EnhancedCodeEditor = ({
   const chatEndRef = useRef(null);
   const codeUpdateTimeoutRef = useRef(null);
 
+  const addLiveComment = useCallback((comment) => {
+    const liveComment = {
+      id: Date.now(),
+      content: comment,
+      timestamp: new Date(),
+      type: 'live'
+    };
+    setLiveComments(prev => [...prev, liveComment]);
+  }, [setLiveComments]);
+
+  const generateLiveComment = useCallback(async () => {
+    if (isAiLoading) return;
+
+    setIsAiLoading(true);
+
+    try {
+      const data = {
+        question: question,
+        currentCode: code,
+        language: selectedLanguage,
+        testCases: testCases,
+        isLiveComment: true,
+        isInterviewer: true
+      };
+
+      const result = await aiService.getCodingHints(sessionId, data);
+      
+      if (result.success && result.data.hints && result.data.hints.length > 0) {
+        const comment = result.data.hints[0].content;
+        addLiveComment(comment);
+        
+        // Notify parent component about the AI question
+        if (onAIQuestionGenerated) {
+          onAIQuestionGenerated(comment);
+        }
+      }
+    } catch (error) {
+      console.error('Live Comment Error', error);
+    } finally {
+      setIsAiLoading(false);
+    }
+  }, [isAiLoading, question, code, selectedLanguage, testCases, sessionId, addLiveComment, onAIQuestionGenerated]);
+
   // Auto-scroll chat to bottom
   useEffect(() => {
     if (chatEndRef.current) {
@@ -74,7 +116,7 @@ const EnhancedCodeEditor = ({
         clearTimeout(codeUpdateTimeoutRef.current);
       }
     };
-  }, [code, isLiveMonitoring]);
+  }, [code, isLiveMonitoring, generateLiveComment, starterCode]);
 
   // Supported programming languages
   const supportedLanguages = [
@@ -162,6 +204,7 @@ const EnhancedCodeEditor = ({
           })()
         `;
 
+        // eslint-disable-next-line no-eval
         const result = eval(wrappedCode);
         
         if (result.success) {
@@ -220,7 +263,7 @@ const EnhancedCodeEditor = ({
   };
 
   // AI Interaction Functions
-  const addAiMessage = (message, type = 'assistant') => {
+  const addAiMessage = useCallback((message, type = 'assistant') => {
     const aiMessage = {
       id: Date.now(),
       role: type,
@@ -228,21 +271,10 @@ const EnhancedCodeEditor = ({
       timestamp: new Date()
     };
     setAiChat(prev => [...prev, aiMessage]);
-  };
-
-  const addLiveComment = (comment) => {
-    const liveComment = {
-      id: Date.now(),
-      content: comment,
-      timestamp: new Date(),
-      type: 'live'
-    };
-    setLiveComments(prev => [...prev, liveComment]);
-  };
+  }, []);
 
   const sendChatMessage = async () => {
     if (!chatInput.trim() || isAiLoading) return;
-
     const userMessage = {
       id: Date.now(),
       role: 'user',
@@ -276,40 +308,6 @@ const EnhancedCodeEditor = ({
     } catch (error) {
       console.error('AI Chat Error:', error);
       addAiMessage("I'm experiencing some technical difficulties. Please try again in a moment.");
-    } finally {
-      setIsAiLoading(false);
-    }
-  };
-
-  const generateLiveComment = async () => {
-    if (isAiLoading) return;
-
-    setIsAiLoading(true);
-
-    try {
-      const data = {
-        question: question,
-        currentCode: code,
-        language: selectedLanguage,
-        testCases: testCases,
-        isLiveComment: true,
-        isInterviewer: true
-      };
-
-      const result = await aiService.getCodingHints(sessionId, data);
-      
-      if (result.success && result.data.hints && result.data.hints.length > 0) {
-        const comment = result.data.hints[0].content;
-        addLiveComment(comment);
-        
-        // Notify parent component about the AI question
-        if (onAIQuestionGenerated) {
-          onAIQuestionGenerated(comment);
-        }
-      }
-    } catch (error) {
-      console.error('Live Comment Error:', error);
-    } finally {
       setIsAiLoading(false);
     }
   };
@@ -318,7 +316,6 @@ const EnhancedCodeEditor = ({
     <div className={`w-full h-full flex ${isFullScreen ? 'fixed inset-0 z-50 bg-white' : ''}`}>
       {/* Left Half - Code Editor */}
       <div className="w-1/2 flex flex-col border-r border-gray-300">
-        {/* Code Editor Header */}
         <div className="bg-gray-50 px-4 py-3 border-b border-gray-300 flex items-center justify-between">
           <div className="flex items-center space-x-4">
             {/* Language Display */}
@@ -599,4 +596,3 @@ const EnhancedCodeEditor = ({
 };
 
 export default EnhancedCodeEditor;
-

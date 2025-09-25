@@ -10,8 +10,7 @@ import {
   Menu, 
   X, 
   Home,
-  BarChart3,
-  Settings
+  BarChart3
 } from 'lucide-react';
 
 const RecruiterNavbar = () => {

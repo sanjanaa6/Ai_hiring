@@ -7,9 +7,6 @@ import {
   Calendar, 
   MapPin, 
   Building,
-  User,
-  Mail,
-  Phone,
   CheckCircle,
   Clock,
   XCircle

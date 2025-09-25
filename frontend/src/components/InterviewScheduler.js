@@ -3,18 +3,12 @@ import { useMutation, useQueryClient } from 'react-query';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import {
-  Calendar,
-  Clock,
-  Video,
-  Phone,
   MapPin,
   User,
   Mail,
   Send,
   X,
-  CheckCircle,
   AlertCircle,
-  Edit,
   Trash2
 } from 'lucide-react';
 
@@ -128,11 +122,6 @@ const InterviewScheduler = ({
     }));
   };
 
-  const getMinDateTime = () => {
-    const now = new Date();
-    now.setHours(now.getHours() + 1); // At least 1 hour from now
-    return now.toISOString().slice(0, 16);
-  };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">

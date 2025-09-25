@@ -12,7 +12,6 @@ import {
   Globe,
   CheckCircle
 } from 'lucide-react';
-import dynamicInterviewService from '../services/dynamicInterviewService';
 
 const DynamicInterviewCreator = ({ onClose, onInterviewCreated }) => {
   const [prompt, setPrompt] = useState('');

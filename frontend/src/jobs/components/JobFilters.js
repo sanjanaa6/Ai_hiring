@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../../context/ThemeContext';
-import { Search, MapPin, Filter, X, ChevronDown, ChevronUp, Sparkles, Zap } from 'lucide-react';
+import { Search, MapPin, Filter, X, ChevronDown, Sparkles, Zap } from 'lucide-react';
 
 const JobFilters = ({ filters, onFilterChange, onClearFilters }) => {
   const { isDarkMode } = useTheme();

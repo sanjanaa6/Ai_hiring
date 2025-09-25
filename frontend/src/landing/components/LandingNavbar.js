@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X, User, Building2, Sparkles, Zap, ArrowRight } from 'lucide-react';
+import { Menu, X, User, Building2, Sparkles, ArrowRight } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 
 const LandingNavbar = () => {

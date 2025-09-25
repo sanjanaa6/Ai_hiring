@@ -3,15 +3,12 @@ import { motion } from 'framer-motion';
 import { useTheme } from '../../context/ThemeContext';
 import { 
   CheckCircle, 
-  XCircle, 
   Edit3, 
   Trash2, 
   Eye, 
   Clock, 
   Users, 
   FileText,
-  Save,
-  AlertCircle,
   Check,
   X
 } from 'lucide-react';

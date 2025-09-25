@@ -3,7 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'react-toastify';
 import { motion } from 'framer-motion';
-import { Eye, EyeOff, Mail, Lock, Brain, Sparkles, ArrowRight, User, Briefcase } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, Brain, ArrowRight, User, Briefcase } from 'lucide-react';
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -276,7 +276,7 @@ const Login = () => {
                   />
                   <span className="ml-2 text-sm text-gray-300">Remember me</span>
                 </label>
-                <a href="#" className="text-sm text-blue-400 hover:text-blue-300 transition-colors">
+                <a href="/forgot-password" className="text-sm text-blue-400 hover:text-blue-300 transition-colors">
                   Forgot password?
                 </a>
               </motion.div>

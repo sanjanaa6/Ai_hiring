@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import AdminLayout from '../components/AdminLayout';
-import { Users, Search, Filter, MoreVertical, Edit, Trash2, Eye, Shield, UserCheck, UserX } from 'lucide-react';
+import { Users, Search, Edit, Trash2, Eye, Shield, UserCheck } from 'lucide-react';
 
 const AdminUsers = () => {
   const { user } = useAuth();

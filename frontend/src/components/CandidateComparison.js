@@ -1,16 +1,11 @@
 import React, { useState } from 'react';
 import { 
-  Users, 
   Star, 
-  TrendingUp, 
-  Award, 
   MessageSquare, 
-  Clock, 
   CheckCircle, 
   AlertCircle,
   Eye,
   Download,
-  Filter,
   Search
 } from 'lucide-react';
 
