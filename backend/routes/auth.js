@@ -61,24 +61,34 @@ router.post('/login', [
   body('password').exists().withMessage('Password is required')
 ], async (req, res) => {
   try {
+    console.log('🔍 [AUTH] Login attempt:', { email: req.body.email, hasPassword: !!req.body.password });
+    
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+      console.log('❌ [AUTH] Validation errors:', errors.array());
       return res.status(400).json({ errors: errors.array() });
     }
 
     const { email, password } = req.body;
+    console.log('✅ [AUTH] Validation passed, attempting login for:', email);
 
     // Find user
     const user = await User.findOne({ email });
     if (!user) {
+      console.log('❌ [AUTH] User not found for email:', email);
       return res.status(400).json({ message: 'Invalid credentials' });
     }
+
+    console.log('👤 [AUTH] User found:', { id: user._id, email: user.email, role: user.role });
 
     // Check password
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
+      console.log('❌ [AUTH] Password mismatch for user:', email);
       return res.status(400).json({ message: 'Invalid credentials' });
     }
+
+    console.log('✅ [AUTH] Password verified for user:', email);
 
     // Generate JWT token
     const token = jwt.sign(
@@ -123,7 +133,13 @@ router.get('/me', auth, async (req, res) => {
         name: req.user.name,
         email: req.user.email,
         role: req.user.role,
-        profile: req.user.profile
+        profile: req.user.profile,
+        candidateProfile: req.user.candidateProfile,
+        recruiterProfile: req.user.recruiterProfile,
+        adminProfile: req.user.adminProfile,
+        isActive: req.user.isActive,
+        isApproved: req.user.isApproved,
+        approvalStatus: req.user.approvalStatus
       }
     });
   } catch (error) {

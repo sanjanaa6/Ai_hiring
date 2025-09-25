@@ -35,6 +35,11 @@ import NotFound from './pages/NotFound';
 // Recruiter components
 import { InterviewReviewer } from './recruiter/components/InterviewReviewer';
 
+// Admin components
+import AdminDashboard from './admin/pages/AdminDashboard';
+import AdminUsers from './admin/pages/AdminUsers';
+import RecruiterApprovals from './admin/pages/RecruiterApprovals';
+
 // Job components
 import { JobSearch, JobManagement, JobCreate } from './jobs';
 
@@ -166,6 +171,23 @@ function AppShell() {
           <Route path="/user/profile" element={
             <ProtectedRoute allowedRoles={["candidate", "user"]}>
               <Profile />
+            </ProtectedRoute>
+          } />
+          
+          {/* Admin Routes */}
+          <Route path="/admin" element={
+            <ProtectedRoute allowedRoles={["admin"]}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/users" element={
+            <ProtectedRoute allowedRoles={["admin"]}>
+              <AdminUsers />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/recruiter-approvals" element={
+            <ProtectedRoute allowedRoles={["admin"]}>
+              <RecruiterApprovals />
             </ProtectedRoute>
           } />
           

@@ -92,9 +92,24 @@ export const AuthProvider = ({ children }) => {
         payload: response.data,
       });
       
-      return { success: true };
+      return { 
+        success: true, 
+        user: response.data.user,
+        token: response.data.token
+      };
     } catch (error) {
       dispatch({ type: 'SET_LOADING', payload: false });
+      
+      // Handle recruiter approval status
+      if (error.response?.status === 403 && error.response?.data?.approvalStatus) {
+        return {
+          success: false,
+          message: error.response.data.message,
+          approvalStatus: error.response.data.approvalStatus,
+          rejectionReason: error.response.data.rejectionReason
+        };
+      }
+      
       return {
         success: false,
         message: error.response?.data?.message || 'Login failed',

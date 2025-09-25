@@ -29,12 +29,19 @@ const Dashboard = () => {
   }, [user, navigate, isOnRoleRoute]);
 
   // Route to appropriate dashboard based on user role and current path
-  if (location.pathname.startsWith('/recruiter') && (user?.role === 'recruiter' || user?.role === 'admin')) {
+  // Admin users should always go to admin dashboard regardless of path
+  if (user?.role === 'admin') {
+    if (location.pathname.startsWith('/admin')) {
+      return <AdminDashboard />;
+    } else {
+      // Redirect admin users to admin dashboard if they're on other routes
+      navigate('/admin', { replace: true });
+      return null;
+    }
+  } else if (location.pathname.startsWith('/recruiter') && user?.role === 'recruiter') {
     return <RecruiterDashboard />;
   } else if (location.pathname.startsWith('/user') && (user?.role === 'candidate' || user?.role === 'user')) {
     return <CandidateDashboard />;
-  } else if (location.pathname.startsWith('/admin') && user?.role === 'admin') {
-    return <AdminDashboard />;
   }
 
   // Fallback for unknown roles or unauthorized access

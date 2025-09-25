@@ -1,5 +1,6 @@
 import React from 'react';
 import { useTheme } from '../../context/ThemeContext';
+import AdminNavbar from './AdminNavbar';
 
 const AdminLayout = ({ children }) => {
   const { isDarkMode } = useTheme();
@@ -12,6 +13,7 @@ const AdminLayout = ({ children }) => {
           : '#f9fafb'
       }}
     >
+      <AdminNavbar />
       <main className="flex-1 overflow-hidden pt-16">
         {children}
       </main>

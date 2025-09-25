@@ -25,10 +25,21 @@ const auth = async (req, res, next) => {
       return res.status(401).json({ message: 'Token is not valid' });
     }
 
+    // Check if recruiter is approved
+    if (user.role === 'recruiter' && !user.isApproved) {
+      console.log('❌ [AUTH] Recruiter not approved:', user._id);
+      return res.status(403).json({ 
+        message: 'Your recruiter account is pending approval. Please wait for admin approval.',
+        approvalStatus: user.approvalStatus,
+        rejectionReason: user.rejectionReason
+      });
+    }
+
     console.log('✅ [AUTH] User authenticated:', {
       id: user._id,
       email: user.email,
-      role: user.role
+      role: user.role,
+      isApproved: user.isApproved
     });
 
     req.user = user;

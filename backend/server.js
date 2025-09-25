@@ -54,6 +54,7 @@ app.use('/api/interviews', require('./routes/interviews'));
 app.use('/api/ai', require('./routes/ai'));
 app.use('/api/ai', require('./routes/aiEvaluation'));
 app.use('/api/coding-tutor', require('./routes/codingTutor'));
+app.use('/api/admin', require('./routes/admin'));
 
 
 

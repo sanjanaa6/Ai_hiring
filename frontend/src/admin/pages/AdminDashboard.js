@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import AdminLayout from '../components/AdminLayout';
-import { Users, Briefcase, FileText, Shield, Eye, Edit, Trash2, CheckCircle, XCircle } from 'lucide-react';
+import { Users, Briefcase, FileText, Shield, Eye, Edit, Trash2, CheckCircle, XCircle, UserCheck } from 'lucide-react';
 
 const AdminDashboard = () => {
   const { user } = useAuth();
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(false);
 
   useEffect(() => {
     fetchDashboardData();
@@ -15,7 +16,7 @@ const AdminDashboard = () => {
   const fetchDashboardData = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('/api/dashboard/admin', {
+      const response = await fetch('/api/admin/dashboard', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -30,6 +31,67 @@ const AdminDashboard = () => {
       console.error('Error fetching dashboard data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleQuickApprove = async (recruiterId) => {
+    setActionLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`/api/admin/approve-recruiter/${recruiterId}`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        await fetchDashboardData(); // Refresh the dashboard data
+        alert('Recruiter approved successfully!');
+      } else {
+        const error = await response.json();
+        alert(error.message || 'Failed to approve recruiter');
+      }
+    } catch (error) {
+      console.error('Error approving recruiter:', error);
+      alert('Error approving recruiter');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleQuickReject = async (recruiterId) => {
+    const reason = prompt('Please provide a reason for rejection:');
+    if (!reason || reason.trim() === '') {
+      alert('Rejection reason is required');
+      return;
+    }
+
+    setActionLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`/api/admin/reject-recruiter/${recruiterId}`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ rejectionReason: reason })
+      });
+
+      if (response.ok) {
+        await fetchDashboardData(); // Refresh the dashboard data
+        alert('Recruiter rejected successfully!');
+      } else {
+        const error = await response.json();
+        alert(error.message || 'Failed to reject recruiter');
+      }
+    } catch (error) {
+      console.error('Error rejecting recruiter:', error);
+      alert('Error rejecting recruiter');
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -101,20 +163,59 @@ const AdminDashboard = () => {
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <Shield className="h-6 w-6 text-purple-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Admin Logins</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {user?.adminProfile?.loginCount || 0}
-                </p>
+          <a href="/admin/recruiter-approvals" className="block">
+            <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow cursor-pointer">
+              <div className="flex items-center">
+                <div className="p-2 bg-purple-100 rounded-lg">
+                  <Shield className="h-6 w-6 text-purple-600" />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600">Pending Recruiters</p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {dashboardData?.pendingRecruitersCount || 0}
+                  </p>
+                  {dashboardData?.pendingRecruitersCount > 0 && (
+                    <p className="text-xs text-purple-600 mt-1">Click to review</p>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
+          </a>
         </div>
+
+        {/* Pending Recruiters Quick Actions */}
+        {dashboardData?.pendingRecruitersCount > 0 && (
+          <div className="bg-white rounded-lg shadow p-6 mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-gray-900">Pending Recruiter Approvals</h2>
+              <a 
+                href="/admin/recruiter-approvals" 
+                className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+              >
+                View All →
+              </a>
+            </div>
+            <p className="text-gray-600 mb-4">
+              You have {dashboardData.pendingRecruitersCount} recruiter(s) waiting for approval.
+            </p>
+            <div className="flex space-x-3">
+              <a 
+                href="/admin/recruiter-approvals"
+                className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
+              >
+                <UserCheck className="h-4 w-4 mr-2" />
+                Review & Approve
+              </a>
+              <a 
+                href="/admin/recruiter-approvals"
+                className="inline-flex items-center px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-200 transition-colors"
+              >
+                <Eye className="h-4 w-4 mr-2" />
+                View Details
+              </a>
+            </div>
+          </div>
+        )}
 
         {/* User Statistics */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -190,6 +291,68 @@ const AdminDashboard = () => {
             </div>
           </div>
         </div>
+
+        {/* Recent Pending Recruiters */}
+        {dashboardData?.pendingRecruiters && dashboardData.pendingRecruiters.length > 0 && (
+          <div className="bg-white rounded-lg shadow mb-8">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-gray-900">Recent Pending Recruiters</h2>
+                <a 
+                  href="/admin/recruiter-approvals" 
+                  className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                >
+                  View All →
+                </a>
+              </div>
+            </div>
+            <div className="p-6">
+              <div className="space-y-4">
+                {dashboardData.pendingRecruiters.slice(0, 3).map((recruiter) => (
+                  <div key={recruiter._id} className="flex justify-between items-center p-4 border border-gray-200 rounded-lg">
+                    <div className="flex items-center space-x-4">
+                      <div className="flex-shrink-0 h-10 w-10">
+                        <div className="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center">
+                          <span className="text-sm font-medium text-gray-700">
+                            {recruiter.name.charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                      </div>
+                      <div>
+                        <h3 className="font-medium text-gray-900">{recruiter.name}</h3>
+                        <p className="text-sm text-gray-600">{recruiter.email}</p>
+                        <p className="text-sm text-gray-500">
+                          {recruiter.recruiterProfile?.company || 'Company not specified'}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                        Pending
+                      </span>
+                      <div className="flex space-x-1">
+                        <button 
+                          onClick={() => handleQuickApprove(recruiter._id)}
+                          className="p-1 text-green-600 hover:text-green-800"
+                          title="Approve"
+                        >
+                          <CheckCircle className="h-4 w-4" />
+                        </button>
+                        <button 
+                          onClick={() => handleQuickReject(recruiter._id)}
+                          className="p-1 text-red-600 hover:text-red-800"
+                          title="Reject"
+                        >
+                          <XCircle className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Recent Users */}

@@ -41,9 +41,28 @@ const Login = () => {
       
       if (result.success) {
         toast.success('Login successful!');
-        navigate(from, { replace: true });
+        // Redirect based on user role instead of 'from' path
+        const userRole = result.user?.role;
+        if (userRole === 'admin') {
+          navigate('/admin', { replace: true });
+        } else if (userRole === 'recruiter') {
+          navigate('/recruiter', { replace: true });
+        } else if (userRole === 'candidate' || userRole === 'user') {
+          navigate('/user', { replace: true });
+        } else {
+          navigate(from, { replace: true });
+        }
       } else {
-        toast.error(result.message);
+        // Handle recruiter approval status
+        if (result.approvalStatus) {
+          if (result.approvalStatus === 'pending') {
+            toast.warning('Your recruiter account is pending approval. Please wait for admin approval.');
+          } else if (result.approvalStatus === 'rejected') {
+            toast.error(`Your recruiter account was rejected. Reason: ${result.rejectionReason || 'No reason provided'}`);
+          }
+        } else {
+          toast.error(result.message);
+        }
       }
     } catch (error) {
       toast.error('An error occurred during login');

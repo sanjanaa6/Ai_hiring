@@ -69,6 +69,34 @@ const userSchema = new mongoose.Schema({
   isActive: {
     type: Boolean,
     default: true
+  },
+  // Approval status for recruiters
+  isApproved: {
+    type: Boolean,
+    default: function() {
+      // Candidates and admins are auto-approved, recruiters need approval
+      return this.role !== 'recruiter';
+    }
+  },
+  approvalStatus: {
+    type: String,
+    enum: ['pending', 'approved', 'rejected'],
+    default: function() {
+      return this.role === 'recruiter' ? 'pending' : 'approved';
+    }
+  },
+  approvedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
+  },
+  approvedAt: {
+    type: Date,
+    default: null
+  },
+  rejectionReason: {
+    type: String,
+    default: null
   }
 }, {
   timestamps: true

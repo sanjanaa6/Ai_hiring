@@ -12,7 +12,15 @@ import {
   X,
   ArrowRight,
   Sparkles,
-  ExternalLink
+  ExternalLink,
+  Home,
+  Users,
+  Briefcase,
+  FileText,
+  UserCheck,
+  LogOut,
+  User,
+  Building
 } from 'lucide-react';
 import './Header.css';
 
@@ -50,8 +58,6 @@ const Header = () => {
   }, []);
 
   // Removed navigation items - only show logo and essential elements
-  const commonNav = [];
-  const authNav = [];
 
   // Removed isActive function as navigation items are removed
   const isScrolled = scrollY > 50;
@@ -236,12 +242,15 @@ const Header = () => {
           </div>
 
           <motion.button 
-            className="lg:hidden p-3 rounded-xl backdrop-blur-xl border-2 border-purple-400 text-white hover:bg-purple-400/20"
+            className="md:hidden p-3 rounded-xl backdrop-blur-xl border-2 border-purple-400 text-white hover:bg-purple-400/20"
             style={{
               background: 'rgba(111, 66, 193, 0.2)',
               boxShadow: '0 4px 20px rgba(111, 66, 193, 0.2)'
             }}
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            onClick={() => {
+              console.log('Mobile menu button clicked, current state:', isMobileMenuOpen);
+              setIsMobileMenuOpen(!isMobileMenuOpen);
+            }}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             aria-label="Toggle menu"
@@ -265,18 +274,32 @@ const Header = () => {
           {isMobileMenuOpen && (
             <motion.div 
               id="mobile-menu" 
-              className="lg:hidden fixed inset-0 top-20 backdrop-blur-3xl bg-black/90 z-40 overflow-y-auto"
+              className="md:hidden fixed inset-0 top-20 backdrop-blur-3xl bg-black/90 z-40 overflow-y-auto"
               initial={{ opacity: 0, x: '100%' }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: '100%' }}
               transition={{ duration: 0.4, ease: "easeOut" }}
             >
             <div className="p-6 flex flex-col gap-6">
+              {console.log('Mobile menu is rendering, isMobileMenuOpen:', isMobileMenuOpen, 'user:', user)}
+              
+              {/* Test item to verify menu is working */}
+              <motion.div
+                className="bg-white/20 p-4 rounded-xl text-white text-center"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.05 }}
+              >
+                <p className="font-bold">Mobile Menu is Working!</p>
+                <p className="text-sm text-gray-300">User: {user?.name || 'Not logged in'}</p>
+                <p className="text-sm text-gray-300">Role: {user?.role || 'None'}</p>
+              </motion.div>
+              
               <motion.div
                 className="flex justify-center"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.05 }}
+                transition={{ delay: 0.1 }}
               >
                 <ThemeSwitcher />
               </motion.div>
@@ -316,18 +339,162 @@ const Header = () => {
                     </div>
                   </motion.div>
                   {/* Navigation items */}
-                  <div className="border-t border-white/20 mt-8 pt-8 space-y-4">
+                  <div className="border-t border-white/20 mt-8 pt-8 space-y-2">
+                    {/* Admin Navigation */}
+                    {user?.role === 'admin' && (
+                      <>
+                        <motion.div
+                          initial={{ opacity: 0, x: 20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: 0.5 }}
+                        >
+                          <Link 
+                            to="/admin"
+                            className="flex items-center space-x-4 px-6 py-4 text-white hover:bg-white/10 rounded-2xl transition-all duration-300 bg-white/5"
+                            onClick={() => setIsMobileMenuOpen(false)}
+                          >
+                            <Home className="w-6 h-6 text-blue-400" />
+                            <span className="font-bold">Admin Dashboard</span>
+                            <ArrowRight className="w-4 h-4 ml-auto opacity-50" />
+                          </Link>
+                        </motion.div>
+                        
+                        <motion.div
+                          initial={{ opacity: 0, x: 20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: 0.55 }}
+                        >
+                          <Link 
+                            to="/admin/users"
+                            className="flex items-center space-x-4 px-6 py-4 text-white hover:bg-white/10 rounded-2xl transition-all duration-300 bg-white/5"
+                            onClick={() => setIsMobileMenuOpen(false)}
+                          >
+                            <Users className="w-6 h-6 text-green-400" />
+                            <span className="font-bold">Manage Users</span>
+                            <ArrowRight className="w-4 h-4 ml-auto opacity-50" />
+                          </Link>
+                        </motion.div>
+                        
+                        <motion.div
+                          initial={{ opacity: 0, x: 20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: 0.6 }}
+                        >
+                          <Link 
+                            to="/admin/recruiter-approvals"
+                            className="flex items-center space-x-4 px-6 py-4 text-white hover:bg-white/10 rounded-2xl transition-all duration-300 bg-white/5"
+                            onClick={() => setIsMobileMenuOpen(false)}
+                          >
+                            <UserCheck className="w-6 h-6 text-yellow-400" />
+                            <span className="font-bold">Recruiter Approvals</span>
+                            <ArrowRight className="w-4 h-4 ml-auto opacity-50" />
+                          </Link>
+                        </motion.div>
+                      </>
+                    )}
+
+                    {/* Recruiter Navigation */}
+                    {user?.role === 'recruiter' && (
+                      <>
+                        <motion.div
+                          initial={{ opacity: 0, x: 20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: 0.5 }}
+                        >
+                          <Link 
+                            to="/recruiter"
+                            className="flex items-center space-x-4 px-6 py-4 text-white hover:bg-white/10 rounded-2xl transition-all duration-300 bg-white/5"
+                            onClick={() => setIsMobileMenuOpen(false)}
+                          >
+                            <Building className="w-6 h-6 text-purple-400" />
+                            <span className="font-bold">Recruiter Dashboard</span>
+                            <ArrowRight className="w-4 h-4 ml-auto opacity-50" />
+                          </Link>
+                        </motion.div>
+                        
+                        <motion.div
+                          initial={{ opacity: 0, x: 20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: 0.55 }}
+                        >
+                          <Link 
+                            to="/recruiter/jobs"
+                            className="flex items-center space-x-4 px-6 py-4 text-white hover:bg-white/10 rounded-2xl transition-all duration-300 bg-white/5"
+                            onClick={() => setIsMobileMenuOpen(false)}
+                          >
+                            <Briefcase className="w-6 h-6 text-blue-400" />
+                            <span className="font-bold">Manage Jobs</span>
+                            <ArrowRight className="w-4 h-4 ml-auto opacity-50" />
+                          </Link>
+                        </motion.div>
+                      </>
+                    )}
+
+                    {/* User/Candidate Navigation */}
+                    {(user?.role === 'user' || user?.role === 'candidate') && (
+                      <>
+                        <motion.div
+                          initial={{ opacity: 0, x: 20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: 0.5 }}
+                        >
+                          <Link 
+                            to="/user"
+                            className="flex items-center space-x-4 px-6 py-4 text-white hover:bg-white/10 rounded-2xl transition-all duration-300 bg-white/5"
+                            onClick={() => setIsMobileMenuOpen(false)}
+                          >
+                            <User className="w-6 h-6 text-green-400" />
+                            <span className="font-bold">User Dashboard</span>
+                            <ArrowRight className="w-4 h-4 ml-auto opacity-50" />
+                          </Link>
+                        </motion.div>
+                        
+                        <motion.div
+                          initial={{ opacity: 0, x: 20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: 0.55 }}
+                        >
+                          <Link 
+                            to="/jobs"
+                            className="flex items-center space-x-4 px-6 py-4 text-white hover:bg-white/10 rounded-2xl transition-all duration-300 bg-white/5"
+                            onClick={() => setIsMobileMenuOpen(false)}
+                          >
+                            <Briefcase className="w-6 h-6 text-blue-400" />
+                            <span className="font-bold">Browse Jobs</span>
+                            <ArrowRight className="w-4 h-4 ml-auto opacity-50" />
+                          </Link>
+                        </motion.div>
+                        
+                        <motion.div
+                          initial={{ opacity: 0, x: 20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: 0.6 }}
+                        >
+                          <Link 
+                            to="/applications"
+                            className="flex items-center space-x-4 px-6 py-4 text-white hover:bg-white/10 rounded-2xl transition-all duration-300 bg-white/5"
+                            onClick={() => setIsMobileMenuOpen(false)}
+                          >
+                            <FileText className="w-6 h-6 text-indigo-400" />
+                            <span className="font-bold">My Applications</span>
+                            <ArrowRight className="w-4 h-4 ml-auto opacity-50" />
+                          </Link>
+                        </motion.div>
+                      </>
+                    )}
+
+                    {/* Common Navigation for all users */}
                     <motion.div
                       initial={{ opacity: 0, x: 20 }}
                       animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.5 }}
+                      transition={{ delay: 0.7 }}
                     >
                       <Link 
                         to="/coding-tutor"
-                        className="flex items-center space-x-4 px-6 py-4 text-white hover:bg-white/10 rounded-2xl transition-all duration-300"
+                        className="flex items-center space-x-4 px-6 py-4 text-white hover:bg-white/10 rounded-2xl transition-all duration-300 bg-white/5"
                         onClick={() => setIsMobileMenuOpen(false)}
                       >
-                        <ExternalLink className="w-6 h-6 text-blue-400" />
+                        <ExternalLink className="w-6 h-6 text-cyan-400" />
                         <span className="font-bold">Coding Tutor</span>
                         <ArrowRight className="w-4 h-4 ml-auto opacity-50" />
                       </Link>
@@ -336,15 +503,15 @@ const Header = () => {
                     <motion.div
                       initial={{ opacity: 0, x: 20 }}
                       animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.6 }}
+                      transition={{ delay: 0.75 }}
                     >
                       <Link 
                         to="/profile"
-                        className="flex items-center space-x-4 px-6 py-4 text-white hover:bg-white/10 rounded-2xl transition-all duration-300"
+                        className="flex items-center space-x-4 px-6 py-4 text-white hover:bg-white/10 rounded-2xl transition-all duration-300 bg-white/5"
                         onClick={() => setIsMobileMenuOpen(false)}
                       >
                         <Settings className="w-6 h-6 text-purple-400" />
-                        <span className="font-bold">Settings</span>
+                        <span className="font-bold">Profile & Settings</span>
                         <ArrowRight className="w-4 h-4 ml-auto opacity-50" />
                       </Link>
                     </motion.div>
@@ -352,14 +519,14 @@ const Header = () => {
                     <motion.div
                       initial={{ opacity: 0, x: 20 }}
                       animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.7 }}
+                      transition={{ delay: 0.8 }}
                     >
                       <button 
                         onClick={() => { setIsMobileMenuOpen(false); logout(); }}
-                        className="flex items-center space-x-4 w-full px-6 py-4 text-red-400 hover:bg-red-500/10 rounded-2xl transition-all duration-300"
+                        className="flex items-center space-x-4 w-full px-6 py-4 text-red-400 hover:bg-red-500/10 rounded-2xl transition-all duration-300 bg-red-500/5"
                       >
-                        <Zap className="w-6 h-6" />
-                        <span className="font-bold">Disconnect</span>
+                        <LogOut className="w-6 h-6" />
+                        <span className="font-bold">Logout</span>
                         <ArrowRight className="w-4 h-4 ml-auto opacity-50" />
                       </button>
                     </motion.div>
