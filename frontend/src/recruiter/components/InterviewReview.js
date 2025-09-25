@@ -70,7 +70,7 @@ const InterviewReview = () => {
     
     setSaving(true);
     try {
-      const response = await fetch(`/api/interviews/${selectedInterview.interviewId}/review`, {
+      const response = await fetch(`/api/interviews/${selectedInterview.interviewId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

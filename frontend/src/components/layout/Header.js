@@ -118,20 +118,7 @@ const Header = () => {
               </div>
             </button>
 
-            {/* Coding Tutor link */}
-            <Link
-              to="/coding-tutor"
-              className="relative h-10 flex items-center gap-2 px-4 rounded-2xl text-white hover:scale-105 transition-all duration-200"
-              style={{
-                background: 'linear-gradient(135deg, rgba(34,197,94,.45), rgba(59,130,246,.45))',
-                boxShadow: 'inset 0 0 0 2px rgba(34,197,94,.35), 0 10px 28px rgba(34,197,94,.28)'
-              }}
-            >
-              <span className="flex items-center justify-center w-6 h-6 rounded-full bg-green-600">
-                <ExternalLink className="w-4 h-4" />
-              </span>
-              <span className="font-semibold">Coding Tutor</span>
-            </Link>
+  
 
             {/* Portal pill */}
             <Link

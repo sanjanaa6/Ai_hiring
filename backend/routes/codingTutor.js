@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const axios = require('axios');
 
 // Generate AI questions for coding solutions
 router.post('/generate-questions', async (req, res) => {
@@ -33,16 +34,11 @@ ${code}
 Generate exactly 3 follow-up questions that an interviewer would ask about this code. Return them as a JSON array of strings.`;
 
     // Call OpenRouter API
-    const openRouterResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
-        'Content-Type': 'application/json',
-        'HTTP-Referer': process.env.OPENROUTER_REFERER || 'http://localhost:3000',
-        'X-Title': 'AI Interview System'
-      },
-      body: JSON.stringify({
-        model: 'meta-llama/llama-3.1-8b-instruct:free',
+    console.log('📡 [OPENROUTER] Calling API with key:', process.env.OPENROUTER_API_KEY ? 'Present' : 'Missing');
+    
+    const openRouterResponse = await axios.post('https://api.openrouter.ai/api/v1/chat/completions',
+      {
+        model: 'anthropic/claude-2.1',
         messages: [
           {
             role: 'system',
@@ -55,15 +51,23 @@ Generate exactly 3 follow-up questions that an interviewer would ask about this 
         ],
         max_tokens: 500,
         temperature: 0.7
-      })
+      },
+      {
+        headers: {
+          'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': process.env.FRONTEND_URL || 'http://localhost:3000',
+          'X-Title': 'AI Interview System'
+        }
+      });
+
+    console.log('✅ [OPENROUTER] Successful response:', {
+      status: openRouterResponse.status,
+      model: openRouterResponse.data.model,
+      usage: openRouterResponse.data.usage
     });
-
-    if (!openRouterResponse.ok) {
-      throw new Error(`OpenRouter API error: ${openRouterResponse.status}`);
-    }
-
-    const openRouterData = await openRouterResponse.json();
-    const aiResponse = openRouterData.choices[0]?.message?.content;
+    
+    const aiResponse = openRouterResponse.data.choices[0]?.message?.content;
 
     if (!aiResponse) {
       throw new Error('No response from AI');

@@ -65,7 +65,26 @@ class ApiService {
 
   async getInterview(interviewId) {
     try {
-      const response = await this.client.get(`/interviews/${interviewId}`);
+      // Try public endpoint first (for shareable links)
+      let response;
+      try {
+        response = await fetch(`/api/interviews/public/${interviewId}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          return data;
+        }
+      } catch (publicError) {
+        console.log('Public endpoint failed, trying authenticated endpoint...');
+      }
+      
+      // Fallback to authenticated endpoint
+      response = await this.client.get(`/interviews/${interviewId}`);
       return response.data;
     } catch (error) {
       // eslint-disable-next-line no-console

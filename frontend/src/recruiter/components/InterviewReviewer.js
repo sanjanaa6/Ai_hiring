@@ -4,10 +4,27 @@ import { useParams } from 'react-router-dom';
 
 // Create an axios instance with custom config
 const api = axios.create({
-  baseURL: 'http://localhost:5000',
+  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:5000',
   headers: {
     'Content-Type': 'application/json'
   }
+});
+
+// Add auth token to every request
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  console.log('🔒 [API REQUEST]', {
+    method: config.method,
+    url: config.url,
+    hasToken: !!token
+  });
+  return config;
+}, (error) => {
+  console.error('❌ [API REQUEST ERROR]', error);
+  return Promise.reject(error);
 });
 
 const InterviewReviewer = () => {
@@ -78,31 +95,116 @@ const InterviewReviewer = () => {
     }
   };
 
+  const handleQuestionDelete = (roundIndex, questionIndex) => {
+    if (window.confirm('Are you sure you want to delete this question?')) {
+      const updatedInterview = { ...interview };
+      updatedInterview.rounds[roundIndex].questions.splice(questionIndex, 1);
+      setInterview(updatedInterview);
+    }
+  };
+
+  const handleAddQuestion = (roundIndex) => {
+    const newQuestion = {
+      id: `q${roundIndex + 1}_${interview.rounds[roundIndex].questions.length + 1}`,
+      type: "technical",
+      question: prompt('Enter the new question:') || 'New question',
+      expectedAnswer: prompt('Enter the expected answer:') || 'Expected answer',
+      timeLimit: 3,
+      difficulty: "medium",
+      followUpQuestions: []
+    };
+    
+    if (newQuestion.question !== 'New question') {
+      const updatedInterview = { ...interview };
+      updatedInterview.rounds[roundIndex].questions.push(newQuestion);
+      setInterview(updatedInterview);
+    }
+  };
+
+  const handleAddRound = () => {
+    const newRound = {
+      roundId: `round_${interview.rounds.length + 1}`,
+      roundNumber: interview.rounds.length + 1,
+      title: prompt('Enter round title:') || 'New Round',
+      description: prompt('Enter round description:') || 'New round description',
+      duration: parseInt(prompt('Enter duration in minutes:') || '10'),
+      questions: [],
+      evaluationCriteria: {
+        technical: '',
+        communication: '',
+        problemSolving: '',
+        culturalFit: '',
+        leadership: '',
+        motivation: ''
+      }
+    };
+    
+    if (newRound.title !== 'New Round') {
+      const updatedInterview = { ...interview };
+      updatedInterview.rounds.push(newRound);
+      setInterview(updatedInterview);
+    }
+  };
+
   const handleSave = async () => {
     try {
-      await api.put(`/api/interviews/${interviewId}`, {
-        rounds: interview.rounds
-      }, {
+      const response = await fetch(`/api/interviews/${interviewId}`, {
+        method: 'PUT',
         headers: {
+          'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
+        },
+        body: JSON.stringify({
+          rounds: interview.rounds,
+          title: interview.title,
+          totalDuration: interview.totalDuration
+        })
       });
-      setEditingRound(null);
+      
+      const result = await response.json();
+      if (result.success) {
+        setEditingRound(null);
+        alert('Changes saved successfully!');
+      } else {
+        setError('Failed to save changes: ' + result.error);
+      }
     } catch (err) {
+      console.error('Error saving changes:', err);
       setError('Failed to save changes');
     }
   };
 
   const handleApprove = async () => {
     try {
-      const response = await api.post(`/api/interviews/${interviewId}/approve`, {}, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-      setShareableLink(response.data.data.shareableLink);
+      console.log('🔄 [APPROVE] Attempting to approve interview:', interviewId);
+      setSaving(true);
+      
+      const response = await api.post(`/api/interviews/${interviewId}/approve`);
+      
+      if (response.data.success) {
+        console.log('✅ [APPROVE] Interview approved successfully:', response.data);
+        // Update local state to reflect approval
+        setInterview(prev => ({
+          ...prev,
+          approvalStatus: 'approved',
+          approvedAt: new Date().toISOString(),
+          approvedBy: localStorage.getItem('userId')
+        }));
+        
+        // Generate shareable link
+        const shareableUrl = `${window.location.origin}/interviews/${interviewId}`;
+        setShareableLink(shareableUrl);
+        
+        // Show success message
+        setError(null);
+      } else {
+        throw new Error(response.data.error || 'Failed to approve interview');
+      }
     } catch (err) {
-      setError('Failed to approve interview');
+      console.error('❌ [APPROVE] Error:', err);
+      setError(err.message || 'Failed to approve interview. Please try again.');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -183,6 +285,15 @@ const InterviewReviewer = () => {
 
       {/* Interview rounds */}
       <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <h2 className="text-2xl font-bold">Interview Rounds</h2>
+          <button
+            onClick={handleAddRound}
+            className="bg-green-500 text-white px-4 py-2 rounded"
+          >
+            Add Round
+          </button>
+        </div>
         {interview.rounds.map((round, roundIndex) => (
           <div key={round.roundId} className="border p-4 rounded">
             <div className="flex justify-between items-center mb-4">
@@ -207,20 +318,36 @@ const InterviewReviewer = () => {
 
             {/* Questions */}
             <div className="space-y-4">
+              {editingRound === roundIndex && (
+                <button
+                  onClick={() => handleAddQuestion(roundIndex)}
+                  className="bg-green-500 text-white px-3 py-1 rounded text-sm"
+                >
+                  Add Question
+                </button>
+              )}
               {round.questions.map((question, questionIndex) => (
                 <div key={question.id} className="border-l-4 border-blue-500 pl-4">
                   <div className="flex justify-between">
                     <h3 className="font-medium">Question {questionIndex + 1}</h3>
                     {editingRound === roundIndex && (
-                      <button
-                        onClick={() => handleQuestionEdit(roundIndex, questionIndex, {
-                          ...question,
-                          question: prompt('Edit question:', question.question)
-                        })}
-                        className="text-blue-500"
-                      >
-                        Edit
-                      </button>
+                      <div className="space-x-2">
+                        <button
+                          onClick={() => handleQuestionEdit(roundIndex, questionIndex, {
+                            ...question,
+                            question: prompt('Edit question:', question.question)
+                          })}
+                          className="text-blue-500"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleQuestionDelete(roundIndex, questionIndex)}
+                          className="text-red-500"
+                        >
+                          Delete
+                        </button>
+                      </div>
                     )}
                   </div>
                   <p>{question.question}</p>

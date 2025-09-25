@@ -30,7 +30,9 @@ import {
   MessageSquare,
   TrendingUp,
   Award,
-  Target
+  Target,
+  ThumbsUp,
+  ThumbsDown
 } from 'lucide-react';
 
 const RecruiterDashboard = () => {
@@ -386,7 +388,7 @@ const RecruiterDashboard = () => {
   }) || [];
 
   const [jobPrompt, setJobPrompt] = useState('');
-  const [jobType, setJobType] = useState('developer'); // 'developer' or 'sales'
+  const [jobType, setJobType] = useState('developer'); // 'developer', 'sales', or 'generic'
 
   const createRoleSpecificPrompt = (jobDescription, roleType) => {
     const basePrompt = `Create a comprehensive interview for this job: ${jobDescription}`;
@@ -398,11 +400,11 @@ Please structure the interview with these specific rounds:
 
 1. **Introduction & Self Intro** – Ask about themselves, background, past projects, career goals, and what they're looking for in their next role. NO CODING QUESTIONS - only conversational questions about experience and motivation.
 
-2. **Basic Technical Questions** – React fundamentals including JSX, props, state, hooks, routing, component lifecycle, and basic JavaScript concepts. NO CODING - only theoretical/conceptual questions about how these technologies work.
+2. **Basic Technical Questions** – Role-specific technical fundamentals based on the job requirements. For Python developers: Python syntax, data structures, OOP concepts, libraries. For React developers: JSX, props, state, hooks. For Java developers: Java syntax, collections, OOP, Spring. For other roles: relevant technical concepts. NO CODING - only theoretical/conceptual questions about how these technologies work.
 
-3. **Coding Round** – ONLY ROUND WITH CODING. Small hands-on task such as building a todo app, API fetch implementation, search/filter functionality, or component creation. This is the ONLY round where actual coding should be involved.
+3. **Coding Round** – ONLY ROUND WITH CODING. Role-specific hands-on task: For Python developers: data processing, algorithm implementation, or API development. For React developers: building a todo app, component creation, or API integration. For Java developers: class design, algorithm implementation, or Spring application. For other roles: relevant practical coding challenges. This is the ONLY round where actual coding should be involved.
 
-4. **Advanced Technical Questions** – State management (Redux, Context), performance optimization, API integration, testing, debugging, and system design basics. NO CODING - only discussion about concepts, best practices, and theoretical knowledge.
+4. **Advanced Technical Questions** – Role-specific advanced concepts. For Python: frameworks (Django/Flask), data science libraries, async programming. For React: state management, performance optimization, testing. For Java: Spring framework, microservices, design patterns. For other roles: relevant advanced concepts, best practices, and system design basics. NO CODING - only discussion about concepts, best practices, and theoretical knowledge.
 
 5. **Behavioral/Soft Skills** – Communication skills, teamwork, problem-solving approach, handling pressure, learning new technologies, and confidence in technical discussions. NO CODING - only behavioral and soft skills questions.
 
@@ -427,6 +429,34 @@ Please structure the interview with these specific rounds:
 6. **Final Feedback & Decision** – Discuss their sales potential, areas for development, cultural fit, and next steps (offer or decline).
 
 Each round should have 3-5 relevant questions that progressively assess the candidate's sales skills, communication abilities, and cultural fit.`;
+    } else if (roleType === 'generic') {
+      return `${basePrompt}
+
+Please analyze the job description and create a comprehensive interview structure tailored specifically to this role. 
+
+IMPORTANT INSTRUCTIONS:
+1. **Analyze the job requirements** - Identify the key skills, experience, and qualifications needed
+2. **Determine the job category** - Is this technical, sales, marketing, HR, finance, operations, management, creative, etc.?
+3. **Create appropriate interview rounds** - Design 4-6 rounds that make sense for this specific role
+4. **Include relevant assessment types** - Use appropriate evaluation methods (technical questions, role-plays, case studies, behavioral questions, etc.)
+5. **Adapt question difficulty** - Match the level of questions to the seniority level mentioned in the job description
+6. **Generate ALL questions dynamically** - Every single question should be custom-generated based on the specific job requirements, not generic templates
+
+For each round, provide:
+- Clear round title and description
+- 3-5 relevant questions that assess the specific skills needed for this role
+- Expected answers that show what a good candidate should know
+- Appropriate time limits based on the complexity
+
+CRITICAL: Generate completely custom questions for this specific role. Do not use generic questions like "Tell me about yourself" or "What are your strengths". Instead, create questions that are:
+- Specific to the industry and role
+- Relevant to the actual job responsibilities
+- Appropriate for the seniority level
+- Designed to assess the exact skills mentioned in the job description
+
+Make sure the interview structure is logical, progressive, and directly relevant to the job requirements. If the role involves technical skills, include appropriate technical assessments. If it's a leadership role, include management scenarios. If it's creative, include portfolio reviews or creative challenges.
+
+The interview should feel natural and relevant to someone applying for this specific position.`;
     }
     
     return basePrompt;
@@ -496,6 +526,70 @@ Each round should have 3-5 relevant questions that progressively assess the cand
       setTimeout(() => setLinkCopied(false), 2000);
     } catch (error) {
       console.error('Failed to copy link:', error);
+    }
+  };
+
+  // Approve interview function
+  const approveInterview = async (interviewId) => {
+    try {
+      const response = await fetch(`/api/interviews/${interviewId}/approve`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+
+      const result = await response.json();
+      
+      if (result.success) {
+        // Update the job status in the local state
+        setJobs(prev => prev.map(job => 
+          job.interviewId === interviewId 
+            ? { ...job, approvalStatus: 'approved' }
+            : job
+        ));
+        alert('Interview approved successfully!');
+      } else {
+        alert('Failed to approve interview: ' + result.error);
+      }
+    } catch (error) {
+      console.error('Error approving interview:', error);
+      alert('Error approving interview: ' + error.message);
+    }
+  };
+
+  // Reject interview function
+  const rejectInterview = async (interviewId) => {
+    const reason = prompt('Please provide a reason for rejection (optional):');
+    if (reason === null) return; // User cancelled
+
+    try {
+      const response = await fetch(`/api/interviews/${interviewId}/reject`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ rejectionReason: reason })
+      });
+
+      const result = await response.json();
+      
+      if (result.success) {
+        // Update the job status in the local state
+        setJobs(prev => prev.map(job => 
+          job.interviewId === interviewId 
+            ? { ...job, approvalStatus: 'rejected' }
+            : job
+        ));
+        alert('Interview rejected successfully!');
+      } else {
+        alert('Failed to reject interview: ' + result.error);
+      }
+    } catch (error) {
+      console.error('Error rejecting interview:', error);
+      alert('Error rejecting interview: ' + error.message);
     }
   };
 
@@ -1047,11 +1141,27 @@ Each round should have 3-5 relevant questions that progressively assess the cand
                                 >
                                   💼 Sales Interview
                                 </button>
+                                <button
+                                  onClick={() => setJobType('generic')}
+                                  className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+                                    jobType === 'generic'
+                                      ? isDarkMode
+                                        ? 'bg-green-600 text-white shadow-lg'
+                                        : 'bg-green-600 text-white shadow-lg'
+                                      : isDarkMode
+                                        ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                  }`}
+                                >
+                                  🎯 Any Job Type
+                                </button>
                               </div>
                               <p className={`text-xs mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                                 {jobType === 'developer' 
                                   ? 'Technical rounds: Intro (no coding), Basic Tech (theory only), Coding (hands-on), Advanced Tech (concepts), Behavioral, Final Feedback'
-                                  : 'Sales rounds: Self Intro, Basic Sales, Sales Pitch, Objection Handling, Communication, Final Feedback'
+                                  : jobType === 'sales'
+                                    ? 'Sales rounds: Self Intro, Basic Sales, Sales Pitch, Objection Handling, Communication, Final Feedback'
+                                    : 'AI analyzes your job description and creates custom interview rounds tailored to the specific role, skills, and requirements'
                                 }
                               </p>
                             </motion.div>
@@ -1073,7 +1183,9 @@ Each round should have 3-5 relevant questions that progressively assess the cand
                                 }`}
                                 placeholder={jobType === 'developer' 
                                   ? "Example: I need to hire a Senior React Developer for our fintech startup. The role involves building modern web applications using React, TypeScript, and Node.js. Requirements include 5+ years of React experience, strong knowledge of JavaScript/TypeScript, experience with Redux, REST APIs, and Git. The person will work remotely, salary range $100k-$140k. They'll be responsible for developing new features, maintaining existing code, and mentoring junior developers..."
-                                  : "Example: I need to hire a Sales Manager for our SaaS company. The role involves managing a team of 5 sales representatives, developing sales strategies, meeting quarterly targets, and building relationships with enterprise clients. Requirements include 3+ years of sales management experience, proven track record of meeting/exceeding targets, experience with CRM systems, and strong leadership skills. The person will work in our downtown office, salary range $80k-$120k plus commission. They'll be responsible for team performance, client acquisition, and revenue growth..."
+                                  : jobType === 'sales'
+                                    ? "Example: I need to hire a Sales Manager for our SaaS company. The role involves managing a team of 5 sales representatives, developing sales strategies, meeting quarterly targets, and building relationships with enterprise clients. Requirements include 3+ years of sales management experience, proven track record of meeting/exceeding targets, experience with CRM systems, and strong leadership skills. The person will work in our downtown office, salary range $80k-$120k plus commission. They'll be responsible for team performance, client acquisition, and revenue growth..."
+                                    : "Example: I need to hire a Marketing Manager for our e-commerce company. The role involves developing digital marketing strategies, managing social media campaigns, analyzing customer data, and driving brand awareness. Requirements include 4+ years of marketing experience, expertise in Google Analytics, Facebook Ads, email marketing, and content creation. The person will work in our office, salary range $60k-$80k. They'll be responsible for increasing online sales, managing marketing budgets, and collaborating with the design team..."
                                 }
                               />
                               
@@ -1554,6 +1666,73 @@ Each round should have 3-5 relevant questions that progressively assess the cand
                             </motion.div>
                             <span>Get Link</span>
                           </motion.button>
+
+
+                          {/* Approve and Reject buttons for pending interviews (including undefined for legacy interviews) */}
+                          {(job.approvalStatus === 'pending' || job.approvalStatus === undefined) && (
+                            <>
+                              <motion.button
+                                whileHover={{ scale: 1.05, y: -2 }}
+                                whileTap={{ scale: 0.95 }}
+                                onClick={() => {
+                                  if (window.confirm('Are you sure you want to approve this interview?')) {
+                                    approveInterview(job.interviewId);
+                                  }
+                                }}
+                                className={`group flex items-center space-x-2 px-4 py-2 text-sm rounded-xl transition-all duration-300 ${isDarkMode ? 'bg-green-500/20 text-green-200 hover:bg-green-500/30 border border-green-500/30' : 'bg-green-100 text-green-800 hover:bg-green-200 border border-green-200'}`}
+                              >
+                                <motion.div
+                                  whileHover={{ scale: 1.1 }}
+                                  transition={{ duration: 0.2 }}
+                                >
+                                  <ThumbsUp className="h-4 w-4" />
+                                </motion.div>
+                                <span>Approve</span>
+                              </motion.button>
+
+                              <motion.button
+                                whileHover={{ scale: 1.05, y: -2 }}
+                                whileTap={{ scale: 0.95 }}
+                                onClick={() => {
+                                  if (window.confirm('Are you sure you want to reject this interview?')) {
+                                    rejectInterview(job.interviewId);
+                                  }
+                                }}
+                                className={`group flex items-center space-x-2 px-4 py-2 text-sm rounded-xl transition-all duration-300 ${isDarkMode ? 'bg-red-500/20 text-red-200 hover:bg-red-500/30 border border-red-500/30' : 'bg-red-100 text-red-800 hover:bg-red-200 border border-red-200'}`}
+                              >
+                                <motion.div
+                                  whileHover={{ scale: 1.1 }}
+                                  transition={{ duration: 0.2 }}
+                                >
+                                  <ThumbsDown className="h-4 w-4" />
+                                </motion.div>
+                                <span>Reject</span>
+                              </motion.button>
+                            </>
+                          )}
+
+                          {/* Show approval status for approved/rejected interviews */}
+                          {job.approvalStatus === 'approved' && (
+                            <motion.div
+                              initial={{ opacity: 0, scale: 0.8 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              className={`flex items-center space-x-2 px-4 py-2 text-sm rounded-xl ${isDarkMode ? 'bg-green-500/20 text-green-200 border border-green-500/30' : 'bg-green-100 text-green-800 border border-green-200'}`}
+                            >
+                              <CheckCircle className="h-4 w-4" />
+                              <span>Approved</span>
+                            </motion.div>
+                          )}
+
+                          {job.approvalStatus === 'rejected' && (
+                            <motion.div
+                              initial={{ opacity: 0, scale: 0.8 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              className={`flex items-center space-x-2 px-4 py-2 text-sm rounded-xl ${isDarkMode ? 'bg-red-500/20 text-red-200 border border-red-500/30' : 'bg-red-100 text-red-800 border border-red-200'}`}
+                            >
+                              <X className="h-4 w-4" />
+                              <span>Rejected</span>
+                            </motion.div>
+                          )}
                           
                           <motion.button
                             whileHover={{ scale: 1.05, y: -2 }}

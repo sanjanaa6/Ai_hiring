@@ -1,14 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Camera, Mic, MicOff, Play, Pause, AlertTriangle, CheckCircle, Clock, Volume2, SkipForward, MessageSquare, BarChart3, TrendingUp, Code } from 'lucide-react';
+import { Camera, Mic, MicOff, AlertTriangle, CheckCircle, Clock, Volume2, SkipForward, MessageSquare, BarChart3, TrendingUp, Code } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import CodeEditor from './CodeEditor';
 import EnhancedCodeEditor from './EnhancedCodeEditor';
-import LiveCodingRound from './LiveCodingRound';
 
 const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError }) => {
   const { isDarkMode } = useTheme();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [step, setStep] = useState('setup'); // setup, device-check, interview, round-complete, round-selection, complete
+  const [step, setStep] = useState('setup'); // setup, interview, round-complete, round-selection, complete
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [cameraStream, setCameraStream] = useState(null);
@@ -18,18 +16,13 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
   const [currentRound, setCurrentRound] = useState(null);
   const [timeRemaining, setTimeRemaining] = useState(0);
   const [isAISpeaking, setIsAISpeaking] = useState(false);
-  const [autoProgressEnabled, setAutoProgressEnabled] = useState(true);
+  const [autoProgressEnabled] = useState(true);
   const [questionIndex, setQuestionIndex] = useState(0);
   const [roundIndex, setRoundIndex] = useState(0);
   const [allRounds, setAllRounds] = useState([]);
   const [completedRounds, setCompletedRounds] = useState(new Set());
   const [roundEvaluation, setRoundEvaluation] = useState(null);
   const [shouldAutoRecord, setShouldAutoRecord] = useState(false);
-  const [electronicDeviceDetected, setElectronicDeviceDetected] = useState(false);
-  const [deviceDetectionActive, setDeviceDetectionActive] = useState(false);
-  const [confidenceScore, setConfidenceScore] = useState(null);
-  const [facialExpression, setFacialExpression] = useState(null);
-  const [removalCountdown, setRemovalCountdown] = useState(3);
   const [cameraStatus, setCameraStatus] = useState('initializing');
   const [questionStartCountdown, setQuestionStartCountdown] = useState(0);
   const [isLiveCodingRound, setIsLiveCodingRound] = useState(false);
@@ -48,18 +41,6 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
   const [isCodeDone, setIsCodeDone] = useState(false);
   const [isAiQuestionAnswered, setIsAiQuestionAnswered] = useState(false);
 
-  // Check authentication status
-  useEffect(() => {
-    const checkAuth = () => {
-      const token = localStorage.getItem('token');
-      setIsAuthenticated(!!token);
-      if (!token) {
-        setError('Please log in to continue with the interview.');
-        setStep('error');
-      }
-    };
-    checkAuth();
-  }, []);
 
   // Auto-detect if current question is a coding question and reset showCodeEditor accordingly
   useEffect(() => {
@@ -247,12 +228,8 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
   };
 
   const videoRef = useRef(null);
-  const mediaRecorderRef = useRef(null);
   const recognitionRef = useRef(null);
   const timerRef = useRef(null);
-  const speechSynthesisRef = useRef(null);
-  const deviceDetectionInterval = useRef(null);
-  const canvasRef = useRef(null);
   const cameraMonitorInterval = useRef(null);
 
   // Step 1: Initialize camera and microphone
@@ -275,25 +252,9 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
       setCameraStream(stream);
       setCameraStatus('connected');
       
-      // Wait for video element to be ready
-      setTimeout(() => {
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-          videoRef.current.play().then(() => {
-            console.log('✅ Video started playing');
-            setCameraStatus('playing');
-          }).catch(err => {
-            console.error('❌ Video play failed:', err);
-            setCameraStatus('error');
-          });
-        } else {
-          console.error('❌ Video ref not available');
-          setCameraStatus('error');
-        }
-      }, 100);
-      
       console.log('✅ Media access granted');
-      setStep('device-check');
+      setStep('round-selection');
+      await loadInterviewRounds();
     } catch (err) {
       console.error('❌ Media access failed:', err);
       setError('Camera and microphone access required. Please grant permissions and try again.');
@@ -302,170 +263,132 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
     }
   };
 
-  // Step 2: Device validation
-  const validateEnvironment = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      // Capture frame for validation with optimized compression
-      const canvas = document.createElement('canvas');
-      // Reduce canvas size to minimize data
-      const maxWidth = 320;
-      const maxHeight = 240;
-      const videoWidth = videoRef.current.videoWidth;
-      const videoHeight = videoRef.current.videoHeight;
-      
-      // Calculate scaled dimensions
-      const scale = Math.min(maxWidth / videoWidth, maxHeight / videoHeight);
-      canvas.width = videoWidth * scale;
-      canvas.height = videoHeight * scale;
-      
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
-      
-      // Use lower quality JPEG compression to reduce size
-      const imageData = canvas.toDataURL('image/jpeg', 0.3);
-      
-      console.log('🔍 Validating environment...');
-      console.log('📊 Image data size:', Math.round(imageData.length / 1024), 'KB');
-      
-      const response = await fetch(`/api/interviews/${interviewId}/validate-environment`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          imageData,
-          candidateId: candidateInfo.email
-        })
-      });
-
-      if (!response.ok) {
-        if (response.status === 413) {
-          throw new Error('Image data too large. Please try again.');
-        }
-        throw new Error(`Environment validation failed: ${response.statusText}`);
-      }
-
-      const result = await response.json();
-      console.log('📋 Environment validation result:', result);
-      
-      if (!result.success) {
-        throw new Error(result.error || 'Environment validation failed');
-      }
-
-      if (result.data.deviceCheckPassed) {
-        console.log('✅ Environment check passed');
-        setStep('round-selection');
-        await loadInterviewRounds();
-      } else {
-        setError(`Environment check failed: ${result.data.message}`);
-      }
-      
-    } catch (err) {
-      console.error('❌ Environment validation error:', err);
-      setError(err.message || 'Failed to validate environment');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Load interview rounds for selection
+  // Load interview rounds from the backend
   const loadInterviewRounds = async () => {
     try {
-      setLoading(true);
-      console.log('📋 Loading interview rounds...');
+      console.log('🔄 Loading interview rounds for interviewId:', interviewId);
       
-      const token = localStorage.getItem('token');
-      if (!token) {
-        throw new Error('Authentication required. Please log in.');
+      if (!interviewId) {
+        console.log('⚠️ No interviewId provided, creating default rounds');
+        const defaultRounds = [
+          {
+            roundId: 'round_1',
+            title: 'Technical Assessment',
+            description: 'Basic technical knowledge and problem-solving skills',
+            questions: [
+              {
+                questionId: 'q1',
+                question: 'Tell me about yourself and your technical background.',
+                type: 'behavioral',
+                timeLimit: 300
+              },
+              {
+                questionId: 'q2', 
+                question: 'Explain the difference between let, const, and var in JavaScript.',
+                type: 'technical',
+                timeLimit: 180
+              }
+            ]
+          },
+          {
+            roundId: 'round_2',
+            title: 'Coding Challenge',
+            description: 'Live coding session with real-time problem solving',
+            questions: [
+              {
+                questionId: 'q3',
+                question: 'Write a function to reverse a string in JavaScript.',
+                type: 'coding',
+                timeLimit: 600,
+                codeEditor: { enabled: true, language: 'javascript' }
+              }
+            ]
+          },
+          {
+            roundId: 'round_3',
+            title: 'System Design',
+            description: 'Architecture and system design discussion',
+            questions: [
+              {
+                questionId: 'q4',
+                question: 'How would you design a URL shortener service like bit.ly?',
+                type: 'system-design',
+                timeLimit: 900
+              }
+            ]
+          }
+        ];
+        
+        setAllRounds(defaultRounds);
+        console.log('✅ Default rounds loaded:', defaultRounds.length);
+        return;
       }
+
+      // Fetch actual interview data from the backend
+      console.log('🌐 Fetching interview data from backend...');
       
-      const response = await fetch(`/api/interviews/${interviewId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+      // Try public endpoint first (for shareable links), then authenticated endpoint
+      let response;
+      try {
+        response = await fetch(`/api/interviews/public/${interviewId}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+      } catch (error) {
+        console.log('🔄 Public endpoint failed, trying authenticated endpoint...');
+        const token = localStorage.getItem('token');
+        if (token) {
+          response = await fetch(`/api/interviews/${interviewId}`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            }
+          });
+        } else {
+          throw new Error('No authentication token available');
         }
-      });
+      }
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.error || `HTTP error! status: ${response.status}`;
+        throw new Error(errorMessage);
+      }
+
       const result = await response.json();
       
       if (!result.success) {
-        throw new Error('Failed to load interview data');
+        throw new Error(result.error || 'Failed to fetch interview data');
       }
-      
-      setAllRounds(result.data.rounds);
-      console.log('✅ Loaded rounds:', result.data.rounds.length);
-      
-    } catch (err) {
-      console.error('❌ Error loading rounds:', err);
-      if (err.message === 'Authentication required. Please log in.') {
-        setError('Please log in to continue with the interview.');
-        window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
+
+      const interviewData = result.data;
+      console.log('📋 Interview data received:', {
+        id: interviewData.interviewId,
+        title: interviewData.title,
+        roundsCount: interviewData.rounds?.length || 0,
+        approvalStatus: interviewData.approvalStatus
+      });
+
+      // Check if interview is approved or pending (for testing)
+      if (interviewData.approvalStatus !== 'approved' && interviewData.approvalStatus !== 'pending') {
+        throw new Error(`This interview is not available yet. Status: ${interviewData.approvalStatus}`);
+      }
+
+      // Set the rounds from the interview data
+      if (interviewData.rounds && interviewData.rounds.length > 0) {
+        setAllRounds(interviewData.rounds);
+        console.log('✅ Interview rounds loaded successfully:', interviewData.rounds.length);
       } else {
-        setError(err.message || 'Failed to load interview rounds');
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Step 3: Start interview
-  const startInterview = async () => {
-    try {
-      setLoading(true);
-      console.log('🎭 Loading interview data and starting round 1...');
-      
-      // First, get the complete interview structure
-      const interviewResponse = await fetch(`/api/interviews/${interviewId}`);
-      const interviewResult = await interviewResponse.json();
-      
-      if (!interviewResult.success) {
-        throw new Error('Failed to load interview data');
+        console.log('⚠️ No rounds found in interview data');
+        setAllRounds([]);
       }
       
-      setAllRounds(interviewResult.data.rounds);
-      console.log('📋 Loaded rounds:', interviewResult.data.rounds.length);
-      
-      // Start the first round
-      const response = await fetch(`/api/interviews/${interviewId}/round/round_1/start`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          candidateId: candidateInfo.email,
-          candidateName: candidateInfo.name,
-          candidateEmail: candidateInfo.email,
-          deviceCheckPassed: true
-        })
-      });
-
-      const result = await response.json();
-      console.log('🎤 Interview start result:', result);
-      
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to start interview');
-      }
-
-      setCurrentRound(result.data.round);
-      setCurrentQuestion(result.data.currentQuestion);
-      setRoundIndex(0);
-      setQuestionIndex(0);
-      
-      // Start the question with AI speaking it aloud
-      await speakQuestion(result.data.currentQuestion.question);
-      
-      // Start the timer for the first question
-      startQuestionTimer();
-      
-      console.log('✅ Interview started successfully');
-      
-    } catch (err) {
-      console.error('❌ Interview start error:', err);
-      setError(err.message || 'Failed to start interview');
-    } finally {
-      setLoading(false);
+    } catch (error) {
+      console.error('❌ Failed to load interview rounds:', error);
+      setError('Failed to load interview rounds: ' + error.message);
     }
   };
 
@@ -599,15 +522,18 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
       console.log('📝 Code:', code);
       console.log('❓ Question:', question);
       
-      const response = await fetch('/api/coding-tutor/generate-questions', {
+      const response = await fetch(`/api/interviews/${interviewId}/coding-hints`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           question: question,
-          code: code,
-          type: 'coding-interview'
+          currentCode: code,
+          language: selectedLanguage,
+          difficulty: 'medium',
+          isLiveComment: true,
+          isInterviewer: true
         })
       });
 
@@ -615,9 +541,10 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
       const result = await response.json();
       console.log('📋 Response data:', result);
       
-      if (result.success) {
-        console.log('✅ AI questions generated:', result.data.questions);
-        return result.data.questions;
+      if (result.success && result.data && result.data.aiResponse) {
+        console.log('✅ AI questions generated:', result.data.aiResponse);
+        // Return the AI question from the response
+        return [result.data.aiResponse.aiQuestion];
       } else {
         console.log('⚠️ API failed, using fallback questions');
         // Fallback questions if API fails
@@ -629,6 +556,74 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
       }
     } catch (error) {
       console.error('❌ Error generating AI questions:', error);
+      // Fallback questions
+      return [
+        "Can you explain your approach to solving this problem?",
+        "What is the time complexity of your solution?",
+        "How would you handle edge cases in your code?"
+      ];
+    }
+  };
+
+  // Generate 3 AI questions for coding solution
+  const generateMultipleAIQuestions = async (code, question) => {
+    try {
+      console.log('🤖 Generating 3 AI questions for coding solution...');
+      console.log('📝 Code:', code);
+      console.log('❓ Question:', question);
+      
+      const questions = [];
+      
+      // Generate 3 different AI questions
+      for (let i = 0; i < 3; i++) {
+        console.log(`🔄 Generating question ${i + 1}/3...`);
+        
+        const response = await fetch(`/api/interviews/${interviewId}/coding-hints`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            question: question,
+            currentCode: code,
+            language: selectedLanguage,
+            difficulty: 'medium',
+            isLiveComment: true,
+            isInterviewer: true,
+            questionNumber: i + 1, // Add question number for variety
+            previousQuestions: questions // Include previous questions to avoid repetition
+          })
+        });
+
+        console.log(`📡 Response status for question ${i + 1}:`, response.status);
+        const result = await response.json();
+        console.log(`📋 Response data for question ${i + 1}:`, result);
+        
+        if (result.success && result.data && result.data.aiResponse) {
+          console.log(`✅ AI question ${i + 1} generated:`, result.data.aiResponse.aiQuestion);
+          questions.push(result.data.aiResponse.aiQuestion);
+        } else {
+          console.log(`⚠️ API failed for question ${i + 1}, using fallback`);
+          // Add fallback question
+          const fallbackQuestions = [
+            "Can you explain your approach to solving this problem?",
+            "What is the time complexity of your solution?",
+            "How would you handle edge cases in your code?"
+          ];
+          questions.push(fallbackQuestions[i] || "Can you explain your code?");
+        }
+        
+        // Add small delay between requests to avoid rate limiting
+        if (i < 2) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+      }
+      
+      console.log('✅ All 3 AI questions generated:', questions);
+      return questions;
+      
+    } catch (error) {
+      console.error('❌ Error generating multiple AI questions:', error);
       // Fallback questions
       return [
         "Can you explain your approach to solving this problem?",
@@ -650,14 +645,14 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
       return;
     }
     
-    console.log('✅ Code marked as done, generating AI questions...');
+    console.log('✅ Code marked as done, generating 3 AI questions...');
     setIsCodeDone(true);
     
     try {
-      // Generate AI questions for the code
-      console.log('🤖 Calling generateAIQuestions...');
-      const questions = await generateAIQuestions(codeAnswer, currentQuestion?.question);
-      console.log('📋 Generated questions:', questions);
+      // Generate 3 AI questions for the code
+      console.log('🤖 Generating 3 AI questions...');
+      const questions = await generateMultipleAIQuestions(codeAnswer, currentQuestion?.question);
+      console.log('📋 Generated 3 questions:', questions);
       
       setAiQuestions(questions);
       setCurrentAiQuestionIndex(0);
@@ -679,13 +674,6 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
     }
   };
 
-  // Handle live coding round completion
-  const handleLiveCodingComplete = async (codingResult) => {
-    console.log('🎯 Live coding round completed:', codingResult);
-    
-    // Don't automatically start AI questioning - wait for Done button
-    console.log('⚠️ Live coding round completed, but AI questioning will start when Done is clicked');
-  };
 
   // Handle sales round AI questioning
   const handleSalesAIQuestioning = async (answer) => {
@@ -754,66 +742,73 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
       
       // Generate AI response to the answer
       try {
-        const response = await fetch('/api/interviews/coding-round/voice-answer', {
+        const response = await fetch(`/api/interviews/${interviewId}/coding-hints`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            sessionId: `interview-${interviewId}-${Date.now()}`,
             question: aiQuestions[currentAiQuestionIndex],
-            voiceAnswer: answer,
-            code: codeAnswer,
-            language: selectedLanguage
+            currentCode: codeAnswer,
+            language: selectedLanguage,
+            difficulty: 'medium',
+            isLiveComment: true,
+            isInterviewer: true
           })
         });
 
         const result = await response.json();
-        if (result.success && result.data.aiResponse) {
+        if (result.success && result.data && result.data.aiResponse) {
           const newResponse = {
             id: Date.now(),
             question: aiQuestions[currentAiQuestionIndex],
             answer: answer,
-            aiResponse: result.data.aiResponse,
+            aiResponse: result.data.aiResponse.aiQuestion,
             timestamp: new Date()
           };
           setAiResponses(prev => [...prev, newResponse]);
           
-          // Speak the AI response
-          await speakQuestion(result.data.aiResponse);
+          // Speak the AI response (use voiceText if available, otherwise use aiQuestion)
+          const voiceText = result.data.voiceText || result.data.aiResponse.aiQuestion;
+          await speakQuestion(voiceText);
         }
       } catch (responseError) {
         console.error('❌ Error generating AI response:', responseError);
         // Continue with the flow even if AI response fails
       }
       
-      // Check if we've answered all 3 questions
-      if (currentAiQuestionIndex + 1 >= aiQuestions.length) {
-        // All AI questions answered, submit and move to next question
-        console.log('✅ All AI questions answered, moving to next question');
-        await submitCodingAnswerWithAIQuestions(newAnswers);
-        setIsAiQuestioning(false);
-        setAiQuestions([]);
-        setCurrentAiQuestionIndex(0);
-        setAiQuestionAnswers([]);
-        setAiResponses([]);
-        await moveToNextQuestion();
-      } else {
+      // Check if we have more AI questions to ask
+      if (currentAiQuestionIndex < aiQuestions.length - 1) {
         // Move to next AI question
-        const nextIndex = currentAiQuestionIndex + 1;
-        setCurrentAiQuestionIndex(nextIndex);
-        // Speak the next question
-        await speakQuestion(aiQuestions[nextIndex]);
-        // Start listening for the answer
+        console.log('🔄 Moving to next AI question...');
+        setTimeout(async () => {
+          const nextIndex = currentAiQuestionIndex + 1;
+          setCurrentAiQuestionIndex(nextIndex);
+          setIsAiQuestionAnswered(false);
+          
+          // Speak the next question
+          console.log('🗣️ Speaking next question:', aiQuestions[nextIndex]);
+          await speakQuestion(aiQuestions[nextIndex]);
+          
+          // Start listening for the answer after AI finishes speaking
+          setTimeout(() => {
+            console.log('🎙️ Starting voice recording for next AI question...');
+            startVoiceRecordingForAI();
+          }, 2000);
+        }, 3000); // Wait 3 seconds after AI response
+      } else {
+        // All AI questions completed, move to next question in the round
+        console.log('✅ All AI questions completed, moving to next question...');
         setTimeout(() => {
-          startVoiceRecordingForAI();
-        }, 2000); // Wait 2 seconds after AI finishes speaking
+          moveToNextQuestion();
+        }, 3000); // Wait 3 seconds after AI response
       }
     } catch (error) {
       console.error('❌ Error handling AI question answer:', error);
       setError(error.message || 'Failed to process AI question answer');
     }
   };
+
 
   // Start voice recording for AI question answer
   const startVoiceRecordingForAI = async () => {
@@ -1056,11 +1051,6 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
       console.log('📹 Ensuring camera is active for interview...');
       setIsCameraRestarting(true);
       
-      // Stop device detection temporarily during camera restart
-      if (deviceDetectionActive) {
-        console.log('⏸️ Temporarily stopping device detection for camera restart...');
-        stopDeviceDetection();
-      }
       
       // Always get a fresh stream to ensure camera is working
       console.log('📹 Requesting fresh camera stream...');
@@ -1108,13 +1098,9 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
       }
       
       // Restart device detection after camera is stable
-      console.log('⏳ Waiting for camera to stabilize before restarting device detection...');
+      console.log('⏳ Waiting for camera to stabilize...');
       setTimeout(() => {
         setIsCameraRestarting(false);
-        if (step === 'interview' && !deviceDetectionActive) {
-          console.log('🔄 Restarting device detection after camera stabilization...');
-          startDeviceDetection();
-        }
       }, 2000); // Reduced to 2-second grace period
       
     } catch (err) {
@@ -1455,9 +1441,6 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
     if (recognitionRef.current) {
       recognitionRef.current.stop();
     }
-    if (deviceDetectionInterval.current) {
-      clearInterval(deviceDetectionInterval.current);
-    }
     if (cameraMonitorInterval.current) {
       clearInterval(cameraMonitorInterval.current);
     }
@@ -1505,230 +1488,9 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
   }, [cameraStream]);
 
   // Auto-start device detection when video is ready during interview
-  useEffect(() => {
-    if (step === 'interview' && videoRef.current && cameraStream && !deviceDetectionActive) {
-      const video = videoRef.current;
-      
-      // Check if video is ready with valid dimensions
-      if (video.videoWidth > 0 && video.videoHeight > 0 && video.readyState >= 2) {
-        console.log('🎯 Video is ready, starting device detection...');
-        startDeviceDetection();
-      } else {
-        // Wait for video to be ready
-        const checkVideoReady = () => {
-          if (video.videoWidth > 0 && video.videoHeight > 0 && video.readyState >= 2) {
-            console.log('🎯 Video became ready, starting device detection...');
-            startDeviceDetection();
-          } else {
-            // Check again in 500ms
-            setTimeout(checkVideoReady, 500);
-          }
-        };
-        checkVideoReady();
-      }
-    }
-  }, [step, cameraStream, deviceDetectionActive]);
-
-  // Device detection - only detect dark devices, allow all bright screens
-  const detectDevice = (imageData) => {
-    const data = imageData.data;
-    let darkPixels = 0;
-    let totalPixels = 0;
-    
-    // Pixel analysis - only detect dark devices, allow bright screens
-    for (let i = 0; i < data.length; i += 4) {
-      const r = data[i];
-      const g = data[i + 1];
-      const b = data[i + 2];
-      const brightness = (r + g + b) / 3;
-      
-      totalPixels++;
-      
-      // Only count dark pixels (dark devices, phone bodies) - ignore bright screens
-      if (brightness < 80 && brightness > 20) {
-        darkPixels++;
-      }
-    }
-    
-    const darkRatio = darkPixels / totalPixels;
-    
-    console.log(`📱 Dark Device Detection: Dark: ${darkPixels} (${(darkRatio * 100).toFixed(1)}%) - Bright screens allowed`);
-    
-    // Only detect dark devices - allow all bright screens
-    if (darkRatio > 0.2) {
-      console.log('🚨 Dark device detected');
-      return true;
-    }
-    
-    console.log('✅ No dark device detected - bright screens allowed');
-    return false;
-  };
-
-  // Manual test function for device detection
-  const testDeviceDetection = async () => {
-    try {
-      console.log('🧪 MANUAL TEST: Testing device detection...');
-      
-      if (!videoRef.current || !cameraStream) {
-        console.log('⚠️ Cannot test - video or camera not ready');
-        return;
-      }
-
-      const video = videoRef.current;
-      
-      if (!video.videoWidth || !video.videoHeight || video.readyState < 2) {
-        console.log('⚠️ Cannot test - video not ready');
-        return;
-      }
-
-      // Create canvas for analysis
-      const canvas = document.createElement('canvas');
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      const ctx = canvas.getContext('2d');
-      
-      // Draw video frame to canvas
-      ctx.drawImage(video, 0, 0);
-      
-      // Get image data
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      
-      // Run detection
-      const deviceDetected = detectDevice(imageData);
-      
-      if (deviceDetected) {
-        console.log('🧪 TEST RESULT: Device detected!');
-        setElectronicDeviceDetected(true);
-        setError('TEST: Mobile device detected! Please remove all electronic devices and try again.');
-      } else {
-        console.log('🧪 TEST RESULT: No device detected');
-        setElectronicDeviceDetected(false);
-        setError('TEST: No device detected - detection is working correctly');
-      }
-      
-    } catch (err) {
-      console.error('❌ Test error:', err);
-    }
-  };
-
-  // Electronic device detection function - reimplemented
-  const detectElectronicDevices = async () => {
-    try {
-      console.log('🔍 Running device detection...');
-      
-      if (!videoRef.current || !cameraStream) {
-        console.log('⚠️ Video or camera not ready');
-        return;
-      }
-
-      const video = videoRef.current;
-      
-      if (!video.videoWidth || !video.videoHeight || video.readyState < 2) {
-        console.log('⚠️ Video not ready');
-        return;
-      }
-
-      // Create canvas and draw video frame
-      const canvas = document.createElement('canvas');
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(video, 0, 0);
-      
-      // Get image data and run detection
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const deviceDetected = detectDevice(imageData);
-      
-      if (deviceDetected) {
-        console.log('🚨 DEVICE DETECTED!');
-        setElectronicDeviceDetected(true);
-        setError('Mobile device detected! Please remove all electronic devices and try again.');
-        
-        // Stop activities and start countdown
-        stopRecording();
-        stopDeviceDetection();
-        
-        setRemovalCountdown(3);
-        const countdownInterval = setInterval(() => {
-          setRemovalCountdown(prev => {
-            if (prev <= 1) {
-              clearInterval(countdownInterval);
-              console.log('🚨 Removing candidate due to device usage');
-              stopCameraMonitoring();
-              stopDeviceDetection();
-              if (onError) {
-                onError('Candidate removed due to electronic device usage during interview');
-              }
-              return 0;
-            }
-            return prev - 1;
-          });
-        }, 1000);
-      } else {
-        console.log('✅ No device detected');
-        setElectronicDeviceDetected(false);
-      }
-
-    } catch (err) {
-      console.error('❌ Device detection error:', err);
-    }
-  };
 
 
 
-  // Start device detection - active monitoring for dark devices only
-  const startDeviceDetection = () => {
-    if (deviceDetectionInterval.current) {
-      clearInterval(deviceDetectionInterval.current);
-    }
-    
-    console.log('🔍 Starting device monitoring (dark devices only - bright screens allowed)...');
-    
-    // Check if video is ready
-    if (!videoRef.current || !cameraStream) {
-      console.log('⚠️ Video or camera not ready, retrying in 2 seconds...');
-      setTimeout(() => {
-        if (step === 'interview') {
-          startDeviceDetection();
-        }
-      }, 2000);
-      return;
-    }
-
-    const video = videoRef.current;
-    if (!video.videoWidth || !video.videoHeight || video.readyState < 2) {
-      console.log('⚠️ Video not ready, retrying in 2 seconds...');
-      setTimeout(() => {
-        if (step === 'interview') {
-          startDeviceDetection();
-        }
-      }, 2000);
-      return;
-    }
-    
-    setDeviceDetectionActive(true);
-    console.log('✅ Device monitoring started - detecting dark devices only, bright screens allowed');
-    
-    // Run detection every 3 seconds
-    deviceDetectionInterval.current = setInterval(() => {
-      if (step === 'interview' && videoRef.current && cameraStream) {
-        detectElectronicDevices();
-      } else {
-        console.log('⚠️ Stopping device monitoring');
-        stopDeviceDetection();
-      }
-    }, 3000);
-  };
-
-  // Stop device detection
-  const stopDeviceDetection = () => {
-    if (deviceDetectionInterval.current) {
-      clearInterval(deviceDetectionInterval.current);
-      deviceDetectionInterval.current = null;
-    }
-    setDeviceDetectionActive(false);
-    console.log('🛑 Electronic device detection stopped');
-  };
 
   // Start camera monitoring to ensure it stays active
   const startCameraMonitoring = () => {
@@ -1916,19 +1678,18 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
 
           {/* Action Buttons */}
           <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
-            <button
-              onClick={() => setStep('round-selection')}
-              className="px-8 py-4 bg-gradient-to-r from-slate-800 via-blue-600 to-indigo-600 hover:from-slate-700 hover:via-blue-500 hover:to-indigo-500 text-white text-lg font-bold rounded-lg shadow-lg transform hover:scale-105 transition-all"
-            >
-              🎯 Continue to Next Round
-            </button>
+              <button
+                onClick={() => setStep('round-selection')}
+                className="px-8 py-4 bg-gradient-to-r from-slate-800 via-blue-600 to-indigo-600 hover:from-slate-700 hover:via-blue-500 hover:to-indigo-500 text-white text-lg font-bold rounded-lg shadow-lg transform hover:scale-105 transition-all"
+              >
+                🎯 Continue to Next Round
+              </button>
             
-            {completedRounds.size === allRounds.length && (
+            {allRounds.length > 0 && completedRounds.size === allRounds.length && (
               <button
                 onClick={() => {
                   setStep('complete');
                   stopCameraMonitoring();
-                  stopDeviceDetection();
                   if (onComplete) {
                     onComplete({ 
                       message: 'All interview rounds completed successfully!',
@@ -2190,7 +1951,7 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
               }`}>
                 <div
                   className="bg-gradient-to-r from-slate-800 via-blue-600 to-indigo-600 h-4 rounded-full transition-all duration-700 shadow-lg relative overflow-hidden"
-                  style={{ width: `${(completedRounds.size / allRounds.length) * 100}%` }}
+                  style={{ width: `${allRounds.length > 0 ? (completedRounds.size / allRounds.length) * 100 : 0}%` }}
                 >
                   {/* Animated Shimmer Effect */}
                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-pulse"></div>
@@ -2199,7 +1960,7 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
               <div className={`text-sm mt-4 font-bold ${
                 isDarkMode ? 'text-blue-300' : 'text-blue-600'
               }`}>
-                {Math.round((completedRounds.size / allRounds.length) * 100)}% Complete
+                {allRounds.length > 0 ? Math.round((completedRounds.size / allRounds.length) * 100) : 0}% Complete
               </div>
             </div>
           </div>
@@ -2211,7 +1972,6 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
                 onClick={() => {
                   setStep('complete');
                   stopCameraMonitoring();
-                  stopDeviceDetection();
                   if (onComplete) {
                     onComplete({ 
                       message: 'All interview rounds completed successfully!',
@@ -2432,177 +2192,6 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
     );
   }
 
-  if (step === 'device-check') {
-    return (
-      <div className={`fixed inset-0 overflow-hidden ${
-        isDarkMode 
-          ? 'bg-gradient-to-br from-slate-900 via-gray-900 to-black' 
-          : 'bg-gradient-to-br from-white via-blue-50 to-indigo-100'
-      }`}>
-        <div className="h-full flex flex-col">
-          {/* Header */}
-          <div className="bg-black/20 backdrop-blur-md border-b border-white/10 px-6 py-4">
-            <div className="text-center">
-              <h1 className="text-2xl font-bold text-white mb-2">Camera Preview & Environment Check</h1>
-              <p className="text-gray-300">Position yourself in the camera and ensure no electronic devices are visible</p>
-            </div>
-          </div>
-
-          {/* Main Content */}
-          <div className="flex-1 flex items-center justify-center p-8">
-            <div className="w-full max-w-6xl">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
-                {/* Large Camera Feed */}
-                <div className="relative">
-            <video
-              ref={videoRef}
-              autoPlay
-              muted
-                    playsInline
-                    className="w-full h-96 lg:h-[500px] bg-black rounded-3xl object-cover shadow-2xl border-4 border-white/20"
-                    onLoadedMetadata={() => console.log('📹 Video metadata loaded')}
-                    onCanPlay={() => console.log('📹 Video can play')}
-                    onPlay={() => console.log('📹 Video started playing')}
-                    onError={(e) => console.error('❌ Video error:', e)}
-                  />
-                  
-                  {/* Camera Error Overlay */}
-                  {cameraStatus === 'error' && (
-                    <div className="absolute inset-0 bg-black/80 rounded-3xl flex items-center justify-center">
-                      <div className="text-center text-white">
-                        <Camera className="h-16 w-16 mx-auto mb-4 text-red-400" />
-                        <h3 className="text-xl font-semibold mb-2">Camera Not Available</h3>
-                        <p className="text-gray-300">Please check your camera permissions and try again</p>
-            </div>
-          </div>
-                  )}
-                  
-                  {/* Camera Loading Overlay */}
-                  {cameraStatus === 'initializing' && (
-                    <div className="absolute inset-0 bg-black/50 rounded-3xl flex items-center justify-center">
-                      <div className="text-center text-white">
-                        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-white mx-auto mb-4"></div>
-                        <h3 className="text-xl font-semibold mb-2">Initializing Camera...</h3>
-                        <p className="text-gray-300">Please wait while we set up your camera</p>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {/* Status Overlays */}
-                  <div className="absolute top-6 left-6 flex flex-col space-y-3">
-                    <div className={`flex items-center space-x-2 backdrop-blur-sm text-white px-4 py-2 rounded-full text-sm font-medium ${
-                      cameraStatus === 'playing' ? 'bg-green-600/90' : 
-                      cameraStatus === 'connected' ? 'bg-yellow-600/90' : 
-                      cameraStatus === 'error' ? 'bg-red-600/90' : 'bg-gray-600/90'
-                    }`}>
-                      <div className={`w-3 h-3 rounded-full ${
-                        cameraStatus === 'playing' ? 'bg-white animate-pulse' : 
-                        cameraStatus === 'connected' ? 'bg-white animate-pulse' : 
-                        cameraStatus === 'error' ? 'bg-white' : 'bg-gray-300'
-                      }`}></div>
-                      <span>
-                        {cameraStatus === 'playing' ? 'Live Camera' : 
-                         cameraStatus === 'connected' ? 'Camera Connected' : 
-                         cameraStatus === 'error' ? 'Camera Error' : 'Initializing...'}
-                      </span>
-                    </div>
-                    
-                    <div className="flex items-center space-x-2 bg-blue-600/90 backdrop-blur-sm text-white px-4 py-2 rounded-full text-sm font-medium">
-                      <div className="w-3 h-3 bg-white rounded-full animate-pulse"></div>
-                      <span>Environment Check</span>
-                    </div>
-                  </div>
-
-                  {/* Instructions Overlay */}
-                  <div className="absolute bottom-6 left-6 right-6 bg-black/70 backdrop-blur-sm text-white p-4 rounded-2xl">
-                    <h3 className="font-semibold mb-2">📋 Instructions:</h3>
-                    <ul className="text-sm space-y-1">
-                      <li>• Position yourself in the center of the camera</li>
-                      <li>• Ensure good lighting on your face</li>
-                      <li>• Remove all electronic devices from view</li>
-                      <li>• Make sure you're in a quiet environment</li>
-                    </ul>
-                  </div>
-                </div>
-
-                {/* Instructions Panel */}
-                <div className="space-y-6">
-                  <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6">
-                    <h3 className="text-xl font-semibold text-white mb-4">🎯 Camera Setup</h3>
-                    <div className="space-y-4 text-gray-300">
-                      <div className="flex items-start space-x-3">
-                        <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-bold">1</div>
-                        <div>
-                          <p className="font-medium text-white">Position Yourself</p>
-                          <p className="text-sm">Sit centered in the camera frame with your face clearly visible</p>
-                        </div>
-                      </div>
-                      <div className="flex items-start space-x-3">
-                        <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-bold">2</div>
-                        <div>
-                          <p className="font-medium text-white">Check Lighting</p>
-                          <p className="text-sm">Ensure your face is well-lit and clearly visible</p>
-                        </div>
-                      </div>
-                      <div className="flex items-start space-x-3">
-                        <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-bold">3</div>
-                        <div>
-                          <p className="font-medium text-white">Remove Devices</p>
-                          <p className="text-sm">Put away phones, tablets, and other electronic devices</p>
-                        </div>
-                      </div>
-                      <div className="flex items-start space-x-3">
-                        <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-bold">4</div>
-                        <div>
-                          <p className="font-medium text-white">Quiet Environment</p>
-                          <p className="text-sm">Choose a quiet location with minimal background noise</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Action Button */}
-                  <div className="text-center">
-          {error && (
-                      <div className="bg-red-500/20 backdrop-blur-md border border-red-400/30 rounded-2xl p-4 mb-6">
-                        <p className="text-red-200 text-center">{error}</p>
-                        <button
-                          onClick={() => setError(null)}
-                          className="text-red-300 text-sm underline mt-2 block mx-auto"
-                        >
-                          Dismiss
-                        </button>
-            </div>
-          )}
-
-          <button
-            onClick={validateEnvironment}
-            disabled={loading}
-                      className="w-full bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 disabled:from-gray-600 disabled:to-gray-600 text-white py-4 px-8 rounded-2xl font-semibold transition-all duration-200 transform hover:scale-105 disabled:transform-none shadow-lg text-lg"
-                    >
-                      {loading ? (
-                        <div className="flex items-center justify-center space-x-3">
-                          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
-                          <span>Validating Environment...</span>
-                        </div>
-                      ) : (
-                        <div className="flex items-center justify-center space-x-3">
-                          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                          <span>Start Environment Check</span>
-                        </div>
-                      )}
-          </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   if (step === 'interview') {
     return (
@@ -2912,23 +2501,7 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
                           </div>
                         )}
 
-                        {deviceDetectionActive && (
-                          <div className={`flex items-center space-x-2 backdrop-blur-sm text-white px-3 py-1 rounded-full text-xs font-bold ${
-                            isDarkMode ? 'bg-blue-600/90' : 'bg-blue-600/90'
-                          }`}>
-                            <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
-                            <span>Device Monitoring</span>
-                            <div className="w-1.5 h-1.5 bg-blue-300 rounded-full animate-ping"></div>
                           </div>
-                        )}
-
-                        {electronicDeviceDetected && (
-                          <div className="flex items-center space-x-2 bg-red-600/90 backdrop-blur-sm text-white px-3 py-1 rounded-full text-xs font-medium animate-pulse">
-                            <div className="w-2 h-2 bg-white rounded-full"></div>
-                            <span>Device Detected!</span>
-                          </div>
-                        )}
-                      </div>
                     </div>
                   </div>
                 </div>
@@ -3430,6 +3003,21 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
                   <span>Skip Question</span>
                       </button>
                       
+                {/* Done Button for Coding Round */}
+                {codeAnswer.trim() && !isCodeDone && (isLiveCodingRound || currentRound?.title?.toLowerCase().includes('coding') || currentRound?.title?.toLowerCase().includes('technical') || currentRound?.title?.toLowerCase().includes('programming')) && (
+                  <div className="mb-4 text-center">
+                    <button
+                      onClick={handleCodeDone}
+                      className="inline-flex items-center space-x-2 bg-green-500/20 backdrop-blur-md border border-green-400/30 rounded-full px-6 py-3 hover:bg-green-500/30 transition-all duration-300 transform hover:scale-105"
+                    >
+                      <CheckCircle className="h-4 w-4 text-green-400" />
+                      <span className="text-green-200 text-sm font-medium">
+                        Code answer ready - Click to generate AI questions
+                      </span>
+                    </button>
+                  </div>
+                )}
+
                 {/* Answer Status Indicator */}
                 {(transcription.trim() || codeAnswer.trim()) && (
                   <div className="mb-4 text-center">
@@ -3512,22 +3100,12 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
                 <div className="inline-flex items-center space-x-2 text-xs text-gray-400">
                   <span>Rec: {isRecording ? 'ON' : 'OFF'}</span>
                   <span>AI: {isAISpeaking ? 'ON' : 'OFF'}</span>
-                  <span>Dev: {deviceDetectionActive ? 'ON' : 'OFF'}</span>
                   <span>Cam: {cameraStatus}</span>
                 </div>
                     </div>
 
               {/* Debug Buttons */}
               <div className="mt-2 text-center space-x-2">
-                      <button
-                  onClick={() => {
-                    console.log('🧪 Manual device detection test triggered');
-                    testDeviceDetection();
-                  }}
-                  className="px-3 py-1 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-400/30 rounded-lg text-blue-200 text-xs transition-all duration-200"
-                >
-                  🧪 Test Device
-                </button>
                 
                 <button
                   onClick={async () => {
@@ -3604,27 +3182,7 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
                   </div>
                 )}
                 
-                {/* Hidden canvas for device detection */}
-                <canvas
-                  ref={canvasRef}
-                  className="hidden"
-                />
                 
-                {/* Device Detection Scanning Overlay */}
-                {deviceDetectionActive && !electronicDeviceDetected && (
-                  <div className="absolute inset-0 pointer-events-none">
-                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                      <div className="w-16 h-16 border-4 border-blue-400/50 border-t-blue-400 rounded-full animate-spin"></div>
-                    </div>
-                    <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2">
-                      <div className={`backdrop-blur-sm text-white px-4 py-2 rounded-full text-sm font-bold ${
-                        isDarkMode ? 'bg-blue-600/80' : 'bg-blue-600/90'
-                      }`}>
-                        🔍 Scanning for devices...
-                      </div>
-                    </div>
-                  </div>
-                )}
                 
                 {/* Status Overlay */}
                 <div className="absolute top-4 left-4 flex flex-col space-y-2">
@@ -3647,44 +3205,8 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
                         </div>
                       )}
 
-                  {deviceDetectionActive && (
-                    <div className={`flex items-center space-x-2 backdrop-blur-sm text-white px-3 py-1 rounded-full text-xs font-bold ${
-                      isDarkMode ? 'bg-blue-600/90' : 'bg-blue-600/90'
-                    }`}>
-                      <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
-                      <span>Device Monitoring</span>
-                      <div className="w-1.5 h-1.5 bg-blue-300 rounded-full animate-ping"></div>
                     </div>
-                  )}
 
-                  {electronicDeviceDetected && (
-                    <div className="flex items-center space-x-2 bg-red-600/90 backdrop-blur-sm text-white px-3 py-1 rounded-full text-xs font-medium animate-pulse">
-                      <div className="w-2 h-2 bg-white rounded-full"></div>
-                      <span>Device Detected!</span>
-                    </div>
-                  )}
-                  </div>
-
-                {/* Confidence and Expression Overlay */}
-                <div className="absolute top-6 right-6 flex flex-col space-y-3">
-                  {confidenceScore !== null && (
-                    <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-4">
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-white mb-1">{confidenceScore}%</div>
-                        <div className="text-xs text-gray-300">Confidence</div>
-                    </div>
-                  </div>
-                  )}
-
-                  {facialExpression && (
-                    <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-4">
-                      <div className="text-center">
-                        <div className="text-lg font-semibold text-white mb-1">{facialExpression}</div>
-                        <div className="text-xs text-gray-300">Expression</div>
-                </div>
-              </div>
-                  )}
-            </div>
           </div>
 
               {/* Interview Stats */}
@@ -3736,31 +3258,6 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
           </div>
         </div>
 
-        {/* Full-screen device detection warning */}
-        {electronicDeviceDetected && (
-          <div className="fixed inset-0 bg-red-900/95 backdrop-blur-sm z-50 flex items-center justify-center">
-            <div className="bg-white rounded-3xl p-12 max-w-2xl mx-4 text-center shadow-2xl">
-              <div className="w-24 h-24 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                <svg className="w-12 h-12 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                </svg>
-              </div>
-              <h2 className="text-3xl font-bold text-gray-900 mb-4">Electronic Device Detected!</h2>
-              <p className="text-lg text-gray-600 mb-6">
-                We have detected an electronic device in your interview area. Please remove all electronic devices and ensure a clean interview environment.
-              </p>
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-                <p className="text-red-800 font-medium">
-                  ⚠️ You will be automatically removed from the interview in {removalCountdown} seconds for violating interview rules.
-                </p>
-              </div>
-              <div className="flex items-center justify-center space-x-2 text-gray-500">
-                <div className="w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
-                <span>Removing from interview in {removalCountdown}...</span>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     );
   }
