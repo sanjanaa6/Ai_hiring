@@ -748,6 +748,43 @@ router.get('/', auth, async (req, res) => {
   }
 });
 
+// Delete interview endpoint
+router.delete('/:interviewId', auth, async (req, res) => {
+  console.log('🗑️ [DELETE INTERVIEW] Deleting interview:', req.params.interviewId);
+  console.log('👤 [DELETE INTERVIEW] User ID:', req.user.id);
+  console.log('👤 [DELETE INTERVIEW] User role:', req.user.role);
+  
+  try {
+    const interview = await Interview.findOne({
+      interviewId: req.params.interviewId,
+      createdBy: req.user.id
+    });
+
+    if (!interview) {
+      console.log('❌ [DELETE INTERVIEW] Interview not found:', req.params.interviewId);
+      return res.status(404).json({
+        success: false,
+        error: 'Interview not found or access denied'
+      });
+    }
+
+    await Interview.deleteOne({ interviewId: req.params.interviewId });
+    console.log('✅ [DELETE INTERVIEW] Interview deleted successfully');
+    
+    res.json({
+      success: true,
+      message: 'Interview deleted successfully'
+    });
+
+  } catch (error) {
+    console.error('❌ [DELETE INTERVIEW] Error occurred:', error.message);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to delete interview'
+    });
+  }
+});
+
 // Generate interview endpoint
 router.post('/generate', auth, async (req, res) => {
   console.log('🎯 [INTERVIEW GENERATE] Starting interview generation...');

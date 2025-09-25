@@ -1,12 +1,12 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Camera, Mic, MicOff, AlertTriangle, CheckCircle, Clock, Volume2, SkipForward, MessageSquare, BarChart3, TrendingUp, Code } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Camera, Mic, MicOff, AlertTriangle, CheckCircle, Clock, Volume2, SkipForward, Code } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import CodeEditor from './CodeEditor';
 import EnhancedCodeEditor from './EnhancedCodeEditor';
 
 const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError }) => {
   const { isDarkMode } = useTheme();
-  const [step, setStep] = useState('setup'); // setup, interview, round-complete, round-selection, complete
+  const [step, setStep] = useState('setup'); // setup, interview, round-selection, complete
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [cameraStream, setCameraStream] = useState(null);
@@ -21,7 +21,6 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
   const [roundIndex, setRoundIndex] = useState(0);
   const [allRounds, setAllRounds] = useState([]);
   const [completedRounds, setCompletedRounds] = useState(new Set());
-  const [roundEvaluation, setRoundEvaluation] = useState(null);
   const [shouldAutoRecord, setShouldAutoRecord] = useState(false);
   const [cameraStatus, setCameraStatus] = useState('initializing');
   const [questionStartCountdown, setQuestionStartCountdown] = useState(0);
@@ -231,6 +230,10 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
   const recognitionRef = useRef(null);
   const timerRef = useRef(null);
   const cameraMonitorInterval = useRef(null);
+  const moveToNextQuestionRef = useRef(null);
+  const speakQuestionRef = useRef(null);
+  const handleAIQuestionAnswerRef = useRef(null);
+  const startVoiceRecordingForAIRef = useRef(null);
 
   // Step 1: Initialize camera and microphone
   const startSetup = async () => {
@@ -392,8 +395,90 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
     }
   };
 
+  // Stop recording function
+  const stopRecording = useCallback(() => {
+    try {
+      if (recognitionRef.current) {
+        console.log('🛑 Stopping recording...');
+      recognitionRef.current.stop();
+        recognitionRef.current = null;
+      setIsRecording(false);
+        console.log('✅ Recording stopped successfully');
+      } else {
+        console.log('⚠️ No active recording to stop');
+        setIsRecording(false);
+      }
+    } catch (err) {
+      console.error('❌ Error stopping recording:', err);
+      setIsRecording(false);
+    }
+  }, []);
+
+  // Submit current answer (used internally for auto-progression)
+  const submitCurrentAnswer = useCallback(async () => {
+    try {
+      // Determine answer type and content
+      // Check if current round is a coding round
+      const isCodingRound = currentRound?.title?.toLowerCase().includes('coding') || 
+                           currentRound?.title?.toLowerCase().includes('technical') ||
+                           currentRound?.title?.toLowerCase().includes('programming');
+      
+      const isCodingQuestion = currentQuestion?.codeEditor?.enabled || isCodingRound;
+      const answerContent = isCodingQuestion ? codeAnswer : transcription;
+      const answerType = isCodingQuestion ? 'code' : 'voice';
+      
+      if (!answerContent.trim()) {
+        console.log('⚠️ No answer content to submit');
+        return;
+      }
+
+      // For coding questions, check if AI question is answered
+      if (isCodingQuestion && isCodeDone && !isAiQuestionAnswered) {
+        console.log('⚠️ AI question must be answered before submission');
+        setError('Please answer the AI question before submitting');
+        return;
+      }
+      
+      console.log('📤 Submitting current answer...', { answerType, isCodingQuestion });
+      
+      const response = await fetch(`/api/interviews/${interviewId}/answer`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          candidateId: candidateInfo.email,
+          candidateName: candidateInfo.name,
+          candidateEmail: candidateInfo.email,
+          roundId: currentRound.roundId,
+          questionId: currentQuestion.questionId,
+          question: currentQuestion.question,
+          answer: answerContent,
+          answerType: answerType,
+          transcription: isCodingQuestion ? '' : transcription,
+          codeAnswer: isCodingQuestion ? codeAnswer : '',
+          timeTaken: (currentQuestion.timeLimit * 60) - timeRemaining
+        })
+      });
+
+      const result = await response.json();
+      console.log('✅ Answer submitted:', result);
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to submit answer');
+      }
+      
+      return result.data;
+      
+    } catch (err) {
+      console.error('❌ Submit error:', err);
+      setError(err.message || 'Failed to submit answer');
+      throw err;
+    }
+  }, [currentRound, currentQuestion, codeAnswer, transcription, isCodeDone, isAiQuestionAnswered, interviewId, candidateInfo, timeRemaining]);
+
   // AI Text-to-Speech function
-  const speakQuestion = async (questionText) => {
+  const speakQuestion = useCallback(async (questionText) => {
     return new Promise((resolve) => {
       setIsAISpeaking(true);
       
@@ -419,7 +504,27 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
         
         utterance.onend = () => {
           setIsAISpeaking(false);
-          startQuestionTimer();
+          // Start timer directly here to avoid circular dependency
+          const timeLimit = currentQuestion?.timeLimit * 60 || 300;
+          setTimeRemaining(timeLimit);
+          
+          if (timerRef.current) {
+            clearInterval(timerRef.current);
+          }
+          
+          timerRef.current = setInterval(() => {
+            setTimeRemaining(prev => {
+              if (prev <= 1) {
+                clearInterval(timerRef.current);
+                if (autoProgressEnabled && moveToNextQuestionRef.current) {
+                  moveToNextQuestionRef.current();
+                }
+                return 0;
+              }
+              return prev - 1;
+            });
+          }, 1000);
+          
           // Set flag to trigger auto-recording via useEffect
           console.log('🎙️ Setting auto-record flag after AI speech...');
           setShouldAutoRecord(true);
@@ -428,7 +533,27 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
         
         utterance.onerror = () => {
           setIsAISpeaking(false);
-          startQuestionTimer();
+          // Start timer directly here to avoid circular dependency
+          const timeLimit = currentQuestion?.timeLimit * 60 || 300;
+          setTimeRemaining(timeLimit);
+          
+          if (timerRef.current) {
+            clearInterval(timerRef.current);
+          }
+          
+          timerRef.current = setInterval(() => {
+            setTimeRemaining(prev => {
+              if (prev <= 1) {
+                clearInterval(timerRef.current);
+                if (autoProgressEnabled && moveToNextQuestionRef.current) {
+                  moveToNextQuestionRef.current();
+                }
+                return 0;
+              }
+              return prev - 1;
+            });
+          }, 1000);
+          
           // Set flag to trigger auto-recording via useEffect
           console.log('🎙️ Setting auto-record flag after speech error...');
           setShouldAutoRecord(true);
@@ -440,37 +565,117 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
       } else {
         console.warn('⚠️ Speech synthesis not supported');
         setIsAISpeaking(false);
-        startQuestionTimer();
+        // Start timer directly here to avoid circular dependency
+        const timeLimit = currentQuestion?.timeLimit * 60 || 300;
+        setTimeRemaining(timeLimit);
+        
+        if (timerRef.current) {
+          clearInterval(timerRef.current);
+        }
+        
+        timerRef.current = setInterval(() => {
+          setTimeRemaining(prev => {
+            if (prev <= 1) {
+              clearInterval(timerRef.current);
+              if (autoProgressEnabled && moveToNextQuestionRef.current) {
+                moveToNextQuestionRef.current();
+              }
+              return 0;
+            }
+            return prev - 1;
+          });
+        }, 1000);
+        
         // Set flag to trigger auto-recording via useEffect
         console.log('🎙️ Setting auto-record flag (no speech synthesis)...');
         setShouldAutoRecord(true);
         resolve();
       }
     });
-  };
+  }, [currentQuestion, autoProgressEnabled]);
 
-  // Start question timer
-  const startQuestionTimer = () => {
-    const timeLimit = currentQuestion?.timeLimit * 60 || 300; // Convert minutes to seconds
-    setTimeRemaining(timeLimit);
-    
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-    }
-    
-    timerRef.current = setInterval(() => {
-      setTimeRemaining(prev => {
-        if (prev <= 1) {
-          clearInterval(timerRef.current);
-          if (autoProgressEnabled) {
-            moveToNextQuestion();
-          }
-          return 0;
+  // Store the function in ref to avoid circular dependency
+  speakQuestionRef.current = speakQuestion;
+
+
+  // Move to next question automatically
+  const moveToNextQuestion = useCallback(async () => {
+    try {
+      console.log('⏭️ Moving to next question...');
+      
+      // Stop current recording if active
+      if (isRecording) {
+        console.log('🛑 Stopping current recording...');
+        stopRecording();
+      }
+      
+      // Submit current answer if there's transcription or code answer
+      if (transcription.trim() || codeAnswer.trim()) {
+        console.log('📤 Submitting current answer before moving to next question...');
+        try {
+        await submitCurrentAnswer();
+          console.log('✅ Answer submitted successfully');
+        } catch (submitErr) {
+          console.error('❌ Failed to submit answer:', submitErr);
+          // Continue anyway to not block progression
         }
-        return prev - 1;
-      });
-    }, 1000);
-  };
+      } else {
+        console.log('⚠️ No answer content to submit, moving to next question');
+      }
+      
+      // Check if there are more questions in current round
+      const currentRoundData = allRounds[roundIndex];
+      if (questionIndex + 1 < currentRoundData.questions.length) {
+        // Move to next question in same round
+        const nextQuestion = currentRoundData.questions[questionIndex + 1];
+        console.log('🔄 Moving to question', questionIndex + 2, 'in current round');
+        
+        setQuestionIndex(questionIndex + 1);
+        setCurrentQuestion({
+          ...nextQuestion,
+          questionId: nextQuestion.id,
+          question: nextQuestion.question,
+          timeLimit: nextQuestion.timeLimit,
+          questionNumber: questionIndex + 2,
+          totalQuestions: currentRoundData.questions.length
+        });
+         setTranscription('');
+         setCodeAnswer(''); // Reset code answer
+         setSelectedLanguage('javascript'); // Reset language selection
+         setIsCodeDone(false); // Reset code done state
+         setIsAiQuestionAnswered(false); // Reset AI question answered state
+         // Don't reset showCodeEditor here - let it be determined by the next question
+        setShouldAutoRecord(false); // Reset auto-record flag
+         
+        // Wait a moment for state to update, then start next question
+        setTimeout(async () => {
+          try {
+         await speakQuestionRef.current(nextQuestion.question);
+            console.log('✅ Next question started successfully');
+            
+            // Device detection will continue automatically via useEffect
+            console.log('🔄 Device detection will continue automatically for next question');
+          } catch (speakErr) {
+            console.error('❌ Failed to start next question:', speakErr);
+            setError('Failed to start next question');
+          }
+        }, 500);
+        
+       } else {
+         // Current round complete - move to next round or complete interview
+         console.log('🏁 Round complete, moving to next round...');
+         setCompletedRounds(prev => new Set([...prev, `round_${roundIndex + 1}`]));
+         setStep('round-selection');
+       }
+      
+    } catch (err) {
+      console.error('❌ Error moving to next question:', err);
+      setError('Failed to progress to next question: ' + err.message);
+    }
+  }, [isRecording, stopRecording, transcription, codeAnswer, submitCurrentAnswer, allRounds, roundIndex, questionIndex]);
+
+  // Store the function in ref to avoid circular dependency
+  moveToNextQuestionRef.current = moveToNextQuestion;
 
   // Move to next question automatically
   // Generate AI questions for sales answers
@@ -515,55 +720,6 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
     }
   };
 
-  // Generate AI questions for coding solution
-  const generateAIQuestions = async (code, question) => {
-    try {
-      console.log('🤖 Generating AI questions for coding solution...');
-      console.log('📝 Code:', code);
-      console.log('❓ Question:', question);
-      
-      const response = await fetch(`/api/interviews/${interviewId}/coding-hints`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          question: question,
-          currentCode: code,
-          language: selectedLanguage,
-          difficulty: 'medium',
-          isLiveComment: true,
-          isInterviewer: true
-        })
-      });
-
-      console.log('📡 Response status:', response.status);
-      const result = await response.json();
-      console.log('📋 Response data:', result);
-      
-      if (result.success && result.data && result.data.aiResponse) {
-        console.log('✅ AI questions generated:', result.data.aiResponse);
-        // Return the AI question from the response
-        return [result.data.aiResponse.aiQuestion];
-      } else {
-        console.log('⚠️ API failed, using fallback questions');
-        // Fallback questions if API fails
-        return [
-          "Can you explain your approach to solving this problem?",
-          "What is the time complexity of your solution?",
-          "How would you handle edge cases in your code?"
-        ];
-      }
-    } catch (error) {
-      console.error('❌ Error generating AI questions:', error);
-      // Fallback questions
-      return [
-        "Can you explain your approach to solving this problem?",
-        "What is the time complexity of your solution?",
-        "How would you handle edge cases in your code?"
-      ];
-    }
-  };
 
   // Generate 3 AI questions for coding solution
   const generateMultipleAIQuestions = async (code, question) => {
@@ -725,8 +881,90 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
     }, 2000);
   };
 
+  // Start voice recording for AI question answer
+  const startVoiceRecordingForAI = useCallback(async () => {
+    if (isRecording) {
+      stopRecording();
+      return;
+    }
+
+    try {
+      setTranscription('');
+      setError('');
+      
+      // Initialize speech recognition if not already done
+      if (!recognitionRef.current) {
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+          const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+          recognitionRef.current = new SpeechRecognition();
+          
+          recognitionRef.current.continuous = true;
+          recognitionRef.current.interimResults = true;
+          recognitionRef.current.lang = 'en-US';
+          
+          recognitionRef.current.onresult = (event) => {
+            let finalTranscript = '';
+            
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+              const transcript = event.results[i][0].transcript;
+              if (event.results[i].isFinal) {
+                finalTranscript += transcript;
+              }
+            }
+            
+            if (finalTranscript) {
+              setTranscription(finalTranscript);
+              console.log('🎤 AI question answer received:', finalTranscript);
+              // Call handleAIQuestionAnswer via ref to avoid circular dependency
+              if (handleAIQuestionAnswerRef.current) {
+                handleAIQuestionAnswerRef.current(finalTranscript);
+              }
+            }
+          };
+          
+          recognitionRef.current.onerror = (event) => {
+            console.error('❌ Speech recognition error:', event.error);
+            if (event.error === 'not-allowed') {
+              setError('Microphone access denied. Please allow microphone access and try again.');
+            } else if (event.error === 'no-speech') {
+              console.log('⚠️ No speech detected, continuing...');
+            } else if (event.error === 'aborted') {
+              console.log('⚠️ Speech recognition aborted, this is normal');
+            } else {
+              setError('Speech recognition error: ' + event.error);
+            }
+          };
+          
+          recognitionRef.current.onend = () => {
+            console.log('🛑 Speech recognition ended');
+            setIsRecording(false);
+          };
+          
+          recognitionRef.current.onstart = () => {
+            console.log('✅ Speech recognition started for AI question');
+      setIsRecording(true);
+          };
+        } else {
+          setError('Speech recognition not supported in this browser');
+          return;
+        }
+      }
+      
+      setIsRecording(true);
+      recognitionRef.current.start();
+      console.log('🎤 Voice recording started for AI question');
+    } catch (error) {
+      console.error('❌ Error starting voice recording:', error);
+      setError('Failed to start voice recording');
+      setIsRecording(false);
+    }
+  }, [isRecording, stopRecording]);
+
+  // Store the function in ref to avoid circular dependency
+  startVoiceRecordingForAIRef.current = startVoiceRecordingForAI;
+
   // Handle AI question answer
-  const handleAIQuestionAnswer = async (answer) => {
+  const handleAIQuestionAnswer = useCallback(async (answer) => {
     try {
       console.log('🎤 AI question answered:', answer);
       
@@ -788,262 +1026,47 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
           
           // Speak the next question
           console.log('🗣️ Speaking next question:', aiQuestions[nextIndex]);
-          await speakQuestion(aiQuestions[nextIndex]);
+          if (speakQuestionRef.current) {
+            await speakQuestionRef.current(aiQuestions[nextIndex]);
+          }
           
           // Start listening for the answer after AI finishes speaking
           setTimeout(() => {
             console.log('🎙️ Starting voice recording for next AI question...');
-            startVoiceRecordingForAI();
+            if (startVoiceRecordingForAIRef.current) {
+              startVoiceRecordingForAIRef.current();
+            }
           }, 2000);
         }, 3000); // Wait 3 seconds after AI response
       } else {
         // All AI questions completed, move to next question in the round
         console.log('✅ All AI questions completed, moving to next question...');
         setTimeout(() => {
-          moveToNextQuestion();
+          if (moveToNextQuestionRef.current) {
+            moveToNextQuestionRef.current();
+          }
         }, 3000); // Wait 3 seconds after AI response
       }
     } catch (error) {
       console.error('❌ Error handling AI question answer:', error);
       setError(error.message || 'Failed to process AI question answer');
     }
-  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [aiQuestionAnswers, aiQuestions, currentAiQuestionIndex, interviewId, codeAnswer, selectedLanguage, setAiQuestionAnswers, setIsAiQuestionAnswered, setAiResponses, setError]);
 
-
-  // Start voice recording for AI question answer
-  const startVoiceRecordingForAI = async () => {
-    if (isRecording) {
-      stopRecording();
-      return;
-    }
-
-    try {
-      setTranscription('');
-      setError('');
-      
-      // Initialize speech recognition if not already done
-      if (!recognitionRef.current) {
-        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-          const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-          recognitionRef.current = new SpeechRecognition();
-          
-          recognitionRef.current.continuous = true;
-          recognitionRef.current.interimResults = true;
-          recognitionRef.current.lang = 'en-US';
-          
-          recognitionRef.current.onresult = (event) => {
-            let finalTranscript = '';
-            
-            for (let i = event.resultIndex; i < event.results.length; i++) {
-              const transcript = event.results[i][0].transcript;
-              if (event.results[i].isFinal) {
-                finalTranscript += transcript;
-              }
-            }
-            
-            if (finalTranscript) {
-              setTranscription(finalTranscript);
-              console.log('🎤 AI question answer received:', finalTranscript);
-              handleVoiceRecordingCompleteForAI(finalTranscript);
-            }
-          };
-          
-          recognitionRef.current.onerror = (event) => {
-            console.error('❌ Speech recognition error:', event.error);
-            if (event.error === 'not-allowed') {
-              setError('Microphone access denied. Please allow microphone access and try again.');
-            } else if (event.error === 'no-speech') {
-              console.log('⚠️ No speech detected, continuing...');
-            } else if (event.error === 'aborted') {
-              console.log('⚠️ Speech recognition aborted, this is normal');
-            } else {
-              setError('Speech recognition error: ' + event.error);
-            }
-          };
-          
-          recognitionRef.current.onend = () => {
-            console.log('🛑 Speech recognition ended');
-            setIsRecording(false);
-          };
-          
-          recognitionRef.current.onstart = () => {
-            console.log('✅ Speech recognition started for AI question');
-      setIsRecording(true);
-          };
-        } else {
-          setError('Speech recognition not supported in this browser');
-          return;
-        }
-      }
-      
-      setIsRecording(true);
-      recognitionRef.current.start();
-      console.log('🎤 Voice recording started for AI question');
-    } catch (error) {
-      console.error('❌ Error starting voice recording:', error);
-      setError('Failed to start voice recording');
-      setIsRecording(false);
-    }
-  };
+  // Store the function in ref to avoid circular dependency
+  handleAIQuestionAnswerRef.current = handleAIQuestionAnswer;
 
   // Handle voice recording completion for AI questions
-  const handleVoiceRecordingCompleteForAI = async (transcript) => {
-    if (transcript.trim()) {
-      await handleAIQuestionAnswer(transcript.trim());
+  const handleVoiceRecordingCompleteForAI = useCallback(async (transcript) => {
+    if (transcript.trim() && handleAIQuestionAnswerRef.current) {
+      await handleAIQuestionAnswerRef.current(transcript.trim());
     }
-  };
+  }, []);
 
-  // Submit coding answer with AI questions
-  const submitCodingAnswerWithAIQuestions = async (aiAnswers) => {
-    try {
-      const response = await fetch(`/api/interviews/${interviewId}/round/${currentRound.roundId}/submit-answer`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          candidateId: candidateInfo.email,
-          candidateName: candidateInfo.name,
-          candidateEmail: candidateInfo.email,
-          roundId: currentRound.roundId,
-          questionId: currentQuestion.questionId,
-          question: currentQuestion.question,
-          answer: JSON.stringify({
-            code: codeAnswer,
-            aiQuestions: aiAnswers
-          }),
-          answerType: 'interactive-coding-with-ai-questions',
-          transcription: '',
-          codeAnswer: codeAnswer,
-          timeTaken: (currentQuestion?.timeLimit * 60) - timeRemaining || 0
-        })
-      });
 
-      const result = await response.json();
-      if (result.success) {
-        console.log('✅ Coding answer with AI questions submitted successfully');
-      } else {
-        throw new Error(result.error || 'Failed to submit coding answer');
-      }
-    } catch (error) {
-      console.error('❌ Error submitting coding answer:', error);
-      throw error;
-    }
-  };
 
-  const moveToNextQuestion = async () => {
-    try {
-      console.log('⏭️ Moving to next question...');
-      
-      // Stop current recording if active
-      if (isRecording) {
-        console.log('🛑 Stopping current recording...');
-        stopRecording();
-      }
-      
-      // Submit current answer if there's transcription or code answer
-      if (transcription.trim() || codeAnswer.trim()) {
-        console.log('📤 Submitting current answer before moving to next question...');
-        try {
-        await submitCurrentAnswer();
-          console.log('✅ Answer submitted successfully');
-        } catch (submitErr) {
-          console.error('❌ Failed to submit answer:', submitErr);
-          // Continue anyway to not block progression
-        }
-      } else {
-        console.log('⚠️ No answer content to submit, moving to next question');
-      }
-      
-      // Check if there are more questions in current round
-      const currentRoundData = allRounds[roundIndex];
-      if (questionIndex + 1 < currentRoundData.questions.length) {
-        // Move to next question in same round
-        const nextQuestion = currentRoundData.questions[questionIndex + 1];
-        console.log('🔄 Moving to question', questionIndex + 2, 'in current round');
-        
-        setQuestionIndex(questionIndex + 1);
-        setCurrentQuestion({
-          ...nextQuestion,
-          questionId: nextQuestion.id,
-          question: nextQuestion.question,
-          timeLimit: nextQuestion.timeLimit,
-          questionNumber: questionIndex + 2,
-          totalQuestions: currentRoundData.questions.length
-        });
-         setTranscription('');
-         setCodeAnswer(''); // Reset code answer
-         setSelectedLanguage('javascript'); // Reset language selection
-         setIsCodeDone(false); // Reset code done state
-         setIsAiQuestionAnswered(false); // Reset AI question answered state
-         // Don't reset showCodeEditor here - let it be determined by the next question
-        setShouldAutoRecord(false); // Reset auto-record flag
-         
-        // Wait a moment for state to update, then start next question
-        setTimeout(async () => {
-          try {
-         await speakQuestion(nextQuestion.question);
-            console.log('✅ Next question started successfully');
-            
-            // Device detection will continue automatically via useEffect
-            console.log('🔄 Device detection will continue automatically for next question');
-          } catch (speakErr) {
-            console.error('❌ Failed to start next question:', speakErr);
-            setError('Failed to start next question');
-          }
-        }, 500);
-        
-       } else {
-         // Current round complete - get evaluation and show feedback
-         console.log('🏁 Round complete, getting evaluation...');
-         setCompletedRounds(prev => new Set([...prev, `round_${roundIndex + 1}`]));
-         await getRoundEvaluation();
-         setStep('round-complete');
-       }
-      
-    } catch (err) {
-      console.error('❌ Error moving to next question:', err);
-      setError('Failed to progress to next question: ' + err.message);
-    }
-  };
 
-  // Get round evaluation after completion
-  const getRoundEvaluation = async () => {
-    try {
-      console.log('📊 Getting round evaluation...');
-      
-      const response = await fetch(`/api/interviews/${interviewId}/round/round_${roundIndex + 1}/complete`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          candidateEmail: candidateInfo.email,
-          candidateName: candidateInfo.name
-        })
-      });
-
-      const result = await response.json();
-      
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to get round evaluation');
-      }
-      
-      setRoundEvaluation(result.data.evaluation);
-      console.log('✅ Round evaluation received:', result.data.evaluation);
-      
-    } catch (err) {
-      console.error('❌ Error getting round evaluation:', err);
-      // Set a fallback evaluation if API fails
-      setRoundEvaluation({
-        overallScore: 75,
-        feedback: "Round completed successfully. Good performance overall.",
-        strengths: ["Completed all questions", "Good communication"],
-        areasForImprovement: ["Could provide more detailed answers"],
-        recommendation: "Proceed to next round"
-      });
-    }
-  };
 
   // Ensure camera stream is active during interview
   const ensureCameraActive = async () => {
@@ -1177,7 +1200,7 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
   };
 
   // Recording functions
-  const startRecording = async () => {
+  const startRecording = useCallback(async () => {
     try {
       console.log('🎙️ Starting recording...');
       
@@ -1268,88 +1291,8 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
       setError(err.message || 'Failed to start recording');
       setIsRecording(false);
     }
-  };
+  }, [isRecording, cameraStream, isAiQuestioning, handleVoiceRecordingCompleteForAI, setTranscription, setError, setIsRecording]);
 
-  const stopRecording = () => {
-    try {
-      if (recognitionRef.current) {
-        console.log('🛑 Stopping recording...');
-      recognitionRef.current.stop();
-        recognitionRef.current = null;
-      setIsRecording(false);
-        console.log('✅ Recording stopped successfully');
-      } else {
-        console.log('⚠️ No active recording to stop');
-        setIsRecording(false);
-      }
-    } catch (err) {
-      console.error('❌ Error stopping recording:', err);
-      setIsRecording(false);
-    }
-  };
-
-  // Submit current answer (used internally for auto-progression)
-  const submitCurrentAnswer = async () => {
-    try {
-      // Determine answer type and content
-      // Check if current round is a coding round
-      const isCodingRound = currentRound?.title?.toLowerCase().includes('coding') || 
-                           currentRound?.title?.toLowerCase().includes('technical') ||
-                           currentRound?.title?.toLowerCase().includes('programming');
-      
-      const isCodingQuestion = currentQuestion?.codeEditor?.enabled || isCodingRound;
-      const answerContent = isCodingQuestion ? codeAnswer : transcription;
-      const answerType = isCodingQuestion ? 'code' : 'voice';
-      
-      if (!answerContent.trim()) {
-        console.log('⚠️ No answer content to submit');
-        return;
-      }
-
-      // For coding questions, check if AI question is answered
-      if (isCodingQuestion && isCodeDone && !isAiQuestionAnswered) {
-        console.log('⚠️ AI question must be answered before submission');
-        setError('Please answer the AI question before submitting');
-        return;
-      }
-      
-      console.log('📤 Submitting current answer...', { answerType, isCodingQuestion });
-      
-      const response = await fetch(`/api/interviews/${interviewId}/answer`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          candidateId: candidateInfo.email,
-          candidateName: candidateInfo.name,
-          candidateEmail: candidateInfo.email,
-          roundId: currentRound.roundId,
-          questionId: currentQuestion.questionId,
-          question: currentQuestion.question,
-          answer: answerContent,
-          answerType: answerType,
-          transcription: isCodingQuestion ? '' : transcription,
-          codeAnswer: isCodingQuestion ? codeAnswer : '',
-          timeTaken: (currentQuestion.timeLimit * 60) - timeRemaining
-        })
-      });
-
-      const result = await response.json();
-      console.log('✅ Answer submitted:', result);
-      
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to submit answer');
-      }
-      
-      return result.data;
-      
-    } catch (err) {
-      console.error('❌ Submit error:', err);
-      setError(err.message || 'Failed to submit answer');
-      throw err;
-    }
-  };
 
   // Manual submit (for when user clicks submit button)
   const submitAnswer = async () => {
@@ -1434,7 +1377,7 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
   };
 
   // Cleanup
-  const cleanup = () => {
+  const cleanup = useCallback(() => {
     if (cameraStream) {
       cameraStream.getTracks().forEach(track => track.stop());
     }
@@ -1447,11 +1390,11 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
     if (timerRef.current) {
       clearInterval(timerRef.current);
     }
-  };
+  }, [cameraStream]);
 
   useEffect(() => {
     return () => cleanup();
-  }, []);
+  }, [cleanup]);
 
   // Auto-record when shouldAutoRecord flag is set
   useEffect(() => {
@@ -1470,7 +1413,7 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
       // Small delay to ensure state is settled
       setTimeout(startAutoRecording, 1000);
     }
-  }, [shouldAutoRecord, isRecording, isAISpeaking, step]);
+  }, [shouldAutoRecord, isRecording, isAISpeaking, step, startRecording]);
 
   // Ensure video element is connected to camera stream
   useEffect(() => {
@@ -1525,201 +1468,6 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
   };
 
   // Render different steps
-  if (step === 'round-complete') {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-lg shadow-lg p-8 max-w-4xl w-full">
-          <div className="text-center mb-8">
-            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <CheckCircle className="h-12 w-12 text-green-600" />
-            </div>
-            <h2 className="text-3xl font-bold text-gray-900 mb-2">
-              {currentRound?.title} Completed!
-            </h2>
-            <p className="text-gray-600 text-lg">
-              Great job! Here's your performance evaluation for this round.
-            </p>
-          </div>
-
-          {/* Round Evaluation - Modern Card Layout */}
-          {roundEvaluation && (
-            <div className="max-w-4xl mx-auto">
-              {/* Header with Score */}
-              <div className="relative overflow-hidden bg-gradient-to-br from-slate-800 via-blue-600 to-indigo-800 rounded-3xl p-8 mb-8 shadow-2xl">
-                <div className="absolute inset-0 bg-black opacity-10"></div>
-                <div className="relative z-10 text-center text-white">
-                  <div className="inline-flex items-center justify-center w-24 h-24 bg-white bg-opacity-20 rounded-full mb-4">
-                    <span className="text-4xl font-bold">{roundEvaluation.overallScore}%</span>
-                  </div>
-                  <h2 className="text-3xl font-bold mb-2">Round Complete</h2>
-                  <p className="text-indigo-100 text-lg">{roundEvaluation.recommendation}</p>
-                </div>
-                <div className="absolute top-0 right-0 w-32 h-32 bg-white opacity-5 rounded-full -translate-y-16 translate-x-16"></div>
-                <div className="absolute bottom-0 left-0 w-24 h-24 bg-white opacity-5 rounded-full translate-y-12 -translate-x-12"></div>
-              </div>
-
-              {/* Main Content Grid */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                
-                {/* Left Column - Feedback */}
-                <div className="lg:col-span-2 space-y-6">
-                  {/* Feedback Card */}
-                  <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
-                    <div className="flex items-center mb-6">
-                      <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mr-4">
-                        <MessageSquare className="h-6 w-6 text-blue-600" />
-                      </div>
-                      <h3 className="text-2xl font-bold text-gray-900">Performance Review</h3>
-                    </div>
-                    <div className="prose prose-lg max-w-none">
-                      <p className="text-gray-700 leading-relaxed text-lg">{roundEvaluation.feedback}</p>
-                    </div>
-                  </div>
-
-                  {/* Question Performance */}
-                  {roundEvaluation.individualScores && (
-                    <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
-                      <div className="flex items-center mb-6">
-                        <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mr-4">
-                          <BarChart3 className="h-6 w-6 text-blue-600" />
-                        </div>
-                        <h3 className="text-2xl font-bold text-gray-900">Question Performance</h3>
-                      </div>
-                      <div className="space-y-4">
-                        {roundEvaluation.individualScores.map((score, index) => (
-                          <div key={index} className="group">
-                            <div className="flex items-center justify-between mb-2">
-                              <span className="font-semibold text-gray-800">Question {index + 1}</span>
-                              <span className="text-2xl font-bold text-gray-900">{score}%</span>
-                            </div>
-                            <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
-                              <div
-                                className="h-full bg-gradient-to-r from-slate-600 to-blue-600 rounded-full transition-all duration-1000 ease-out"
-                                style={{ width: `${score}%` }}
-                              ></div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Right Column - Analysis */}
-                <div className="space-y-6">
-                  
-                  {/* Strengths */}
-                  <div className="bg-gradient-to-br from-emerald-50 to-green-50 rounded-2xl shadow-lg border border-emerald-100 p-6">
-                    <div className="flex items-center mb-4">
-                      <div className="w-10 h-10 bg-emerald-500 rounded-lg flex items-center justify-center mr-3">
-                        <CheckCircle className="h-5 w-5 text-white" />
-                      </div>
-                      <h3 className="text-xl font-bold text-emerald-800">Strengths</h3>
-                    </div>
-                    <div className="space-y-3">
-                      {roundEvaluation.strengths?.length > 0 ? (
-                        roundEvaluation.strengths.map((strength, index) => (
-                          <div key={index} className="flex items-start space-x-3">
-                            <div className="w-2 h-2 bg-emerald-500 rounded-full mt-2 flex-shrink-0"></div>
-                            <span className="text-emerald-700 text-sm leading-relaxed">{strength}</span>
-                          </div>
-                        ))
-                      ) : (
-                        <p className="text-emerald-600 text-sm italic">No specific strengths identified</p>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Areas for Improvement */}
-                  <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl shadow-lg border border-amber-100 p-6">
-                    <div className="flex items-center mb-4">
-                      <div className="w-10 h-10 bg-amber-500 rounded-lg flex items-center justify-center mr-3">
-                        <AlertTriangle className="h-5 w-5 text-white" />
-                      </div>
-                      <h3 className="text-xl font-bold text-amber-800">Focus Areas</h3>
-                    </div>
-                    <div className="space-y-3">
-                      {roundEvaluation.areasForImprovement?.map((area, index) => (
-                        <div key={index} className="flex items-start space-x-3">
-                          <div className="w-2 h-2 bg-amber-500 rounded-full mt-2 flex-shrink-0"></div>
-                          <span className="text-amber-700 text-sm leading-relaxed">{area}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Performance Summary */}
-                  <div className="bg-gradient-to-br from-slate-50 to-gray-50 rounded-2xl shadow-lg border border-slate-100 p-6">
-                    <div className="flex items-center mb-4">
-                      <div className="w-10 h-10 bg-slate-500 rounded-lg flex items-center justify-center mr-3">
-                        <TrendingUp className="h-5 w-5 text-white" />
-                      </div>
-                      <h3 className="text-xl font-bold text-slate-800">Summary</h3>
-                    </div>
-                    <div className="space-y-3 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-slate-600">Overall Score</span>
-                        <span className="font-semibold text-slate-800">{roundEvaluation.overallScore}%</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-slate-600">Questions Answered</span>
-                        <span className="font-semibold text-slate-800">{roundEvaluation.individualScores?.length || 0}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-slate-600">Status</span>
-                        <span className="font-semibold text-slate-800">{roundEvaluation.recommendation}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Action Buttons */}
-          <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
-              <button
-                onClick={() => setStep('round-selection')}
-                className="px-8 py-4 bg-gradient-to-r from-slate-800 via-blue-600 to-indigo-600 hover:from-slate-700 hover:via-blue-500 hover:to-indigo-500 text-white text-lg font-bold rounded-lg shadow-lg transform hover:scale-105 transition-all"
-              >
-                🎯 Continue to Next Round
-              </button>
-            
-            {allRounds.length > 0 && completedRounds.size === allRounds.length && (
-              <button
-                onClick={() => {
-                  setStep('complete');
-                  stopCameraMonitoring();
-                  if (onComplete) {
-                    onComplete({ 
-                      message: 'All interview rounds completed successfully!',
-                      completedRounds: Array.from(completedRounds),
-                      totalRounds: allRounds.length
-                    });
-                  }
-                }}
-                className="px-8 py-4 bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white text-lg font-bold rounded-lg shadow-lg transform hover:scale-105 transition-all"
-              >
-                🎉 Complete Interview
-              </button>
-            )}
-          </div>
-
-          {error && (
-            <div className="bg-red-50 border border-red-200 rounded p-4 mt-6">
-              <p className="text-red-800 text-sm">{error}</p>
-              <button
-                onClick={() => setError(null)}
-                className="text-red-600 text-sm underline mt-2"
-              >
-                Dismiss
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
 
   if (step === 'round-selection') {
     return (

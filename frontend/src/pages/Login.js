@@ -3,7 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'react-toastify';
 import { motion } from 'framer-motion';
-import { Eye, EyeOff, Mail, Lock, Brain, ArrowRight, User, Briefcase } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, Brain, ArrowRight, ArrowLeft } from 'lucide-react';
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -135,6 +135,22 @@ const Login = () => {
           transition={{ duration: 0.8, ease: "easeOut" }}
           className="w-full max-w-md"
         >
+          {/* Back Button */}
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.2, duration: 0.5 }}
+            className="mb-6"
+          >
+            <button
+              onClick={() => window.open('http://localhost:3000', '_blank')}
+              className="flex items-center text-blue-400 hover:text-blue-300 transition-colors duration-200 group"
+            >
+              <ArrowLeft className="w-5 h-5 mr-2 group-hover:-translate-x-1 transition-transform duration-200" />
+              <span className="text-sm font-medium">Back to Main Site</span>
+            </button>
+          </motion.div>
+
           {/* Main Card */}
           <motion.div
             className="relative backdrop-blur-2xl bg-black/40 border border-blue-500/30 rounded-3xl p-10 shadow-2xl"
@@ -321,67 +337,6 @@ const Login = () => {
               </motion.button>
             </motion.form>
 
-            {/* Demo Accounts */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 1, duration: 0.5 }}
-              className="mt-8"
-            >
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-white/20" />
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-4 bg-transparent text-gray-400">Quick Demo Access</span>
-                </div>
-              </div>
-
-              <div className="mt-6 grid grid-cols-2 gap-4">
-                <motion.button
-                  type="button"
-                  onClick={() => setFormData({ email: 'candidate@demo.com', password: 'password123' })}
-                  className="relative flex items-center justify-center p-4 rounded-xl text-white transition-all duration-300 group overflow-hidden"
-                  style={{
-                    background: 'linear-gradient(135deg, rgba(0,0,0,0.6) 0%, rgba(15,23,42,0.8) 100%)',
-                    border: '1px solid rgba(59, 130, 246, 0.3)',
-                    boxShadow: '0 4px 15px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1)'
-                  }}
-                  whileHover={{ 
-                    scale: 1.05,
-                    boxShadow: '0 8px 25px rgba(59, 130, 246, 0.4), inset 0 1px 0 rgba(255,255,255,0.2)'
-                  }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-cyan-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                  <div className="relative z-10 flex items-center">
-                    <User className="w-5 h-5 mr-3 text-blue-400" />
-                    <span className="font-medium">Candidate</span>
-                  </div>
-                </motion.button>
-                <motion.button
-                  type="button"
-                  onClick={() => setFormData({ email: 'recruiter@demo.com', password: 'password123' })}
-                  className="relative flex items-center justify-center p-4 rounded-xl text-white transition-all duration-300 group overflow-hidden"
-                  style={{
-                    background: 'linear-gradient(135deg, rgba(0,0,0,0.6) 0%, rgba(15,23,42,0.8) 100%)',
-                    border: '1px solid rgba(59, 130, 246, 0.3)',
-                    boxShadow: '0 4px 15px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1)'
-                  }}
-                  whileHover={{ 
-                    scale: 1.05,
-                    boxShadow: '0 8px 25px rgba(59, 130, 246, 0.4), inset 0 1px 0 rgba(255,255,255,0.2)'
-                  }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-cyan-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                  <div className="relative z-10 flex items-center">
-                    <Briefcase className="w-5 h-5 mr-3 text-blue-400" />
-                    <span className="font-medium">Recruiter</span>
-                  </div>
-                </motion.button>
-              </div>
-            </motion.div>
 
             {/* Sign Up Link */}
             <motion.div
