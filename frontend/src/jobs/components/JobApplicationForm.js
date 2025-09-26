@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useMutation, useQueryClient } from 'react-query';
-import axios from 'axios';
+import apiService from '../../services/apiService';
 import { toast } from 'react-toastify';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../../context/ThemeContext';
@@ -26,11 +26,11 @@ const JobApplicationForm = ({ jobId, onSuccess, onCancel }) => {
 
   const applyMutation = useMutation(
     async (data) => {
-      const response = await axios.post('/api/applications', {
+      const response = await apiService.createApplication({
         jobId,
         ...data
       });
-      return response.data;
+      return response;
     },
     {
       onSuccess: () => {

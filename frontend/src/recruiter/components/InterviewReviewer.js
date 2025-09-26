@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import apiService from '../../services/apiService';
 import { useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -24,30 +24,7 @@ import {
 import { useTheme } from '../../context/ThemeContext';
 import ThemeSwitcher from '../../components/common/ThemeSwitcher';
 
-// Create an axios instance with custom config
-const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:5000',
-  headers: {
-    'Content-Type': 'application/json'
-  }
-});
-
-// Add auth token to every request
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  console.log('🔒 [API REQUEST]', {
-    method: config.method,
-    url: config.url,
-    hasToken: !!token
-  });
-  return config;
-}, (error) => {
-  console.error('❌ [API REQUEST ERROR]', error);
-  return Promise.reject(error);
-});
+// Use apiService instead of custom axios instance
 
 const InterviewReviewer = () => {
   console.log('InterviewReviewer component rendered');
@@ -67,25 +44,28 @@ const InterviewReviewer = () => {
     fetchInterview();
   }, [interviewId]);
 
+
   const fetchInterview = async () => {
     console.log('Fetching interview with ID:', interviewId);
     setLoading(true);
     setError(null);
     
     try {
-      const response = await api.get(`/api/interviews/${interviewId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await apiService.getInterview(interviewId);
       
-      console.log('API Response:', response.data);
-      console.log('Interview data:', response.data);
-      if (response.data.success) {
-        setInterview(response.data.data);
-      } else {
-        setError('Failed to load interview data');
+      console.log('API Response:', response);
+      console.log('Interview data:', response);
+      
+      // Handle different response structures
+      let interviewData = response;
+      if (response.data) {
+        interviewData = response.data;
+      } else if (response.success !== false) {
+        interviewData = response;
       }
+      
+      console.log('Processed interview data:', interviewData);
+      setInterview(interviewData);
     } catch (err) {
       console.error('Error fetching interview:', err);
       const errorMessage = err.response?.data?.error || err.message || 'Failed to load interview details';
@@ -130,7 +110,7 @@ const InterviewReviewer = () => {
 
   const handleAddQuestion = (roundIndex) => {
     const newQuestion = {
-      id: `q${roundIndex + 1}_${interview.rounds[roundIndex].questions.length + 1}`,
+      id: `q${roundIndex + 1}_${(interview?.rounds?.[roundIndex]?.questions || []).length + 1}`,
       type: "technical",
       question: prompt('Enter the new question:') || 'New question',
       expectedAnswer: prompt('Enter the expected answer:') || 'Expected answer',
@@ -148,8 +128,8 @@ const InterviewReviewer = () => {
 
   const handleAddRound = () => {
     const newRound = {
-      roundId: `round_${interview.rounds.length + 1}`,
-      roundNumber: interview.rounds.length + 1,
+      roundId: `round_${(interview?.rounds || []).length + 1}`,
+      roundNumber: (interview?.rounds || []).length + 1,
       title: prompt('Enter round title:') || 'New Round',
       description: prompt('Enter round description:') || 'New round description',
       duration: parseInt(prompt('Enter duration in minutes:') || '10'),
@@ -180,9 +160,9 @@ const InterviewReviewer = () => {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
         body: JSON.stringify({
-          rounds: interview.rounds,
-          title: interview.title,
-          totalDuration: interview.totalDuration
+          rounds: interview?.rounds || [],
+          title: interview?.title || '',
+          totalDuration: interview?.totalDuration || 0
         })
       });
       
@@ -204,7 +184,7 @@ const InterviewReviewer = () => {
       console.log('🔄 [APPROVE] Attempting to approve interview:', interviewId);
       setSaving(true);
       
-      const response = await api.post(`/api/interviews/${interviewId}/approve`);
+      const response = await apiService.client.post(`/interviews/${interviewId}/approve`);
       
       if (response.data.success) {
         console.log('✅ [APPROVE] Interview approved successfully:', response.data);
@@ -418,7 +398,7 @@ const InterviewReviewer = () => {
               </motion.button>
               <div>
                 <h1 className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                  {interview.title}
+                  {interview?.title || 'Interview Review'}
                 </h1>
                 <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                   Interview Review & Management
@@ -650,8 +630,8 @@ const InterviewReviewer = () => {
             </motion.button>
           </div>
 
-          <div className="grid gap-6">
-            {interview.rounds.map((round, roundIndex) => (
+          <div className="grid gap-6" key={interview?.interviewId || 'no-interview'}>
+            {(interview?.rounds || []).map((round, roundIndex) => (
               <motion.div
                 key={round.roundId}
                 initial={{ opacity: 0, y: 20 }}
@@ -729,7 +709,7 @@ const InterviewReviewer = () => {
                     </motion.button>
                   )}
                   
-                  {round.questions.map((question, questionIndex) => (
+                  {(round?.questions || []).map((question, questionIndex) => (
                     <motion.div
                       key={question.id}
                       initial={{ opacity: 0, x: -20 }}

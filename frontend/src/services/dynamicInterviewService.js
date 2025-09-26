@@ -1,4 +1,4 @@
-import axios from 'axios';
+import apiService from './apiService';
 
 class DynamicInterviewService {
   constructor() {
@@ -416,13 +416,8 @@ IMPORTANT: Round 4 title must be exactly "CODING CHALLENGES" and contain only co
       console.log('🚀 [FRONTEND] Calling /generate-dynamic endpoint with prompt:', jobPrompt.substring(0, 100) + '...');
 
       // Call the dynamic interview generation API - let backend handle everything
-      const response = await axios.post(`${this.baseURL}/generate-dynamic`, {
+      const response = await apiService.generateDynamicInterview({
         prompt: jobPrompt
-      }, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
       });
 
       if (response.data.success) {

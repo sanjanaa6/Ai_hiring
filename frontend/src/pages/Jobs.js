@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from 'react-query';
-import axios from 'axios';
+import apiService from '../services/apiService';
 import { 
   Search, 
   Filter, 
@@ -22,7 +22,7 @@ const Jobs = () => {
     page: 1
   });
 
-  const { data, isLoading, error } = useQuery(
+  const { data: jobsData, isLoading, error } = useQuery(
     ['jobs', filters],
     async () => {
       const params = new URLSearchParams();
@@ -30,8 +30,8 @@ const Jobs = () => {
         if (value) params.append(key, value);
       });
       
-      const response = await axios.get(`/api/jobs?${params.toString()}`);
-      return response.data;
+      const response = await apiService.getJobs(Object.fromEntries(params));
+      return response;
     },
     {
       keepPreviousData: true
@@ -54,9 +54,10 @@ const Jobs = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const jobs = data?.jobs || [];
-  const totalPages = data?.totalPages || 1;
-  const currentPage = data?.currentPage || 1;
+  // Handle different response structures
+  const jobs = Array.isArray(jobsData) ? jobsData : jobsData?.jobs || [];
+  const totalPages = jobsData?.totalPages || 1;
+  const currentPage = jobsData?.currentPage || 1;
 
   if (isLoading) {
     return (

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useMutation, useQueryClient } from 'react-query';
-import axios from 'axios';
+import apiService from '../services/apiService';
 import { toast } from 'react-toastify';
 import {
   MapPin,
@@ -36,8 +36,8 @@ const InterviewScheduler = ({
   // Schedule interview mutation
   const scheduleInterviewMutation = useMutation(
     async (data) => {
-      const response = await axios.post(`/api/applications/${applicationId}/schedule-interview`, data);
-      return response.data;
+      const response = await apiService.scheduleInterview(applicationId, data);
+      return response;
     },
     {
       onSuccess: () => {
@@ -55,8 +55,8 @@ const InterviewScheduler = ({
   // Update interview mutation
   const updateInterviewMutation = useMutation(
     async (data) => {
-      const response = await axios.patch(`/api/interviews/${applicationId}`, data);
-      return response.data;
+      const response = await apiService.updateInterview(applicationId, data);
+      return response;
     },
     {
       onSuccess: () => {
@@ -73,8 +73,8 @@ const InterviewScheduler = ({
   // Cancel interview mutation
   const cancelInterviewMutation = useMutation(
     async () => {
-      const response = await axios.delete(`/api/interviews/${applicationId}`);
-      return response.data;
+      const response = await apiService.deleteInterview(applicationId);
+      return response;
     },
     {
       onSuccess: () => {

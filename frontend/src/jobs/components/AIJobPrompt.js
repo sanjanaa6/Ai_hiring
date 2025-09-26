@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useMutation } from 'react-query';
-import axios from 'axios';
+import apiService from '../../services/apiService';
 import { toast } from 'react-toastify';
 import { 
   Sparkles, 
@@ -26,8 +26,8 @@ const AIJobPrompt = ({ onJobGenerated, onClose }) => {
 
   const generateJobMutation = useMutation(
     async (data) => {
-      const response = await axios.post('/api/ai/generate-job', data);
-      return response.data;
+      const response = await apiService.generateJob(data);
+      return response;
     },
     {
       onSuccess: (data) => {

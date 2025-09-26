@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
-import axios from 'axios';
+import apiService from '../services/apiService';
 import { toast } from 'react-toastify';
 import {
   MessageCircle,
@@ -32,8 +32,8 @@ const MessagingSystem = ({
   const { data: messagesData, isLoading: messagesLoading } = useQuery(
     ['messages', applicationId],
     async () => {
-      const response = await axios.get(`/api/messages/application/${applicationId}`);
-      return response.data;
+      const response = await apiService.getMessages(applicationId);
+      return response;
     },
     {
       enabled: !!applicationId,
@@ -44,8 +44,8 @@ const MessagingSystem = ({
   // Send message mutation
   const sendMessageMutation = useMutation(
     async (messageData) => {
-      const response = await axios.post('/api/messages', messageData);
-      return response.data;
+      const response = await apiService.sendMessage(messageData);
+      return response;
     },
     {
       onSuccess: () => {

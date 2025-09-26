@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useMutation } from 'react-query';
-import axios from 'axios';
+import apiService from '../services/apiService';
 import { toast } from 'react-toastify';
 import { 
   Sparkles, 
@@ -22,14 +22,8 @@ const DynamicInterviewCreator = ({ onClose, onInterviewCreated }) => {
 
   const generateInterviewMutation = useMutation(
     async (data) => {
-      const token = localStorage.getItem('token');
-      const response = await axios.post('/api/interviews/generate-dynamic', data, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      return response.data;
+      const response = await apiService.generateDynamicInterview(data);
+      return response;
     },
     {
       onSuccess: (data) => {
@@ -237,7 +231,7 @@ const DynamicInterviewCreator = ({ onClose, onInterviewCreated }) => {
                         <div>
                           <span className="text-sm font-medium text-gray-700">Frameworks:</span>
                           <div className="flex flex-wrap gap-1 mt-1">
-                            {roleConfig.frameworks.map((framework, index) => (
+                            {(roleConfig?.frameworks || []).map((framework, index) => (
                               <span key={index} className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">
                                 {framework}
                               </span>
@@ -247,7 +241,7 @@ const DynamicInterviewCreator = ({ onClose, onInterviewCreated }) => {
                         <div>
                           <span className="text-sm font-medium text-gray-700">Tools:</span>
                           <div className="flex flex-wrap gap-1 mt-1">
-                            {roleConfig.tools.map((tool, index) => (
+                            {(roleConfig?.tools || []).map((tool, index) => (
                               <span key={index} className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded">
                                 {tool}
                               </span>
@@ -257,7 +251,7 @@ const DynamicInterviewCreator = ({ onClose, onInterviewCreated }) => {
                         <div>
                           <span className="text-sm font-medium text-gray-700">Concepts:</span>
                           <div className="flex flex-wrap gap-1 mt-1">
-                            {roleConfig.concepts.map((concept, index) => (
+                            {(roleConfig?.concepts || []).map((concept, index) => (
                               <span key={index} className="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded">
                                 {concept}
                               </span>

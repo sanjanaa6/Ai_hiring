@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
-import axios from 'axios';
+import apiService from '../../services/apiService';
 import { toast } from 'react-toastify';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../../context/ThemeContext';
@@ -64,19 +64,13 @@ const JobManagement = () => {
   const { data: jobsData, isLoading, error } = useQuery(
     ['recruiter-jobs', filters],
     async () => {
-      const token = localStorage.getItem('token');
       const params = new URLSearchParams();
       Object.entries(filters).forEach(([key, value]) => {
         if (value) params.append(key, value);
       });
       
-      const response = await axios.get(`/api/jobs/my/jobs?${params.toString()}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      return response.data;
+      const response = await apiService.getMyJobs(Object.fromEntries(params));
+      return response;
     }
   );
 
@@ -85,19 +79,13 @@ const JobManagement = () => {
     ['job-applications', selectedJob?._id, applicationFilters],
     async () => {
       if (!selectedJob?._id) return null;
-      const token = localStorage.getItem('token');
       const params = new URLSearchParams();
       Object.entries(applicationFilters).forEach(([key, value]) => {
         if (value) params.append(key, value);
       });
       
-      const response = await axios.get(`/api/applications/job/${selectedJob._id}?${params.toString()}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      return response.data;
+      const response = await apiService.getJobApplications(selectedJob._id, Object.fromEntries(params));
+      return response;
     },
     {
       enabled: !!selectedJob?._id
@@ -107,14 +95,8 @@ const JobManagement = () => {
   // Update job status mutation
   const updateStatusMutation = useMutation(
     async ({ jobId, status }) => {
-      const token = localStorage.getItem('token');
-      const response = await axios.patch(`/api/jobs/${jobId}/status`, { status }, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      return response.data;
+      const response = await apiService.updateJobStatus(jobId, status);
+      return response;
     },
     {
       onSuccess: () => {
@@ -130,14 +112,8 @@ const JobManagement = () => {
   // Delete job mutation
   const deleteJobMutation = useMutation(
     async (jobId) => {
-      const token = localStorage.getItem('token');
-      const response = await axios.delete(`/api/jobs/${jobId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      return response.data;
+      const response = await apiService.deleteJob(jobId);
+      return response;
     },
     {
       onSuccess: () => {
@@ -153,14 +129,8 @@ const JobManagement = () => {
   // Update application status mutation
   const updateApplicationStatusMutation = useMutation(
     async ({ applicationId, status }) => {
-      const token = localStorage.getItem('token');
-      const response = await axios.patch(`/api/applications/${applicationId}/status`, { status }, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      return response.data;
+      const response = await apiService.updateApplicationStatus(applicationId, status);
+      return response;
     },
     {
       onSuccess: () => {
@@ -867,9 +837,9 @@ const JobManagement = () => {
                 <div className="loading">
                   <div className="spinner"></div>
                 </div>
-              ) : applicationsData?.applications?.length > 0 ? (
+              ) : (Array.isArray(applicationsData) ? applicationsData : applicationsData?.applications || []).length > 0 ? (
                 <div className="space-y-4">
-                  {applicationsData.applications.map((application) => (
+                  {(Array.isArray(applicationsData) ? applicationsData : applicationsData?.applications || []).map((application) => (
                     <div key={application._id} className="card">
                       <div className="flex justify-between items-start">
                         <div className="flex-1">

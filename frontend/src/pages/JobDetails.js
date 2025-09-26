@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useAuth } from '../context/AuthContext';
-import axios from 'axios';
+import apiService from '../services/apiService';
 import { toast } from 'react-toastify';
 import { 
   MapPin, 
@@ -31,19 +31,19 @@ const JobDetails = () => {
   const { data: job, isLoading, error } = useQuery(
     ['job', id],
     async () => {
-      const response = await axios.get(`/api/jobs/${id}`);
-      return response.data;
+      const response = await apiService.getJob(id);
+      return response;
     }
   );
 
   // Apply for job mutation
   const applyMutation = useMutation(
     async (data) => {
-      const response = await axios.post('/api/applications', {
+      const response = await apiService.createApplication({
         jobId: id,
         ...data
       });
-      return response.data;
+      return response;
     },
     {
       onSuccess: () => {

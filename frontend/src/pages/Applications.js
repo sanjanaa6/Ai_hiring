@@ -1,7 +1,7 @@
 import React from 'react';
 import { useQuery } from 'react-query';
 import { useAuth } from '../context/AuthContext';
-import axios from 'axios';
+import apiService from '../services/apiService';
 import { 
   FileText, 
   Calendar, 
@@ -15,16 +15,19 @@ import {
 const Applications = () => {
   const { user } = useAuth();
 
-  const { data: applications, isLoading, error } = useQuery(
+  const { data: applicationsData, isLoading, error } = useQuery(
     'applications',
     async () => {
-      const response = await axios.get('/api/applications/my');
-      return response.data;
+      const response = await apiService.getMyApplications();
+      return response;
     },
     {
       enabled: !!user
     }
   );
+
+  // Handle different response structures
+  const applications = Array.isArray(applicationsData) ? applicationsData : applicationsData?.applications || [];
 
   const getStatusColor = (status) => {
     switch (status) {

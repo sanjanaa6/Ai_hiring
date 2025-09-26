@@ -1,4 +1,4 @@
-import axios from 'axios';
+import apiService from './apiService';
 
 class EnhancedAIEvaluationService {
   constructor() {
@@ -121,14 +121,9 @@ class EnhancedAIEvaluationService {
   async evaluateInterview(interviewData) {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.post(`${this.baseURL}/evaluate-interview`, {
+      const response = await apiService.evaluateInterview({
         interviewData,
         scoringCriteria: this.getScoringCriteria()
-      }, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
       });
 
       return response.data;

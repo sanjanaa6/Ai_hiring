@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from 'react-query';
-import axios from 'axios';
+import apiService from '../../services/apiService';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
@@ -107,8 +107,8 @@ const JobSearch = () => {
       });
       params.append('sortBy', sortBy);
       
-      const response = await axios.get(`/api/jobs?${params.toString()}`);
-      return response.data;
+      const response = await apiService.getJobs(Object.fromEntries(params));
+      return response;
     },
     {
       keepPreviousData: true
@@ -207,7 +207,7 @@ const JobSearch = () => {
   // Job posting handlers for recruiters
   const handleCreateJob = async () => {
     try {
-      const response = await axios.post('/api/jobs', {
+      const response = await apiService.createJob({
         ...jobFormData,
         recruiter: user._id
       });
@@ -240,7 +240,8 @@ const JobSearch = () => {
     }));
   };
 
-  const jobs = data?.jobs || [];
+  // Handle different response structures
+  const jobs = Array.isArray(data) ? data : data?.jobs || [];
   const totalPages = data?.totalPages || 1;
   const currentPage = data?.currentPage || 1;
 

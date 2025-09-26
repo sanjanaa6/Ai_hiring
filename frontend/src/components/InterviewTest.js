@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import apiService from '../services/apiService';
 
 const InterviewTest = () => {
   const [result, setResult] = useState(null);
@@ -12,18 +12,12 @@ const InterviewTest = () => {
     setResult(null);
 
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.post('/api/interviews/generate-dynamic', {
+      const response = await apiService.generateDynamicInterview({
         prompt: 'Senior Python Developer with Django/Flask experience, 5+ years, full-stack development'
-      }, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
       });
 
-      console.log('✅ Test response:', response.data);
-      setResult(response.data);
+      console.log('✅ Test response:', response);
+      setResult(response);
     } catch (err) {
       console.error('❌ Test error:', err);
       setError(err.response?.data?.error || err.message);

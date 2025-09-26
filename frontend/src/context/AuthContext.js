@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
-import axios from 'axios';
+import apiService from '../services/apiService';
 
 const AuthContext = createContext();
 
@@ -48,28 +48,25 @@ const authReducer = (state, action) => {
 export const AuthProvider = ({ children }) => {
   const [state, dispatch] = useReducer(authReducer, initialState);
 
-  // Set up axios interceptor for token
-  useEffect(() => {
-    if (state.token) {
-      axios.defaults.headers.common['Authorization'] = `Bearer ${state.token}`;
-    } else {
-      delete axios.defaults.headers.common['Authorization'];
-    }
-  }, [state.token]);
+  // Token is now handled by apiService interceptor
 
   // Check if user is logged in on app start
   useEffect(() => {
     const checkAuth = async () => {
       if (state.token) {
         try {
-          const response = await axios.get('/api/auth/me');
-          dispatch({
-            type: 'LOGIN_SUCCESS',
-            payload: {
-              user: response.data.user,
-              token: state.token,
-            },
-          });
+          const response = await apiService.getUserProfile();
+          if (response.success !== false) {
+            dispatch({
+              type: 'LOGIN_SUCCESS',
+              payload: {
+                user: response.user,
+                token: state.token,
+              },
+            });
+          } else {
+            dispatch({ type: 'LOGOUT' });
+          }
         } catch (error) {
           console.error('Auth check failed:', error);
           dispatch({ type: 'LOGOUT' });
@@ -85,18 +82,26 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
-      const response = await axios.post('http://localhost:5000/api/auth/login', { email, password });
+      const response = await apiService.login(email, password);
       
-      dispatch({
-        type: 'LOGIN_SUCCESS',
-        payload: response.data,
-      });
-      
-      return { 
-        success: true, 
-        user: response.data.user,
-        token: response.data.token
-      };
+      if (response.success !== false) {
+        dispatch({
+          type: 'LOGIN_SUCCESS',
+          payload: response,
+        });
+        
+        return { 
+          success: true, 
+          user: response.user,
+          token: response.token
+        };
+      } else {
+        dispatch({ type: 'SET_LOADING', payload: false });
+        return {
+          success: false,
+          message: response.error || 'Login failed',
+        };
+      }
     } catch (error) {
       dispatch({ type: 'SET_LOADING', payload: false });
       
@@ -120,14 +125,22 @@ export const AuthProvider = ({ children }) => {
   const register = async (userData) => {
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
-      const response = await axios.post('/api/auth/register', userData);
+      const response = await apiService.register(userData);
       
-      dispatch({
-        type: 'LOGIN_SUCCESS',
-        payload: response.data,
-      });
-      
-      return { success: true };
+      if (response.success !== false) {
+        dispatch({
+          type: 'LOGIN_SUCCESS',
+          payload: response,
+        });
+        
+        return { success: true };
+      } else {
+        dispatch({ type: 'SET_LOADING', payload: false });
+        return {
+          success: false,
+          message: response.error || 'Registration failed',
+        };
+      }
     } catch (error) {
       dispatch({ type: 'SET_LOADING', payload: false });
       return {

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useMutation, useQueryClient } from 'react-query';
-import axios from 'axios';
+import apiService from '../../services/apiService';
 import { toast } from 'react-toastify';
 import { 
   Sparkles, 
@@ -22,14 +22,8 @@ const OnePromptJobCreator = ({ onClose, onJobCreated }) => {
 
   const generateJobMutation = useMutation(
     async (data) => {
-      const token = localStorage.getItem('token');
-      const response = await axios.post('/api/ai/generate-job', data, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      return response.data;
+      const response = await apiService.generateJob(data);
+      return response;
     },
     {
       onSuccess: (data) => {
@@ -48,14 +42,8 @@ const OnePromptJobCreator = ({ onClose, onJobCreated }) => {
 
   const createJobMutation = useMutation(
     async (jobData) => {
-      const token = localStorage.getItem('token');
-      const response = await axios.post('/api/jobs', jobData, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      return response.data;
+      const response = await apiService.createJob(jobData);
+      return response;
     },
     {
       onSuccess: () => {

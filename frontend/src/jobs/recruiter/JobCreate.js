@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from 'react-query';
-import axios from 'axios';
+import apiService from '../../services/apiService';
 import { toast } from 'react-toastify';
 import { Plus, X, Save, ArrowLeft, Sparkles } from 'lucide-react';
 import AIJobPrompt from '../components/AIJobPrompt';
@@ -34,8 +34,8 @@ const JobCreate = () => {
 
   const createJobMutation = useMutation(
     async (jobData) => {
-      const response = await axios.post('/api/jobs', jobData);
-      return response.data;
+      const response = await apiService.createJob(jobData);
+      return response;
     },
     {
       onSuccess: () => {

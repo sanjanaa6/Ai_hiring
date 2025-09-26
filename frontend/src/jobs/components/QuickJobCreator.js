@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useMutation, useQueryClient } from 'react-query';
-import axios from 'axios';
+import apiService from '../../services/apiService';
 import { toast } from 'react-toastify';
 import { 
   Sparkles, 
@@ -43,8 +43,8 @@ const QuickJobCreator = ({ onClose, onJobCreated }) => {
 
   const generateJobMutation = useMutation(
     async (data) => {
-      const response = await axios.post('/api/ai/generate-job', data);
-      return response.data;
+      const response = await apiService.generateJob(data);
+      return response;
     },
     {
       onSuccess: (data) => {
@@ -72,8 +72,8 @@ const QuickJobCreator = ({ onClose, onJobCreated }) => {
 
   const createJobMutation = useMutation(
     async (jobData) => {
-      const response = await axios.post('/api/jobs', jobData);
-      return response.data;
+      const response = await apiService.createJob(jobData);
+      return response;
     },
     {
       onSuccess: () => {

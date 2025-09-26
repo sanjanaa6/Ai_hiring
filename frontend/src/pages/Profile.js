@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useMutation, useQueryClient } from 'react-query';
 import { useAuth } from '../context/AuthContext';
-import axios from 'axios';
+import apiService from '../services/apiService';
 import { toast } from 'react-toastify';
 import { 
   User, 
@@ -34,8 +34,8 @@ const Profile = () => {
 
   const updateProfileMutation = useMutation(
     async (data) => {
-      const response = await axios.put('/api/users/profile', data);
-      return response.data;
+      const response = await apiService.updateProfile(data);
+      return response;
     },
     {
       onSuccess: (data) => {
