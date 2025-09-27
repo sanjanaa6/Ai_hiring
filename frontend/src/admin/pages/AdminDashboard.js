@@ -7,7 +7,6 @@ const AdminDashboard = () => {
   const { user } = useAuth();
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [actionLoading, setActionLoading] = useState(false);
 
   useEffect(() => {
     fetchDashboardData();
@@ -35,7 +34,6 @@ const AdminDashboard = () => {
   };
 
   const handleQuickApprove = async (recruiterId) => {
-    setActionLoading(true);
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`/api/admin/approve-recruiter/${recruiterId}`, {
@@ -56,8 +54,6 @@ const AdminDashboard = () => {
     } catch (error) {
       console.error('Error approving recruiter:', error);
       alert('Error approving recruiter');
-    } finally {
-      setActionLoading(false);
     }
   };
 
@@ -68,7 +64,6 @@ const AdminDashboard = () => {
       return;
     }
 
-    setActionLoading(true);
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`/api/admin/reject-recruiter/${recruiterId}`, {
@@ -90,8 +85,6 @@ const AdminDashboard = () => {
     } catch (error) {
       console.error('Error rejecting recruiter:', error);
       alert('Error rejecting recruiter');
-    } finally {
-      setActionLoading(false);
     }
   };
 

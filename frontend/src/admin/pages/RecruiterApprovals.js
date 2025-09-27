@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../../context/AuthContext';
 import AdminLayout from '../components/AdminLayout';
 import { 
   Users, 
@@ -14,7 +13,6 @@ import {
 } from 'lucide-react';
 
 const RecruiterApprovals = () => {
-  const { user } = useAuth();
   const [recruiters, setRecruiters] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');

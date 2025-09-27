@@ -47,6 +47,7 @@ const InterviewReviewer = () => {
 
   const fetchInterview = async () => {
     console.log('Fetching interview with ID:', interviewId);
+    console.log('API Base URL:', apiService.client.defaults.baseURL);
     setLoading(true);
     setError(null);
     
@@ -153,20 +154,12 @@ const InterviewReviewer = () => {
 
   const handleSave = async () => {
     try {
-      const response = await fetch(`/api/interviews/${interviewId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({
-          rounds: interview?.rounds || [],
-          title: interview?.title || '',
-          totalDuration: interview?.totalDuration || 0
-        })
+      const result = await apiService.updateInterview(interviewId, {
+        rounds: interview?.rounds || [],
+        title: interview?.title || '',
+        totalDuration: interview?.totalDuration || 0
       });
       
-      const result = await response.json();
       if (result.success) {
         setEditingRound(null);
         alert('Changes saved successfully!');

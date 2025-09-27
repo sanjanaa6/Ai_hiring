@@ -9,9 +9,20 @@ const getApiBaseUrl = () => {
       : `${process.env.REACT_APP_API_URL}/api`;
   }
   
-  // For production deployment, use relative URL
+  // For production deployment, use the actual backend URL
   if (process.env.NODE_ENV === 'production') {
-    return '/api';
+    // Try to derive from current domain, assuming backend is on same domain but different port
+    if (typeof window !== 'undefined') {
+      const { protocol, hostname } = window.location;
+      // If we're on the deployed domain, use the backend URL
+      if (hostname.includes('eval8.xyz')) {
+        return 'https://aihire.eval8.xyz/api';
+      }
+      // For other production deployments, try to use the same domain with port 5000
+      return `${protocol}//${hostname}:5000/api`;
+    }
+    // Fallback for server-side rendering
+    return 'https://aihire.eval8.xyz/api';
   }
   
   // For development, use localhost
@@ -343,7 +354,29 @@ class ApiService {
     try {
       const queryString = new URLSearchParams(params).toString();
       const response = await this.client.get(`/jobs/my/jobs?${queryString}`);
-      return response.data;
+      const data = response.data;
+      
+      // If it's an array (success case), wrap it in success response
+      if (Array.isArray(data)) {
+        return {
+          success: true,
+          data: data
+        };
+      }
+      
+      // If it's an object with error, return as error
+      if (data && data.message) {
+        return {
+          success: false,
+          error: data.message
+        };
+      }
+      
+      // Default success case
+      return {
+        success: true,
+        data: data
+      };
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error('Get my jobs error:', error);
@@ -379,6 +412,43 @@ class ApiService {
       return {
         success: false,
         error: error.response?.data?.error || error.message || 'Failed to get applications'
+      };
+    }
+  }
+
+  async getRecruiterApplications() {
+    try {
+      const response = await this.client.get('/applications/recruiter');
+      // The backend returns either an array or an object with error
+      const data = response.data;
+      
+      // If it's an array (success case), wrap it in success response
+      if (Array.isArray(data)) {
+        return {
+          success: true,
+          data: data
+        };
+      }
+      
+      // If it's an object with error, return as error
+      if (data && data.message) {
+        return {
+          success: false,
+          error: data.message
+        };
+      }
+      
+      // Default success case
+      return {
+        success: true,
+        data: data
+      };
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('Get recruiter applications error:', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to get recruiter applications'
       };
     }
   }
@@ -570,6 +640,36 @@ class ApiService {
       return {
         success: false,
         error: error.response?.data?.error || error.message || 'Failed to get interview performance'
+      };
+    }
+  }
+
+  // Approve interview
+  async approveInterview(interviewId) {
+    try {
+      const response = await this.client.post(`/interviews/${interviewId}/approve`);
+      return response.data;
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('Approve interview error:', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to approve interview'
+      };
+    }
+  }
+
+  // Reject interview
+  async rejectInterview(interviewId, reason) {
+    try {
+      const response = await this.client.post(`/interviews/${interviewId}/reject`, { reason });
+      return response.data;
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('Reject interview error:', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to reject interview'
       };
     }
   }

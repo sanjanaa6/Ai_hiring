@@ -139,33 +139,25 @@ const RecruiterDashboard = () => {
     try {
       setCandidatesLoading(true);
       
-      const token = localStorage.getItem('token');
-      
-      // Fetch both applications and jobs in parallel
-      const [applicationsResponse, jobsResponse] = await Promise.all([
-        fetch('/api/applications/recruiter', {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        }),
-        fetch('/api/jobs/my/jobs', {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        })
+      // Fetch both applications and jobs in parallel using apiService
+      const [applicationsResult, jobsResult] = await Promise.all([
+        apiService.getRecruiterApplications(),
+        apiService.getMyJobs()
       ]);
 
-      if (!applicationsResponse.ok) {
-        throw new Error('Failed to fetch applications');
+      console.log('Applications result:', applicationsResult);
+      console.log('Jobs result:', jobsResult);
+
+      if (!applicationsResult.success) {
+        console.error('Applications error details:', applicationsResult);
+        throw new Error(applicationsResult.error || 'Failed to fetch applications');
       }
-      if (!jobsResponse.ok) {
-        throw new Error('Failed to fetch jobs');
+      if (!jobsResult.success) {
+        throw new Error(jobsResult.error || 'Failed to fetch jobs');
       }
 
-      const applications = await applicationsResponse.json();
-      const jobs = await jobsResponse.json();
+      const applications = applicationsResult.data || applicationsResult;
+      const jobs = jobsResult.data || jobsResult;
       
       // Set recruiter jobs for filtering
       setRecruiterJobs(jobs);
@@ -257,18 +249,10 @@ const RecruiterDashboard = () => {
   // Candidate management handlers
   const handleCandidateStatusChange = async (candidateId, newStatus) => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`/api/applications/${candidateId}/status`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ status: newStatus })
-      });
+      const result = await apiService.updateApplicationStatus(candidateId, newStatus);
 
-      if (!response.ok) {
-        throw new Error('Failed to update application status');
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to update application status');
       }
 
       // Update local state
@@ -304,18 +288,10 @@ const RecruiterDashboard = () => {
   // Job management functions
   const handleJobStatusChange = async (jobId, newStatus) => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`/api/jobs/${jobId}/status`, {
-        method: 'PATCH',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ status: newStatus })
-      });
+      const result = await apiService.updateJobStatus(jobId, newStatus);
 
-      if (!response.ok) {
-        throw new Error('Failed to update job status');
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to update job status');
       }
 
       // Update local state
@@ -337,17 +313,10 @@ const RecruiterDashboard = () => {
     }
 
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`/api/jobs/${jobId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
+      const result = await apiService.deleteJob(jobId);
 
-      if (!response.ok) {
-        throw new Error('Failed to delete job');
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to delete job');
       }
 
       // Remove from local state
@@ -524,15 +493,7 @@ The interview should feel natural and relevant to someone applying for this spec
   // Approve interview function
   const approveInterview = async (interviewId) => {
     try {
-      const response = await fetch(`/api/interviews/${interviewId}/approve`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-
-      const result = await response.json();
+      const result = await apiService.approveInterview(interviewId);
       
       if (result.success) {
         // Update the job status in the local state
@@ -557,16 +518,7 @@ The interview should feel natural and relevant to someone applying for this spec
     if (reason === null) return; // User cancelled
 
     try {
-      const response = await fetch(`/api/interviews/${interviewId}/reject`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({ rejectionReason: reason })
-      });
-
-      const result = await response.json();
+      const result = await apiService.rejectInterview(interviewId, reason);
       
       if (result.success) {
         // Update the job status in the local state
