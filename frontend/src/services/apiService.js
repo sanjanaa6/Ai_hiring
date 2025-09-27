@@ -107,16 +107,9 @@ class ApiService {
       // Try public endpoint first (for shareable links)
       let response;
       try {
-        response = await fetch(`${this.client.defaults.baseURL}/interviews/public/${interviewId}`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          return data;
+        response = await this.client.get(`/interviews/public/${interviewId}`);
+        if (response.data) {
+          return response.data;
         }
       } catch (publicError) {
         console.log('Public endpoint failed, trying authenticated endpoint...');
@@ -670,6 +663,36 @@ class ApiService {
       return {
         success: false,
         error: error.response?.data?.error || error.message || 'Failed to reject interview'
+      };
+    }
+  }
+
+  // Get pending interviews for review
+  async getPendingInterviews() {
+    try {
+      const response = await this.client.get('/interviews/pending-review');
+      return response.data;
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('Get pending interviews error:', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to get pending interviews'
+      };
+    }
+  }
+
+  // Get interview details for review
+  async getInterviewReview(interviewId) {
+    try {
+      const response = await this.client.get(`/interviews/${interviewId}/review`);
+      return response.data;
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('Get interview review error:', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to get interview review'
       };
     }
   }

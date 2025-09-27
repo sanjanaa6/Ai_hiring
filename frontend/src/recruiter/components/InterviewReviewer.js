@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import apiService from '../../services/apiService';
 import { useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -40,12 +40,7 @@ const InterviewReviewer = () => {
   const [copied, setCopied] = useState(false);
   const [showLinkPreview, setShowLinkPreview] = useState(false);
 
-  useEffect(() => {
-    fetchInterview();
-  }, [interviewId]);
-
-
-  const fetchInterview = async () => {
+  const fetchInterview = useCallback(async () => {
     console.log('Fetching interview with ID:', interviewId);
     console.log('API Base URL:', apiService.client.defaults.baseURL);
     setLoading(true);
@@ -81,7 +76,11 @@ const InterviewReviewer = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [interviewId]);
+
+  useEffect(() => {
+    fetchInterview();
+  }, [fetchInterview]);
 
   const handleRoundEdit = (roundIndex) => {
     setEditingRound(roundIndex);

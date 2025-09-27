@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useTheme } from '../../context/ThemeContext';
+import apiService from '../../services/apiService';
 import { 
   CheckCircle, 
   Edit3, 
@@ -29,14 +30,12 @@ const InterviewReview = () => {
 
   const fetchPendingInterviews = async () => {
     try {
-      const response = await fetch('/api/interviews/pending-review', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-      const result = await response.json();
+      const result = await apiService.getPendingInterviews();
+      
       if (result.success) {
         setInterviews(result.data);
+      } else {
+        console.error('Error fetching pending interviews:', result.error);
       }
     } catch (error) {
       console.error('Error fetching pending interviews:', error);
@@ -47,15 +46,13 @@ const InterviewReview = () => {
 
   const fetchInterviewDetails = async (interviewId) => {
     try {
-      const response = await fetch(`/api/interviews/${interviewId}/review`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-      const result = await response.json();
+      const result = await apiService.getInterviewReview(interviewId);
+      
       if (result.success) {
         setSelectedInterview(result.data);
         setReviewNotes(result.data.reviewInfo?.reviewNotes || '');
+      } else {
+        console.error('Error fetching interview details:', result.error);
       }
     } catch (error) {
       console.error('Error fetching interview details:', error);
@@ -67,19 +64,14 @@ const InterviewReview = () => {
     
     setSaving(true);
     try {
-      const response = await fetch(`/api/interviews/${selectedInterview.interviewId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify(updatedData)
-      });
-      const result = await response.json();
+      const result = await apiService.updateInterview(selectedInterview.interviewId, updatedData);
+      
       if (result.success) {
         setSelectedInterview(result.data);
         setEditingRound(null);
         setEditingQuestion(null);
+      } else {
+        console.error('Failed to update interview:', result.error);
       }
     } catch (error) {
       console.error('Error updating interview:', error);
@@ -93,19 +85,14 @@ const InterviewReview = () => {
     
     setSaving(true);
     try {
-      const response = await fetch(`/api/interviews/${selectedInterview.interviewId}/approve`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({ reviewNotes })
-      });
-      const result = await response.json();
+      const result = await apiService.approveInterview(selectedInterview.interviewId);
+      
       if (result.success) {
         setInterviews(prev => prev.filter(i => i.interviewId !== selectedInterview.interviewId));
         setSelectedInterview(null);
         setReviewNotes('');
+      } else {
+        console.error('Failed to approve interview:', result.error);
       }
     } catch (error) {
       console.error('Error approving interview:', error);
@@ -119,19 +106,14 @@ const InterviewReview = () => {
     
     setSaving(true);
     try {
-      const response = await fetch(`/api/interviews/${selectedInterview.interviewId}/reject`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({ reviewNotes })
-      });
-      const result = await response.json();
+      const result = await apiService.rejectInterview(selectedInterview.interviewId, reviewNotes);
+      
       if (result.success) {
         setInterviews(prev => prev.filter(i => i.interviewId !== selectedInterview.interviewId));
         setSelectedInterview(null);
         setReviewNotes('');
+      } else {
+        console.error('Failed to reject interview:', result.error);
       }
     } catch (error) {
       console.error('Error rejecting interview:', error);
@@ -149,17 +131,14 @@ const InterviewReview = () => {
     
     setSaving(true);
     try {
-      const response = await fetch(`/api/interviews/${selectedInterview.interviewId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-      const result = await response.json();
+      const result = await apiService.deleteInterview(selectedInterview.interviewId);
+      
       if (result.success) {
         setInterviews(prev => prev.filter(i => i.interviewId !== selectedInterview.interviewId));
         setSelectedInterview(null);
         setReviewNotes('');
+      } else {
+        console.error('Failed to delete interview:', result.error);
       }
     } catch (error) {
       console.error('Error deleting interview:', error);

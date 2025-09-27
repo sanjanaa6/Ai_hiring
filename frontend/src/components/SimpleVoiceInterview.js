@@ -412,17 +412,17 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
       console.log('📤 Submitting current answer...', { answerType, isCodingQuestion });
       
       const result = await apiService.submitAnswer(interviewId, {
-        candidateId: candidateInfo.email,
-        candidateName: candidateInfo.name,
-        candidateEmail: candidateInfo.email,
-        roundId: currentRound.roundId,
-        questionId: currentQuestion.questionId,
-        question: currentQuestion.question,
-        answer: answerContent,
-        answerType: answerType,
-        transcription: isCodingQuestion ? '' : transcription,
-        codeAnswer: isCodingQuestion ? codeAnswer : '',
-        timeTaken: (currentQuestion.timeLimit * 60) - timeRemaining
+          candidateId: candidateInfo.email,
+          candidateName: candidateInfo.name,
+          candidateEmail: candidateInfo.email,
+          roundId: currentRound.roundId,
+          questionId: currentQuestion.questionId,
+          question: currentQuestion.question,
+          answer: answerContent,
+          answerType: answerType,
+          transcription: isCodingQuestion ? '' : transcription,
+          codeAnswer: isCodingQuestion ? codeAnswer : '',
+          timeTaken: (currentQuestion.timeLimit * 60) - timeRemaining
       });
       console.log('✅ Answer submitted:', result);
       
@@ -672,14 +672,14 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
         console.log(`🔄 Generating question ${i + 1}/3...`);
         
         const result = await apiService.getCodingHints(interviewId, {
-          question: question,
-          currentCode: code,
-          language: selectedLanguage,
-          difficulty: 'medium',
-          isLiveComment: true,
-          isInterviewer: true,
-          questionNumber: i + 1, // Add question number for variety
-          previousQuestions: questions // Include previous questions to avoid repetition
+            question: question,
+            currentCode: code,
+            language: selectedLanguage,
+            difficulty: 'medium',
+            isLiveComment: true,
+            isInterviewer: true,
+            questionNumber: i + 1, // Add question number for variety
+            previousQuestions: questions // Include previous questions to avoid repetition
         });
 
         console.log(`📡 Response for question ${i + 1}:`, result);
@@ -911,12 +911,12 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
       // Generate AI response to the answer
       try {
         const result = await apiService.getCodingHints(interviewId, {
-          question: aiQuestions[currentAiQuestionIndex],
-          currentCode: codeAnswer,
-          language: selectedLanguage,
-          difficulty: 'medium',
-          isLiveComment: true,
-          isInterviewer: true
+            question: aiQuestions[currentAiQuestionIndex],
+            currentCode: codeAnswer,
+            language: selectedLanguage,
+            difficulty: 'medium',
+            isLiveComment: true,
+            isInterviewer: true
         });
         if (result.success && result.data && result.data.aiResponse) {
           const newResponse = {
