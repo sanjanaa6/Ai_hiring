@@ -45,6 +45,17 @@ class ApiService {
       }
       return config;
     });
+
+    // External API clients
+    this.openRouterClient = axios.create({
+      baseURL: process.env.REACT_APP_OPENROUTER_API_URL || 'https://openrouter.ai/api/v1/chat/completions',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.REACT_APP_OPENROUTER_API_KEY}`,
+        'HTTP-Referer': typeof window !== 'undefined' ? window.location.origin : '',
+        'X-Title': 'AI Hiring Platform'
+      }
+    });
   }
 
   // Interview API calls
@@ -508,6 +519,24 @@ class ApiService {
       return {
         success: false,
         error: error.response?.data?.error || error.message || 'Failed to send message'
+      };
+    }
+  }
+
+  // External API calls - OpenRouter
+  async callOpenRouterAPI(data) {
+    try {
+      const response = await this.openRouterClient.post('', data);
+      return {
+        success: true,
+        data: response.data
+      };
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('OpenRouter API error:', error);
+      return {
+        success: false,
+        error: error.response?.data?.error?.message || error.message || 'Failed to call OpenRouter API'
       };
     }
   }

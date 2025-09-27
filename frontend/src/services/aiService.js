@@ -1,20 +1,10 @@
-import axios from 'axios';
+import apiService from './apiService';
 
-const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
 const KIMI_MODEL = 'moonshotai/kimi-vl-a3b-thinking';
 
 class AIService {
   constructor() {
     this.apiKey = process.env.REACT_APP_OPENROUTER_API_KEY;
-    this.client = axios.create({
-      baseURL: OPENROUTER_API_URL,
-      headers: {
-        'Authorization': `Bearer ${this.apiKey}`,
-        'Content-Type': 'application/json',
-        'HTTP-Referer': window.location.origin,
-        'X-Title': 'AI Hiring Platform'
-      }
-    });
   }
 
   async generateResponse(prompt, context = {}) {
@@ -25,7 +15,7 @@ class AIService {
 
       const systemPrompt = this.buildSystemPrompt(context);
       
-      const response = await this.client.post('', {
+      const requestData = {
         model: KIMI_MODEL,
         messages: [
           {
@@ -40,18 +30,27 @@ class AIService {
         max_tokens: 2000,
         temperature: 0.7,
         top_p: 0.9
-      });
-
-      return {
-        success: true,
-        data: response.data.choices[0].message.content,
-        usage: response.data.usage
       };
+
+      const response = await apiService.callOpenRouterAPI(requestData);
+
+      if (response.success) {
+        return {
+          success: true,
+          data: response.data.choices[0].message.content,
+          usage: response.data.usage
+        };
+      } else {
+        return {
+          success: false,
+          error: response.error
+        };
+      }
     } catch (error) {
       console.error('AI Service Error:', error);
       return {
         success: false,
-        error: error.response?.data?.error?.message || error.message
+        error: error.message
       };
     }
   }
@@ -166,7 +165,7 @@ Please include:
   // Coding Assistant Methods
   async getCodingAssistant(interviewId, data) {
     try {
-      const response = await axios.post(`/api/interviews/${interviewId}/coding-assistant`, data);
+      const response = await apiService.client.post(`/interviews/${interviewId}/coding-assistant`, data);
       return response.data;
     } catch (error) {
       console.error('Coding Assistant Error:', error);
@@ -179,7 +178,7 @@ Please include:
 
   async getCodingHints(interviewId, data) {
     try {
-      const response = await axios.post(`/api/interviews/${interviewId}/coding-hints`, data);
+      const response = await apiService.client.post(`/interviews/${interviewId}/coding-hints`, data);
       return response.data;
     } catch (error) {
       console.error('Coding Hints Error:', error);
