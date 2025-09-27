@@ -105,15 +105,8 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       dispatch({ type: 'SET_LOADING', payload: false });
       
-      // Handle recruiter approval status
-      if (error.response?.status === 403 && error.response?.data?.approvalStatus) {
-        return {
-          success: false,
-          message: error.response.data.message,
-          approvalStatus: error.response.data.approvalStatus,
-          rejectionReason: error.response.data.rejectionReason
-        };
-      }
+      // Recruiters can now login without approval
+      // Removed approval status handling
       
       return {
         success: false,

@@ -190,4 +190,5 @@ Please include:
   }
 }
 
-export default new AIService();
+const aiService = new AIService();
+export default aiService;

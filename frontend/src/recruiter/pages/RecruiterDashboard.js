@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import apiService from '../../services/apiService';
+import InterviewPerformanceDashboard from '../../components/InterviewPerformanceDashboard';
 import { motion } from 'framer-motion';
 import { 
   Plus, 
@@ -38,6 +39,8 @@ const RecruiterDashboard = () => {
   const [activeTab, setActiveTab] = useState('jobs'); // 'jobs', 'candidates', 'analytics', 'answers', 'manage-jobs'
   const [interviewStats, setInterviewStats] = useState(null);
   const [selectedInterviewId, setSelectedInterviewId] = useState(null);
+  const [showPerformanceDashboard, setShowPerformanceDashboard] = useState(false);
+  const [performanceInterviewId, setPerformanceInterviewId] = useState(null);
 
   // Answers state
   const [answersLoading, setAnswersLoading] = useState(false);
@@ -1727,8 +1730,8 @@ The interview should feel natural and relevant to someone applying for this spec
                             whileHover={{ scale: 1.05, y: -2 }}
                             whileTap={{ scale: 0.95 }}
                             onClick={() => {
-                              setSelectedInterviewId(job.interviewId);
-                              setActiveTab('answers');
+                              setPerformanceInterviewId(job.interviewId);
+                              setShowPerformanceDashboard(true);
                             }}
                             className={`group flex items-center space-x-2 px-4 py-2 text-sm rounded-xl transition-all duration-300 ${isDarkMode ? 'bg-purple-500/20 text-purple-200 hover:bg-purple-500/30 border border-purple-500/30' : 'bg-purple-100 text-purple-800 hover:bg-purple-200 border border-purple-200'}`}
                           >
@@ -1736,7 +1739,7 @@ The interview should feel natural and relevant to someone applying for this spec
                               whileHover={{ scale: 1.1 }}
                               transition={{ duration: 0.2 }}
                           >
-                            <FileText className="h-4 w-4" />
+                            <BarChart3 className="h-4 w-4" />
                             </motion.div>
                             <span>View Performance</span>
                           </motion.button>
@@ -3034,6 +3037,16 @@ The interview should feel natural and relevant to someone applying for this spec
           </div>
         </div>
       </div>
+      {/* Performance Dashboard Modal */}
+      {showPerformanceDashboard && performanceInterviewId && (
+        <InterviewPerformanceDashboard
+          interviewId={performanceInterviewId}
+          onClose={() => {
+            setShowPerformanceDashboard(false);
+            setPerformanceInterviewId(null);
+          }}
+        />
+      )}
     </div>
   );
 };

@@ -2385,4 +2385,189 @@ router.post('/:interviewId/ai-voice-speak', async (req, res) => {
   }
 });
 
+// Helper function to generate candidate performance summaries
+const getCandidateSummaries = (candidateAnswers) => {
+  const candidateMap = new Map();
+  
+  candidateAnswers.forEach(answer => {
+    const candidateId = answer.candidateId;
+    
+    if (!candidateMap.has(candidateId)) {
+      candidateMap.set(candidateId, {
+        candidateId: answer.candidateId,
+        candidateName: answer.candidateName,
+        candidateEmail: answer.candidateEmail,
+        totalAnswers: 0,
+        totalScore: 0,
+        averageScore: 0,
+        roundsCompleted: new Set(),
+        answers: [],
+        strengths: [],
+        improvements: [],
+        lastActivity: answer.timestamp
+      });
+    }
+    
+    const candidate = candidateMap.get(candidateId);
+    candidate.totalAnswers++;
+    candidate.totalScore += answer.aiEvaluation?.score || 0;
+    candidate.roundsCompleted.add(answer.roundId);
+    candidate.answers.push({
+      roundId: answer.roundId,
+      questionId: answer.questionId,
+      question: answer.question,
+      answer: answer.answer,
+      score: answer.aiEvaluation?.score || 0,
+      feedback: answer.aiEvaluation?.feedback || '',
+      timeTaken: answer.timeTaken,
+      timestamp: answer.timestamp
+    });
+    
+    if (answer.aiEvaluation?.strengths) {
+      candidate.strengths.push(...answer.aiEvaluation.strengths);
+    }
+    if (answer.aiEvaluation?.improvements) {
+      candidate.improvements.push(...answer.aiEvaluation.improvements);
+    }
+    
+    if (answer.timestamp > candidate.lastActivity) {
+      candidate.lastActivity = answer.timestamp;
+    }
+  });
+  
+  // Calculate averages and convert to array
+  return Array.from(candidateMap.values()).map(candidate => {
+    candidate.averageScore = candidate.totalAnswers > 0 ? 
+      (candidate.totalScore / candidate.totalAnswers) : 0;
+    candidate.roundsCompleted = Array.from(candidate.roundsCompleted);
+    candidate.completionRate = candidate.roundsCompleted.length;
+    
+    // Get unique strengths and improvements
+    candidate.strengths = [...new Set(candidate.strengths)];
+    candidate.improvements = [...new Set(candidate.improvements)];
+    
+    return candidate;
+  }).sort((a, b) => b.averageScore - a.averageScore); // Sort by highest score first
+};
+
+// Get interview performance analytics (for recruiters only)
+router.get('/:interviewId/performance', auth, async (req, res) => {
+  console.log('📊 [PERFORMANCE] Fetching performance analytics for interview:', req.params.interviewId);
+  console.log('👤 [PERFORMANCE] User ID:', req.user.id);
+  
+  try {
+    const interview = await Interview.findOne({ 
+      interviewId: req.params.interviewId,
+      createdBy: req.user.id
+    });
+
+    if (!interview) {
+      console.log('❌ [PERFORMANCE] Interview not found or access denied');
+      return res.status(404).json({
+        success: false,
+        error: 'Interview not found or access denied'
+      });
+    }
+
+    console.log('✅ [PERFORMANCE] Interview found, generating performance analytics...');
+    
+    // Update statistics
+    interview.updateStatistics();
+    await interview.save();
+    
+    // Get candidate performance summaries
+    const candidateSummaries = getCandidateSummaries(interview.candidateAnswers);
+    console.log('📈 [PERFORMANCE] Generated summaries for', candidateSummaries.length, 'candidates');
+
+    // Calculate detailed analytics
+    const analytics = {
+      overview: {
+        totalCandidates: interview.statistics.totalCandidates,
+        completedInterviews: interview.statistics.completedInterviews,
+        averageScore: Math.round(interview.statistics.averageScore * 100) / 100,
+        completionRate: Math.round(interview.statistics.completionRate * 100) / 100,
+        totalAnswers: interview.candidateAnswers.length
+      },
+      scoreDistribution: {
+        excellent: candidateSummaries.filter(c => c.averageScore >= 3.5).length,
+        good: candidateSummaries.filter(c => c.averageScore >= 2.5 && c.averageScore < 3.5).length,
+        satisfactory: candidateSummaries.filter(c => c.averageScore >= 1.5 && c.averageScore < 2.5).length,
+        needsImprovement: candidateSummaries.filter(c => c.averageScore < 1.5).length
+      },
+      roundAnalytics: interview.rounds.map(round => {
+        const roundAnswers = interview.candidateAnswers.filter(a => a.roundId === round.roundId);
+        const roundScores = roundAnswers.map(a => a.aiEvaluation?.score || 0);
+        const averageRoundScore = roundScores.length > 0 ? 
+          roundScores.reduce((sum, score) => sum + score, 0) / roundScores.length : 0;
+        
+        return {
+          roundId: round.roundId,
+          roundNumber: round.roundNumber,
+          title: round.title,
+          questionCount: round.questions.length,
+          totalAnswers: roundAnswers.length,
+          averageScore: Math.round(averageRoundScore * 100) / 100,
+          completionRate: Math.round((roundAnswers.length / interview.statistics.totalCandidates) * 100) / 100
+        };
+      }),
+      timeAnalytics: {
+        averageTimePerQuestion: interview.candidateAnswers.length > 0 ? 
+          Math.round(interview.candidateAnswers.reduce((sum, a) => sum + a.timeTaken, 0) / interview.candidateAnswers.length) : 0,
+        fastestAnswer: interview.candidateAnswers.length > 0 ? 
+          Math.min(...interview.candidateAnswers.map(a => a.timeTaken)) : 0,
+        slowestAnswer: interview.candidateAnswers.length > 0 ? 
+          Math.max(...interview.candidateAnswers.map(a => a.timeTaken)) : 0
+      }
+    };
+
+    const responseData = {
+      success: true,
+      data: {
+        interview: {
+          interviewId: interview.interviewId,
+          title: interview.title,
+          jobTitle: interview.jobTitle,
+          jobLevel: interview.jobLevel,
+          totalDuration: interview.totalDuration,
+          createdAt: interview.createdAt,
+          status: interview.status
+        },
+        analytics,
+        candidateSummaries,
+        rounds: interview.rounds.map(round => ({
+          roundId: round.roundId,
+          roundNumber: round.roundNumber,
+          title: round.title,
+          description: round.description,
+          duration: round.duration,
+          questionCount: round.questions.length
+        }))
+      }
+    };
+
+    console.log('📊 [PERFORMANCE] Performance analytics generated:', {
+      totalCandidates: analytics.overview.totalCandidates,
+      completedInterviews: analytics.overview.completedInterviews,
+      averageScore: analytics.overview.averageScore,
+      candidateSummaries: candidateSummaries.length
+    });
+
+    res.json(responseData);
+
+  } catch (error) {
+    console.error('❌ [PERFORMANCE] Error occurred:', error.message);
+    console.error('🔍 [PERFORMANCE] Error details:', {
+      name: error.name,
+      message: error.message,
+      stack: error.stack?.substring(0, 500) + '...'
+    });
+    
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch performance analytics'
+    });
+  }
+});
+
 module.exports = router;
+

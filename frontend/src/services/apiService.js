@@ -1,6 +1,24 @@
 import axios from 'axios';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+// Dynamic API base URL configuration for deployment
+const getApiBaseUrl = () => {
+  // If environment variable is set, use it
+  if (process.env.REACT_APP_API_URL) {
+    return process.env.REACT_APP_API_URL.endsWith('/api') 
+      ? process.env.REACT_APP_API_URL 
+      : `${process.env.REACT_APP_API_URL}/api`;
+  }
+  
+  // For production deployment, use relative URL
+  if (process.env.NODE_ENV === 'production') {
+    return '/api';
+  }
+  
+  // For development, use localhost
+  return 'http://localhost:5000/api';
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 // function deriveBaseFromWindow() {
 //   try {
@@ -537,6 +555,21 @@ class ApiService {
       return {
         success: false,
         error: error.response?.data?.error?.message || error.message || 'Failed to call OpenRouter API'
+      };
+    }
+  }
+
+  // Interview Performance Analytics
+  async getInterviewPerformance(interviewId) {
+    try {
+      const response = await this.client.get(`/interviews/${interviewId}/performance`);
+      return response.data;
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('Get interview performance error:', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to get interview performance'
       };
     }
   }

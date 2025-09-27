@@ -53,16 +53,9 @@ const Login = () => {
           navigate(from, { replace: true });
         }
       } else {
-        // Handle recruiter approval status
-        if (result.approvalStatus) {
-          if (result.approvalStatus === 'pending') {
-            toast.warning('Your recruiter account is pending approval. Please wait for admin approval.');
-          } else if (result.approvalStatus === 'rejected') {
-            toast.error(`Your recruiter account was rejected. Reason: ${result.rejectionReason || 'No reason provided'}`);
-          }
-        } else {
-          toast.error(result.message);
-        }
+        // Recruiters can now login without approval
+        // Removed approval status checks
+        toast.error(result.message);
       }
     } catch (error) {
       toast.error('An error occurred during login');
@@ -162,7 +155,7 @@ const Login = () => {
             className="mb-6"
           >
             <button
-              onClick={() => window.open('http://localhost:3000', '_blank')}
+              onClick={() => window.open(window.location.origin, '_blank')}
               className="flex items-center text-blue-400 hover:text-blue-300 transition-colors duration-200 group"
             >
               <ArrowLeft className="w-5 h-5 mr-2 group-hover:-translate-x-1 transition-transform duration-200" />
