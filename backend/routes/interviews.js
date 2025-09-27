@@ -875,6 +875,129 @@ router.get('/public/:interviewId', async (req, res) => {
   }
 });
 
+// Update interview endpoint
+router.patch('/:interviewId', auth, async (req, res) => {
+  console.log('📝 [UPDATE INTERVIEW] Updating interview:', req.params.interviewId);
+  console.log('👤 [UPDATE INTERVIEW] User ID:', req.user.id);
+  console.log('👤 [UPDATE INTERVIEW] User role:', req.user.role);
+  console.log('📝 [UPDATE INTERVIEW] Update data:', req.body);
+  
+  try {
+    const { interviewId } = req.params;
+    const updateData = req.body;
+    
+    // Find the interview by custom interviewId field
+    const interview = await Interview.findOne({ interviewId: interviewId });
+    if (!interview) {
+      return res.status(404).json({
+        success: false,
+        error: 'Interview not found'
+      });
+    }
+    
+    // Check if user has permission to update this interview
+    if (interview.createdBy.toString() !== req.user.id && req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        error: 'Not authorized to update this interview'
+      });
+    }
+    
+    // Update the interview with provided data
+    const allowedFields = ['title', 'description', 'rounds', 'totalDuration', 'status'];
+    const updateFields = {};
+    
+    allowedFields.forEach(field => {
+      if (updateData[field] !== undefined) {
+        updateFields[field] = updateData[field];
+      }
+    });
+    
+    // Validate and clean rounds data before saving
+    if (updateFields.rounds && Array.isArray(updateFields.rounds)) {
+      console.log('🧹 [UPDATE INTERVIEW] Cleaning rounds data before saving...');
+      updateFields.rounds = updateFields.rounds.map((round, index) => {
+        // Clean and validate questions
+        let cleanQuestions = (round.questions || []).map((question, qIndex) => ({
+          id: question.id || `q${index + 1}_${qIndex + 1}`,
+          type: question.type || 'technical',
+          question: question.question || 'Question text',
+          expectedAnswer: question.expectedAnswer || 'Expected answer',
+          timeLimit: question.timeLimit || 3,
+          difficulty: question.difficulty || 'medium',
+          followUpQuestions: question.followUpQuestions || []
+        }));
+        
+        // If no questions exist, add a default question
+        if (cleanQuestions.length === 0) {
+          cleanQuestions = [{
+            id: `q${index + 1}_1`,
+            type: 'technical',
+            question: 'Please tell me about your experience and background.',
+            expectedAnswer: 'The candidate should provide relevant experience and background information.',
+            timeLimit: 3,
+            difficulty: 'medium',
+            followUpQuestions: []
+          }];
+          console.log(`🔧 [UPDATE INTERVIEW] Added default question to empty round ${index + 1}`);
+        }
+        
+        // Ensure required fields have default values
+        const cleanedRound = {
+          roundId: round.roundId || `round_${index + 1}`,
+          roundNumber: round.roundNumber || index + 1,
+          title: round.title || `Round ${index + 1}`,
+          description: round.description || `Round ${index + 1} description`,
+          duration: round.duration || 10, // Default to 10 minutes if missing
+          questions: cleanQuestions,
+          evaluationCriteria: round.evaluationCriteria || {
+            technical: '',
+            communication: '',
+            problemSolving: '',
+            culturalFit: '',
+            leadership: '',
+            motivation: ''
+          }
+        };
+        
+        // Log if we're fixing a null duration
+        if (round.duration === null || round.duration === undefined) {
+          console.log(`🔧 [UPDATE INTERVIEW] Fixed null duration for round ${index + 1}, setting to 10`);
+        }
+        
+        return cleanedRound;
+      });
+      
+      console.log('✅ [UPDATE INTERVIEW] Rounds data cleaned successfully');
+    }
+    
+    // Log the cleaned updateFields before saving
+    console.log('📝 [UPDATE INTERVIEW] Cleaned updateFields:', JSON.stringify(updateFields, null, 2));
+    
+    // Update the interview using the MongoDB _id
+    const updatedInterview = await Interview.findByIdAndUpdate(
+      interview._id,
+      { $set: updateFields },
+      { new: true, runValidators: true }
+    );
+    
+    console.log('✅ [UPDATE INTERVIEW] Interview updated successfully');
+    
+    res.json({
+      success: true,
+      data: updatedInterview,
+      message: 'Interview updated successfully'
+    });
+    
+  } catch (error) {
+    console.error('❌ [UPDATE INTERVIEW] Error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to update interview: ' + error.message
+    });
+  }
+});
+
 // Get interview by ID endpoint (authenticated access)
 router.get('/:interviewId', auth, async (req, res) => {
   console.log('🔍 [GET INTERVIEW] Fetching interview:', req.params.interviewId);

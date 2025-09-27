@@ -39,6 +39,8 @@ const InterviewReviewer = () => {
   const [token] = useState(localStorage.getItem('token'));
   const [copied, setCopied] = useState(false);
   const [showLinkPreview, setShowLinkPreview] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
 
   const fetchInterview = useCallback(async () => {
     console.log('Fetching interview with ID:', interviewId);
@@ -90,6 +92,7 @@ const InterviewReviewer = () => {
     const updatedInterview = { ...interview };
     updatedInterview.rounds[roundIndex].questions[questionIndex] = updatedQuestion;
     setInterview(updatedInterview);
+    markAsChanged();
   };
 
   const handleRoundDelete = (roundIndex) => {
@@ -97,6 +100,7 @@ const InterviewReviewer = () => {
       const updatedInterview = { ...interview };
       updatedInterview.rounds.splice(roundIndex, 1);
       setInterview(updatedInterview);
+      markAsChanged();
     }
   };
 
@@ -105,6 +109,7 @@ const InterviewReviewer = () => {
       const updatedInterview = { ...interview };
       updatedInterview.rounds[roundIndex].questions.splice(questionIndex, 1);
       setInterview(updatedInterview);
+      markAsChanged();
     }
   };
 
@@ -123,6 +128,7 @@ const InterviewReviewer = () => {
       const updatedInterview = { ...interview };
       updatedInterview.rounds[roundIndex].questions.push(newQuestion);
       setInterview(updatedInterview);
+      markAsChanged();
     }
   };
 
@@ -148,26 +154,45 @@ const InterviewReviewer = () => {
       const updatedInterview = { ...interview };
       updatedInterview.rounds.push(newRound);
       setInterview(updatedInterview);
+      markAsChanged();
     }
+  };
+
+  // Function to mark that changes have been made
+  const markAsChanged = () => {
+    setHasUnsavedChanges(true);
   };
 
   const handleSave = async () => {
     try {
+      setSaving(true);
+      setError(null);
+      setSaveSuccess(false);
+      
       const result = await apiService.updateInterview(interviewId, {
         rounds: interview?.rounds || [],
         title: interview?.title || '',
-        totalDuration: interview?.totalDuration || 0
+        totalDuration: interview?.totalDuration || 0,
+        description: interview?.description || ''
       });
       
       if (result.success) {
         setEditingRound(null);
-        alert('Changes saved successfully!');
+        setHasUnsavedChanges(false);
+        setSaveSuccess(true);
+        
+        // Hide success message after 3 seconds
+        setTimeout(() => setSaveSuccess(false), 3000);
+        
+        console.log('✅ [SAVE] Interview saved successfully');
       } else {
         setError('Failed to save changes: ' + result.error);
       }
     } catch (err) {
-      console.error('Error saving changes:', err);
-      setError('Failed to save changes');
+      console.error('❌ [SAVE] Error saving changes:', err);
+      setError('Failed to save changes: ' + err.message);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -775,19 +800,69 @@ const InterviewReviewer = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
-          className="mt-8 flex gap-4 justify-end"
+          className="mt-8 flex flex-col gap-4"
         >
-          {editingRound !== null && (
+          {/* Success/Error Messages */}
+          {saveSuccess && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-lg flex items-center gap-2"
+            >
+              <CheckCircle className="w-5 h-5" />
+              <span>Changes saved successfully!</span>
+            </motion.div>
+          )}
+          
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg flex items-center gap-2"
+            >
+              <AlertCircle className="w-5 h-5" />
+              <span>{error}</span>
+            </motion.div>
+          )}
+          
+          {/* Save Button - Always Visible */}
+          <div className="flex justify-between items-center">
+            <div className="text-sm text-gray-600">
+              {hasUnsavedChanges && (
+                <span className="text-orange-600 font-medium">⚠️ You have unsaved changes</span>
+              )}
+            </div>
+            
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={handleSave}
-              className="bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-6 rounded-lg transition-colors duration-200 flex items-center gap-2"
+              disabled={saving}
+              className={`font-medium py-3 px-6 rounded-lg transition-all duration-200 flex items-center gap-2 ${
+                saving 
+                  ? 'bg-gray-400 text-white cursor-not-allowed' 
+                  : hasUnsavedChanges
+                    ? 'bg-green-600 hover:bg-green-700 text-white shadow-lg'
+                    : 'bg-green-500 hover:bg-green-600 text-white'
+              }`}
             >
-              <Save className="w-4 h-4" />
-              Save Changes
+              {saving ? (
+                <>
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                    className="w-4 h-4 border-2 border-white border-t-transparent rounded-full"
+                  />
+                  <span>Saving...</span>
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4" />
+                  <span>Save Changes</span>
+                </>
+              )}
             </motion.button>
-          )}
+          </div>
         </motion.div>
       </div>
     </div>

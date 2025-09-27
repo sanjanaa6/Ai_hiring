@@ -24,7 +24,8 @@ import {
   MessageSquare,
   Award,
   ThumbsUp,
-  ThumbsDown
+  ThumbsDown,
+  Edit3
 } from 'lucide-react';
 
 const RecruiterDashboard = () => {
@@ -34,7 +35,8 @@ const RecruiterDashboard = () => {
   const [loading, setLoading] = useState(false);
   const [generatedInterview, setGeneratedInterview] = useState(null);
   const [interviewLink, setInterviewLink] = useState('');
-  const [linkCopied, setLinkCopied] = useState(false);
+  const [copiedInterviewId, setCopiedInterviewId] = useState(null);
+  const [modalLinkCopied, setModalLinkCopied] = useState(false);
   const [jobs, setJobs] = useState([]);
   const [activeTab, setActiveTab] = useState('jobs'); // 'jobs', 'candidates', 'analytics', 'answers', 'manage-jobs'
   const [interviewStats, setInterviewStats] = useState(null);
@@ -438,6 +440,7 @@ The interview should feel natural and relevant to someone applying for this spec
       
       if (result.success) {
         setGeneratedInterview(result.data);
+        setInterviewLink(result.data.link);
         const reviewPath = `/recruiter/review/${result.data.interviewId}`;
         // Navigate to review page
         window.location.href = reviewPath;
@@ -483,8 +486,8 @@ The interview should feel natural and relevant to someone applying for this spec
   const copyLink = async () => {
     try {
       await navigator.clipboard.writeText(interviewLink);
-      setLinkCopied(true);
-      setTimeout(() => setLinkCopied(false), 2000);
+      setModalLinkCopied(true);
+      setTimeout(() => setModalLinkCopied(false), 2000);
     } catch (error) {
       console.error('Failed to copy link:', error);
     }
@@ -1459,8 +1462,8 @@ The interview should feel natural and relevant to someone applying for this spec
                       onClick={copyLink}
                       className="flex items-center space-x-1 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
                     >
-                      {linkCopied ? <CheckCircle className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                      <span>{linkCopied ? 'Copied!' : 'Copy'}</span>
+                      {modalLinkCopied ? <CheckCircle className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                      <span>{modalLinkCopied ? 'Copied!' : 'Copy'}</span>
               </button>
                   </div>
                 </div>
@@ -1589,29 +1592,41 @@ The interview should feel natural and relevant to someone applying for this spec
                           initial={{ opacity: 0, x: 20 }}
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ delay: 2.2 + idx * 0.1 }}
-                          className="flex space-x-3 ml-4"
+                          className="flex flex-col space-y-3 ml-4"
                         >
+                          {/* Always visible interview URL */}
+                          <div className={`flex items-center space-x-2 px-3 py-2 rounded-lg border ${isDarkMode ? 'bg-gray-800/50 border-gray-600 text-gray-300' : 'bg-gray-50 border-gray-200 text-gray-700'}`}>
+                            <Link className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                            <span className="text-xs font-mono truncate max-w-48">
+                              {job.link || job.interviewLink || `${window.location.origin}/interview/${job.interviewId}`}
+                            </span>
                           <motion.button
-                            whileHover={{ scale: 1.05, y: -2 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() => {
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.9 }}
+                              onClick={async () => {
                               const computedLink = job.link || job.interviewLink || `${window.location.origin}/interview/${job.interviewId}`;
-                              setInterviewLink(computedLink);
-                              setLinkCopied(false);
-                              try { window.open(computedLink, '_blank'); } catch (_) {}
-                            }}
-                            className={`group flex items-center space-x-2 px-4 py-2 text-sm rounded-xl transition-all duration-300 ${isDarkMode ? 'bg-blue-500/20 text-blue-200 hover:bg-blue-500/30 border border-blue-500/30' : 'bg-blue-100 text-blue-800 hover:bg-blue-200 border border-blue-200'}`}
-                          >
-                            <motion.div
-                              whileHover={{ rotate: 45 }}
-                              transition={{ duration: 0.2 }}
-                          >
-                            <Link className="h-4 w-4" />
-                            </motion.div>
-                            <span>Get Link</span>
+                                try {
+                                  await navigator.clipboard.writeText(computedLink);
+                                  setCopiedInterviewId(job.interviewId);
+                                  setTimeout(() => setCopiedInterviewId(null), 2000);
+                                } catch (err) {
+                                  console.error('Failed to copy link:', err);
+                                }
+                              }}
+                              className={`p-1 rounded transition-colors duration-200 ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-200'}`}
+                              title="Copy link"
+                            >
+                              {copiedInterviewId === job.interviewId ? (
+                                <CheckCircle className="h-4 w-4 text-green-500" />
+                              ) : (
+                                <Copy className="h-4 w-4 text-gray-500" />
+                              )}
                           </motion.button>
+                          </div>
 
 
+                          {/* Action buttons row */}
+                          <div className="flex flex-wrap gap-2">
                           {/* Approve and Reject buttons for pending interviews (including undefined for legacy interviews) */}
                           {(job.approvalStatus === 'pending' || job.approvalStatus === undefined) && (
                             <>
@@ -1677,6 +1692,23 @@ The interview should feel natural and relevant to someone applying for this spec
                               <span>Rejected</span>
                             </motion.div>
                           )}
+                            
+                            <motion.button
+                              whileHover={{ scale: 1.05, y: -2 }}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() => {
+                                window.location.href = `/recruiter/review/${job.interviewId}`;
+                              }}
+                              className={`group flex items-center space-x-2 px-4 py-2 text-sm rounded-xl transition-all duration-300 ${isDarkMode ? 'bg-blue-500/20 text-blue-200 hover:bg-blue-500/30 border border-blue-500/30' : 'bg-blue-100 text-blue-800 hover:bg-blue-200 border border-blue-200'}`}
+                            >
+                              <motion.div
+                                whileHover={{ scale: 1.1 }}
+                                transition={{ duration: 0.2 }}
+                            >
+                              <Edit3 className="h-4 w-4" />
+                              </motion.div>
+                              <span>Edit</span>
+                            </motion.button>
                           
                           <motion.button
                             whileHover={{ scale: 1.05, y: -2 }}
@@ -1721,6 +1753,7 @@ The interview should feel natural and relevant to someone applying for this spec
                               Delete
                             </motion.span>
                           </motion.button>
+                          </div>
                         </motion.div>
                       </div>
                     </motion.div>

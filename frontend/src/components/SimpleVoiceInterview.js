@@ -1068,6 +1068,11 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
       
       const round = allRounds[roundIndex];
       
+      // Check if round has questions
+      if (!round.questions || round.questions.length === 0) {
+        throw new Error('This round has no questions available');
+      }
+      
       setRoundIndex(roundIndex);
       setQuestionIndex(0);
       setCurrentRound(round);
