@@ -446,6 +446,7 @@ const createFallbackInterview = (jobDetails, interviewId) => {
           followUpQuestions: ["Can you give specific examples?", "How do you handle team conflicts?"]
         },
         {
+        
           id: "q6_5",
           type: "behavioral",
           question: "Is there anything else you'd like us to know about you?",
@@ -534,7 +535,7 @@ const extractJobDetailsFromPrompt = (prompt) => {
 // Helper function to create role-specific interview from structured prompt
 async function createRoleSpecificInterview(prompt, jobDetails) {
   try {
-    const interviewId = `interview_${Date.now()}`;
+    const interviewId = `interview_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     
     console.log('🤖 [AI INTERVIEW] Generating complete AI interview for:', jobDetails.title);
     console.log('🔍 [AI INTERVIEW] Job details:', {
@@ -788,7 +789,7 @@ Make sure each question is directly relevant to the specific role and requiremen
 
 // Helper function to create structured interview from text
 async function createStructuredInterview(textResponse, jobDetails) {
-  const interviewId = `interview_${Date.now()}`;
+  const interviewId = `interview_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   
   // Check if this is a role-specific prompt
   const isRoleSpecificPrompt = textResponse.includes('**Introduction & Self Intro**') || 
