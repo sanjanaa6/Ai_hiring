@@ -92,7 +92,52 @@ const userSchema = new mongoose.Schema({
   rejectionReason: {
     type: String,
     default: null
-  }
+  },
+  // Interview progress tracking
+  interviewProgress: [{
+    interviewId: { type: String, required: true },
+    interviewTitle: { type: String, required: true },
+    status: { 
+      type: String, 
+      enum: ['started', 'in_progress', 'completed', 'abandoned'], 
+      default: 'started' 
+    },
+    startedAt: { type: Date, default: Date.now },
+    completedAt: { type: Date },
+    progress: {
+      totalRounds: { type: Number, default: 0 },
+      completedRounds: { type: Number, default: 0 },
+      totalQuestions: { type: Number, default: 0 },
+      answeredQuestions: { type: Number, default: 0 },
+      currentRound: { type: Number, default: 0 },
+      currentQuestion: { type: Number, default: 0 }
+    },
+    rounds: [{
+      roundId: { type: String, required: true },
+      roundNumber: { type: Number, required: true },
+      roundTitle: { type: String, required: true },
+      status: { 
+        type: String, 
+        enum: ['not_started', 'in_progress', 'completed'], 
+        default: 'not_started' 
+      },
+      startedAt: { type: Date },
+      completedAt: { type: Date },
+      questions: [{
+        questionId: { type: String, required: true },
+        questionNumber: { type: Number, required: true },
+        status: { 
+          type: String, 
+          enum: ['not_answered', 'answered', 'skipped'], 
+          default: 'not_answered' 
+        },
+        answeredAt: { type: Date },
+        timeSpent: { type: Number, default: 0 }
+      }]
+    }],
+    totalTimeSpent: { type: Number, default: 0 },
+    lastAccessedAt: { type: Date, default: Date.now }
+  }]
 }, {
   timestamps: true
 });

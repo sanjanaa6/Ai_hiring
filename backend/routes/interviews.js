@@ -49,6 +49,52 @@ const validateInterviewStructure = (interviewData) => {
   }
 };
 
+// Helper function to validate JSON structure
+const validateJSONStructure = (jsonText) => {
+  try {
+    // Check for basic JSON structure
+    if (!jsonText.includes('{') || !jsonText.includes('}')) {
+      return false;
+    }
+    
+    // Check for balanced braces and brackets
+    let braceCount = 0;
+    let bracketCount = 0;
+    let inString = false;
+    let escapeNext = false;
+    
+    for (let i = 0; i < jsonText.length; i++) {
+      const char = jsonText[i];
+      
+      if (escapeNext) {
+        escapeNext = false;
+        continue;
+      }
+      
+      if (char === '\\') {
+        escapeNext = true;
+        continue;
+      }
+      
+      if (char === '"' && !escapeNext) {
+        inString = !inString;
+        continue;
+      }
+      
+      if (!inString) {
+        if (char === '{') braceCount++;
+        else if (char === '}') braceCount--;
+        else if (char === '[') bracketCount++;
+        else if (char === ']') bracketCount--;
+      }
+    }
+    
+    return braceCount === 0 && bracketCount === 0;
+  } catch (error) {
+    return false;
+  }
+};
+
 // Helper function to parse AI response
 const parseAIResponse = (responseText) => {
   try {
@@ -66,17 +112,31 @@ const parseAIResponse = (responseText) => {
       console.log('🔍 [PARSE AI RESPONSE] Extracted JSON text length:', jsonText.length);
     }
     
-    // Try to clean up common JSON issues
+    // More aggressive JSON cleaning
     jsonText = jsonText
       .replace(/,\s*}/g, '}')  // Remove trailing commas before }
       .replace(/,\s*]/g, ']')  // Remove trailing commas before ]
       .replace(/\n/g, ' ')     // Replace newlines with spaces
+      .replace(/\r/g, ' ')     // Replace carriage returns with spaces
+      .replace(/\t/g, ' ')     // Replace tabs with spaces
       .replace(/\s+/g, ' ')    // Normalize whitespace
+      .replace(/\\"/g, '"')    // Fix escaped quotes
+      .replace(/\\'/g, "'")    // Fix escaped single quotes
+      .replace(/\\n/g, ' ')    // Replace escaped newlines
+      .replace(/\\r/g, ' ')    // Replace escaped carriage returns
+      .replace(/\\t/g, ' ')    // Replace escaped tabs
       .trim();
     
     console.log('🔍 [PARSE AI RESPONSE] Cleaned JSON text:', jsonText.substring(0, 200) + '...');
     
-    const parsed = JSON.parse(jsonText);
+    // Validate JSON structure before parsing
+    if (!validateJSONStructure(jsonText)) {
+      console.log('⚠️ [PARSE AI RESPONSE] JSON structure validation failed, trying alternative methods...');
+      throw new Error('Invalid JSON structure');
+    }
+    
+    // Try to parse the cleaned JSON
+    let parsed = JSON.parse(jsonText);
     console.log('✅ [PARSE AI RESPONSE] Successfully parsed JSON');
     return parsed;
     
@@ -92,6 +152,91 @@ const parseAIResponse = (responseText) => {
       console.error('🔍 [PARSE AI RESPONSE] Problematic area:', responseText.substring(start, end));
     }
     
+    // Try alternative parsing methods
+    try {
+      console.log('🔄 [PARSE AI RESPONSE] Trying alternative parsing methods...');
+      
+      // Method 1: Try to fix common JSON issues more aggressively
+      let fixedJson = responseText
+        .replace(/,\s*}/g, '}')  // Remove trailing commas before }
+        .replace(/,\s*]/g, ']')  // Remove trailing commas before ]
+        .replace(/\n/g, ' ')     // Replace newlines with spaces
+        .replace(/\r/g, ' ')     // Replace carriage returns with spaces
+        .replace(/\t/g, ' ')     // Replace tabs with spaces
+        .replace(/\s+/g, ' ')    // Normalize whitespace
+        .replace(/\\"/g, '"')    // Fix escaped quotes
+        .replace(/\\'/g, "'")    // Fix escaped single quotes
+        .replace(/\\n/g, ' ')    // Replace escaped newlines
+        .replace(/\\r/g, ' ')    // Replace escaped carriage returns
+        .replace(/\\t/g, ' ')    // Replace escaped tabs
+        .replace(/[^\x20-\x7E]/g, ' ') // Remove non-printable characters
+        .trim();
+      
+      // Try to find JSON boundaries again
+      const jsonStart = fixedJson.indexOf('{');
+      const jsonEnd = fixedJson.lastIndexOf('}');
+      
+      if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
+        fixedJson = fixedJson.substring(jsonStart, jsonEnd + 1);
+      }
+      
+      // Try to fix incomplete JSON by adding missing closing brackets
+      let openBraces = (fixedJson.match(/\{/g) || []).length;
+      let closeBraces = (fixedJson.match(/\}/g) || []).length;
+      let openBrackets = (fixedJson.match(/\[/g) || []).length;
+      let closeBrackets = (fixedJson.match(/\]/g) || []).length;
+      
+      // Add missing closing brackets
+      while (openBraces > closeBraces) {
+        fixedJson += '}';
+        closeBraces++;
+      }
+      while (openBrackets > closeBrackets) {
+        fixedJson += ']';
+        closeBrackets++;
+      }
+      
+      console.log('🔍 [PARSE AI RESPONSE] Fixed JSON length:', fixedJson.length);
+      console.log('🔍 [PARSE AI RESPONSE] Fixed JSON preview:', fixedJson.substring(0, 200) + '...');
+      
+      // Validate the fixed JSON structure
+      if (!validateJSONStructure(fixedJson)) {
+        console.log('⚠️ [PARSE AI RESPONSE] Fixed JSON structure validation failed');
+        throw new Error('Fixed JSON structure is still invalid');
+      }
+      
+      const parsed = JSON.parse(fixedJson);
+      console.log('✅ [PARSE AI RESPONSE] Successfully parsed fixed JSON');
+      return parsed;
+      
+    } catch (secondError) {
+      console.error('❌ [PARSE AI RESPONSE] Alternative parsing also failed:', secondError.message);
+      
+      // Method 2: Try to extract just the essential parts
+      try {
+        console.log('🔄 [PARSE AI RESPONSE] Trying to extract essential parts...');
+        
+        // Try to find interviewId and title at least
+        const interviewIdMatch = responseText.match(/"interviewId":\s*"([^"]+)"/);
+        const titleMatch = responseText.match(/"title":\s*"([^"]+)"/);
+        
+        if (interviewIdMatch && titleMatch) {
+          console.log('✅ [PARSE AI RESPONSE] Found essential parts, creating minimal structure');
+          return {
+            interviewId: interviewIdMatch[1],
+            title: titleMatch[1],
+            totalDuration: 90,
+            rounds: [],
+            overallEvaluationCriteria: {},
+            scoringSystem: {},
+            company: "Your Company"
+          };
+        }
+      } catch (thirdError) {
+        console.error('❌ [PARSE AI RESPONSE] Essential parts extraction failed:', thirdError.message);
+      }
+    }
+    
     return null;
   }
 };
@@ -100,10 +245,35 @@ const parseAIResponse = (responseText) => {
 const createFallbackInterview = (jobDetails, interviewId) => {
   console.log('🔄 [FALLBACK INTERVIEW] Creating 6-round fallback interview structure...');
   
-  const isDeveloperRole = jobDetails.title.toLowerCase().includes('developer') || 
-                         jobDetails.title.toLowerCase().includes('engineer') || 
-                         jobDetails.title.toLowerCase().includes('programmer') ||
-                         jobDetails.title.toLowerCase().includes('coder');
+  // Enhanced role detection that checks both title and description
+  const titleLower = jobDetails.title.toLowerCase();
+  const descriptionLower = (jobDetails.description || '').toLowerCase();
+  
+  const isDeveloperRole = titleLower.includes('developer') || 
+                         titleLower.includes('engineer') || 
+                         titleLower.includes('programmer') ||
+                         titleLower.includes('coder') ||
+                         titleLower.includes('software') ||
+                         titleLower.includes('frontend') ||
+                         titleLower.includes('backend') ||
+                         titleLower.includes('fullstack') ||
+                         titleLower.includes('full-stack') ||
+                         descriptionLower.includes('coding') ||
+                         descriptionLower.includes('programming') ||
+                         descriptionLower.includes('python') ||
+                         descriptionLower.includes('java') ||
+                         descriptionLower.includes('javascript') ||
+                         descriptionLower.includes('react') ||
+                         descriptionLower.includes('node') ||
+                         descriptionLower.includes('sql') ||
+                         descriptionLower.includes('algorithm') ||
+                         descriptionLower.includes('data structure');
+  
+  console.log('🔍 [FALLBACK ROLE DETECTION] Job Title:', jobDetails.title);
+  console.log('🔍 [FALLBACK ROLE DETECTION] Is Developer Role:', isDeveloperRole);
+  console.log('🔍 [FALLBACK ROLE DETECTION] Description contains coding keywords:', 
+    descriptionLower.includes('coding') || descriptionLower.includes('programming') || 
+    descriptionLower.includes('python') || descriptionLower.includes('java'));
   
   // Always create 6 rounds
   let rounds = [
@@ -169,7 +339,7 @@ const createFallbackInterview = (jobDetails, interviewId) => {
     {
       roundId: "round_2",
       roundNumber: 2,
-      title: isDeveloperRole ? "Coding Challenge & Technical Skills" : "Technical/Professional Skills",
+      title: isDeveloperRole ? "Coding Challenge & Technical Skills" : "Professional Skills & Knowledge",
       description: isDeveloperRole ? "Assess candidate's programming skills and technical knowledge" : "Assess candidate's technical knowledge and professional skills",
       duration: 15,
       questions: [
@@ -545,10 +715,35 @@ async function createRoleSpecificInterview(prompt, jobDetails) {
     });
     
     // Create role-specific AI prompt for interview generation
-    const isDeveloperRole = jobDetails.title.toLowerCase().includes('developer') || 
-                           jobDetails.title.toLowerCase().includes('engineer') || 
-                           jobDetails.title.toLowerCase().includes('programmer') ||
-                           jobDetails.title.toLowerCase().includes('coder');
+    // Enhanced role detection that checks both title and description
+    const titleLower = jobDetails.title.toLowerCase();
+    const descriptionLower = (jobDetails.description || '').toLowerCase();
+    
+    const isDeveloperRole = titleLower.includes('developer') || 
+                           titleLower.includes('engineer') || 
+                           titleLower.includes('programmer') ||
+                           titleLower.includes('coder') ||
+                           titleLower.includes('software') ||
+                           titleLower.includes('frontend') ||
+                           titleLower.includes('backend') ||
+                           titleLower.includes('fullstack') ||
+                           titleLower.includes('full-stack') ||
+                           descriptionLower.includes('coding') ||
+                           descriptionLower.includes('programming') ||
+                           descriptionLower.includes('python') ||
+                           descriptionLower.includes('java') ||
+                           descriptionLower.includes('javascript') ||
+                           descriptionLower.includes('react') ||
+                           descriptionLower.includes('node') ||
+                           descriptionLower.includes('sql') ||
+                           descriptionLower.includes('algorithm') ||
+                           descriptionLower.includes('data structure');
+    
+    console.log('🔍 [ROLE DETECTION] Job Title:', jobDetails.title);
+    console.log('🔍 [ROLE DETECTION] Is Developer Role:', isDeveloperRole);
+    console.log('🔍 [ROLE DETECTION] Description contains coding keywords:', 
+      descriptionLower.includes('coding') || descriptionLower.includes('programming') || 
+      descriptionLower.includes('python') || descriptionLower.includes('java'));
     
     const isSalesRole = jobDetails.title.toLowerCase().includes('sales') || 
                        jobDetails.title.toLowerCase().includes('account');
@@ -610,16 +805,19 @@ Round Structure for Managers:
 - Round 6: Final Evaluation & Cultural Fit (5 questions)`;
     } else {
       roleSpecificPrompt = `
-GENERIC ROLE REQUIREMENTS:
-- Round 2 MUST be a "Technical/Professional Skills" round
+NON-TECHNICAL ROLE REQUIREMENTS:
+- Round 2 MUST be a "Professional Skills & Knowledge" round
 - Round 3 MUST be a "Problem Solving & Scenarios" round
-- Include role-specific technical knowledge and skills
+- Include role-specific professional knowledge and skills
 - Add industry-specific scenarios and challenges
 - Focus on professional competencies and expertise
+- DO NOT include any coding, programming, or technical implementation questions
+- DO NOT include system design or architecture questions
+- Focus on soft skills, industry knowledge, and role-specific competencies
 
 Round Structure:
 - Round 1: Introduction & Background (5 questions)
-- Round 2: Technical/Professional Skills (5 questions) 
+- Round 2: Professional Skills & Knowledge (5 questions) 
 - Round 3: Problem Solving & Scenarios (5 questions)
 - Round 4: Behavioral & Experience (5 questions)
 - Round 5: Advanced Assessment (5 questions)
@@ -638,14 +836,22 @@ ${roleSpecificPrompt}
 GENERAL REQUIREMENTS:
 1. Create exactly 6 rounds with 5 questions each (30 total questions)
 2. Each round should have a specific focus and increasing difficulty
-3. Include various question types: behavioral, technical, situational, role-play, problem-solving, coding (for developers)
-4. Make questions specific to the role and industry
-5. Include realistic time limits and difficulty levels
-6. Add follow-up questions where appropriate
-7. For coding questions, include specific programming languages and frameworks
-8. For system design, include scalability, performance, and architecture considerations
+3. Include various question types: behavioral, technical, situational, role-play, problem-solving
+4. ${isDeveloperRole ? 'INCLUDE coding questions with specific programming languages and frameworks' : 'DO NOT include any coding, programming, or technical implementation questions'}
+5. Make questions specific to the role and industry
+6. Include realistic time limits and difficulty levels
+7. Add follow-up questions where appropriate
+8. ${isDeveloperRole ? 'For system design, include scalability, performance, and architecture considerations' : 'Focus on role-specific skills, industry knowledge, and professional competencies'}
 
-IMPORTANT: Respond with ONLY valid JSON. No additional text, explanations, or formatting. Ensure all JSON is properly formatted with correct commas, brackets, and quotes.
+CRITICAL JSON FORMATTING REQUIREMENTS:
+- Respond with ONLY valid JSON - no additional text, explanations, or formatting
+- Ensure all JSON is properly formatted with correct commas, brackets, and quotes
+- Do not include any text before or after the JSON
+- Make sure all strings are properly quoted with double quotes
+- Ensure all arrays and objects are properly closed
+- Do not include trailing commas
+- Escape any special characters in strings properly
+- The response must be parseable by JSON.parse() without any modifications
 
 Respond with valid JSON only in this exact format:
 {
@@ -716,7 +922,7 @@ Make sure each question is directly relevant to the specific role and requiremen
       messages: [
         {
           role: 'system',
-              content: 'You are an expert interview designer. Generate comprehensive, role-specific interview questions. Always respond with valid JSON only.'
+              content: 'You are an expert interview designer. Generate comprehensive, role-specific interview questions. CRITICAL: You must respond with ONLY valid JSON. No additional text, explanations, or formatting. The JSON must be properly formatted and parseable by JSON.parse(). Do not include any text before or after the JSON object.'
         },
         {
           role: 'user',
@@ -982,18 +1188,100 @@ router.patch('/:interviewId', auth, async (req, res) => {
     );
     
     console.log('✅ [UPDATE INTERVIEW] Interview updated successfully');
-    
+
     res.json({
       success: true,
       data: updatedInterview,
       message: 'Interview updated successfully'
     });
-    
+
   } catch (error) {
     console.error('❌ [UPDATE INTERVIEW] Error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to update interview: ' + error.message
+    });
+  }
+});
+
+// Get user's interview progress (must come before /:interviewId route)
+router.get('/progress', auth, async (req, res) => {
+  console.log('📋 [GET PROGRESS] Getting user progress for user:', req.user.id);
+  
+  try {
+    const userId = req.user.id;
+    
+    // Find the user
+    const User = require('../models/User');
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
+    
+    console.log('✅ [GET PROGRESS] Progress retrieved successfully');
+    
+    res.json({
+      success: true,
+      data: {
+        interviewProgress: user.interviewProgress || [],
+        totalInterviews: user.interviewProgress?.length || 0,
+        completedInterviews: user.interviewProgress?.filter(p => p.status === 'completed').length || 0,
+        inProgressInterviews: user.interviewProgress?.filter(p => p.status === 'in_progress').length || 0
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ [GET PROGRESS] Error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get progress: ' + error.message
+    });
+  }
+});
+
+// Get all interviews for user endpoint (must come before /:interviewId route)
+router.get('/', auth, async (req, res) => {
+  console.log('📋 [GET INTERVIEWS] Fetching all interviews for user:', req.user.id);
+  console.log('👤 [GET INTERVIEWS] User role:', req.user.role);
+  
+  try {
+    // Find all interviews for the user
+    const interviews = await Interview.find({
+      createdBy: req.user.id
+    }).sort({ createdAt: -1 });
+
+    console.log('✅ [GET INTERVIEWS] Found', interviews.length, 'interviews');
+
+    res.json({
+      success: true,
+      data: interviews.map(interview => ({
+        interviewId: interview.interviewId,
+        title: interview.title,
+        totalDuration: interview.totalDuration,
+        rounds: interview.rounds?.length || 0,
+        approvalStatus: interview.approvalStatus,
+        jobTitle: interview.jobTitle,
+        company: interview.company,
+        createdAt: interview.createdAt,
+        approvedAt: interview.approvedAt,
+        rejectedAt: interview.rejectedAt
+      }))
+    });
+
+  } catch (error) {
+    console.error('❌ [GET INTERVIEWS] Error occurred:', error.message);
+    console.error('🔍 [GET INTERVIEWS] Error details:', {
+      name: error.name,
+      message: error.message,
+      stack: error.stack?.substring(0, 500) + '...'
+    });
+
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch interviews'
     });
   }
 });
@@ -1062,49 +1350,6 @@ router.get('/:interviewId', auth, async (req, res) => {
   }
 });
 
-// Get all interviews for user endpoint
-router.get('/', auth, async (req, res) => {
-  console.log('📋 [GET INTERVIEWS] Fetching all interviews for user:', req.user.id);
-  console.log('👤 [GET INTERVIEWS] User role:', req.user.role);
-  
-  try {
-    // Find all interviews for the user
-    const interviews = await Interview.find({
-      createdBy: req.user.id
-    }).sort({ createdAt: -1 });
-
-    console.log('✅ [GET INTERVIEWS] Found', interviews.length, 'interviews');
-
-    res.json({
-      success: true,
-      data: interviews.map(interview => ({
-        interviewId: interview.interviewId,
-        title: interview.title,
-        totalDuration: interview.totalDuration,
-        rounds: interview.rounds?.length || 0,
-        approvalStatus: interview.approvalStatus,
-        jobTitle: interview.jobTitle,
-        company: interview.company,
-        createdAt: interview.createdAt,
-        approvedAt: interview.approvedAt,
-        rejectedAt: interview.rejectedAt
-      }))
-    });
-
-  } catch (error) {
-    console.error('❌ [GET INTERVIEWS] Error occurred:', error.message);
-    console.error('🔍 [GET INTERVIEWS] Error details:', {
-      name: error.name,
-      message: error.message,
-      stack: error.stack?.substring(0, 500) + '...'
-    });
-
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch interviews'
-    });
-  }
-});
 
 // Delete interview endpoint
 router.delete('/:interviewId', auth, async (req, res) => {
@@ -1242,6 +1487,339 @@ router.post('/generate', auth, async (req, res) => {
     });
   }
 });
+
+// Start interview and track user progress (anonymous access)
+router.post('/:interviewId/start-anonymous', async (req, res) => {
+  console.log('🚀 [START INTERVIEW ANONYMOUS] Starting interview:', req.params.interviewId);
+  console.log('👤 [START INTERVIEW ANONYMOUS] Anonymous user');
+  
+  try {
+    const { interviewId } = req.params;
+    const { candidateInfo } = req.body;
+    
+    // Find the interview
+    const interview = await Interview.findOne({ 
+      interviewId: interviewId,
+      approvalStatus: 'approved'
+    });
+    if (!interview) {
+      return res.status(404).json({
+        success: false,
+        error: 'Interview not found or not available'
+      });
+    }
+    
+    // For anonymous users, we'll track progress in the interview's answers array
+    // This ensures the recruiter can see that someone attended the interview
+    console.log('✅ [START INTERVIEW ANONYMOUS] Interview found, tracking anonymous attendance');
+    
+    res.json({
+      success: true,
+      data: {
+        interviewId: interviewId,
+        message: 'Anonymous interview tracking started',
+        interview: {
+          title: interview.title,
+          totalDuration: interview.totalDuration,
+          rounds: interview.rounds
+        }
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ [START INTERVIEW ANONYMOUS] Error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to start interview: ' + error.message
+    });
+  }
+});
+
+// Start interview and track user progress (authenticated)
+router.post('/:interviewId/start', auth, async (req, res) => {
+  console.log('🚀 [START INTERVIEW] Starting interview:', req.params.interviewId);
+  console.log('👤 [START INTERVIEW] User ID:', req.user.id);
+  
+  try {
+    const { interviewId } = req.params;
+    const userId = req.user.id;
+    
+    // Find the interview
+    const interview = await Interview.findOne({ interviewId: interviewId });
+    if (!interview) {
+      return res.status(404).json({
+        success: false,
+        error: 'Interview not found'
+      });
+    }
+    
+    // Find the user
+    const User = require('../models/User');
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
+    
+    // Check if user already has progress for this interview
+    let progressIndex = user.interviewProgress.findIndex(
+      progress => progress.interviewId === interviewId
+    );
+    
+    if (progressIndex === -1) {
+      // Create new progress entry
+      const newProgress = {
+        interviewId: interviewId,
+        interviewTitle: interview.title,
+        status: 'started',
+        startedAt: new Date(),
+        progress: {
+          totalRounds: interview.rounds.length,
+          completedRounds: 0,
+          totalQuestions: interview.rounds.reduce((total, round) => total + round.questions.length, 0),
+          answeredQuestions: 0,
+          currentRound: 0,
+          currentQuestion: 0
+        },
+        rounds: interview.rounds.map((round, index) => ({
+          roundId: round.roundId,
+          roundNumber: round.roundNumber,
+          roundTitle: round.title,
+          status: 'not_started',
+          questions: round.questions.map((question, qIndex) => ({
+            questionId: question.id,
+            questionNumber: qIndex + 1,
+            status: 'not_answered',
+            timeSpent: 0
+          }))
+        })),
+        totalTimeSpent: 0,
+        lastAccessedAt: new Date()
+      };
+      
+      user.interviewProgress.push(newProgress);
+      progressIndex = user.interviewProgress.length - 1;
+      console.log('✅ [START INTERVIEW] Created new progress entry');
+    } else {
+      // Update existing progress
+      user.interviewProgress[progressIndex].lastAccessedAt = new Date();
+      user.interviewProgress[progressIndex].status = 'in_progress';
+      console.log('🔄 [START INTERVIEW] Updated existing progress');
+    }
+    
+    await user.save();
+    
+    console.log('✅ [START INTERVIEW] Interview started successfully');
+    
+    res.json({
+      success: true,
+      data: {
+        interviewId: interviewId,
+        progress: user.interviewProgress[progressIndex],
+        interview: {
+          title: interview.title,
+          totalDuration: interview.totalDuration,
+          rounds: interview.rounds
+        }
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ [START INTERVIEW] Error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to start interview: ' + error.message
+    });
+  }
+});
+
+// Update interview progress
+router.post('/:interviewId/progress', auth, async (req, res) => {
+  console.log('📊 [UPDATE PROGRESS] Updating progress for interview:', req.params.interviewId);
+  console.log('👤 [UPDATE PROGRESS] User ID:', req.user.id);
+  
+  try {
+    const { interviewId } = req.params;
+    const userId = req.user.id;
+    const { roundId, questionId, status, timeSpent } = req.body;
+    
+    // Find the user
+    const User = require('../models/User');
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
+    
+    // Find the progress entry
+    const progressIndex = user.interviewProgress.findIndex(
+      progress => progress.interviewId === interviewId
+    );
+    
+    if (progressIndex === -1) {
+      return res.status(404).json({
+        success: false,
+        error: 'Interview progress not found'
+      });
+    }
+    
+    const progress = user.interviewProgress[progressIndex];
+    
+    // Update round progress
+    const roundIndex = progress.rounds.findIndex(round => round.roundId === roundId);
+    if (roundIndex !== -1) {
+      const round = progress.rounds[roundIndex];
+      
+      // Update question progress
+      const questionIndex = round.questions.findIndex(q => q.questionId === questionId);
+      if (questionIndex !== -1) {
+        const question = round.questions[questionIndex];
+        question.status = status;
+        question.timeSpent = timeSpent || 0;
+        
+        if (status === 'answered') {
+          question.answeredAt = new Date();
+        }
+      }
+      
+      // Update round status
+      const answeredQuestions = round.questions.filter(q => q.status === 'answered').length;
+      const totalQuestions = round.questions.length;
+      
+      if (answeredQuestions === 0) {
+        round.status = 'not_started';
+      } else if (answeredQuestions === totalQuestions) {
+        round.status = 'completed';
+        round.completedAt = new Date();
+      } else {
+        round.status = 'in_progress';
+        if (!round.startedAt) {
+          round.startedAt = new Date();
+        }
+      }
+    }
+    
+    // Update overall progress
+    const completedRounds = progress.rounds.filter(round => round.status === 'completed').length;
+    const answeredQuestions = progress.rounds.reduce((total, round) => 
+      total + round.questions.filter(q => q.status === 'answered').length, 0
+    );
+    
+    progress.progress.completedRounds = completedRounds;
+    progress.progress.answeredQuestions = answeredQuestions;
+    progress.totalTimeSpent += timeSpent || 0;
+    progress.lastAccessedAt = new Date();
+    
+    // Check if interview is completed
+    if (completedRounds === progress.progress.totalRounds) {
+      progress.status = 'completed';
+      progress.completedAt = new Date();
+    } else {
+      progress.status = 'in_progress';
+    }
+    
+    await user.save();
+    
+    console.log('✅ [UPDATE PROGRESS] Progress updated successfully');
+    
+    res.json({
+      success: true,
+      data: {
+        progress: progress,
+        message: 'Progress updated successfully'
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ [UPDATE PROGRESS] Error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to update progress: ' + error.message
+    });
+  }
+});
+
+// Mark interview as completed
+router.post('/:interviewId/complete', auth, async (req, res) => {
+  console.log('✅ [COMPLETE INTERVIEW] Marking interview as completed:', req.params.interviewId);
+  console.log('👤 [COMPLETE INTERVIEW] User ID:', req.user.id);
+  
+  try {
+    const { interviewId } = req.params;
+    const userId = req.user.id;
+    
+    // Find the user
+    const User = require('../models/User');
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
+    
+    // Find the progress entry
+    const progressIndex = user.interviewProgress.findIndex(
+      progress => progress.interviewId === interviewId
+    );
+    
+    if (progressIndex === -1) {
+      return res.status(404).json({
+        success: false,
+        error: 'Interview progress not found'
+      });
+    }
+    
+    const progress = user.interviewProgress[progressIndex];
+    
+    // Mark interview as completed
+    progress.status = 'completed';
+    progress.completedAt = new Date();
+    progress.lastAccessedAt = new Date();
+    
+    // Mark all rounds as completed
+    progress.rounds.forEach(round => {
+      round.status = 'completed';
+      round.completedAt = new Date();
+      
+      // Mark all questions as answered
+      round.questions.forEach(question => {
+        if (question.status === 'not_answered') {
+          question.status = 'answered';
+          question.answeredAt = new Date();
+        }
+      });
+    });
+    
+    // Update progress counts
+    progress.progress.completedRounds = progress.progress.totalRounds;
+    progress.progress.answeredQuestions = progress.progress.totalQuestions;
+    
+    await user.save();
+    
+    console.log('✅ [COMPLETE INTERVIEW] Interview marked as completed successfully');
+    
+    res.json({
+      success: true,
+      data: {
+        progress: progress,
+        message: 'Interview completed successfully'
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ [COMPLETE INTERVIEW] Error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to complete interview: ' + error.message
+    });
+  }
+});
+
 
 // Approve interview endpoint
 router.post('/:interviewId/approve', auth, async (req, res) => {

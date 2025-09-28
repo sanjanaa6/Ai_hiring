@@ -5,11 +5,25 @@ import CodeEditor from './CodeEditor';
 import EnhancedCodeEditor from './EnhancedCodeEditor';
 import apiService from '../services/apiService';
 
+// Helper function to determine if a round is a coding round
+const isCodingRound = (roundTitle) => {
+  if (!roundTitle) return false;
+  const title = roundTitle.toLowerCase();
+  return title.includes('coding') || 
+         title.includes('programming') ||
+         (title.includes('technical') && 
+          (title.includes('coding') ||
+           title.includes('programming') ||
+           title.includes('development') ||
+           title.includes('software')));
+};
+
 const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError }) => {
   const { isDarkMode } = useTheme();
   const [step, setStep] = useState('setup'); // setup, interview, round-selection, complete
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [userProgress, setUserProgress] = useState(null);
   const [cameraStream, setCameraStream] = useState(null);
   const [isRecording, setIsRecording] = useState(false);
   const [transcription, setTranscription] = useState('');
@@ -45,22 +59,29 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
   // Auto-detect if current question is a coding question and reset showCodeEditor accordingly
   useEffect(() => {
     // Check if current round is a coding round
-    const isCodingRound = currentRound?.title?.toLowerCase().includes('coding') || 
-                         currentRound?.title?.toLowerCase().includes('technical') ||
-                         currentRound?.title?.toLowerCase().includes('programming');
+    const isCurrentRoundCoding = isCodingRound(currentRound?.title);
     
     const isCodingQuestion = currentQuestion?.codeEditor?.enabled || 
       (currentQuestion?.question && (
         currentQuestion.question.toLowerCase().includes('code editor') ||
         currentQuestion.question.toLowerCase().includes('write a function') ||
-        currentQuestion.question.toLowerCase().includes('implement') ||
+        currentQuestion.question.toLowerCase().includes('implement a function') ||
+        currentQuestion.question.toLowerCase().includes('implement a class') ||
+        currentQuestion.question.toLowerCase().includes('implement an algorithm') ||
+        currentQuestion.question.toLowerCase().includes('implement a data structure') ||
         currentQuestion.question.toLowerCase().includes('coding') ||
-        currentQuestion.question.toLowerCase().includes('program') ||
+        currentQuestion.question.toLowerCase().includes('programming') ||
+        currentQuestion.question.toLowerCase().includes('write code') ||
+        currentQuestion.question.toLowerCase().includes('write a program') ||
         currentQuestion.question.toLowerCase().includes('algorithm') ||
         currentQuestion.question.toLowerCase().includes('debug') ||
         currentQuestion.question.toLowerCase().includes('reverse') ||
         currentQuestion.question.toLowerCase().includes('palindrome') ||
-        currentQuestion.question.toLowerCase().includes('factorial')
+        currentQuestion.question.toLowerCase().includes('factorial') ||
+        currentQuestion.question.toLowerCase().includes('binary search') ||
+        currentQuestion.question.toLowerCase().includes('sorting') ||
+        currentQuestion.question.toLowerCase().includes('recursion') ||
+        currentQuestion.question.toLowerCase().includes('data structure')
       ));
     
     // Check if this is an interactive coding round
@@ -75,7 +96,7 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
       currentRound?.title?.toLowerCase().includes('client acquisition');
     
     console.log('🔍 Round detection:', {
-      isCodingRound,
+      isCodingRound: isCurrentRoundCoding,
       isCodingQuestion,
       isInteractiveCoding,
       isSalesRound,
@@ -243,6 +264,13 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
       setError(null);
       
       console.log('🎬 Requesting camera and microphone access...');
+      
+      // Start interview tracking first
+      if (interviewId && !userProgress) {
+        console.log('🚀 Starting interview tracking during setup...');
+        await startInterviewTracking();
+      }
+      
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { 
           width: { ideal: 1280, min: 640 },
@@ -384,16 +412,47 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
     }
   }, []);
 
+  // Update progress when question is answered
+  const updateProgress = useCallback(async (roundId, questionId, status, timeSpent) => {
+    try {
+      console.log('📊 Updating progress:', { roundId, questionId, status, timeSpent });
+      
+      // Check if user is authenticated
+      const isAuthenticated = localStorage.getItem('token') || sessionStorage.getItem('token');
+      
+      if (isAuthenticated) {
+        // Use authenticated progress tracking
+        const result = await apiService.updateInterviewProgress(interviewId, {
+          roundId,
+          questionId,
+          status,
+          timeSpent
+        });
+        
+        if (result.success) {
+          setUserProgress(result.data.progress);
+          console.log('✅ Progress updated successfully');
+        } else {
+          console.warn('⚠️ Failed to update progress:', result.error);
+        }
+      } else {
+        // For anonymous users, we'll track progress in the interview answers
+        // This will be handled when they submit answers
+        console.log('📊 Anonymous user progress tracked locally');
+      }
+    } catch (err) {
+      console.error('❌ Error updating progress:', err);
+    }
+  }, [interviewId]);
+
   // Submit current answer (used internally for auto-progression)
   const submitCurrentAnswer = useCallback(async () => {
     try {
       // Determine answer type and content
       // Check if current round is a coding round
-      const isCodingRound = currentRound?.title?.toLowerCase().includes('coding') || 
-                           currentRound?.title?.toLowerCase().includes('technical') ||
-                           currentRound?.title?.toLowerCase().includes('programming');
+      const isCurrentRoundCoding = isCodingRound(currentRound?.title);
       
-      const isCodingQuestion = currentQuestion?.codeEditor?.enabled || isCodingRound;
+      const isCodingQuestion = currentQuestion?.codeEditor?.enabled || isCurrentRoundCoding;
       const answerContent = isCodingQuestion ? codeAnswer : transcription;
       const answerType = isCodingQuestion ? 'code' : 'voice';
       
@@ -430,6 +489,10 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
         throw new Error(result.error || 'Failed to submit answer');
       }
       
+      // Update progress tracking
+      const timeSpent = (currentQuestion.timeLimit * 60) - timeRemaining;
+      await updateProgress(currentRound.roundId, currentQuestion.questionId, 'answered', timeSpent);
+      
       return result.data;
       
     } catch (err) {
@@ -437,7 +500,7 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
       setError(err.message || 'Failed to submit answer');
       throw err;
     }
-  }, [currentRound, currentQuestion, codeAnswer, transcription, isCodeDone, isAiQuestionAnswered, interviewId, candidateInfo, timeRemaining]);
+  }, [currentRound, currentQuestion, codeAnswer, transcription, isCodeDone, isAiQuestionAnswered, interviewId, candidateInfo, timeRemaining, updateProgress]);
 
   // AI Text-to-Speech function
   const speakQuestion = useCallback(async (questionText) => {
@@ -1055,11 +1118,50 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
     }
   };
 
+  // Start interview and track progress
+  const startInterviewTracking = useCallback(async () => {
+    try {
+      console.log('🚀 Starting interview tracking for:', interviewId);
+      
+      // Check if user is authenticated by trying to get user info
+      const isAuthenticated = localStorage.getItem('token') || sessionStorage.getItem('token');
+      
+      let result;
+      if (isAuthenticated) {
+        // Use authenticated tracking
+        result = await apiService.startInterview(interviewId);
+      } else {
+        // Use anonymous tracking
+        result = await apiService.startInterviewAnonymous(interviewId, candidateInfo);
+      }
+      
+      if (result.success) {
+        if (result.data.progress) {
+          setUserProgress(result.data.progress);
+        }
+        console.log('✅ Interview tracking started successfully');
+        return true;
+      } else {
+        console.warn('⚠️ Failed to start interview tracking:', result.error);
+        return false;
+      }
+    } catch (err) {
+      console.error('❌ Error starting interview tracking:', err);
+      return false;
+    }
+  }, [interviewId, candidateInfo]);
+
+
   // Start a specific round from round selection
   const startSpecificRound = async (roundId) => {
     try {
       setLoading(true);
       console.log('🎭 Starting specific round:', roundId);
+      
+      // Always ensure interview tracking is started
+      if (!userProgress) {
+        await startInterviewTracking();
+      }
       
       const roundIndex = allRounds.findIndex(round => round.roundId === roundId);
       if (roundIndex === -1) {
@@ -1322,6 +1424,14 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
   useEffect(() => {
     return () => cleanup();
   }, [cleanup]);
+
+  // Start interview tracking when component loads
+  useEffect(() => {
+    if (interviewId && !userProgress) {
+      console.log('🎯 Auto-starting interview tracking on component load');
+      startInterviewTracking();
+    }
+  }, [interviewId, userProgress, startInterviewTracking]);
 
   // Auto-record when shouldAutoRecord flag is set
   useEffect(() => {
@@ -1641,12 +1751,34 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
           </div>
 
           {/* Complete Interview Button */}
-          {completedRounds.size === allRounds.length && (
+          {allRounds.length > 0 && completedRounds.size === allRounds.length && (
             <div className="mt-6 text-center">
               <button
-                onClick={() => {
+                onClick={async () => {
                   setStep('complete');
                   stopCameraMonitoring();
+                  
+                  // Mark interview as completed in user progress
+                  try {
+                    console.log('🎉 Marking interview as completed:', interviewId);
+                    
+                    // Check if user is authenticated
+                    const isAuthenticated = localStorage.getItem('token') || sessionStorage.getItem('token');
+                    
+                    if (isAuthenticated) {
+                      const result = await apiService.completeInterview(interviewId);
+                      if (result.success) {
+                        console.log('✅ Interview marked as completed successfully');
+                      } else {
+                        console.warn('⚠️ Failed to mark interview as completed:', result.error);
+                      }
+                    } else {
+                      console.log('📊 Anonymous user interview completion tracked locally');
+                    }
+                  } catch (err) {
+                    console.error('❌ Error marking interview as completed:', err);
+                  }
+                  
                   if (onComplete) {
                     onComplete({ 
                       message: 'All interview rounds completed successfully!',
@@ -2492,9 +2624,7 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
               {/* Code Editor for Coding Questions - Show for all questions in coding rounds */}
               {(() => {
                 // Check if current round is a coding round
-                const isCodingRound = currentRound?.title?.toLowerCase().includes('coding') || 
-                                     currentRound?.title?.toLowerCase().includes('technical') ||
-                                     currentRound?.title?.toLowerCase().includes('programming');
+                const isCurrentRoundCoding = isCodingRound(currentRound?.title);
                 
                 // Also check if question has explicit code editor enabled
                 const hasExplicitCodeEditor = currentQuestion?.codeEditor?.enabled;
@@ -2503,18 +2633,27 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
                 const isCodingQuestion = currentQuestion?.question && (
                   currentQuestion.question.toLowerCase().includes('code editor') ||
                   currentQuestion.question.toLowerCase().includes('write a function') ||
-                  currentQuestion.question.toLowerCase().includes('implement') ||
+                  currentQuestion.question.toLowerCase().includes('implement a function') ||
+                  currentQuestion.question.toLowerCase().includes('implement a class') ||
+                  currentQuestion.question.toLowerCase().includes('implement an algorithm') ||
+                  currentQuestion.question.toLowerCase().includes('implement a data structure') ||
                   currentQuestion.question.toLowerCase().includes('coding') ||
-                  currentQuestion.question.toLowerCase().includes('program') ||
+                  currentQuestion.question.toLowerCase().includes('programming') ||
+                  currentQuestion.question.toLowerCase().includes('write code') ||
+                  currentQuestion.question.toLowerCase().includes('write a program') ||
                   currentQuestion.question.toLowerCase().includes('algorithm') ||
                   currentQuestion.question.toLowerCase().includes('debug') ||
                   currentQuestion.question.toLowerCase().includes('reverse') ||
                   currentQuestion.question.toLowerCase().includes('palindrome') ||
-                  currentQuestion.question.toLowerCase().includes('factorial')
+                  currentQuestion.question.toLowerCase().includes('factorial') ||
+                  currentQuestion.question.toLowerCase().includes('binary search') ||
+                  currentQuestion.question.toLowerCase().includes('sorting') ||
+                  currentQuestion.question.toLowerCase().includes('recursion') ||
+                  currentQuestion.question.toLowerCase().includes('data structure')
                 );
                 
                 // Show code editor if: it's a coding round OR question has explicit code editor OR question content suggests coding
-                return isCodingRound || hasExplicitCodeEditor || isCodingQuestion;
+                return isCurrentRoundCoding || hasExplicitCodeEditor || isCodingQuestion;
               })() && (
                 <div className="mb-3">
                   <div className={`backdrop-blur-md border-2 rounded-2xl p-4 transition-all duration-500 transform hover:scale-105 ${
@@ -2536,10 +2675,7 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
                         >
                           <Code className="h-4 w-4" />
                           <span>
-                            {currentRound?.title?.toLowerCase().includes('coding') || 
-                             currentRound?.title?.toLowerCase().includes('technical') ||
-                             currentRound?.title?.toLowerCase().includes('programming') ||
-                             currentQuestion?.codeEditor?.enabled 
+                            {(isCodingRound(currentRound?.title) || currentQuestion?.codeEditor?.enabled)
                               ? 'Open Enhanced Code Editor' 
                               : 'Open Code Editor'}
                           </span>
@@ -2562,10 +2698,7 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
                         )}
                         
                         {/* Check if this is a coding round to use enhanced editor */}
-                        {currentRound?.title?.toLowerCase().includes('coding') || 
-                         currentRound?.title?.toLowerCase().includes('technical') ||
-                         currentRound?.title?.toLowerCase().includes('programming') ||
-                         currentQuestion?.codeEditor?.enabled ? (
+                        {(isCodingRound(currentRound?.title) || currentQuestion?.codeEditor?.enabled) ? (
                           <EnhancedCodeEditor
                             language={currentQuestion.codeEditor?.language || selectedLanguage}
                             starterCode={currentQuestion.codeEditor?.starterCode || getDefaultStarterCode(selectedLanguage)}
@@ -2607,9 +2740,7 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
                           <Code className={`h-8 w-8 ${isDarkMode ? 'text-white' : 'text-slate-900'}`} />
                         </div>
                         <p className={`text-sm mb-2 ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>
-                          {currentRound?.title?.toLowerCase().includes('coding') || 
-                           currentRound?.title?.toLowerCase().includes('technical') ||
-                           currentRound?.title?.toLowerCase().includes('programming') ? (
+                          {isCodingRound(currentRound?.title) ? (
                             <>
                               This is a coding round - all questions include a code editor for hands-on coding.
                               <span className="block mt-1 text-blue-400 font-medium">
@@ -2679,7 +2810,7 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
                       </button>
                       
                 {/* Done Button for Coding Round */}
-                {codeAnswer.trim() && !isCodeDone && (isLiveCodingRound || currentRound?.title?.toLowerCase().includes('coding') || currentRound?.title?.toLowerCase().includes('technical') || currentRound?.title?.toLowerCase().includes('programming')) && (
+                {codeAnswer.trim() && !isCodeDone && (isLiveCodingRound || isCodingRound(currentRound?.title)) && (
                   <div className="mb-4 text-center">
                     <button
                       onClick={handleCodeDone}

@@ -238,7 +238,8 @@ Make sure the JSON is valid and properly formatted with all 6 rounds.`;
   // Determine question type based on content
   determineQuestionType(question) {
     const lowerQuestion = question.toLowerCase();
-    if (lowerQuestion.includes('technical') || lowerQuestion.includes('code') || lowerQuestion.includes('programming')) {
+    if (lowerQuestion.includes('code') || lowerQuestion.includes('programming') || 
+        (lowerQuestion.includes('technical') && (lowerQuestion.includes('coding') || lowerQuestion.includes('programming') || lowerQuestion.includes('development') || lowerQuestion.includes('software')))) {
       return 'technical';
     } else if (lowerQuestion.includes('behavioral') || lowerQuestion.includes('experience') || lowerQuestion.includes('tell me about')) {
       return 'behavioral';

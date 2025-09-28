@@ -575,6 +575,75 @@ class ApiService {
     }
   }
 
+  // Interview progress tracking API calls
+  async startInterview(interviewId) {
+    try {
+      const response = await this.client.post(`/interviews/${interviewId}/start`);
+      return response.data;
+    } catch (error) {
+      console.error('Start interview error:', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to start interview'
+      };
+    }
+  }
+
+  // Start interview tracking for anonymous users
+  async startInterviewAnonymous(interviewId, candidateInfo) {
+    try {
+      const response = await this.client.post(`/interviews/${interviewId}/start-anonymous`, {
+        candidateInfo
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Start interview anonymous error:', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to start interview'
+      };
+    }
+  }
+
+  async updateInterviewProgress(interviewId, progressData) {
+    try {
+      const response = await this.client.post(`/interviews/${interviewId}/progress`, progressData);
+      return response.data;
+    } catch (error) {
+      console.error('Update progress error:', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to update progress'
+      };
+    }
+  }
+
+  async getUserProgress() {
+    try {
+      const response = await this.client.get('/interviews/progress');
+      return response.data;
+    } catch (error) {
+      console.error('Get user progress error:', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to get user progress'
+      };
+    }
+  }
+
+  async completeInterview(interviewId) {
+    try {
+      const response = await this.client.post(`/interviews/${interviewId}/complete`);
+      return response.data;
+    } catch (error) {
+      console.error('Complete interview error:', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to complete interview'
+      };
+    }
+  }
+
   // Messaging API calls
   async getMessages(applicationId) {
     try {

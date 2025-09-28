@@ -21,6 +21,7 @@ import JobDetails from './pages/JobDetails';
 import Applications from './pages/Applications';
 import Profile from './pages/Profile';
 import Interview from './pages/Interview';
+import UserDashboard from './user/pages/UserDashboard';
 import StyleTest from './components/StyleTest';
 import OpenRouterTest from './components/OpenRouterTest';
 import InteractiveCodingTutor from './components/InteractiveCodingTutor';
@@ -155,7 +156,7 @@ function AppShell() {
           {/* User/Candidate Routes */}
           <Route path="/user" element={
             <ProtectedRoute allowedRoles={["candidate", "user"]}>
-              <Dashboard />
+              <UserDashboard />
             </ProtectedRoute>
           } />
           <Route path="/user/jobs" element={

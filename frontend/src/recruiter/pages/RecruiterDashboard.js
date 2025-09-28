@@ -128,10 +128,16 @@ const RecruiterDashboard = () => {
       setAnswersLoading(true);
       const result = await apiService.getInterviewAnswers(interviewId, candidateId || undefined);
       if (result.success) {
-        setAnswers(result.data || []);
+        // The API returns { success: true, data: { answers: [...], ... } }
+        // So we need to access result.data.answers
+        setAnswers(result.data?.answers || []);
+      } else {
+        console.error('Failed to load answers:', result.error);
+        setAnswers([]);
       }
     } catch (error) {
       console.error('Error loading answers:', error);
+      setAnswers([]);
     } finally {
       setAnswersLoading(false);
     }
@@ -218,6 +224,12 @@ const RecruiterDashboard = () => {
   };
 
   const groupAnswersByCandidate = () => {
+    // Ensure answers is an array
+    if (!Array.isArray(answers)) {
+      console.warn('Answers is not an array:', answers);
+      return [];
+    }
+    
     const map = new Map();
     for (const a of answers) {
       if (!map.has(a.candidateId)) {
