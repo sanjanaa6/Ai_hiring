@@ -1,7 +1,7 @@
 // AI Voice Interviewer handlers
-const Interview = require('../../models/Interview');
+const Interview = require('../models/Interview');
 const axios = require('axios');
-const { OPENROUTER_API_URL, FALLBACK_MODELS, parseAIResponse } = require('../../utils/interviewUtils');
+const { OPENROUTER_API_URL, FALLBACK_MODELS, parseAIResponse } = require('../utils/interviewUtils');
 
 // AI Voice Interviewer endpoint - converts AI questions to speech
 const aiVoice = async (req, res) => {

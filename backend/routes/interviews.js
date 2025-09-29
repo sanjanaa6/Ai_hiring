@@ -42,7 +42,9 @@ const {
 } = require('../handlers/interviewCoding');
 
 const {
-  getPerformanceAnalytics
+  getPerformanceAnalytics,
+  getRankedCandidates,
+  getCandidateDetails
 } = require('../handlers/interviewAnalytics');
 
 const {
@@ -127,5 +129,11 @@ router.post('/:interviewId/reject', auth, rejectInterview);
 
 // Get performance analytics
 router.get('/:interviewId/performance', auth, getPerformanceAnalytics);
+
+// Get ranked candidates list with sorting
+router.get('/:interviewId/candidates', auth, getRankedCandidates);
+
+// Get detailed candidate performance
+router.get('/:interviewId/candidates/:candidateId', auth, getCandidateDetails);
 
 module.exports = router;

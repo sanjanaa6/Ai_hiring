@@ -1,5 +1,5 @@
 // Interview answer submission and management handlers
-const Interview = require('../../models/Interview');
+const Interview = require('../models/Interview');
 
 // Submit interview answer endpoint (singular - for frontend compatibility)
 const submitAnswer = async (req, res) => {

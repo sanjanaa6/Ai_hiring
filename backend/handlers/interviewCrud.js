@@ -1,8 +1,8 @@
 // Interview CRUD operations
-const Interview = require('../../models/Interview');
-const { auth } = require('../../middleware/auth');
-const { validateInterviewStructure } = require('../../utils/interviewUtils');
-const { createStructuredInterview, extractJobDetailsFromPrompt } = require('../../services/aiInterviewService');
+const Interview = require('../models/Interview');
+const { auth } = require('../middleware/auth');
+const { validateInterviewStructure, extractJobDetailsFromPrompt } = require('../utils/interviewUtils');
+const { createStructuredInterview } = require('../services/aiInterviewService');
 
 // Get all interviews for user endpoint (must come before /:interviewId route)
 const getAllInterviews = async (req, res) => {
@@ -360,7 +360,7 @@ const generateInterview = async (req, res) => {
       extractedJobDetails = extractJobDetailsFromPrompt(prompt);
     }
 
-    console.log('📝 [INTERVIEW GENERATE] Prompt:', prompt.substring(0, 100) + '...');
+    console.log('📝 [INTERVIEW GENERATE] Prompt:', prompt && prompt.length > 100 ? prompt.substring(0, 100) + '...' : prompt);
     console.log('📋 [INTERVIEW GENERATE] Job details:', {
       title: extractedJobDetails.title,
       company: extractedJobDetails.company

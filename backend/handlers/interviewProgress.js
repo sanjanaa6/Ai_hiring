@@ -1,6 +1,7 @@
 // Interview progress tracking handlers
-const Interview = require('../../models/Interview');
-const { auth } = require('../../middleware/auth');
+const Interview = require('../models/Interview');
+const User = require('../models/User');
+const { auth } = require('../middleware/auth');
 
 // Get user's interview progress
 const getUserProgress = async (req, res) => {
@@ -10,7 +11,6 @@ const getUserProgress = async (req, res) => {
     const userId = req.user.id;
     
     // Find the user
-    const User = require('../../models/User');
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({
@@ -106,7 +106,6 @@ const startInterview = async (req, res) => {
     }
     
     // Find the user
-    const User = require('../../models/User');
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({
@@ -198,7 +197,6 @@ const updateProgress = async (req, res) => {
     const { roundId, questionId, status, timeSpent } = req.body;
     
     // Find the user
-    const User = require('../../models/User');
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({
@@ -305,7 +303,6 @@ const completeInterview = async (req, res) => {
     const userId = req.user.id;
     
     // Find the user
-    const User = require('../../models/User');
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({

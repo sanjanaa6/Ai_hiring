@@ -1,6 +1,6 @@
 // Interview approval and rejection handlers
-const Interview = require('../../models/Interview');
-const { auth } = require('../../middleware/auth');
+const Interview = require('../models/Interview');
+const { auth } = require('../middleware/auth');
 
 // Approve interview endpoint
 const approveInterview = async (req, res) => {

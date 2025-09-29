@@ -1,7 +1,7 @@
 // Live coding interview handlers
-const Interview = require('../../models/Interview');
+const Interview = require('../models/Interview');
 const axios = require('axios');
-const { OPENROUTER_API_URL, FALLBACK_MODELS, parseAIResponse } = require('../../utils/interviewUtils');
+const { OPENROUTER_API_URL, FALLBACK_MODELS, parseAIResponse } = require('../utils/interviewUtils');
 
 // Live AI Interviewer endpoint for dynamic coding questions
 const codingAssistant = async (req, res) => {
@@ -527,8 +527,47 @@ const postCodingHints = async (req, res) => {
       });
     }
 
-    // Create AI prompt for live coding interviewer
-    const aiPrompt = `
+    // Check if this is a sales question
+    const isSalesQuestion = language === 'sales' || 
+                           (question && question.toLowerCase().includes('sales')) ||
+                           (currentCode && currentCode.toLowerCase().includes('sales'));
+
+    // Create AI prompt for live interviewer (coding or sales)
+    const aiPrompt = isSalesQuestion ? `
+You are a LIVE AI sales interviewer conducting a dynamic sales interview. You must ask specific, follow-up questions based on the candidate's sales answer.
+
+Original Question: ${question || 'General sales question'}
+Sales Answer: ${currentCode || 'No answer provided yet'}
+Difficulty: ${difficulty || 'medium'}
+Question Number: ${questionNumber || 1}
+Previous Questions Asked: ${previousQuestions ? previousQuestions.join(', ') : 'None'}
+
+ANALYZE THE SALES ANSWER AND ASK SPECIFIC FOLLOW-UP QUESTIONS:
+
+IMPORTANT: This is question ${questionNumber || 1} of 3. Make sure to ask a DIFFERENT type of question than the previous ones.
+
+Based on their sales answer, ask relevant follow-up questions such as:
+- "Can you elaborate on your sales approach in that situation?"
+- "How would you handle objections from the customer?"
+- "What sales techniques did you use to close that deal?"
+- "How do you build rapport with potential customers?"
+- "What would you do differently if you faced that situation again?"
+- "How do you qualify leads before making a sales pitch?"
+- "What metrics do you use to measure sales success?"
+
+Make your question specific to their answer and relevant to sales best practices.
+
+Respond in JSON format:
+{
+  "aiQuestion": "Your specific sales follow-up question",
+  "codeAnalysis": "What you observe in their sales answer",
+  "followUpQuestion": "A deeper question about their sales approach",
+  "suggestion": "A subtle hint about sales best practices",
+  "encouragement": "Motivational feedback"
+}
+
+IMPORTANT: Respond with ONLY valid JSON. No additional text or formatting.
+` : `
 You are a LIVE AI coding interviewer watching the candidate code in real-time. You must ask dynamic, specific questions based on what they're actually writing.
 
 Original Question: ${question || 'General coding question'}
@@ -633,13 +672,38 @@ IMPORTANT: Respond with ONLY valid JSON. No additional text or formatting.
     
     if (!aiResponse) {
       console.log('⚠️ [LIVE AI INTERVIEWER] Failed to parse AI response, creating fallback response...');
-      aiResponse = {
-        aiQuestion: "I can see you're working on the solution. Can you walk me through your current approach?",
-        codeAnalysis: "The code is being developed. Let's discuss the approach.",
-        followUpQuestion: "What's your thought process behind this implementation?",
-        suggestion: "Consider thinking about edge cases and time complexity.",
-        encouragement: "Good start! Keep going and explain your reasoning as you code."
-      };
+      
+      // Check if this is a sales question and create appropriate fallback
+      if (isSalesQuestion) {
+        // Try to extract the question from the raw response if it's plain text
+        const rawResponse = response.data.choices[0].message.content;
+        if (rawResponse && typeof rawResponse === 'string' && rawResponse.trim()) {
+          console.log('🔄 [LIVE AI INTERVIEWER] Using raw response as sales question:', rawResponse);
+          aiResponse = {
+            aiQuestion: rawResponse.trim(),
+            codeAnalysis: "The candidate provided a sales answer. Let's explore further.",
+            followUpQuestion: "Can you elaborate on your sales approach?",
+            suggestion: "Consider discussing specific sales techniques and results.",
+            encouragement: "Good answer! Let's dive deeper into your sales experience."
+          };
+        } else {
+          aiResponse = {
+            aiQuestion: "Can you tell me more about your sales experience and approach?",
+            codeAnalysis: "The candidate is discussing sales. Let's explore their methodology.",
+            followUpQuestion: "How do you typically handle customer objections?",
+            suggestion: "Consider discussing specific sales scenarios and outcomes.",
+            encouragement: "Great start! Let's explore your sales expertise further."
+          };
+        }
+      } else {
+        aiResponse = {
+          aiQuestion: "I can see you're working on the solution. Can you walk me through your current approach?",
+          codeAnalysis: "The code is being developed. Let's discuss the approach.",
+          followUpQuestion: "What's your thought process behind this implementation?",
+          suggestion: "Consider thinking about edge cases and time complexity.",
+          encouragement: "Good start! Keep going and explain your reasoning as you code."
+        };
+      }
     }
     
     console.log('🔍 [LIVE AI INTERVIEWER] Final AI response:', JSON.stringify(aiResponse, null, 2));

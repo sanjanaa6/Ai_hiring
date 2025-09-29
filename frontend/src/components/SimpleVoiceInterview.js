@@ -51,6 +51,16 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
   const [currentAiQuestionIndex, setCurrentAiQuestionIndex] = useState(0);
   const [isAiQuestioning, setIsAiQuestioning] = useState(false);
   const [aiQuestionAnswers, setAiQuestionAnswers] = useState([]);
+  
+  // AI Question Tracking System
+  const [aiQuestionMap, setAiQuestionMap] = useState(new Map()); // Map to store question details
+  const [aiQuestionTranscriptions, setAiQuestionTranscriptions] = useState(new Map()); // Map to store transcriptions for each question
+  const [aiQuestionProgress, setAiQuestionProgress] = useState({
+    totalQuestions: 0,
+    answeredQuestions: 0,
+    currentQuestionNumber: 0
+  });
+  
   const [aiResponses, setAiResponses] = useState([]);
   const [isCodeDone, setIsCodeDone] = useState(false);
   const [isAiQuestionAnswered, setIsAiQuestionAnswered] = useState(false);
@@ -507,6 +517,14 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
     return new Promise((resolve) => {
       setIsAISpeaking(true);
       
+      // Validate questionText input
+      if (!questionText || typeof questionText !== 'string') {
+        console.warn('⚠️ Invalid questionText provided to speakQuestion:', questionText);
+        setIsAISpeaking(false);
+        resolve();
+        return;
+      }
+      
       if ('speechSynthesis' in window) {
         // Cancel any ongoing speech
         window.speechSynthesis.cancel();
@@ -585,7 +603,7 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
           resolve();
         };
         
-        console.log('🗣️ AI speaking question:', questionText.substring(0, 50) + '...');
+        console.log('🗣️ AI speaking question:', questionText && questionText.length > 50 ? questionText.substring(0, 50) + '...' : questionText || 'No question text');
         window.speechSynthesis.speak(utterance);
       } else {
         console.warn('⚠️ Speech synthesis not supported');
@@ -704,19 +722,63 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
 
   // Move to next question automatically
   // Generate AI questions for sales answers
-  const generateSalesAIQuestions = async (answer, question) => {
+  const generateSalesAIQuestions = async (answer, question, questionNumber = 1, previousQuestions = []) => {
     try {
-      console.log('🤖 Generating AI questions for sales answer...');
+      console.log(`🤖 Generating sales AI question ${questionNumber}/3...`);
       console.log('📝 Answer:', answer);
       console.log('📝 Question:', question);
+      console.log('📝 Previous Questions:', previousQuestions);
       
-      // Note: This endpoint may not be available in the current backend
-      // For now, return empty array to prevent errors
-      console.log('⚠️ Sales AI questions endpoint not available, using fallback');
-      return [];
+      // Use the coding hints endpoint to generate sales AI questions with timeout
+      const result = await Promise.race([
+        apiService.getCodingHints(interviewId, {
+          question: question,
+          currentCode: answer, // Use the sales answer as "current code"
+          language: 'sales', // Use 'sales' as the language
+          difficulty: 'medium',
+          isLiveComment: true,
+          isInterviewer: true,
+          questionNumber: questionNumber,
+          previousQuestions: previousQuestions
+        }),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('AI generation timeout')), 15000) // 15 second timeout
+        )
+      ]);
+
+      console.log(`📡 Sales AI response for question ${questionNumber}:`, result);
+      
+      if (result.success && result.data && result.data.aiResponse) {
+        const aiQuestion = result.data.aiResponse.aiQuestion;
+        console.log(`✅ Sales AI question ${questionNumber} generated:`, aiQuestion);
+        return aiQuestion; // Return single question
+      } else {
+        console.log(`⚠️ API failed for question ${questionNumber}, using fallback`);
+        // Show fallback message to user
+        setError(`⚠️ Using fallback question ${questionNumber}/3. AI service temporarily unavailable.`);
+        setTimeout(() => setError(''), 3000); // Clear message after 3 seconds
+        
+        // Return fallback sales questions based on question number
+        const fallbackQuestions = [
+          "Can you elaborate more on your sales approach?",
+          "What would you do differently in this situation?",
+          "How would you handle objections from the customer?"
+        ];
+        return fallbackQuestions[questionNumber - 1] || fallbackQuestions[0];
+      }
     } catch (error) {
-      console.error('❌ Error generating sales AI questions:', error);
-      throw error;
+      console.error(`❌ Error generating sales AI question ${questionNumber}:`, error);
+      // Show fallback message to user
+      setError(`⚠️ Using fallback question ${questionNumber}/3. AI service error occurred.`);
+      setTimeout(() => setError(''), 3000); // Clear message after 3 seconds
+      
+      // Return fallback questions instead of throwing error
+      const fallbackQuestions = [
+        "Can you tell me more about your sales experience?",
+        "What sales techniques do you typically use?",
+        "How do you build rapport with potential customers?"
+      ];
+      return fallbackQuestions[questionNumber - 1] || fallbackQuestions[0];
     }
   };
 
@@ -824,32 +886,140 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
   };
 
 
-  // Handle sales round AI questioning
+  // Handle sales round AI questioning - generates first question
   const handleSalesAIQuestioning = async (answer) => {
     try {
       console.log('🎯 Starting sales AI questioning for answer:', answer);
       
-      // Generate AI questions for the sales answer
-      const questions = await generateSalesAIQuestions(answer, currentQuestion?.question);
-      console.log('📋 Generated sales AI questions:', questions);
+      // Show waiting message while AI generates first question
+      setError('🤖 AI is analyzing your sales answer and generating the first follow-up question... This may take up to 15 seconds.');
+      setLoading(true);
+      setIsAiQuestioning(true);
       
-    setAiQuestions(questions);
-    setCurrentAiQuestionIndex(0);
-    setIsAiQuestioning(true);
-    setAiQuestionAnswers([]);
-      setIsAiQuestionAnswered(false);
-    
-    // Start with the first AI question
-      console.log('🗣️ Speaking first sales AI question:', questions[0]);
-    await speakQuestion(questions[0]);
-    // Start listening for the answer after AI finishes speaking
-    setTimeout(() => {
-        console.log('🎙️ Starting voice recording for sales AI...');
-      startVoiceRecordingForAI();
-    }, 2000); // Wait 2 seconds after AI finishes speaking
+      // Generate first AI question for the sales answer
+      const firstQuestion = await generateSalesAIQuestions(answer, currentQuestion?.question, 1, []);
+      console.log('📋 Generated first sales AI question:', firstQuestion);
+      
+      // Clear the waiting message and loading
+      setError('');
+      setLoading(false);
+      
+      if (firstQuestion) {
+        // Initialize AI question tracking system
+        const questionId = `ai_q_1_${Date.now()}`;
+        const questionMap = new Map();
+        questionMap.set(questionId, {
+          id: questionId,
+          questionNumber: 1,
+          question: firstQuestion,
+          answer: '',
+          transcription: '',
+          timestamp: new Date(),
+          isAnswered: false
+        });
+        
+        setAiQuestionMap(questionMap);
+        setAiQuestionTranscriptions(new Map());
+        setAiQuestionProgress({
+          totalQuestions: 3,
+          answeredQuestions: 0,
+          currentQuestionNumber: 1
+        });
+        
+        // Store the original answer and question for subsequent questions
+        setAiQuestions([firstQuestion]);
+        setCurrentAiQuestionIndex(0);
+        setAiQuestionAnswers([]);
+        setIsAiQuestionAnswered(false);
+        
+        // Start with the first AI question
+        console.log('🗣️ Speaking first sales AI question:', firstQuestion);
+        await speakQuestion(firstQuestion);
+        
+        // Start listening for the answer after AI finishes speaking
+        setTimeout(() => {
+          console.log('🎙️ Starting voice recording for sales AI...');
+          startVoiceRecordingForAI();
+        }, 2000); // Wait 2 seconds after AI finishes speaking
+      } else {
+        setError('No AI questions were generated. Please try again.');
+        setLoading(false);
+        setIsAiQuestioning(false);
+      }
     } catch (error) {
       console.error('❌ Error in handleSalesAIQuestioning:', error);
       setError('Failed to generate sales AI questions: ' + error.message);
+      setLoading(false);
+      setIsAiQuestioning(false);
+    }
+  };
+
+  // Handle next AI question generation (for questions 2 and 3)
+  const handleNextAIQuestion = async (answer, questionNumber) => {
+    try {
+      console.log(`🎯 Generating AI question ${questionNumber}/3 for answer:`, answer);
+      
+      // Show waiting message while AI generates next question
+      setError(`🤖 AI is analyzing your sales answer and generating question ${questionNumber}/3... This may take up to 15 seconds.`);
+      setLoading(true);
+      
+      // Get previous questions to avoid repetition
+      const previousQuestions = aiQuestions.slice(0, questionNumber - 1);
+      
+      // Generate next AI question
+      const nextQuestion = await generateSalesAIQuestions(answer, currentQuestion?.question, questionNumber, previousQuestions);
+      console.log(`📋 Generated AI question ${questionNumber}:`, nextQuestion);
+      
+      // Clear the waiting message and loading
+      setError('');
+      setLoading(false);
+      
+      if (nextQuestion) {
+        // Add the new question to the tracking system
+        const questionId = `ai_q_${questionNumber}_${Date.now()}`;
+        setAiQuestionMap(prevMap => {
+          const newMap = new Map(prevMap);
+          newMap.set(questionId, {
+            id: questionId,
+            questionNumber: questionNumber,
+            question: nextQuestion,
+            answer: '',
+            transcription: '',
+            timestamp: new Date(),
+            isAnswered: false
+          });
+          return newMap;
+        });
+        
+        // Update progress
+        setAiQuestionProgress(prev => ({
+          ...prev,
+          currentQuestionNumber: questionNumber
+        }));
+        
+        // Add the new question to the list
+        const updatedQuestions = [...aiQuestions, nextQuestion];
+        setAiQuestions(updatedQuestions);
+        setCurrentAiQuestionIndex(questionNumber - 1);
+        setIsAiQuestionAnswered(false);
+        
+        // Speak the new question
+        console.log(`🗣️ Speaking AI question ${questionNumber}:`, nextQuestion);
+        await speakQuestion(nextQuestion);
+        
+        // Start listening for the answer after AI finishes speaking
+        setTimeout(() => {
+          console.log(`🎙️ Starting voice recording for AI question ${questionNumber}...`);
+          startVoiceRecordingForAI();
+        }, 2000); // Wait 2 seconds after AI finishes speaking
+      } else {
+        setError(`Failed to generate AI question ${questionNumber}. Please try again.`);
+        setLoading(false);
+      }
+    } catch (error) {
+      console.error(`❌ Error generating AI question ${questionNumber}:`, error);
+      setError(`Failed to generate AI question ${questionNumber}: ` + error.message);
+      setLoading(false);
     }
   };
 
@@ -894,6 +1064,8 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
           recognitionRef.current.continuous = true;
           recognitionRef.current.interimResults = true;
           recognitionRef.current.lang = 'en-US';
+          // Make speech recognition more tolerant
+          recognitionRef.current.maxAlternatives = 1;
           
           recognitionRef.current.onresult = (event) => {
             let finalTranscript = '';
@@ -920,7 +1092,23 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
             if (event.error === 'not-allowed') {
               setError('Microphone access denied. Please allow microphone access and try again.');
             } else if (event.error === 'no-speech') {
-              console.log('⚠️ No speech detected, continuing...');
+              console.log('⚠️ No speech detected, restarting speech recognition...');
+              // Show user-friendly message
+              setTranscription('🎤 No speech detected. Please speak clearly into your microphone...');
+              // Clear the message after 3 seconds
+              setTimeout(() => {
+                setTranscription('');
+              }, 3000);
+              // Restart speech recognition after a brief delay
+              setTimeout(() => {
+                if (isRecording && recognitionRef.current) {
+                  try {
+                    recognitionRef.current.start();
+                  } catch (err) {
+                    console.log('Speech recognition already started or not available');
+                  }
+                }
+              }, 1000);
             } else if (event.error === 'aborted') {
               console.log('⚠️ Speech recognition aborted, this is normal');
             } else {
@@ -956,10 +1144,46 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
   // Store the function in ref to avoid circular dependency
   startVoiceRecordingForAIRef.current = startVoiceRecordingForAI;
 
+  // Update AI question transcription in real-time
+  const updateAIQuestionTranscription = useCallback((transcription) => {
+    const currentQuestionId = Array.from(aiQuestionMap.keys())[currentAiQuestionIndex];
+    if (currentQuestionId) {
+      setAiQuestionTranscriptions(prevMap => {
+        const newMap = new Map(prevMap);
+        newMap.set(currentQuestionId, transcription);
+        return newMap;
+      });
+    }
+  }, [aiQuestionMap, currentAiQuestionIndex]);
+
   // Handle AI question answer
   const handleAIQuestionAnswer = useCallback(async (answer) => {
     try {
       console.log('🎤 AI question answered:', answer);
+      
+      // Update the question map with the answer
+      const currentQuestionId = Array.from(aiQuestionMap.keys())[currentAiQuestionIndex];
+      if (currentQuestionId) {
+        setAiQuestionMap(prevMap => {
+          const newMap = new Map(prevMap);
+          const questionData = newMap.get(currentQuestionId);
+          if (questionData) {
+            newMap.set(currentQuestionId, {
+              ...questionData,
+              answer: answer,
+              isAnswered: true,
+              answeredAt: new Date()
+            });
+          }
+          return newMap;
+        });
+        
+        // Update progress
+        setAiQuestionProgress(prev => ({
+          ...prev,
+          answeredQuestions: prev.answeredQuestions + 1
+        }));
+      }
       
       // Store the answer
       const newAnswers = [...aiQuestionAnswers, {
@@ -1000,33 +1224,35 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
         // Continue with the flow even if AI response fails
       }
       
-      // Check if we have more AI questions to ask
-      if (currentAiQuestionIndex < aiQuestions.length - 1) {
-        // Move to next AI question
-        console.log('🔄 Moving to next AI question...');
+      // Check if we need to generate more AI questions (up to 3 total)
+      const totalQuestionsAsked = currentAiQuestionIndex + 1;
+      console.log(`📊 Total AI questions asked so far: ${totalQuestionsAsked}/3`);
+      
+      if (totalQuestionsAsked < 3) {
+        // Generate next AI question dynamically
+        console.log(`🔄 Generating AI question ${totalQuestionsAsked + 1}/3...`);
         setTimeout(async () => {
-          const nextIndex = currentAiQuestionIndex + 1;
-          setCurrentAiQuestionIndex(nextIndex);
-          setIsAiQuestionAnswered(false);
-          
-          // Speak the next question
-          console.log('🗣️ Speaking next question:', aiQuestions[nextIndex]);
-          if (speakQuestionRef.current) {
-            await speakQuestionRef.current(aiQuestions[nextIndex]);
+          try {
+            await handleNextAIQuestion(answer, totalQuestionsAsked + 1);
+          } catch (error) {
+            console.error('❌ Error generating next AI question:', error);
+            setError('Failed to generate next AI question. Moving to next interview question.');
+            // Move to next main question if AI question generation fails
+            setTimeout(() => {
+              setIsAiQuestioning(false);
+              setIsAiQuestionAnswered(false);
+              if (moveToNextQuestionRef.current) {
+                moveToNextQuestionRef.current();
+              }
+            }, 2000);
           }
-          
-          // Start listening for the answer after AI finishes speaking
-          setTimeout(() => {
-            console.log('🎙️ Starting voice recording for next AI question...');
-            if (startVoiceRecordingForAIRef.current) {
-              startVoiceRecordingForAIRef.current();
-            }
-          }, 2000);
         }, 3000); // Wait 3 seconds after AI response
       } else {
-        // All AI questions completed, move to next question in the round
-        console.log('✅ All AI questions completed, moving to next question...');
+        // All 3 AI questions completed, move to next question in the round
+        console.log('✅ All 3 AI questions completed, moving to next question...');
         setTimeout(() => {
+          setIsAiQuestioning(false);
+          setIsAiQuestionAnswered(false);
           if (moveToNextQuestionRef.current) {
             moveToNextQuestionRef.current();
           }
@@ -1265,6 +1491,8 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
         recognitionRef.current.continuous = true;
         recognitionRef.current.interimResults = true;
         recognitionRef.current.lang = 'en-US';
+        // Make speech recognition more tolerant
+        recognitionRef.current.maxAlternatives = 1;
         
         recognitionRef.current.onresult = (event) => {
           let finalTranscript = '';
@@ -1279,8 +1507,9 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
           if (finalTranscript) {
             setTranscription(prev => prev + finalTranscript);
             
-            // If we're in AI questioning mode, handle the answer
+            // If we're in AI questioning mode, update AI question transcription and handle the answer
             if (isAiQuestioning) {
+              updateAIQuestionTranscription(transcription + finalTranscript);
               handleVoiceRecordingCompleteForAI(finalTranscript);
             }
           }
@@ -1291,7 +1520,23 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
           if (event.error === 'not-allowed') {
             setError('Microphone access denied. Please allow microphone access and try again.');
           } else if (event.error === 'no-speech') {
-            console.log('⚠️ No speech detected, continuing...');
+            console.log('⚠️ No speech detected, restarting speech recognition...');
+            // Show user-friendly message
+            setTranscription('🎤 No speech detected. Please speak clearly into your microphone...');
+            // Clear the message after 3 seconds
+            setTimeout(() => {
+              setTranscription('');
+            }, 3000);
+            // Restart speech recognition after a brief delay
+            setTimeout(() => {
+              if (isRecording && recognitionRef.current) {
+                try {
+                  recognitionRef.current.start();
+                } catch (err) {
+                  console.log('Speech recognition already started or not available');
+                }
+              }
+            }, 1000);
           } else if (event.error === 'aborted') {
             console.log('⚠️ Speech recognition aborted, this is normal');
           } else {
@@ -2338,8 +2583,15 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
                           <span className={`text-sm font-medium ${
                             isDarkMode ? 'text-gray-300' : 'text-gray-600'
                           }`}>
-                            Question {currentAiQuestionIndex + 1} of {aiQuestions.length}
+                            Question {aiQuestionProgress.currentQuestionNumber} of {aiQuestionProgress.totalQuestions}
                           </span>
+                          <div className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            isDarkMode 
+                              ? 'bg-blue-800/50 text-blue-200' 
+                              : 'bg-blue-100 text-blue-800'
+                          }`}>
+                            {aiQuestionProgress.answeredQuestions}/{aiQuestionProgress.totalQuestions} answered
+                          </div>
                         </div>
                       </div>
                       
@@ -2356,26 +2608,248 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
                           />
                         ))}
                       </div>
+
+                      {/* AI Questions Roadmap */}
+                      <div className="mb-4 space-y-2">
+                        <h4 className={`text-sm font-semibold ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                          AI Questions Roadmap:
+                        </h4>
+                        {[1, 2, 3].map((questionNum) => {
+                          const questionId = Array.from(aiQuestionMap.keys()).find(id => 
+                            aiQuestionMap.get(id)?.questionNumber === questionNum
+                          );
+                          const questionData = questionId ? aiQuestionMap.get(questionId) : null;
+                          const isCurrent = aiQuestionProgress.currentQuestionNumber === questionNum;
+                          const isCompleted = questionData?.isAnswered || false;
+                          const isUpcoming = questionNum > aiQuestionProgress.currentQuestionNumber;
+                          const isGenerated = questionData !== null;
+                          
+                          return (
+                            <div
+                              key={questionNum}
+                              className={`flex items-center space-x-3 p-2 rounded-lg border ${
+                                isCurrent
+                                  ? (isDarkMode 
+                                      ? 'bg-blue-900/40 border-blue-500/50' 
+                                      : 'bg-blue-100 border-blue-400')
+                                  : isCompleted
+                                    ? (isDarkMode 
+                                        ? 'bg-green-900/30 border-green-600/40' 
+                                        : 'bg-green-50 border-green-300')
+                                    : (isDarkMode 
+                                        ? 'bg-gray-800/30 border-gray-600/40' 
+                                        : 'bg-gray-50 border-gray-300')
+                              }`}
+                            >
+                              {/* Question Number Badge */}
+                              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                                isCurrent
+                                  ? (isDarkMode ? 'bg-blue-600 text-white' : 'bg-blue-500 text-white')
+                                  : isCompleted
+                                    ? (isDarkMode ? 'bg-green-600 text-white' : 'bg-green-500 text-white')
+                                    : (isDarkMode ? 'bg-gray-600 text-gray-300' : 'bg-gray-400 text-white')
+                              }`}>
+                                {questionNum}
+                              </div>
+                              
+                              {/* Question Content */}
+                              <div className="flex-1">
+                                <div className="flex items-center space-x-2">
+                                  <span className={`text-sm font-medium ${
+                                    isDarkMode ? 'text-white' : 'text-gray-900'
+                                  }`}>
+                                    Question {questionNum}:
+                                  </span>
+                                  <div className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                    isCurrent
+                                      ? (isDarkMode ? 'bg-blue-800/50 text-blue-200' : 'bg-blue-200 text-blue-800')
+                                      : isCompleted
+                                        ? (isDarkMode ? 'bg-green-800/50 text-green-200' : 'bg-green-200 text-green-800')
+                                        : (isDarkMode ? 'bg-gray-700/50 text-gray-300' : 'bg-gray-200 text-gray-600')
+                                  }`}>
+                                    {isCurrent ? (isGenerated ? 'Current' : 'Generating') : 
+                                     isCompleted ? 'Completed' : 
+                                     isGenerated ? 'Ready' : 'Waiting'}
+                                  </div>
+                                </div>
+                                
+                                {/* Question Text */}
+                                <p className={`text-xs mt-1 ${
+                                  isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                                }`}>
+                                  {isGenerated ? questionData.question :
+                                   isCurrent ? '🤖 AI is generating this question...' :
+                                   questionNum === 1 ? 'First AI follow-up question (will be generated after your answer)' :
+                                   questionNum === 2 ? 'Second AI follow-up question (will be generated after Question 1)' :
+                                   'Third AI follow-up question (will be generated after Question 2)'}
+                                </p>
+                                
+                                {/* Answer Status */}
+                                {isCompleted && questionData?.answer && (
+                                  <p className={`text-xs mt-1 italic ${
+                                    isDarkMode ? 'text-green-300' : 'text-green-600'
+                                  }`}>
+                                    ✓ Answered: "{questionData.answer.substring(0, 50)}..."
+                                  </p>
+                                )}
+                              </div>
+                              
+                              {/* Status Icon */}
+                              <div className="text-lg">
+                                {isCurrent && isGenerated && (
+                                  <span className={isDarkMode ? 'text-blue-400' : 'text-blue-500'}>
+                                    🎯
+                                  </span>
+                                )}
+                                {isCurrent && !isGenerated && (
+                                  <span className={isDarkMode ? 'text-blue-400' : 'text-blue-500'}>
+                                    🤖
+                                  </span>
+                                )}
+                                {isCompleted && (
+                                  <span className={isDarkMode ? 'text-green-400' : 'text-green-500'}>
+                                    ✅
+                                  </span>
+                                )}
+                                {isUpcoming && isGenerated && (
+                                  <span className={isDarkMode ? 'text-gray-500' : 'text-gray-400'}>
+                                    ⏳
+                                  </span>
+                                )}
+                                {isUpcoming && !isGenerated && (
+                                  <span className={isDarkMode ? 'text-gray-500' : 'text-gray-400'}>
+                                    ⏸️
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
                       
-                      {/* AI Question Display */}
-                      {aiQuestions[currentAiQuestionIndex] && (
-                        <div className={`mb-3 p-3 rounded-lg border-2 ${
+                      {/* Current AI Question Display */}
+                      {isAiQuestioning && aiQuestionProgress.currentQuestionNumber > 0 && (
+                        <div className={`mb-3 p-4 rounded-lg border-2 ${
                           isDarkMode 
-                            ? 'bg-yellow-900/30 border-yellow-600/50 text-yellow-100' 
-                            : 'bg-yellow-50 border-yellow-300 text-yellow-900'
+                            ? 'bg-blue-900/40 border-blue-500/50 text-blue-100' 
+                            : 'bg-blue-50 border-blue-400 text-blue-900'
                         }`}>
-                          <div className="flex items-start space-x-2">
-                            <div className={`w-2 h-2 rounded-full mt-2 ${
-                              isDarkMode ? 'bg-yellow-400' : 'bg-yellow-500'
-                            }`}></div>
+                          <div className="flex items-start space-x-3">
+                            {/* Question Number Badge */}
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg font-bold ${
+                              isDarkMode ? 'bg-blue-600 text-white' : 'bg-blue-500 text-white'
+                            }`}>
+                              {aiQuestionProgress.currentQuestionNumber}
+                            </div>
+                            
                             <div className="flex-1">
-                              <p className="text-sm font-medium mb-1">AI Question:</p>
-                              <p className="text-sm leading-relaxed">
-                                "{aiQuestions[currentAiQuestionIndex]}"
+                              <div className="flex items-center space-x-2 mb-2">
+                                <p className="text-sm font-medium">Question {aiQuestionProgress.currentQuestionNumber}:</p>
+                                <div className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                  isDarkMode ? 'bg-blue-800/50 text-blue-200' : 'bg-blue-200 text-blue-800'
+                                }`}>
+                                  Current
+                                </div>
+                              </div>
+                              
+                              <p className="text-sm leading-relaxed mb-2">
+                                "{aiQuestions[currentAiQuestionIndex] || 'Generating question...'}"
                               </p>
-                              <p className="text-xs mt-2 opacity-75">
-                                {new Date().toLocaleTimeString()}
+                              
+                              <div className="flex items-center space-x-4 text-xs opacity-75">
+                                <span>🎤 AI Speaking</span>
+                                <span>{new Date().toLocaleTimeString()}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Completed Questions Display */}
+                      {isAiQuestioning && aiQuestionProgress.answeredQuestions > 0 && (
+                        <div className="mb-3 space-y-2">
+                          <h4 className={`text-sm font-semibold ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                            Completed Questions:
+                          </h4>
+                          {Array.from(aiQuestionMap.values())
+                            .filter(q => q.isAnswered)
+                            .sort((a, b) => a.questionNumber - b.questionNumber)
+                            .map((questionData) => (
+                              <div
+                                key={questionData.id}
+                                className={`p-3 rounded-lg border ${
+                                  isDarkMode 
+                                    ? 'bg-green-900/30 border-green-600/40 text-green-100' 
+                                    : 'bg-green-50 border-green-300 text-green-900'
+                                }`}
+                              >
+                                <div className="flex items-start space-x-3">
+                                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                                    isDarkMode ? 'bg-green-600 text-white' : 'bg-green-500 text-white'
+                                  }`}>
+                                    {questionData.questionNumber}
+                                  </div>
+                                  
+                                  <div className="flex-1">
+                                    <div className="flex items-center space-x-2 mb-1">
+                                      <span className="text-sm font-medium">Question {questionData.questionNumber}:</span>
+                                      <div className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                        isDarkMode ? 'bg-green-800/50 text-green-200' : 'bg-green-200 text-green-800'
+                                      }`}>
+                                        ✅ Completed
+                                      </div>
+                                    </div>
+                                    
+                                    <p className="text-xs mb-2 opacity-75">
+                                      "{questionData.question}"
+                                    </p>
+                                    
+                                    <p className="text-sm">
+                                      <span className="font-medium">Your Answer:</span> "{questionData.answer}"
+                                    </p>
+                                    
+                                    <p className="text-xs mt-1 opacity-75">
+                                      Answered at: {questionData.answeredAt?.toLocaleTimeString()}
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                        </div>
+                      )}
+
+                      {/* Live Transcription Display */}
+                      {isAiQuestioning && !isAiQuestionAnswered && (
+                        <div className={`mb-3 p-4 rounded-lg border-2 ${
+                          isDarkMode 
+                            ? 'bg-red-900/30 border-red-600/50 text-red-100' 
+                            : 'bg-red-50 border-red-300 text-red-900'
+                        }`}>
+                          <div className="flex items-start space-x-3">
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg font-bold ${
+                              isDarkMode ? 'bg-red-600 text-white' : 'bg-red-500 text-white'
+                            }`}>
+                              🎤
+                            </div>
+                            
+                            <div className="flex-1">
+                              <div className="flex items-center space-x-2 mb-2">
+                                <p className="text-sm font-medium">Live Transcription:</p>
+                                <div className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                  isDarkMode ? 'bg-red-800/50 text-red-200' : 'bg-red-200 text-red-800'
+                                }`}>
+                                  Question {aiQuestionProgress.currentQuestionNumber}
+                                </div>
+                              </div>
+                              
+                              <p className="text-sm leading-relaxed mb-2">
+                                {transcription || "Listening for your response..."}
                               </p>
+                              
+                              <div className="flex items-center space-x-4 text-xs opacity-75">
+                                <span>{isRecording ? "🔴 Recording..." : "⏸️ Ready to record"}</span>
+                                <span>{new Date().toLocaleTimeString()}</span>
+                              </div>
                             </div>
                           </div>
                         </div>

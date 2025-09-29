@@ -95,6 +95,12 @@ const validateJSONStructure = (jsonText) => {
 // Helper function to parse AI response
 const parseAIResponse = (responseText) => {
   try {
+    // Validate responseText input
+    if (!responseText || typeof responseText !== 'string') {
+      console.log('⚠️ [PARSE AI RESPONSE] Invalid responseText provided:', responseText);
+      return null;
+    }
+    
     console.log('🔍 [PARSE AI RESPONSE] Raw response text length:', responseText.length);
     
     // Try to find and extract JSON from the response
@@ -243,6 +249,18 @@ const extractJobDetailsFromPrompt = (prompt) => {
   try {
     console.log('🔍 [EXTRACT JOB DETAILS] Extracting from prompt...');
     
+    // Validate prompt input
+    if (!prompt || typeof prompt !== 'string') {
+      console.log('⚠️ [EXTRACT JOB DETAILS] Invalid prompt provided:', prompt);
+      return {
+        title: 'Generic Role',
+        company: 'Your Company',
+        description: 'No description available',
+        requirements: 'No requirements available',
+        level: 'Mid-level'
+      };
+    }
+    
     // Extract job title from prompt
     let title = 'Generic Role';
     const titleMatch = prompt.match(/(?:for this job|for a|for an|for the)\s*:?\s*([^:\n]+)/i);
@@ -250,15 +268,16 @@ const extractJobDetailsFromPrompt = (prompt) => {
       title = titleMatch[1].trim();
     } else {
       // Try to find role-specific keywords
-      if (prompt.toLowerCase().includes('sales')) {
+      const promptLower = prompt.toLowerCase();
+      if (promptLower.includes('sales')) {
         title = 'Sales Representative';
-      } else if (prompt.toLowerCase().includes('developer')) {
+      } else if (promptLower.includes('developer')) {
         title = 'Software Developer';
-      } else if (prompt.toLowerCase().includes('engineer')) {
+      } else if (promptLower.includes('engineer')) {
         title = 'Software Engineer';
-      } else if (prompt.toLowerCase().includes('manager')) {
+      } else if (promptLower.includes('manager')) {
         title = 'Manager';
-      } else if (prompt.toLowerCase().includes('analyst')) {
+      } else if (promptLower.includes('analyst')) {
         title = 'Business Analyst';
       }
     }
@@ -266,8 +285,8 @@ const extractJobDetailsFromPrompt = (prompt) => {
     const jobDetails = {
       title: title,
       company: 'Your Company',
-      description: prompt.substring(0, 500) + '...',
-      requirements: prompt.substring(0, 300) + '...',
+      description: prompt.length > 500 ? prompt.substring(0, 500) + '...' : prompt,
+      requirements: prompt.length > 300 ? prompt.substring(0, 300) + '...' : prompt,
       level: 'Mid-level'
     };
     

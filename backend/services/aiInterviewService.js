@@ -12,7 +12,9 @@ async function createRoleSpecificInterview(prompt, jobDetails) {
     console.log('🔍 [AI INTERVIEW] Job details:', {
       title: jobDetails.title,
       company: jobDetails.company,
-      description: jobDetails.description?.substring(0, 100) + '...'
+      description: jobDetails.description && jobDetails.description.length > 100 ? 
+        jobDetails.description.substring(0, 100) + '...' : 
+        jobDetails.description || 'No description'
     });
     
     // Create role-specific AI prompt for interview generation
@@ -297,6 +299,12 @@ Make sure each question is directly relevant to the specific role and requiremen
 // Helper function to create structured interview from text
 async function createStructuredInterview(textResponse, jobDetails) {
   const interviewId = `interview_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  
+  // Validate textResponse input
+  if (!textResponse || typeof textResponse !== 'string') {
+    console.log('⚠️ [STRUCTURED INTERVIEW] Invalid textResponse provided:', textResponse);
+    textResponse = 'Generate a comprehensive interview for this role';
+  }
   
   // Check if this is a role-specific prompt
   const isRoleSpecificPrompt = textResponse.includes('**Introduction & Self Intro**') || 
