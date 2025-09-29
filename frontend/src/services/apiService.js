@@ -765,6 +765,50 @@ class ApiService {
       };
     }
   }
+
+  // ===== COMPREHENSIVE INTERVIEW RESULTS METHODS =====
+
+  async getInterviewResults(interviewId) {
+    try {
+      const response = await this.client.get(`/interviews/${interviewId}/results`);
+      return response.data;
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('Get interview results error:', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to get interview results'
+      };
+    }
+  }
+
+  async getCandidateReport(interviewId, candidateId) {
+    try {
+      const response = await this.client.get(`/interviews/${interviewId}/candidates/${candidateId}/report`);
+      return response.data;
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('Get candidate report error:', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to get candidate report'
+      };
+    }
+  }
+
+  async getInterviewRecordings(interviewId) {
+    try {
+      const response = await this.client.get(`/interviews/${interviewId}/recordings`);
+      return response.data;
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('Get interview recordings error:', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to get interview recordings'
+      };
+    }
+  }
 }
 
 const apiService = new ApiService();

@@ -3,6 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import apiService from '../../services/apiService';
 import InterviewPerformanceDashboard from '../../components/InterviewPerformanceDashboard';
+import InterviewResults from '../../components/InterviewResults';
 import { motion } from 'framer-motion';
 import { 
   Plus, 
@@ -43,6 +44,8 @@ const RecruiterDashboard = () => {
   const [selectedInterviewId, setSelectedInterviewId] = useState(null);
   const [showPerformanceDashboard, setShowPerformanceDashboard] = useState(false);
   const [performanceInterviewId, setPerformanceInterviewId] = useState(null);
+  const [showInterviewResults, setShowInterviewResults] = useState(false);
+  const [resultsInterviewId, setResultsInterviewId] = useState(null);
 
   // Answers state
   const [answersLoading, setAnswersLoading] = useState(false);
@@ -2376,6 +2379,7 @@ The interview should feel natural and relevant to someone applying for this spec
                 <h3 className={`text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                   📊 Select Interview to Analyze
                 </h3>
+                <div className="flex items-center space-x-3">
                 <button
                   onClick={() => selectedInterviewId && loadAnswers(selectedInterviewId, selectedCandidateId)}
                   className={`px-4 py-2 rounded-xl font-medium transition-all duration-200 ${
@@ -2386,6 +2390,30 @@ The interview should feel natural and relevant to someone applying for this spec
                 >
                   🔄 Refresh Data
                 </button>
+                  <button
+                    onClick={() => {
+                      console.log('🔍 [DEBUG] Selected Interview ID:', selectedInterviewId);
+                      if (selectedInterviewId) {
+                        setResultsInterviewId(selectedInterviewId);
+                        setShowInterviewResults(true);
+                      } else {
+                        console.log('❌ [DEBUG] No interview selected');
+                      }
+                    }}
+                    disabled={!selectedInterviewId}
+                    className={`px-4 py-2 rounded-xl font-medium transition-all duration-200 ${
+                      selectedInterviewId
+                        ? isDarkMode 
+                          ? 'bg-green-600 hover:bg-green-700 text-white' 
+                          : 'bg-green-600 hover:bg-green-700 text-white'
+                        : isDarkMode 
+                          ? 'bg-gray-600 text-gray-400 cursor-not-allowed' 
+                          : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    }`}
+                  >
+                    📊 Comprehensive Results
+                  </button>
+                </div>
               </div>
               
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -3041,6 +3069,17 @@ The interview should feel natural and relevant to someone applying for this spec
           onClose={() => {
             setShowPerformanceDashboard(false);
             setPerformanceInterviewId(null);
+          }}
+        />
+      )}
+
+      {/* Comprehensive Interview Results Modal */}
+      {showInterviewResults && resultsInterviewId && (
+        <InterviewResults
+          interviewId={resultsInterviewId}
+          onClose={() => {
+            setShowInterviewResults(false);
+            setResultsInterviewId(null);
           }}
         />
       )}

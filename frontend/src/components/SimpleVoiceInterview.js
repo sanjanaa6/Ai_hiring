@@ -36,6 +36,7 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
   const [roundIndex, setRoundIndex] = useState(0);
   const [allRounds, setAllRounds] = useState([]);
   const [completedRounds, setCompletedRounds] = useState(new Set());
+  const [networkRetryCount, setNetworkRetryCount] = useState(0);
   const [shouldAutoRecord, setShouldAutoRecord] = useState(false);
   const [cameraStatus, setCameraStatus] = useState('initializing');
   const [questionStartCountdown, setQuestionStartCountdown] = useState(0);
@@ -1241,7 +1242,8 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
           
           recognitionRef.current.onstart = () => {
             console.log('✅ Speech recognition started for AI question');
-      setIsRecording(true);
+            setIsRecording(true);
+            setNetworkRetryCount(0); // Reset retry counter on successful start
           };
         } else {
           setError('Speech recognition not supported in this browser');
@@ -1655,6 +1657,12 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
         
         recognitionRef.current.onerror = (event) => {
           console.error('❌ Speech recognition error:', event.error);
+          // Handle various speech recognition error types:
+          // - not-allowed: Microphone access denied
+          // - no-speech: No speech detected (auto-retry)
+          // - aborted: Recognition was aborted (normal)
+          // - service-not-allowed: Service unavailable due to restrictions
+          // - network: Network communication failure (auto-retry with limit)
           if (event.error === 'not-allowed') {
             setError('Microphone access denied. Please allow microphone access and try again.');
           } else if (event.error === 'no-speech') {
@@ -1677,6 +1685,48 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
             }, 1000);
           } else if (event.error === 'aborted') {
             console.log('⚠️ Speech recognition aborted, this is normal');
+          } else if (event.error === 'service-not-allowed') {
+            console.error('🚫 Speech recognition service not allowed');
+            setError('Speech recognition service is not available. This might be due to browser restrictions or network policies.');
+            setTranscription('🚫 Speech service unavailable - Please try refreshing the page or using a different browser...');
+            setTimeout(() => {
+              setTranscription('');
+            }, 5000);
+          } else if (event.error === 'network') {
+            console.error('🌐 Network error in speech recognition');
+            const maxRetries = 3;
+            
+            if (networkRetryCount < maxRetries) {
+              setNetworkRetryCount(prev => prev + 1);
+              setError(`Network connection issue detected (attempt ${networkRetryCount + 1}/${maxRetries}). Retrying...`);
+              // Show user-friendly message
+              setTranscription(`🌐 Network error - Retrying... (${networkRetryCount + 1}/${maxRetries})`);
+              // Clear the message after 3 seconds
+              setTimeout(() => {
+                setTranscription('');
+              }, 3000);
+              // Attempt to restart speech recognition after network error
+              setTimeout(() => {
+                if (isRecording && recognitionRef.current) {
+                  try {
+                    console.log(`🔄 Attempting to restart speech recognition after network error (attempt ${networkRetryCount + 1})...`);
+                    recognitionRef.current.start();
+                  } catch (err) {
+                    console.log('Speech recognition restart failed:', err);
+                    setError('Unable to restart speech recognition. Please refresh the page and try again.');
+                  }
+                }
+              }, 2000);
+            } else {
+              setError('Network connection failed after multiple attempts. Please check your internet connection and refresh the page.');
+              setTranscription('🌐 Network connection failed. Please check your internet and refresh the page.');
+              // Clear the message after 10 seconds
+              setTimeout(() => {
+                setTranscription('');
+              }, 10000);
+              // Reset retry counter after max attempts
+              setNetworkRetryCount(0);
+            }
           } else {
             setError('Speech recognition error: ' + event.error);
           }
@@ -1689,7 +1739,8 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
         
         recognitionRef.current.onstart = () => {
           console.log('✅ Speech recognition started');
-        setIsRecording(true);
+          setIsRecording(true);
+          setNetworkRetryCount(0); // Reset retry counter on successful start
         };
         
         recognitionRef.current.start();

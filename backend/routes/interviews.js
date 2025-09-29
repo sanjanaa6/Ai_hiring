@@ -48,6 +48,12 @@ const {
 } = require('../handlers/interviewAnalytics');
 
 const {
+  getInterviewResults,
+  getCandidateReport,
+  getInterviewRecordings
+} = require('../handlers/interviewResults');
+
+const {
   aiVoice,
   aiVoiceSpeak
 } = require('../handlers/interviewVoice');
@@ -103,7 +109,30 @@ router.post('/generate', auth, generateInterview);
 
 // ===== INTERVIEW-SPECIFIC AUTHENTICATED ROUTES =====
 
-// Get interview by ID (authenticated)
+// ===== COMPREHENSIVE INTERVIEW RESULTS ROUTES (MUST COME BEFORE GENERAL ROUTES) =====
+
+// Get comprehensive interview results with ranking and analytics
+router.get('/:interviewId/results', auth, (req, res, next) => {
+  console.log('🎯 [ROUTE DEBUG] Results route hit for interview:', req.params.interviewId);
+  next();
+}, getInterviewResults);
+
+// Get detailed candidate report with all rounds and feedback
+router.get('/:interviewId/candidates/:candidateId/report', auth, getCandidateReport);
+
+// Get interview recordings and audio data
+router.get('/:interviewId/recordings', auth, getInterviewRecordings);
+
+// Get ranked candidates list with sorting
+router.get('/:interviewId/candidates', auth, getRankedCandidates);
+
+// Get detailed candidate performance
+router.get('/:interviewId/candidates/:candidateId', auth, getCandidateDetails);
+
+// Get performance analytics
+router.get('/:interviewId/performance', auth, getPerformanceAnalytics);
+
+// Get interview by ID (authenticated) - MUST BE LAST TO AVOID CONFLICTS
 router.get('/:interviewId', auth, getInterviewById);
 
 // Update interview
@@ -126,14 +155,5 @@ router.post('/:interviewId/approve', auth, approveInterview);
 
 // Reject interview
 router.post('/:interviewId/reject', auth, rejectInterview);
-
-// Get performance analytics
-router.get('/:interviewId/performance', auth, getPerformanceAnalytics);
-
-// Get ranked candidates list with sorting
-router.get('/:interviewId/candidates', auth, getRankedCandidates);
-
-// Get detailed candidate performance
-router.get('/:interviewId/candidates/:candidateId', auth, getCandidateDetails);
 
 module.exports = router;

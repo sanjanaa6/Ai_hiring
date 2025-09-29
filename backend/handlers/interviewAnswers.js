@@ -7,7 +7,7 @@ const submitAnswer = async (req, res) => {
   console.log('🔍 [SUBMIT ANSWER] Request body:', JSON.stringify(req.body, null, 2));
   
   try {
-    const { questionId, answer, roundId, timeSpent } = req.body;
+    const { questionId, answer, roundId, timeSpent, candidateId, candidateName, candidateEmail, question } = req.body;
     
     if (!questionId || !answer) {
       console.log('❌ [SUBMIT ANSWER] Missing required fields');
@@ -31,39 +31,48 @@ const submitAnswer = async (req, res) => {
       });
     }
 
-    // Initialize answers array if it doesn't exist
-    if (!interview.answers) {
-      interview.answers = [];
+    // Initialize candidateAnswers array if it doesn't exist
+    if (!interview.candidateAnswers) {
+      interview.candidateAnswers = [];
     }
 
-    // Check if answer already exists for this question
-    const existingAnswerIndex = interview.answers.findIndex(
-      ans => ans.questionId === questionId
+    // Check if answer already exists for this question and candidate
+    const existingAnswerIndex = interview.candidateAnswers.findIndex(
+      ans => ans.questionId === questionId && ans.candidateId === (candidateId || 'anonymous')
     );
 
     const answerData = {
-      questionId,
-      answer,
+      candidateId: candidateId || 'anonymous',
+      candidateName: candidateName || 'Anonymous Candidate',
+      candidateEmail: candidateEmail || 'anonymous@example.com',
       roundId,
-      timeSpent: timeSpent || 0,
-      submittedAt: new Date(),
-      timestamp: Date.now()
+      questionId,
+      question: question || 'Question not provided',
+      answer,
+      timeTaken: timeSpent || 0,
+      timestamp: new Date(),
+      aiEvaluation: {
+        score: Math.floor(Math.random() * 4) + 1, // Temporary random score (1-4)
+        feedback: 'AI evaluation pending - will be implemented with proper AI service',
+        strengths: ['Good attempt', 'Clear communication'],
+        improvements: ['Could provide more detail', 'Consider examples']
+      }
     };
 
     if (existingAnswerIndex >= 0) {
       // Update existing answer
-      interview.answers[existingAnswerIndex] = answerData;
+      interview.candidateAnswers[existingAnswerIndex] = answerData;
       console.log('🔄 [SUBMIT ANSWER] Updated existing answer for question:', questionId);
     } else {
       // Add new answer
-      interview.answers.push(answerData);
+      interview.candidateAnswers.push(answerData);
       console.log('✅ [SUBMIT ANSWER] Added new answer for question:', questionId);
     }
 
     await interview.save();
 
     console.log('✅ [SUBMIT ANSWER] Answer submitted successfully');
-    console.log('📊 [SUBMIT ANSWER] Total answers:', interview.answers.length);
+    console.log('📊 [SUBMIT ANSWER] Total candidate answers:', interview.candidateAnswers.length);
 
     res.json({
       success: true,
@@ -71,8 +80,8 @@ const submitAnswer = async (req, res) => {
       data: {
         questionId,
         answerId: answerData.timestamp,
-        submittedAt: answerData.submittedAt,
-        totalAnswers: interview.answers.length
+        submittedAt: answerData.timestamp,
+        totalAnswers: interview.candidateAnswers.length
       }
     });
 
@@ -93,14 +102,14 @@ const submitAnswer = async (req, res) => {
 
 // Submit interview answer endpoint (plural - for API consistency)
 const submitAnswers = async (req, res) => {
-  console.log('📝 [SUBMIT ANSWER] Submitting answer for interview:', req.params.interviewId);
-  console.log('🔍 [SUBMIT ANSWER] Request body:', JSON.stringify(req.body, null, 2));
+  console.log('📝 [SUBMIT ANSWERS] Submitting answers for interview:', req.params.interviewId);
+  console.log('🔍 [SUBMIT ANSWERS] Request body:', JSON.stringify(req.body, null, 2));
   
   try {
-    const { questionId, answer, roundId, timeSpent } = req.body;
+    const { questionId, answer, roundId, timeSpent, candidateId, candidateName, candidateEmail, question } = req.body;
     
     if (!questionId || !answer) {
-      console.log('❌ [SUBMIT ANSWER] Missing required fields');
+      console.log('❌ [SUBMIT ANSWERS] Missing required fields');
       return res.status(400).json({
         success: false,
         error: 'Question ID and answer are required'
@@ -114,46 +123,55 @@ const submitAnswers = async (req, res) => {
     });
 
     if (!interview) {
-      console.log('❌ [SUBMIT ANSWER] Interview not found or not approved:', req.params.interviewId);
+      console.log('❌ [SUBMIT ANSWERS] Interview not found or not approved:', req.params.interviewId);
       return res.status(404).json({
         success: false,
         error: 'Interview not found or not available'
       });
     }
 
-    // Initialize answers array if it doesn't exist
-    if (!interview.answers) {
-      interview.answers = [];
+    // Initialize candidateAnswers array if it doesn't exist
+    if (!interview.candidateAnswers) {
+      interview.candidateAnswers = [];
     }
 
-    // Check if answer already exists for this question
-    const existingAnswerIndex = interview.answers.findIndex(
-      ans => ans.questionId === questionId
+    // Check if answer already exists for this question and candidate
+    const existingAnswerIndex = interview.candidateAnswers.findIndex(
+      ans => ans.questionId === questionId && ans.candidateId === (candidateId || 'anonymous')
     );
 
     const answerData = {
-      questionId,
-      answer,
+      candidateId: candidateId || 'anonymous',
+      candidateName: candidateName || 'Anonymous Candidate',
+      candidateEmail: candidateEmail || 'anonymous@example.com',
       roundId,
-      timeSpent: timeSpent || 0,
-      submittedAt: new Date(),
-      timestamp: Date.now()
+      questionId,
+      question: question || 'Question not provided',
+      answer,
+      timeTaken: timeSpent || 0,
+      timestamp: new Date(),
+      aiEvaluation: {
+        score: Math.floor(Math.random() * 4) + 1, // Temporary random score (1-4)
+        feedback: 'AI evaluation pending - will be implemented with proper AI service',
+        strengths: ['Good attempt', 'Clear communication'],
+        improvements: ['Could provide more detail', 'Consider examples']
+      }
     };
 
     if (existingAnswerIndex >= 0) {
       // Update existing answer
-      interview.answers[existingAnswerIndex] = answerData;
-      console.log('🔄 [SUBMIT ANSWER] Updated existing answer for question:', questionId);
+      interview.candidateAnswers[existingAnswerIndex] = answerData;
+      console.log('🔄 [SUBMIT ANSWERS] Updated existing answer for question:', questionId);
     } else {
       // Add new answer
-      interview.answers.push(answerData);
-      console.log('✅ [SUBMIT ANSWER] Added new answer for question:', questionId);
+      interview.candidateAnswers.push(answerData);
+      console.log('✅ [SUBMIT ANSWERS] Added new answer for question:', questionId);
     }
 
     await interview.save();
 
-    console.log('✅ [SUBMIT ANSWER] Answer submitted successfully');
-    console.log('📊 [SUBMIT ANSWER] Total answers:', interview.answers.length);
+    console.log('✅ [SUBMIT ANSWERS] Answer submitted successfully');
+    console.log('📊 [SUBMIT ANSWERS] Total candidate answers:', interview.candidateAnswers.length);
 
     res.json({
       success: true,
@@ -161,14 +179,14 @@ const submitAnswers = async (req, res) => {
       data: {
         questionId,
         answerId: answerData.timestamp,
-        submittedAt: answerData.submittedAt,
-        totalAnswers: interview.answers.length
+        submittedAt: answerData.timestamp,
+        totalAnswers: interview.candidateAnswers.length
       }
     });
 
   } catch (error) {
-    console.error('❌ [SUBMIT ANSWER] Error occurred:', error.message);
-    console.error('🔍 [SUBMIT ANSWER] Error details:', {
+    console.error('❌ [SUBMIT ANSWERS] Error occurred:', error.message);
+    console.error('🔍 [SUBMIT ANSWERS] Error details:', {
       name: error.name,
       message: error.message,
       stack: error.stack?.substring(0, 500) + '...'
@@ -184,8 +202,11 @@ const submitAnswers = async (req, res) => {
 // Get interview answers endpoint
 const getAnswers = async (req, res) => {
   console.log('📋 [GET ANSWERS] Fetching answers for interview:', req.params.interviewId);
+  console.log('🔍 [GET ANSWERS] Query params:', req.query);
   
   try {
+    const { candidateId } = req.query;
+    
     // Find the interview
     const interview = await Interview.findOne({
       interviewId: req.params.interviewId,
@@ -200,15 +221,24 @@ const getAnswers = async (req, res) => {
       });
     }
 
+    // Get candidate answers
+    let answers = interview.candidateAnswers || [];
+    
+    // Filter by candidate if specified
+    if (candidateId) {
+      answers = answers.filter(answer => answer.candidateId === candidateId);
+    }
+
     console.log('✅ [GET ANSWERS] Answers retrieved successfully');
-    console.log('📊 [GET ANSWERS] Total answers:', interview.answers?.length || 0);
+    console.log('📊 [GET ANSWERS] Total answers:', answers.length);
 
     res.json({
       success: true,
       data: {
+        answers: answers,
+        totalAnswers: answers.length,
         interviewId: interview.interviewId,
-        answers: interview.answers || [],
-        totalAnswers: interview.answers?.length || 0
+        interviewTitle: interview.title
       }
     });
 
@@ -260,7 +290,7 @@ const completeInterview = async (req, res) => {
 
     console.log('✅ [COMPLETE INTERVIEW] Interview completed successfully');
     console.log('📊 [COMPLETE INTERVIEW] Completed at:', interview.completedAt);
-    console.log('📊 [COMPLETE INTERVIEW] Total answers:', interview.answers?.length || 0);
+    console.log('📊 [COMPLETE INTERVIEW] Total candidate answers:', interview.candidateAnswers?.length || 0);
 
     res.json({
       success: true,
@@ -269,7 +299,7 @@ const completeInterview = async (req, res) => {
         interviewId: interview.interviewId,
         status: interview.status,
         completedAt: interview.completedAt,
-        totalAnswers: interview.answers?.length || 0,
+        totalAnswers: interview.candidateAnswers?.length || 0,
         totalTimeSpent: interview.totalTimeSpent
       }
     });
