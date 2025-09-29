@@ -4,6 +4,7 @@ import { useTheme } from '../../context/ThemeContext';
 import apiService from '../../services/apiService';
 import InterviewPerformanceDashboard from '../../components/InterviewPerformanceDashboard';
 import InterviewResults from '../../components/InterviewResults';
+import InterviewAnalyticsDashboard from '../../components/InterviewAnalyticsDashboard';
 import { motion } from 'framer-motion';
 import { 
   Plus, 
@@ -26,7 +27,8 @@ import {
   Award,
   ThumbsUp,
   ThumbsDown,
-  Edit3
+  Edit3,
+  Target
 } from 'lucide-react';
 
 const RecruiterDashboard = () => {
@@ -46,6 +48,8 @@ const RecruiterDashboard = () => {
   const [performanceInterviewId, setPerformanceInterviewId] = useState(null);
   const [showInterviewResults, setShowInterviewResults] = useState(false);
   const [resultsInterviewId, setResultsInterviewId] = useState(null);
+  const [showAnalyticsDashboard, setShowAnalyticsDashboard] = useState(false);
+  const [analyticsInterviewId, setAnalyticsInterviewId] = useState(null);
 
   // Answers state
   const [answersLoading, setAnswersLoading] = useState(false);
@@ -2899,35 +2903,194 @@ The interview should feel natural and relevant to someone applying for this spec
 
                   {activeTab === 'analytics' && (
                     <div className="space-y-6">
-                      {/* Interview Selection */}
+                      {/* Analytics Header */}
                       <div className={`${isDarkMode ? 'bg-black/20 border border-blue-500/30 backdrop-blur' : 'bg-white'} rounded-xl shadow-lg p-6`}>
-                        <h2 className={`text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'} mb-4`}>Select Interview to View Analytics</h2>
+                        <div className="flex items-center justify-between mb-6">
+                          <div>
+                            <h2 className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'} mb-2`}>
+                              📊 Interview Analytics Dashboard
+                            </h2>
+                            <p className={`${isDarkMode ? 'text-blue-200' : 'text-gray-600'}`}>
+                              Comprehensive performance analysis and communication insights
+                            </p>
+                          </div>
+                          <div className="flex items-center space-x-3">
+                            <div className={`px-4 py-2 rounded-lg ${isDarkMode ? 'bg-blue-600/20 text-blue-300' : 'bg-blue-100 text-blue-700'}`}>
+                              <span className="text-sm font-medium">
+                                {jobs.length} Interview{jobs.length !== 1 ? 's' : ''} Available
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Quick Stats Overview */}
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                          <div className={`p-4 rounded-lg ${isDarkMode ? 'bg-gray-800/50' : 'bg-gray-50'}`}>
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Total Interviews</p>
+                                <p className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{jobs.length}</p>
+                              </div>
+                              <BarChart3 className={`h-8 w-8 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} />
+                            </div>
+                          </div>
+                          <div className={`p-4 rounded-lg ${isDarkMode ? 'bg-gray-800/50' : 'bg-gray-50'}`}>
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Active Interviews</p>
+                                <p className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                                  {jobs.filter(job => job.status === 'active').length}
+                                </p>
+                              </div>
+                              <Users className={`h-8 w-8 ${isDarkMode ? 'text-green-400' : 'text-green-600'}`} />
+                            </div>
+                          </div>
+                          <div className={`p-4 rounded-lg ${isDarkMode ? 'bg-gray-800/50' : 'bg-gray-50'}`}>
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Completed</p>
+                                <p className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                                  {jobs.filter(job => job.status === 'completed').length}
+                                </p>
+                              </div>
+                              <CheckCircle className={`h-8 w-8 ${isDarkMode ? 'text-purple-400' : 'text-purple-600'}`} />
+                            </div>
+                          </div>
+                          <div className={`p-4 rounded-lg ${isDarkMode ? 'bg-gray-800/50' : 'bg-gray-50'}`}>
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Avg. Score</p>
+                                <p className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                                  {interviewStats ? Math.round(interviewStats.statistics.averageScore * 100) / 100 : 'N/A'}
+                                </p>
+                              </div>
+                              <Target className={`h-8 w-8 ${isDarkMode ? 'text-orange-400' : 'text-orange-600'}`} />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Interview Selection Grid */}
+                        <div>
+                          <h3 className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'} mb-4`}>
+                            Select Interview for Detailed Analytics
+                          </h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                           {jobs.map((job) => (
-                            <button
+                              <div
                               key={job.interviewId}
-                              onClick={() => setSelectedInterviewId(job.interviewId)}
-                              className={`p-4 rounded-xl border text-left transition-all duration-200 ${
+                                className={`p-4 rounded-xl border transition-all duration-200 cursor-pointer ${
                                 selectedInterviewId === job.interviewId
-                                  ? 'border-blue-500 bg-blue-50 shadow-md'
-                                  : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                              }`}
-                            >
-                              <h3 className="font-medium text-gray-900">{job.title}</h3>
-                              <p className="text-sm text-gray-600">{job.jobTitle}</p>
-                              <p className="text-xs text-gray-500 mt-1">
+                                    ? `${isDarkMode ? 'border-blue-500 bg-blue-500/20' : 'border-blue-500 bg-blue-50'} shadow-md`
+                                    : `${isDarkMode ? 'border-gray-700 hover:border-gray-600 hover:bg-gray-800/50' : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'}`
+                                }`}
+                                onClick={() => setSelectedInterviewId(job.interviewId)}
+                              >
+                                <div className="flex items-start justify-between mb-3">
+                                  <div className="flex-1">
+                                    <h4 className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'} mb-1`}>
+                                      {job.title}
+                                    </h4>
+                                    <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'} mb-2`}>
+                                      {job.jobTitle}
+                                    </p>
+                                    <p className={`text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
                                 Created: {new Date(job.createdAt).toLocaleDateString()}
                               </p>
+                                  </div>
+                                  <div className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                    job.status === 'active' 
+                                      ? `${isDarkMode ? 'bg-green-500/20 text-green-400' : 'bg-green-100 text-green-700'}`
+                                      : `${isDarkMode ? 'bg-gray-500/20 text-gray-400' : 'bg-gray-100 text-gray-700'}`
+                                  }`}>
+                                    {job.status}
+                                  </div>
+                                </div>
+                                
+                                {/* Quick Analytics Preview */}
+                                <div className="flex items-center justify-between text-xs">
+                                  <div className="flex items-center space-x-4">
+                                    <span className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                                      📊 Analytics Available
+                                    </span>
+                                  </div>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setAnalyticsInterviewId(job.interviewId);
+                                      setShowAnalyticsDashboard(true);
+                                    }}
+                                    className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                                      isDarkMode 
+                                        ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                                        : 'bg-blue-600 hover:bg-blue-700 text-white'
+                                    }`}
+                                  >
+                                    View Analytics
                             </button>
+                                </div>
+                              </div>
                           ))}
                         </div>
                       </div>
 
-                      {/* Interview Statistics */}
+                        {/* Selected Interview Quick Actions */}
+                        {selectedInterviewId && (
+                          <div className={`mt-6 p-4 rounded-lg ${isDarkMode ? 'bg-gray-800/50' : 'bg-gray-50'}`}>
+                            <h4 className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'} mb-3`}>
+                              Quick Actions for Selected Interview
+                            </h4>
+                            <div className="flex flex-wrap gap-3">
+                              <button
+                                onClick={() => {
+                                  setAnalyticsInterviewId(selectedInterviewId);
+                                  setShowAnalyticsDashboard(true);
+                                }}
+                                className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2 ${
+                                  isDarkMode 
+                                    ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                                    : 'bg-blue-600 hover:bg-blue-700 text-white'
+                                }`}
+                              >
+                                <BarChart3 className="h-4 w-4" />
+                                <span>View Detailed Analytics</span>
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setResultsInterviewId(selectedInterviewId);
+                                  setShowInterviewResults(true);
+                                }}
+                                className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2 ${
+                                  isDarkMode 
+                                    ? 'bg-green-600 hover:bg-green-700 text-white' 
+                                    : 'bg-green-600 hover:bg-green-700 text-white'
+                                }`}
+                              >
+                                <FileText className="h-4 w-4" />
+                                <span>View Interview Results</span>
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setPerformanceInterviewId(selectedInterviewId);
+                                  setShowPerformanceDashboard(true);
+                                }}
+                                className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2 ${
+                                  isDarkMode 
+                                    ? 'bg-purple-600 hover:bg-purple-700 text-white' 
+                                    : 'bg-purple-600 hover:bg-purple-700 text-white'
+                                }`}
+                              >
+                                <Award className="h-4 w-4" />
+                                <span>Performance Dashboard</span>
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Enhanced Interview Statistics */}
                       {interviewStats && (
-                        <>
                           <div className={`${isDarkMode ? 'bg-black/20 border border-blue-500/30 backdrop-blur' : 'bg-white'} rounded-xl shadow-lg p-6`}>
-                            <h2 className={`text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'} mb-4`}>Interview Analytics</h2>
+                          <h2 className={`text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'} mb-4`}>Interview Analytics Overview</h2>
                             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                               <div className="text-center">
                                 <div className="text-3xl font-bold text-blue-600">{interviewStats.statistics.totalCandidates}</div>
@@ -2947,53 +3110,6 @@ The interview should feel natural and relevant to someone applying for this spec
                               </div>
                             </div>
                           </div>
-
-                          {/* Candidate Performance */}
-                          <div className={`${isDarkMode ? 'bg-black/20 border border-blue-500/30 backdrop-blur' : 'bg-white'} rounded-xl shadow-lg p-6`}>
-                            <h3 className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'} mb-4`}>Candidate Performance</h3>
-                            <div className="space-y-4">
-                              {interviewStats.candidateSummaries.map((candidate, index) => (
-                                <div key={candidate.candidateId} className={`border ${isDarkMode ? 'border-blue-500/30' : 'border-gray-200'} rounded-xl p-4`}>
-                                  <div className="flex justify-between items-start mb-2">
-                                    <div>
-                                      <h4 className="font-medium text-gray-900">{candidate.candidateName}</h4>
-                                      <p className="text-sm text-gray-600">{candidate.candidateEmail}</p>
-                                    </div>
-                                    <div className="text-right">
-                                      <div className="text-lg font-bold text-blue-600">{candidate.averageScore.toFixed(1)}/4</div>
-                                      <div className="text-sm text-gray-600">Average Score</div>
-                                    </div>
-                                  </div>
-                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
-                                    <div>
-                                      <h5 className="text-sm font-medium text-green-700 mb-1">Strengths:</h5>
-                                      <ul className="text-xs text-gray-600 space-y-1">
-                                        {candidate.strengths.slice(0, 3).map((strength, i) => (
-                                          <li key={i}>• {strength}</li>
-                                        ))}
-                                      </ul>
-                                    </div>
-                                    <div>
-                                      <h5 className="text-sm font-medium text-red-700 mb-1">Areas for Improvement:</h5>
-                                      <ul className="text-xs text-gray-600 space-y-1">
-                                        {candidate.improvements.slice(0, 3).map((improvement, i) => (
-                                          <li key={i}>• {improvement}</li>
-                                        ))}
-                                      </ul>
-                                    </div>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        </>
-                      )}
-
-                      {!selectedInterviewId && (
-                        <div className={`${isDarkMode ? 'bg-black/20 border border-blue-500/30 backdrop-blur' : 'bg-gray-50'} rounded-xl p-8 text-center`}>
-                          <BarChart3 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                          <p className={`${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>Select an interview above to view detailed analytics</p>
-                        </div>
                       )}
                     </div>
                   )}
@@ -3080,6 +3196,17 @@ The interview should feel natural and relevant to someone applying for this spec
           onClose={() => {
             setShowInterviewResults(false);
             setResultsInterviewId(null);
+          }}
+        />
+      )}
+
+      {/* Analytics Dashboard Modal */}
+      {showAnalyticsDashboard && (
+        <InterviewAnalyticsDashboard
+          interviewId={analyticsInterviewId}
+          onClose={() => {
+            setShowAnalyticsDashboard(false);
+            setAnalyticsInterviewId(null);
           }}
         />
       )}

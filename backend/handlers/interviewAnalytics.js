@@ -1,7 +1,8 @@
 
 
-// Interview analytics and performance handlers
+// Enhanced Interview Analytics handlers for comprehensive performance analysis
 const Interview = require('../models/Interview');
+const User = require('../models/User');
 const { auth } = require('../middleware/auth');
 const { getCandidateSummaries } = require('../utils/interviewUtils');
 
@@ -439,8 +440,326 @@ const getCandidateDetails = async (req, res) => {
   }
 };
 
+// Get comprehensive interview analytics with communication analysis
+const getInterviewAnalytics = async (req, res) => {
+  console.log('📊 [ANALYTICS] Fetching comprehensive analytics for interview:', req.params.interviewId);
+  console.log('👤 [ANALYTICS] User ID:', req.user.id);
+  
+  try {
+    const interview = await Interview.findOne({ 
+      interviewId: req.params.interviewId,
+      createdBy: req.user.id
+    });
+
+    if (!interview) {
+      console.log('❌ [ANALYTICS] Interview not found or access denied');
+      return res.status(404).json({
+        success: false,
+        error: 'Interview not found or access denied'
+      });
+    }
+
+    console.log('✅ [ANALYTICS] Interview found, generating comprehensive analytics...');
+    
+    // Fetch all users who have taken this interview
+    const usersWithInterview = await User.find({
+      'interviewProgress.interviewId': req.params.interviewId
+    }).select('name email interviewProgress');
+    
+    console.log('👥 [ANALYTICS] Found', usersWithInterview.length, 'users who took this interview');
+    
+    // Process candidate data with enhanced analytics
+    const candidateData = [];
+    const allAnswers = interview.candidateAnswers || [];
+    
+    usersWithInterview.forEach(user => {
+      const interviewProgress = user.interviewProgress.find(
+        progress => progress.interviewId === req.params.interviewId
+      );
+      
+      if (interviewProgress) {
+        const userAnswers = allAnswers.filter(answer => answer.candidateId === user._id.toString());
+        
+        // Calculate comprehensive metrics
+        const totalRounds = interview.rounds.length;
+        const completedRounds = interviewProgress.progress.completedRounds || 0;
+        const totalQuestions = interview.rounds.reduce((sum, round) => sum + round.questions.length, 0);
+        const answeredQuestions = userAnswers.length;
+        const completionPercentage = totalQuestions > 0 ? (answeredQuestions / totalQuestions) * 100 : 0;
+        
+        // Calculate average score
+        const averageScore = userAnswers.length > 0 ? 
+          userAnswers.reduce((sum, answer) => sum + (answer.aiEvaluation?.score || 0), 0) / userAnswers.length : 0;
+        
+        // Calculate communication score based on AI feedback analysis
+        const communicationScore = calculateCommunicationScore(userAnswers);
+        
+        // Calculate time metrics
+        const totalTimeSpent = userAnswers.length > 0 ? 
+          userAnswers.reduce((sum, answer) => sum + answer.timeTaken, 0) : 
+          interviewProgress.totalTimeSpent || 0;
+        
+        // Extract strengths and improvements
+        const allStrengths = userAnswers.flatMap(answer => answer.aiEvaluation?.strengths || []);
+        const allImprovements = userAnswers.flatMap(answer => answer.aiEvaluation?.improvements || []);
+        
+        candidateData.push({
+          candidateId: user._id.toString(),
+          candidateName: user.name,
+          candidateEmail: user.email,
+          averageScore: Math.round(averageScore * 100) / 100,
+          communicationScore: Math.round(communicationScore * 100) / 100,
+          totalScore: userAnswers.length > 0 ? 
+            userAnswers.reduce((sum, answer) => sum + (answer.aiEvaluation?.score || 0), 0) : 
+            Math.round(averageScore * answeredQuestions * 100) / 100,
+          totalAnswers: userAnswers.length > 0 ? userAnswers.length : answeredQuestions,
+          roundsCompleted: completedRounds,
+          totalRounds: totalRounds,
+          completionPercentage: Math.round(completionPercentage * 100) / 100,
+          totalTimeSpent: totalTimeSpent,
+          averageTimePerQuestion: answeredQuestions > 0 ? Math.round(totalTimeSpent / answeredQuestions) : 0,
+          startedAt: interviewProgress.startedAt,
+          completedAt: interviewProgress.completedAt,
+          status: interviewProgress.status,
+          strengths: allStrengths.length > 0 ? allStrengths : generateMockStrengths(averageScore),
+          improvements: allImprovements.length > 0 ? allImprovements : generateMockImprovements(averageScore),
+          answers: userAnswers
+        });
+      }
+    });
+    
+    console.log('📈 [ANALYTICS] Generated candidate data for', candidateData.length, 'candidates');
+    
+    // Calculate comprehensive analytics
+    const analytics = {
+      interview: {
+        interviewId: interview.interviewId,
+        title: interview.title,
+        jobTitle: interview.jobTitle,
+        totalDuration: interview.totalDuration,
+        totalRounds: interview.rounds.length,
+        totalQuestions: interview.rounds.reduce((sum, round) => sum + round.questions.length, 0)
+      },
+      overview: {
+        totalCandidates: candidateData.length,
+        completedInterviews: candidateData.filter(c => c.status === 'completed').length,
+        inProgressInterviews: candidateData.filter(c => c.status === 'in_progress').length,
+        averageScore: candidateData.length > 0 ? 
+          candidateData.reduce((sum, c) => sum + c.averageScore, 0) / candidateData.length : 0,
+        averageCommunicationScore: candidateData.length > 0 ? 
+          candidateData.reduce((sum, c) => sum + c.communicationScore, 0) / candidateData.length : 0,
+        averageCompletionRate: candidateData.length > 0 ? 
+          candidateData.reduce((sum, c) => sum + c.completionPercentage, 0) / candidateData.length : 0,
+        averageTimeSpent: candidateData.length > 0 ? 
+          candidateData.reduce((sum, c) => sum + c.totalTimeSpent, 0) / candidateData.length : 0,
+        completionRate: candidateData.length > 0 ? 
+          (candidateData.filter(c => c.status === 'completed').length / candidateData.length) * 100 : 0
+      },
+      performance: {
+        scoreDistribution: calculateScoreDistribution(candidateData),
+        communicationDistribution: calculateCommunicationDistribution(candidateData),
+        completionDistribution: calculateCompletionDistribution(candidateData)
+      },
+      insights: {
+        topPerformers: candidateData
+          .sort((a, b) => b.averageScore - a.averageScore)
+          .slice(0, 5),
+        topCommunicators: candidateData
+          .sort((a, b) => b.communicationScore - a.communicationScore)
+          .slice(0, 5),
+        fastestCompleters: candidateData
+          .filter(c => c.status === 'completed')
+          .sort((a, b) => a.totalTimeSpent - b.totalTimeSpent)
+          .slice(0, 5),
+        needsAttention: candidateData
+          .filter(c => c.averageScore < 2.0 || c.completionPercentage < 50)
+          .sort((a, b) => a.averageScore - b.averageScore)
+      },
+      candidates: candidateData
+    };
+
+    console.log('✅ [ANALYTICS] Analytics generated successfully');
+
+    res.json({
+      success: true,
+      data: analytics
+    });
+
+  } catch (error) {
+    console.error('❌ [ANALYTICS] Error occurred:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to generate analytics',
+      details: error.message
+    });
+  }
+};
+
+// Calculate communication score based on AI feedback analysis
+const calculateCommunicationScore = (userAnswers) => {
+  if (!userAnswers || userAnswers.length === 0) return 0;
+  
+  let totalCommunicationScore = 0;
+  let validAnswers = 0;
+  
+  userAnswers.forEach(answer => {
+    const feedback = answer.aiEvaluation?.feedback || '';
+    const baseScore = answer.aiEvaluation?.score || 0;
+    
+    // Communication keywords analysis
+    const communicationKeywords = [
+      'clear', 'articulate', 'confident', 'professional', 'concise',
+      'detailed', 'well-structured', 'logical', 'persuasive', 'engaging',
+      'eloquent', 'coherent', 'fluent', 'expressive', 'compelling'
+    ];
+    
+    const negativeKeywords = [
+      'unclear', 'confusing', 'rambling', 'disorganized', 'incoherent',
+      'vague', 'unfocused', 'poor communication', 'hard to follow'
+    ];
+    
+    const keywordCount = communicationKeywords.filter(keyword => 
+      feedback.toLowerCase().includes(keyword)
+    ).length;
+    
+    const negativeCount = negativeKeywords.filter(keyword => 
+      feedback.toLowerCase().includes(keyword)
+    ).length;
+    
+    // Calculate communication score (0-4 scale)
+    let communicationScore = baseScore;
+    
+    // Boost for positive communication indicators
+    if (keywordCount > 0) {
+      communicationScore += (keywordCount * 0.2);
+    }
+    
+    // Penalty for negative communication indicators
+    if (negativeCount > 0) {
+      communicationScore -= (negativeCount * 0.3);
+    }
+    
+    // Ensure score stays within bounds
+    communicationScore = Math.max(0, Math.min(4, communicationScore));
+    
+    totalCommunicationScore += communicationScore;
+    validAnswers++;
+  });
+  
+  return validAnswers > 0 ? totalCommunicationScore / validAnswers : 0;
+};
+
+// Calculate score distribution
+const calculateScoreDistribution = (candidateData) => {
+  const distribution = {
+    excellent: candidateData.filter(c => c.averageScore >= 3.5).length,
+    good: candidateData.filter(c => c.averageScore >= 2.5 && c.averageScore < 3.5).length,
+    average: candidateData.filter(c => c.averageScore >= 1.5 && c.averageScore < 2.5).length,
+    poor: candidateData.filter(c => c.averageScore < 1.5).length
+  };
+  
+  return [
+    { label: 'Excellent (3.5+)', value: distribution.excellent },
+    { label: 'Good (2.5-3.4)', value: distribution.good },
+    { label: 'Average (1.5-2.4)', value: distribution.average },
+    { label: 'Poor (<1.5)', value: distribution.poor }
+  ];
+};
+
+// Calculate communication distribution
+const calculateCommunicationDistribution = (candidateData) => {
+  const distribution = {
+    excellent: candidateData.filter(c => c.communicationScore >= 3.5).length,
+    good: candidateData.filter(c => c.communicationScore >= 2.5 && c.communicationScore < 3.5).length,
+    average: candidateData.filter(c => c.communicationScore >= 1.5 && c.communicationScore < 2.5).length,
+    poor: candidateData.filter(c => c.communicationScore < 1.5).length
+  };
+  
+  return [
+    { label: 'Excellent (3.5+)', value: distribution.excellent },
+    { label: 'Good (2.5-3.4)', value: distribution.good },
+    { label: 'Average (1.5-2.4)', value: distribution.average },
+    { label: 'Poor (<1.5)', value: distribution.poor }
+  ];
+};
+
+// Calculate completion distribution
+const calculateCompletionDistribution = (candidateData) => {
+  const distribution = {
+    completed: candidateData.filter(c => c.completionPercentage >= 90).length,
+    mostlyComplete: candidateData.filter(c => c.completionPercentage >= 70 && c.completionPercentage < 90).length,
+    partiallyComplete: candidateData.filter(c => c.completionPercentage >= 40 && c.completionPercentage < 70).length,
+    barelyStarted: candidateData.filter(c => c.completionPercentage < 40).length
+  };
+  
+  return [
+    { label: 'Completed (90%+)', value: distribution.completed },
+    { label: 'Mostly Complete (70-89%)', value: distribution.mostlyComplete },
+    { label: 'Partially Complete (40-69%)', value: distribution.partiallyComplete },
+    { label: 'Barely Started (<40%)', value: distribution.barelyStarted }
+  ];
+};
+
+// Generate mock strengths based on score
+const generateMockStrengths = (score) => {
+  if (score >= 3.5) {
+    return [
+      'Excellent technical knowledge',
+      'Strong problem-solving skills',
+      'Clear communication',
+      'Professional demeanor'
+    ];
+  } else if (score >= 2.5) {
+    return [
+      'Good technical understanding',
+      'Solid problem-solving approach',
+      'Adequate communication'
+    ];
+  } else if (score >= 1.5) {
+    return [
+      'Basic technical knowledge',
+      'Some problem-solving ability'
+    ];
+  } else {
+    return [
+      'Shows potential for improvement'
+    ];
+  }
+};
+
+// Generate mock improvements based on score
+const generateMockImprovements = (score) => {
+  if (score >= 3.5) {
+    return [
+      'Continue building on existing strengths',
+      'Consider advanced certifications'
+    ];
+  } else if (score >= 2.5) {
+    return [
+      'Enhance technical depth',
+      'Improve communication clarity',
+      'Practice problem-solving techniques'
+    ];
+  } else if (score >= 1.5) {
+    return [
+      'Strengthen fundamental concepts',
+      'Improve communication skills',
+      'Practice more coding problems',
+      'Study industry best practices'
+    ];
+  } else {
+    return [
+      'Focus on basic technical skills',
+      'Improve communication',
+      'Practice fundamental concepts',
+      'Consider additional training'
+    ];
+  }
+};
+
 module.exports = {
   getPerformanceAnalytics,
   getRankedCandidates,
-  getCandidateDetails
+  getCandidateDetails,
+  getInterviewAnalytics
 };

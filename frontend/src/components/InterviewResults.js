@@ -1,22 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../context/ThemeContext';
 import apiService from '../services/apiService';
+import InterviewAnalyticsDashboard from './InterviewAnalyticsDashboard';
 import { 
   Trophy, 
   Clock, 
   Users, 
   BarChart3, 
-  Download, 
   Play, 
   Pause, 
   Volume2, 
   FileText, 
   Star, 
-  TrendingUp, 
-  TrendingDown, 
-  Award, 
-  Target, 
   CheckCircle, 
   AlertCircle, 
   XCircle,
@@ -25,29 +21,13 @@ import {
   Eye,
   Filter,
   SortAsc,
-  SortDesc,
-  Calendar,
-  Timer,
-  User,
-  Mail,
-  Phone,
-  MapPin,
-  Briefcase,
-  GraduationCap,
-  Code,
-  MessageSquare,
-  ThumbsUp,
-  ThumbsDown,
-  ArrowUp,
-  ArrowDown,
-  Minus
+  SortDesc
 } from 'lucide-react';
 
 const InterviewResults = ({ interviewId, onClose }) => {
   const { isDarkMode } = useTheme();
   const [loading, setLoading] = useState(true);
   const [results, setResults] = useState(null);
-  const [selectedCandidate, setSelectedCandidate] = useState(null);
   const [candidateReport, setCandidateReport] = useState(null);
   const [recordings, setRecordings] = useState([]);
   const [activeTab, setActiveTab] = useState('overview'); // 'overview', 'candidates', 'recordings', 'reports'
@@ -56,15 +36,9 @@ const InterviewResults = ({ interviewId, onClose }) => {
   const [filterBy, setFilterBy] = useState('all'); // 'all', 'excellent', 'good', 'satisfactory', 'needsImprovement'
   const [expandedCandidates, setExpandedCandidates] = useState({});
   const [playingRecording, setPlayingRecording] = useState(null);
+  const [showAnalytics, setShowAnalytics] = useState(false);
 
-  useEffect(() => {
-    console.log('🔍 [DEBUG] InterviewResults received interviewId:', interviewId);
-    if (interviewId) {
-      loadInterviewResults();
-    }
-  }, [interviewId]);
-
-  const loadInterviewResults = async () => {
+  const loadInterviewResults = useCallback(async () => {
     try {
       setLoading(true);
       console.log('🔍 [DEBUG] Calling API with interviewId:', interviewId);
@@ -79,14 +53,20 @@ const InterviewResults = ({ interviewId, onClose }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [interviewId]);
+
+  useEffect(() => {
+    console.log('🔍 [DEBUG] InterviewResults received interviewId:', interviewId);
+    if (interviewId) {
+      loadInterviewResults();
+    }
+  }, [interviewId, loadInterviewResults]);
 
   const loadCandidateReport = async (candidateId) => {
     try {
       const result = await apiService.getCandidateReport(interviewId, candidateId);
       if (result.success) {
         setCandidateReport(result.data);
-        setSelectedCandidate(candidateId);
       } else {
         console.error('Failed to load candidate report:', result.error);
       }
@@ -183,12 +163,6 @@ const InterviewResults = ({ interviewId, onClose }) => {
     return sorted;
   };
 
-  const getScoreColor = (score) => {
-    if (score >= 3.5) return 'text-green-600 bg-green-100';
-    if (score >= 2.5) return 'text-blue-600 bg-blue-100';
-    if (score >= 1.5) return 'text-yellow-600 bg-yellow-100';
-    return 'text-red-600 bg-red-100';
-  };
 
   const getScoreIcon = (score) => {
     if (score >= 3.5) return <Trophy className="w-4 h-4" />;
@@ -204,15 +178,6 @@ const InterviewResults = ({ interviewId, onClose }) => {
     return `${hours}h ${mins}m`;
   };
 
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
 
   if (loading) {
     return (
@@ -262,12 +227,21 @@ const InterviewResults = ({ interviewId, onClose }) => {
                   {results.interview.title} - {results.interview.jobTitle}
                 </p>
               </div>
-              <button
-                onClick={onClose}
-                className={`p-2 rounded-lg ${isDarkMode ? 'bg-white/20 hover:bg-white/30' : 'bg-white/20 hover:bg-white/30'} transition-colors`}
-              >
-                <XCircle className="w-6 h-6 text-white" />
-              </button>
+              <div className="flex items-center space-x-3">
+                <button
+                  onClick={() => setShowAnalytics(true)}
+                  className={`px-4 py-2 rounded-lg ${isDarkMode ? 'bg-blue-600 hover:bg-blue-700' : 'bg-blue-600 hover:bg-blue-700'} text-white transition-colors flex items-center space-x-2`}
+                >
+                  <BarChart3 className="w-4 h-4" />
+                  <span>Analytics</span>
+                </button>
+                <button
+                  onClick={onClose}
+                  className={`p-2 rounded-lg ${isDarkMode ? 'bg-white/20 hover:bg-white/30' : 'bg-white/20 hover:bg-white/30'} transition-colors`}
+                >
+                  <XCircle className="w-6 h-6 text-white" />
+                </button>
+              </div>
             </div>
           </div>
 
@@ -805,6 +779,14 @@ const InterviewResults = ({ interviewId, onClose }) => {
           </div>
         </div>
       </div>
+
+      {/* Analytics Dashboard Modal */}
+      {showAnalytics && (
+        <InterviewAnalyticsDashboard
+          interviewId={interviewId}
+          onClose={() => setShowAnalytics(false)}
+        />
+      )}
     </div>
   );
 };

@@ -4,7 +4,7 @@ import { useTheme } from '../context/ThemeContext';
 import CodeEditor from './CodeEditor';
 import EnhancedCodeEditor from './EnhancedCodeEditor';
 import apiService from '../services/apiService';
-import { EyeTrackingDetector, FacePositioningGuide } from './eyeTracking';
+import { EyeTrackingDetector } from './eyeTracking';
 import monitoringService from '../services/monitoringService';
 
 // Helper function to determine if a round is a coding round
@@ -22,7 +22,7 @@ const isCodingRound = (roundTitle) => {
 
 const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError }) => {
   const { isDarkMode } = useTheme();
-  const [step, setStep] = useState('setup'); // setup, interview, round-selection, complete
+  const [step, setStep] = useState('setup'); // setup, face-positioning, interview, round-selection, complete
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [userProgress, setUserProgress] = useState(null);
@@ -68,7 +68,6 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
   const [isAiQuestionAnswered, setIsAiQuestionAnswered] = useState(false);
   
   // Monitoring and Eye Tracking State
-  const [showFacePositioning, setShowFacePositioning] = useState(false);
   const [eyeTrackingEnabled, setEyeTrackingEnabled] = useState(true);
   const [monitoringData, setMonitoringData] = useState({
     violations: [],
@@ -164,16 +163,123 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
     }
   }, [lookAwayStartTime]);
 
-  const handleFacePositioningComplete = useCallback((positioningData) => {
-    console.log('✅ Face positioning completed:', positioningData);
-    setShowFacePositioning(false);
-    setStep('interview');
-  }, []);
+  // Sync completed rounds with user progress
+  const syncCompletedRoundsWithProgress = useCallback(() => {
+    if (userProgress && userProgress.rounds && allRounds.length > 0) {
+      const completedRoundIds = new Set();
+      
+      userProgress.rounds.forEach(progressRound => {
+        if (progressRound.status === 'completed') {
+          completedRoundIds.add(progressRound.roundId);
+        }
+      });
+      
+      console.log('🔄 Syncing completed rounds:', Array.from(completedRoundIds));
+      setCompletedRounds(completedRoundIds);
+    }
+  }, [userProgress, allRounds]);
 
-  const handleFacePositioningFailed = useCallback((error) => {
-    console.error('❌ Face positioning failed:', error);
-    setError(`Camera setup failed: ${error}`);
-  }, []);
+  // Load interview rounds from the backend
+  const loadInterviewRounds = useCallback(async () => {
+    try {
+      console.log('🔄 Loading interview rounds for interviewId:', interviewId);
+      
+      if (!interviewId) {
+        console.log('⚠️ No interviewId provided, creating default rounds');
+        const defaultRounds = [
+          {
+            roundId: 'round_1',
+            title: 'Technical Assessment',
+            description: 'Basic technical knowledge and problem-solving skills',
+            questions: [
+              {
+                questionId: 'q1',
+                question: 'Tell me about yourself and your technical background.',
+                type: 'behavioral',
+                timeLimit: 300
+              },
+              {
+                questionId: 'q2', 
+                question: 'Explain the difference between let, const, and var in JavaScript.',
+                type: 'technical',
+                timeLimit: 180
+              }
+            ]
+          },
+          {
+            roundId: 'round_2',
+            title: 'Coding Challenge',
+            description: 'Live coding session with real-time problem solving',
+            questions: [
+              {
+                questionId: 'q3',
+                question: 'Write a function to reverse a string in JavaScript.',
+                type: 'coding',
+                timeLimit: 600,
+                codeEditor: { enabled: true, language: 'javascript' }
+              }
+            ]
+          },
+          {
+            roundId: 'round_3',
+            title: 'System Design',
+            description: 'Architecture and system design discussion',
+            questions: [
+              {
+                questionId: 'q4',
+                question: 'How would you design a URL shortener service like bit.ly?',
+                type: 'system-design',
+                timeLimit: 900
+              }
+            ]
+          }
+        ];
+        
+        setAllRounds(defaultRounds);
+        console.log('✅ Default rounds loaded:', defaultRounds.length);
+        return;
+      }
+
+      // Fetch actual interview data from the backend using apiService
+      console.log('🌐 Fetching interview data from backend...');
+      
+      const result = await apiService.getInterview(interviewId);
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to fetch interview data');
+      }
+
+      const interviewData = result.data;
+      console.log('📋 Interview data received:', {
+        id: interviewData.interviewId,
+        title: interviewData.title,
+        roundsCount: interviewData.rounds?.length || 0,
+        approvalStatus: interviewData.approvalStatus
+      });
+
+      // Check if interview is approved or pending (for testing)
+      if (interviewData.approvalStatus !== 'approved' && interviewData.approvalStatus !== 'pending') {
+        throw new Error(`This interview is not available yet. Status: ${interviewData.approvalStatus}`);
+      }
+
+      // Set the rounds from the interview data
+      if (interviewData.rounds && interviewData.rounds.length > 0) {
+        setAllRounds(interviewData.rounds);
+        console.log('✅ Interview rounds loaded successfully:', interviewData.rounds.length);
+        
+        // Sync completed rounds with user progress
+        syncCompletedRoundsWithProgress();
+      } else {
+        console.log('⚠️ No rounds found in interview data');
+        setAllRounds([]);
+      }
+      
+    } catch (error) {
+      console.error('❌ Failed to load interview rounds:', error);
+      setError('Failed to load interview rounds: ' + error.message);
+    }
+  }, [interviewId, syncCompletedRoundsWithProgress]);
+
 
   // Auto-detect if current question is a coding question and reset showCodeEditor accordingly
   useEffect(() => {
@@ -414,122 +520,7 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
     }
   };
 
-  // Load interview rounds from the backend
-  const loadInterviewRounds = async () => {
-    try {
-      console.log('🔄 Loading interview rounds for interviewId:', interviewId);
-      
-      if (!interviewId) {
-        console.log('⚠️ No interviewId provided, creating default rounds');
-        const defaultRounds = [
-          {
-            roundId: 'round_1',
-            title: 'Technical Assessment',
-            description: 'Basic technical knowledge and problem-solving skills',
-            questions: [
-              {
-                questionId: 'q1',
-                question: 'Tell me about yourself and your technical background.',
-                type: 'behavioral',
-                timeLimit: 300
-              },
-              {
-                questionId: 'q2', 
-                question: 'Explain the difference between let, const, and var in JavaScript.',
-                type: 'technical',
-                timeLimit: 180
-              }
-            ]
-          },
-          {
-            roundId: 'round_2',
-            title: 'Coding Challenge',
-            description: 'Live coding session with real-time problem solving',
-            questions: [
-              {
-                questionId: 'q3',
-                question: 'Write a function to reverse a string in JavaScript.',
-                type: 'coding',
-                timeLimit: 600,
-                codeEditor: { enabled: true, language: 'javascript' }
-              }
-            ]
-          },
-          {
-            roundId: 'round_3',
-            title: 'System Design',
-            description: 'Architecture and system design discussion',
-            questions: [
-              {
-                questionId: 'q4',
-                question: 'How would you design a URL shortener service like bit.ly?',
-                type: 'system-design',
-                timeLimit: 900
-              }
-            ]
-          }
-        ];
-        
-        setAllRounds(defaultRounds);
-        console.log('✅ Default rounds loaded:', defaultRounds.length);
-        return;
-      }
 
-      // Fetch actual interview data from the backend using apiService
-      console.log('🌐 Fetching interview data from backend...');
-      
-      const result = await apiService.getInterview(interviewId);
-      
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to fetch interview data');
-      }
-
-      const interviewData = result.data;
-      console.log('📋 Interview data received:', {
-        id: interviewData.interviewId,
-        title: interviewData.title,
-        roundsCount: interviewData.rounds?.length || 0,
-        approvalStatus: interviewData.approvalStatus
-      });
-
-      // Check if interview is approved or pending (for testing)
-      if (interviewData.approvalStatus !== 'approved' && interviewData.approvalStatus !== 'pending') {
-        throw new Error(`This interview is not available yet. Status: ${interviewData.approvalStatus}`);
-      }
-
-      // Set the rounds from the interview data
-      if (interviewData.rounds && interviewData.rounds.length > 0) {
-        setAllRounds(interviewData.rounds);
-        console.log('✅ Interview rounds loaded successfully:', interviewData.rounds.length);
-        
-        // Sync completed rounds with user progress
-        syncCompletedRoundsWithProgress();
-      } else {
-        console.log('⚠️ No rounds found in interview data');
-        setAllRounds([]);
-      }
-      
-    } catch (error) {
-      console.error('❌ Failed to load interview rounds:', error);
-      setError('Failed to load interview rounds: ' + error.message);
-    }
-  };
-
-  // Sync completed rounds with user progress
-  const syncCompletedRoundsWithProgress = useCallback(() => {
-    if (userProgress && userProgress.rounds && allRounds.length > 0) {
-      const completedRoundIds = new Set();
-      
-      userProgress.rounds.forEach(progressRound => {
-        if (progressRound.status === 'completed') {
-          completedRoundIds.add(progressRound.roundId);
-        }
-      });
-      
-      console.log('🔄 Syncing completed rounds:', Array.from(completedRoundIds));
-      setCompletedRounds(completedRoundIds);
-    }
-  }, [userProgress, allRounds]);
 
   // Refresh user progress from backend
   const refreshUserProgress = useCallback(async () => {
@@ -2385,17 +2376,7 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
 
   if (step === 'setup') {
     return (
-      <>
-        {/* Face Positioning Guide */}
-        {showFacePositioning && (
-          <FacePositioningGuide
-            onPositioningComplete={handleFacePositioningComplete}
-            onPositioningFailed={handleFacePositioningFailed}
-            isVisible={showFacePositioning}
-          />
-        )}
-        
-        <div className={`fixed inset-0 overflow-hidden ${
+      <div className={`fixed inset-0 overflow-hidden ${
           isDarkMode 
             ? 'bg-gradient-to-br from-slate-900 via-gray-900 to-black' 
             : 'bg-gradient-to-br from-white via-blue-50 to-indigo-100'
@@ -2565,22 +2546,11 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
                       )}
           </button>
           
-          {/* Face Positioning Button */}
-          <button
-            onClick={() => setShowFacePositioning(true)}
-            className="mt-3 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white py-3 px-8 rounded-xl font-semibold transition-all duration-200 transform hover:scale-105 shadow-lg"
-          >
-            <div className="flex items-center justify-center space-x-3">
-              <div className="w-5 h-5 border-2 border-white rounded-full"></div>
-              <span>Position Your Face</span>
-            </div>
-          </button>
               </div>
             </div>
           </div>
         </div>
       </div>
-      </>
     );
   }
 

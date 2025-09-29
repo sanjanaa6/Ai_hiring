@@ -44,7 +44,8 @@ const {
 const {
   getPerformanceAnalytics,
   getRankedCandidates,
-  getCandidateDetails
+  getCandidateDetails,
+  getInterviewAnalytics
 } = require('../handlers/interviewAnalytics');
 
 const {
@@ -131,6 +132,9 @@ router.get('/:interviewId/candidates/:candidateId', auth, getCandidateDetails);
 
 // Get performance analytics
 router.get('/:interviewId/performance', auth, getPerformanceAnalytics);
+
+// Get comprehensive interview analytics
+router.get('/:interviewId/analytics', auth, getInterviewAnalytics);
 
 // Get interview by ID (authenticated) - MUST BE LAST TO AVOID CONFLICTS
 router.get('/:interviewId', auth, getInterviewById);
