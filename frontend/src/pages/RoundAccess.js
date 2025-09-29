@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
 import { getTimeUntilStart, getTimeUntilEnd } from '../utils/timeValidation';
@@ -27,7 +27,7 @@ const RoundAccess = () => {
   const [isStarting, setIsStarting] = useState(false);
 
   // Fetch round data and validate access
-  const fetchRoundData = async () => {
+  const fetchRoundData = useCallback(async () => {
     try {
       setLoading(true);
       const apiBaseUrl = process.env.NODE_ENV === 'production' 
@@ -68,7 +68,7 @@ const RoundAccess = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [accessLink]);
 
   // Auto-refresh time remaining
   useEffect(() => {
