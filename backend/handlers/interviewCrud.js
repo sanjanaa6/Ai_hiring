@@ -10,10 +10,15 @@ const getAllInterviews = async (req, res) => {
   console.log('👤 [GET INTERVIEWS] User role:', req.user.role);
   
   try {
-    // Find all interviews for the user
-    const interviews = await Interview.find({
-      createdBy: req.user.id
-    }).sort({ createdAt: -1 });
+    // Find all interviews - allow recruiters and admins to see all interviews
+    let query = {};
+    
+    // If user is not recruiter or admin, only show their own interviews
+    if (req.user.role !== 'recruiter' && req.user.role !== 'admin') {
+      query.createdBy = req.user.id;
+    }
+    
+    const interviews = await Interview.find(query).sort({ createdAt: -1 });
 
     console.log('✅ [GET INTERVIEWS] Found', interviews.length, 'interviews');
 
@@ -55,11 +60,16 @@ const getInterviewById = async (req, res) => {
   console.log('👤 [GET INTERVIEW] User role:', req.user.role);
   
   try {
-    // Find the interview (allow access to pending interviews for testing)
-    const interview = await Interview.findOne({
-      interviewId: req.params.interviewId,
-      createdBy: req.user.id
-    });
+    // Find the interview - allow access for recruiters and admins to all interviews
+    let query = { interviewId: req.params.interviewId };
+    
+    // If user is not recruiter or admin, only allow access to their own interviews
+    if (req.user.role !== 'recruiter' && req.user.role !== 'admin') {
+      query.createdBy = req.user.id;
+    }
+    
+    console.log('🔍 [GET INTERVIEW] Query:', JSON.stringify(query));
+    const interview = await Interview.findOne(query);
 
     if (!interview) {
       console.log('❌ [GET INTERVIEW] Interview not found:', req.params.interviewId);

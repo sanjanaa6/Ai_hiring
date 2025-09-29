@@ -5,6 +5,8 @@ import apiService from '../../services/apiService';
 import InterviewPerformanceDashboard from '../../components/InterviewPerformanceDashboard';
 import InterviewResults from '../../components/InterviewResults';
 import InterviewAnalyticsDashboard from '../../components/InterviewAnalyticsDashboard';
+import InterviewScheduler from '../components/InterviewScheduler';
+import CandidateManager from '../components/CandidateManager';
 import { motion } from 'framer-motion';
 import { 
   Plus, 
@@ -28,7 +30,8 @@ import {
   ThumbsUp,
   ThumbsDown,
   Edit3,
-  Target
+  Target,
+  Calendar
 } from 'lucide-react';
 
 const RecruiterDashboard = () => {
@@ -50,6 +53,10 @@ const RecruiterDashboard = () => {
   const [resultsInterviewId, setResultsInterviewId] = useState(null);
   const [showAnalyticsDashboard, setShowAnalyticsDashboard] = useState(false);
   const [analyticsInterviewId, setAnalyticsInterviewId] = useState(null);
+  const [showScheduler, setShowScheduler] = useState(false);
+  const [schedulerInterviewId, setSchedulerInterviewId] = useState(null);
+  const [showCandidateManager, setShowCandidateManager] = useState(false);
+  const [candidateManagerInterviewId, setCandidateManagerInterviewId] = useState(null);
 
   // Answers state
   const [answersLoading, setAnswersLoading] = useState(false);
@@ -563,6 +570,8 @@ The interview should feel natural and relevant to someone applying for this spec
   const sidebarItems = [
     { id: 'jobs', label: 'Jobs', icon: Briefcase, description: 'Manage job postings' },
     { id: 'manage-jobs', label: 'Job Management', icon: Settings, description: 'View, edit, activate jobs' },
+    { id: 'scheduler', label: 'Interview Scheduler', icon: Calendar, description: 'Schedule interview rounds' },
+    { id: 'candidate-manager', label: 'Candidate Manager', icon: Users, description: 'Manage candidate progression' },
     { id: 'candidates', label: 'Candidates', icon: Users, description: 'Review applications' },
     { id: 'analytics', label: 'Analytics', icon: BarChart3, description: 'Performance insights' },
     { id: 'answers', label: 'Interview Results', icon: Award, description: 'AI interview analysis' },
@@ -1820,6 +1829,164 @@ The interview should feel natural and relevant to someone applying for this spec
             </div>
           </motion.div>
           </>
+        )}
+
+        {activeTab === 'scheduler' && (
+          <div className="space-y-6">
+            {/* Scheduler Header */}
+            <div className={`${isDarkMode ? 'bg-gradient-to-r from-green-900/50 to-slate-900/50 border border-green-500/30 backdrop-blur' : 'bg-gradient-to-r from-green-600 to-slate-700'} rounded-2xl shadow-2xl p-6`}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-white'} mb-2`}>
+                    📅 Interview Scheduler
+                  </h2>
+                  <p className={`${isDarkMode ? 'text-green-200' : 'text-green-100'}`}>
+                    Schedule interview rounds with specific time slots and requirements
+                  </p>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <div className={`px-4 py-2 rounded-lg ${isDarkMode ? 'bg-green-800/30' : 'bg-green-500/20'}`}>
+                    <span className={`text-sm font-medium ${isDarkMode ? 'text-green-200' : 'text-green-100'}`}>
+                      {jobs.length} Interviews
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Interview Selection for Scheduler */}
+            <div className={`${isDarkMode ? 'bg-gray-800/50' : 'bg-white'} rounded-2xl shadow-xl p-6`}>
+              <h3 className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'} mb-4`}>
+                Select Interview to Schedule Rounds
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {jobs.map((job) => (
+                  <div
+                    key={job.interviewId}
+                    className={`p-4 rounded-xl border cursor-pointer transition-all duration-200 hover:scale-105 ${
+                      isDarkMode 
+                        ? 'bg-gray-700/50 border-gray-600 hover:border-green-500 hover:bg-gray-700' 
+                        : 'bg-gray-50 border-gray-200 hover:border-green-500 hover:bg-green-50'
+                    }`}
+                    onClick={() => {
+                      setSchedulerInterviewId(job.interviewId);
+                      setShowScheduler(true);
+                    }}
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1">
+                        <h4 className={`font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'} mb-1`}>
+                          {job.title}
+                        </h4>
+                        <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'} mb-2`}>
+                          {job.description}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center justify-between text-xs">
+                      <span className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                        📅 Schedule Rounds
+                      </span>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSchedulerInterviewId(job.interviewId);
+                          setShowScheduler(true);
+                        }}
+                        className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
+                          isDarkMode
+                            ? 'bg-green-600 hover:bg-green-700 text-white'
+                            : 'bg-green-600 hover:bg-green-700 text-white'
+                        }`}
+                      >
+                        Schedule
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'candidate-manager' && (
+          <div className="space-y-6">
+            {/* Candidate Manager Header */}
+            <div className={`${isDarkMode ? 'bg-gradient-to-r from-purple-900/50 to-slate-900/50 border border-purple-500/30 backdrop-blur' : 'bg-gradient-to-r from-purple-600 to-slate-700'} rounded-2xl shadow-2xl p-6`}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-white'} mb-2`}>
+                    👥 Candidate Manager
+                  </h2>
+                  <p className={`${isDarkMode ? 'text-purple-200' : 'text-purple-100'}`}>
+                    Manage candidate progression through interview rounds
+                  </p>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <div className={`px-4 py-2 rounded-lg ${isDarkMode ? 'bg-purple-800/30' : 'bg-purple-500/20'}`}>
+                    <span className={`text-sm font-medium ${isDarkMode ? 'text-purple-200' : 'text-purple-100'}`}>
+                      {jobs.length} Interviews
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Interview Selection for Candidate Manager */}
+            <div className={`${isDarkMode ? 'bg-gray-800/50' : 'bg-white'} rounded-2xl shadow-xl p-6`}>
+              <h3 className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'} mb-4`}>
+                Select Interview to Manage Candidates
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {jobs.map((job) => (
+                  <div
+                    key={job.interviewId}
+                    className={`p-4 rounded-xl border cursor-pointer transition-all duration-200 hover:scale-105 ${
+                      isDarkMode 
+                        ? 'bg-gray-700/50 border-gray-600 hover:border-purple-500 hover:bg-gray-700' 
+                        : 'bg-gray-50 border-gray-200 hover:border-purple-500 hover:bg-purple-50'
+                    }`}
+                    onClick={() => {
+                      setCandidateManagerInterviewId(job.interviewId);
+                      setShowCandidateManager(true);
+                    }}
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1">
+                        <h4 className={`font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'} mb-1`}>
+                          {job.title}
+                        </h4>
+                        <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'} mb-2`}>
+                          {job.description}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center justify-between text-xs">
+                      <span className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                        👥 Manage Candidates
+                      </span>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setCandidateManagerInterviewId(job.interviewId);
+                          setShowCandidateManager(true);
+                        }}
+                        className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
+                          isDarkMode
+                            ? 'bg-purple-600 hover:bg-purple-700 text-white'
+                            : 'bg-purple-600 hover:bg-purple-700 text-white'
+                        }`}
+                      >
+                        Manage
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         )}
 
         {activeTab === 'candidates' && (
@@ -3207,6 +3374,28 @@ The interview should feel natural and relevant to someone applying for this spec
           onClose={() => {
             setShowAnalyticsDashboard(false);
             setAnalyticsInterviewId(null);
+          }}
+        />
+      )}
+
+      {/* Interview Scheduler Modal */}
+      {showScheduler && (
+        <InterviewScheduler
+          interviewId={schedulerInterviewId}
+          onClose={() => {
+            setShowScheduler(false);
+            setSchedulerInterviewId(null);
+          }}
+        />
+      )}
+
+      {/* Candidate Manager Modal */}
+      {showCandidateManager && (
+        <CandidateManager
+          interviewId={candidateManagerInterviewId}
+          onClose={() => {
+            setShowCandidateManager(false);
+            setCandidateManagerInterviewId(null);
           }}
         />
       )}

@@ -5,6 +5,7 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 // Context
+
 import { AuthProvider } from './context/AuthContext';
 
 // Components
@@ -35,6 +36,7 @@ import NotFound from './pages/NotFound';
 
 // Recruiter components
 import { InterviewReviewer } from './recruiter/components/InterviewReviewer';
+import RecruiterDashboard from './recruiter/pages/RecruiterDashboard';
 
 // Admin components
 import AdminDashboard from './admin/pages/AdminDashboard';
@@ -124,7 +126,7 @@ function AppShell() {
           } />
           <Route path="/recruiter" element={
             <ProtectedRoute allowedRoles={["recruiter", "admin"]}>
-              <Dashboard />
+              <RecruiterDashboard />
             </ProtectedRoute>
           } />
           <Route path="/recruiter/jobs" element={
