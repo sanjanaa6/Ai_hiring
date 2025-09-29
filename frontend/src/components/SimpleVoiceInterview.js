@@ -392,6 +392,9 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
       if (interviewData.rounds && interviewData.rounds.length > 0) {
         setAllRounds(interviewData.rounds);
         console.log('✅ Interview rounds loaded successfully:', interviewData.rounds.length);
+        
+        // Sync completed rounds with user progress
+        syncCompletedRoundsWithProgress();
       } else {
         console.log('⚠️ No rounds found in interview data');
         setAllRounds([]);
@@ -402,6 +405,60 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
       setError('Failed to load interview rounds: ' + error.message);
     }
   };
+
+  // Sync completed rounds with user progress
+  const syncCompletedRoundsWithProgress = useCallback(() => {
+    if (userProgress && userProgress.rounds && allRounds.length > 0) {
+      const completedRoundIds = new Set();
+      
+      userProgress.rounds.forEach(progressRound => {
+        if (progressRound.status === 'completed') {
+          completedRoundIds.add(progressRound.roundId);
+        }
+      });
+      
+      console.log('🔄 Syncing completed rounds:', Array.from(completedRoundIds));
+      setCompletedRounds(completedRoundIds);
+    }
+  }, [userProgress, allRounds]);
+
+  // Refresh user progress from backend
+  const refreshUserProgress = useCallback(async () => {
+    try {
+      const isAuthenticated = localStorage.getItem('token') || sessionStorage.getItem('token');
+      
+      if (isAuthenticated && interviewId) {
+        console.log('🔄 Refreshing user progress from backend...');
+        const result = await apiService.getUserProgress();
+        
+        if (result.success && result.data.interviewProgress) {
+          // Find progress for current interview
+          const currentInterviewProgress = result.data.interviewProgress.find(
+            progress => progress.interviewId === interviewId
+          );
+          
+          if (currentInterviewProgress) {
+            setUserProgress(currentInterviewProgress);
+            console.log('✅ User progress refreshed from backend');
+          }
+        }
+      }
+    } catch (err) {
+      console.error('❌ Error refreshing user progress:', err);
+    }
+  }, [interviewId]);
+
+  // Update completed rounds when user progress changes
+  useEffect(() => {
+    syncCompletedRoundsWithProgress();
+  }, [syncCompletedRoundsWithProgress]);
+
+  // Refresh user progress when component loads and rounds are available
+  useEffect(() => {
+    if (allRounds.length > 0 && interviewId) {
+      refreshUserProgress();
+    }
+  }, [allRounds.length, interviewId, refreshUserProgress]);
 
   // Stop recording function
   const stopRecording = useCallback(() => {
@@ -442,6 +499,15 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
         if (result.success) {
           setUserProgress(result.data.progress);
           console.log('✅ Progress updated successfully');
+          
+          // Check if round is completed and update local state
+          if (result.data.progress && result.data.progress.rounds) {
+            const progressRound = result.data.progress.rounds.find(pr => pr.roundId === roundId);
+            if (progressRound && progressRound.status === 'completed') {
+              setCompletedRounds(prev => new Set([...prev, roundId]));
+              console.log('🎉 Round completed:', roundId);
+            }
+          }
         } else {
           console.warn('⚠️ Failed to update progress:', result.error);
         }
@@ -454,6 +520,46 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
       console.error('❌ Error updating progress:', err);
     }
   }, [interviewId]);
+
+  // Mark round as completed in backend
+  const markRoundCompleted = useCallback(async (roundId) => {
+    try {
+      console.log('🏁 Marking round as completed in backend:', roundId);
+      
+      // Check if user is authenticated
+      const isAuthenticated = localStorage.getItem('token') || sessionStorage.getItem('token');
+      
+      if (isAuthenticated) {
+        // Get the current round data to mark all questions as answered
+        const currentRound = allRounds.find(round => round.roundId === roundId);
+        if (currentRound && currentRound.questions) {
+          // Mark all questions in the round as answered
+          for (const question of currentRound.questions) {
+            try {
+              await apiService.updateInterviewProgress(interviewId, {
+                roundId,
+                questionId: question.id,
+                status: 'answered',
+                timeSpent: question.timeLimit * 60 // Use full time limit as time spent
+              });
+            } catch (questionErr) {
+              console.warn(`⚠️ Failed to mark question ${question.id} as answered:`, questionErr);
+            }
+          }
+          console.log('✅ All questions marked as answered for round:', roundId);
+          
+          // Refresh user progress to get updated status
+          setTimeout(() => {
+            refreshUserProgress();
+          }, 1000);
+        }
+      } else {
+        console.log('📊 Anonymous user - round completion tracked locally');
+      }
+    } catch (err) {
+      console.error('❌ Error marking round as completed:', err);
+    }
+  }, [interviewId, allRounds, refreshUserProgress]);
 
   // Submit current answer (used internally for auto-progression)
   const submitCurrentAnswer = useCallback(async () => {
@@ -707,7 +813,19 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
        } else {
          // Current round complete - move to next round or complete interview
          console.log('🏁 Round complete, moving to next round...');
-         setCompletedRounds(prev => new Set([...prev, `round_${roundIndex + 1}`]));
+         const currentRoundId = allRounds[roundIndex]?.roundId;
+         if (currentRoundId) {
+           setCompletedRounds(prev => new Set([...prev, currentRoundId]));
+           console.log('✅ Round marked as completed locally:', currentRoundId);
+           
+           // Mark round as completed in backend
+           try {
+             await markRoundCompleted(currentRoundId);
+             console.log('📊 Backend updated with round completion');
+           } catch (err) {
+             console.error('❌ Failed to update backend:', err);
+           }
+         }
          setStep('round-selection');
        }
       
@@ -715,7 +833,7 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
       console.error('❌ Error moving to next question:', err);
       setError('Failed to progress to next question: ' + err.message);
     }
-  }, [isRecording, stopRecording, transcription, codeAnswer, submitCurrentAnswer, allRounds, roundIndex, questionIndex]);
+  }, [isRecording, stopRecording, transcription, codeAnswer, submitCurrentAnswer, allRounds, roundIndex, questionIndex, markRoundCompleted]);
 
   // Store the function in ref to avoid circular dependency
   moveToNextQuestionRef.current = moveToNextQuestion;
@@ -1401,15 +1519,35 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
         throw new Error('This round has no questions available');
       }
       
+      // Find user progress for this round to determine where to resume
+      let startQuestionIndex = 0;
+      let startQuestionNumber = 1;
+      
+      if (userProgress && userProgress.rounds) {
+        const progressRound = userProgress.rounds.find(pr => pr.roundId === roundId);
+        if (progressRound) {
+          // Find the first unanswered question
+          const unansweredQuestionIndex = progressRound.questions.findIndex(q => q.status === 'not_answered');
+          if (unansweredQuestionIndex !== -1) {
+            startQuestionIndex = unansweredQuestionIndex;
+            startQuestionNumber = unansweredQuestionIndex + 1;
+            console.log(`🔄 Resuming from question ${startQuestionNumber} in round ${roundId}`);
+          } else {
+            // All questions answered, start from beginning for retake
+            console.log(`🔄 All questions answered, starting from beginning for retake`);
+          }
+        }
+      }
+      
       setRoundIndex(roundIndex);
-      setQuestionIndex(0);
+      setQuestionIndex(startQuestionIndex);
       setCurrentRound(round);
       setCurrentQuestion({
-        ...round.questions[0],
-        questionId: round.questions[0].id,
-        question: round.questions[0].question,
-        timeLimit: round.questions[0].timeLimit,
-        questionNumber: 1,
+        ...round.questions[startQuestionIndex],
+        questionId: round.questions[startQuestionIndex].id,
+        question: round.questions[startQuestionIndex].question,
+        timeLimit: round.questions[startQuestionIndex].timeLimit,
+        questionNumber: startQuestionNumber,
         totalQuestions: round.questions.length
       });
       setTranscription('');
@@ -1784,6 +1922,13 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
               const isCompleted = completedRounds.has(roundId);
               const isAvailable = index === 0 || completedRounds.has(allRounds[index - 1]?.roundId);
               
+              // Check if round is in progress (has some answered questions but not completed)
+              const isInProgress = userProgress && userProgress.rounds ? 
+                userProgress.rounds.some(pr => 
+                  pr.roundId === roundId && 
+                  pr.status === 'in_progress'
+                ) : false;
+              
               return (
                 <div
                   key={roundId}
@@ -1923,10 +2068,18 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
                       <button
                         onClick={() => startSpecificRound(roundId)}
                         disabled={loading}
-                        className="w-full bg-gradient-to-r from-slate-800 via-blue-700 to-indigo-800 hover:from-slate-700 hover:via-blue-600 hover:to-indigo-700 disabled:from-gray-600 disabled:to-gray-600 text-white py-5 px-8 rounded-2xl font-black text-base transition-all duration-500 transform hover:scale-110 hover:-translate-y-1 disabled:transform-none shadow-2xl shadow-blue-500/40 hover:shadow-blue-500/60 relative overflow-hidden"
+                        className={`w-full py-5 px-8 rounded-2xl font-black text-base transition-all duration-500 transform hover:scale-110 hover:-translate-y-1 disabled:transform-none shadow-2xl relative overflow-hidden ${
+                          isInProgress 
+                            ? 'bg-gradient-to-r from-orange-600 via-amber-600 to-yellow-600 hover:from-orange-700 hover:via-amber-700 hover:to-yellow-700 shadow-orange-500/40 hover:shadow-orange-500/60'
+                            : 'bg-gradient-to-r from-slate-800 via-blue-700 to-indigo-800 hover:from-slate-700 hover:via-blue-600 hover:to-indigo-700 shadow-blue-500/40 hover:shadow-blue-500/60'
+                        } text-white disabled:from-gray-600 disabled:to-gray-600`}
                       >
                         {/* Animated Background */}
-                        <div className="absolute inset-0 bg-gradient-to-r from-blue-400/20 via-cyan-400/20 to-indigo-400/20 opacity-0 hover:opacity-100 transition-opacity duration-500"></div>
+                        <div className={`absolute inset-0 opacity-0 hover:opacity-100 transition-opacity duration-500 ${
+                          isInProgress 
+                            ? 'bg-gradient-to-r from-orange-400/20 via-amber-400/20 to-yellow-400/20'
+                            : 'bg-gradient-to-r from-blue-400/20 via-cyan-400/20 to-indigo-400/20'
+                        }`}></div>
                         
                         {/* Button Content */}
                         <div className="relative z-10 flex items-center justify-center space-x-3">
@@ -1937,7 +2090,7 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
                             </>
                           ) : (
                             <>
-                              <span>Start Round</span>
+                              <span>{isInProgress ? 'Continue Interview' : 'Start Round'}</span>
                               <div className="w-2 h-2 bg-white rounded-full animate-ping"></div>
                             </>
                           )}
