@@ -49,6 +49,20 @@ const interviewScheduleSchema = new mongoose.Schema({
     enum: ['scheduled', 'active', 'completed', 'cancelled'],
     default: 'scheduled'
   },
+  accessLink: {
+    type: String,
+    unique: true,
+    sparse: true // Allows null values but ensures uniqueness when present
+  },
+  accessCode: {
+    type: String,
+    unique: true,
+    sparse: true
+  },
+  isPublicAccess: {
+    type: Boolean,
+    default: false
+  },
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
@@ -139,6 +153,37 @@ interviewScheduleSchema.methods.getTimeRemaining = function() {
   } else {
     return 0;
   }
+};
+
+// Instance method to generate unique access link
+interviewScheduleSchema.methods.generateAccessLink = function() {
+  const crypto = require('crypto');
+  const accessCode = crypto.randomBytes(8).toString('hex');
+  const accessLink = `${this.interviewId}-${this.roundNumber}-${accessCode}`;
+  
+  this.accessCode = accessCode;
+  this.accessLink = accessLink;
+  
+  return accessLink;
+};
+
+// Static method to find schedule by access link
+interviewScheduleSchema.statics.findByAccessLink = function(accessLink) {
+  return this.findOne({ accessLink: accessLink });
+};
+
+// Instance method to validate access
+interviewScheduleSchema.methods.validateAccess = function() {
+  const now = new Date();
+  const isWithinTime = now >= this.startDateTime && now <= this.endDateTime;
+  const isActive = this.status === 'active' || (isWithinTime && this.status === 'scheduled');
+  
+  return {
+    canAccess: isActive,
+    reason: isActive ? 'active' : (now < this.startDateTime ? 'upcoming' : 'ended'),
+    message: isActive ? 'Access granted' : (now < this.startDateTime ? 'Round not started yet' : 'Round has ended'),
+    timeRemaining: this.getTimeRemaining()
+  };
 };
 
 module.exports = mongoose.model('InterviewSchedule', interviewScheduleSchema);

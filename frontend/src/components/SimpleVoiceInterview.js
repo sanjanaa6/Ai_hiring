@@ -54,6 +54,7 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
   const [currentAiQuestionIndex, setCurrentAiQuestionIndex] = useState(0);
   const [isAiQuestioning, setIsAiQuestioning] = useState(false);
   const [aiQuestionAnswers, setAiQuestionAnswers] = useState([]);
+  const [interviewData, setInterviewData] = useState(null);
   
   // AI Question Tracking System
   const [aiQuestionMap, setAiQuestionMap] = useState(new Map()); // Map to store question details
@@ -178,6 +179,35 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
       setCompletedRounds(completedRoundIds);
     }
   }, [userProgress, allRounds]);
+
+  // Load interview data with schedules
+  const loadInterviewData = useCallback(async () => {
+    try {
+      console.log('🔄 Loading interview data for interviewId:', interviewId);
+      const apiBaseUrl = process.env.NODE_ENV === 'production' 
+        ? 'https://aihire.eval8.xyz/api' 
+        : 'http://localhost:5000/api';
+      
+      const response = await fetch(`${apiBaseUrl}/interviews/public/${interviewId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success) {
+          setInterviewData(result.data);
+          console.log('✅ Interview data loaded:', result.data);
+          console.log('📊 Schedules found:', result.data.schedules?.length || 0);
+          console.log('🔍 Schedule details:', result.data.schedules);
+        }
+      }
+    } catch (error) {
+      console.log('⚠️ Could not load interview data:', error.message);
+    }
+  }, [interviewId]);
 
   // Load interview rounds from the backend
   const loadInterviewRounds = useCallback(async () => {
@@ -511,6 +541,7 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
       
       console.log('✅ Media access granted');
       setStep('round-selection');
+      await loadInterviewData();
       await loadInterviewRounds();
     } catch (err) {
       console.error('❌ Media access failed:', err);
@@ -2085,6 +2116,27 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
                   pr.status === 'in_progress'
                 ) : false;
               
+              // Simple schedule check - get schedule data from interview
+              const currentInterviewData = interviewData || {};
+              const roundSchedule = currentInterviewData.schedules?.find(schedule => schedule.roundNumber === round.roundNumber);
+              const isScheduled = !!roundSchedule;
+              
+              // Debug logging
+              if (round.roundNumber === 2) { // Debug for round 2 specifically
+                console.log('🔍 Round 2 Debug:', {
+                  roundNumber: round.roundNumber,
+                  roundTitle: round.title,
+                  interviewData: currentInterviewData,
+                  schedules: currentInterviewData.schedules,
+                  roundSchedule: roundSchedule,
+                  isScheduled: isScheduled,
+                  isAvailable: isAvailable
+                });
+              }
+              
+              // If round is scheduled, it should be locked (not available)
+              const finalAvailability = isAvailable && !isScheduled;
+              
               return (
                 <div
                   key={roundId}
@@ -2093,7 +2145,11 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
                       ? isDarkMode 
                         ? 'bg-gradient-to-br from-emerald-500/20 via-green-500/15 to-teal-500/10 border-2 border-emerald-400/50 shadow-2xl shadow-emerald-500/30' 
                         : 'bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50 border-2 border-emerald-300 shadow-2xl shadow-emerald-200/60'
-                      : isAvailable
+                      : isScheduled
+                      ? isDarkMode
+                        ? 'bg-gradient-to-br from-orange-900/40 via-red-900/30 to-pink-900/20 border-2 border-orange-700/40 opacity-70'
+                        : 'bg-gradient-to-br from-orange-100 via-red-100 to-pink-100 border-2 border-orange-400 opacity-70'
+                      : finalAvailability
                       ? isDarkMode
                         ? 'bg-gradient-to-br from-slate-900/80 via-gray-900/60 to-black/40 border-2 border-blue-400/40 hover:border-blue-400/80 hover:shadow-2xl hover:shadow-blue-500/40 cursor-pointer backdrop-blur-md'
                         : 'bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 border-2 border-blue-300 hover:border-blue-500 hover:shadow-2xl hover:shadow-blue-200/60 cursor-pointer'
@@ -2103,7 +2159,7 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
                   }`}
                 >
                   {/* Animated Background Glow */}
-                  {isAvailable && (
+                  {finalAvailability && !isScheduled && (
                     <div className={`absolute inset-0 rounded-3xl opacity-0 group-hover:opacity-100 transition-all duration-500 ${
                       isDarkMode 
                         ? 'bg-gradient-to-br from-blue-500/20 via-cyan-500/15 to-indigo-500/10 animate-pulse' 
@@ -2112,7 +2168,7 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
                   )}
                   
                   {/* Floating Particles Effect */}
-                  {isAvailable && (
+                  {finalAvailability && !isScheduled && (
                     <div className="absolute inset-0 overflow-hidden rounded-3xl">
                       <div className="absolute top-2 left-4 w-1 h-1 bg-blue-400 rounded-full animate-ping opacity-60"></div>
                       <div className="absolute top-6 right-6 w-1 h-1 bg-cyan-400 rounded-full animate-ping opacity-40 delay-300"></div>
@@ -2128,7 +2184,9 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
                         className={`w-20 h-20 rounded-3xl flex items-center justify-center mx-auto shadow-2xl transition-all duration-500 group-hover:scale-110 ${
                         isCompleted
                             ? 'bg-gradient-to-br from-emerald-500 via-green-500 to-teal-600 shadow-emerald-500/40'
-                          : isAvailable
+                          : isScheduled
+                            ? 'bg-gradient-to-br from-orange-500 via-red-500 to-pink-600 shadow-orange-500/50'
+                          : finalAvailability
                             ? 'bg-gradient-to-br from-slate-800 via-blue-600 to-indigo-700 shadow-blue-500/50'
                             : 'bg-gradient-to-br from-gray-600 to-slate-700 shadow-gray-500/30'
                       }`}
@@ -2141,7 +2199,7 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
                     </div>
 
                       {/* Animated Decorative Rings */}
-                      {isAvailable && (
+                      {finalAvailability && !isScheduled && (
                         <>
                           <div className="absolute inset-0 w-20 h-20 mx-auto rounded-3xl border-2 border-blue-400/40 animate-ping"></div>
                           <div className="absolute inset-0 w-20 h-20 mx-auto rounded-3xl border border-cyan-400/60 animate-pulse"></div>
@@ -2150,7 +2208,7 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
                       )}
                       
                       {/* Glowing Orb Effect */}
-                      {isAvailable && (
+                      {finalAvailability && !isScheduled && (
                         <div className="absolute inset-0 w-20 h-20 mx-auto rounded-3xl bg-gradient-to-br from-blue-400/20 to-cyan-400/20 blur-xl animate-pulse"></div>
                       )}
                     </div>
@@ -2160,7 +2218,9 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
                       className={`text-2xl font-black mb-4 leading-tight transition-all duration-300 group-hover:scale-105 ${
                         isCompleted
                           ? isDarkMode ? 'text-emerald-200' : 'text-emerald-800'
-                          : isAvailable
+                          : isScheduled
+                          ? isDarkMode ? 'text-orange-300' : 'text-orange-700'
+                          : finalAvailability
                           ? isDarkMode ? 'text-white' : 'text-slate-900'
                           : isDarkMode ? 'text-gray-400' : 'text-gray-500'
                       }`}
@@ -2173,13 +2233,34 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
                       className={`text-sm mb-6 leading-relaxed transition-all duration-300 ${
                         isCompleted
                           ? isDarkMode ? 'text-emerald-300/90' : 'text-emerald-700'
-                          : isAvailable
+                          : isScheduled
+                          ? isDarkMode ? 'text-orange-300/90' : 'text-orange-600'
+                          : finalAvailability
                           ? isDarkMode ? 'text-gray-200/95' : 'text-slate-600'
                           : isDarkMode ? 'text-gray-500/70' : 'text-gray-400'
                       }`}
                     >
                       {round.description}
                     </p>
+
+                    {/* Schedule Information */}
+                    {isScheduled && (
+                      <div className={`mb-6 p-4 rounded-lg border ${
+                        isDarkMode 
+                          ? 'bg-orange-900/20 border-orange-700 text-orange-300' 
+                          : 'bg-orange-50 border-orange-200 text-orange-700'
+                      }`}>
+                        <div className="flex items-center space-x-2 mb-2">
+                          <Clock className="h-4 w-4" />
+                          <span className="font-semibold text-sm">Round is Scheduled</span>
+                        </div>
+                        <div className="text-xs space-y-1">
+                          <div>Start: {new Date(roundSchedule.startDateTime).toLocaleString()}</div>
+                          <div>End: {new Date(roundSchedule.endDateTime).toLocaleString()}</div>
+                          <div className="font-medium mt-2">⏰ Round will be available during scheduled time</div>
+                        </div>
+                      </div>
+                    )}
 
                     {/* Enhanced Round Info with Black/Blue Theme */}
                     <div className={`flex justify-center space-x-4 mb-8 ${
@@ -2220,7 +2301,18 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
                           Retake Round
                         </button>
                       </div>
-                    ) : isAvailable ? (
+                    ) : isScheduled ? (
+                      <div className={`w-full py-5 px-8 rounded-2xl font-bold text-sm transition-all duration-300 ${
+                        isDarkMode 
+                          ? 'bg-orange-800/40 text-orange-300 border-2 border-orange-600/40' 
+                          : 'bg-orange-200 text-orange-700 border-2 border-orange-400'
+                      }`}>
+                        <div className="flex items-center justify-center space-x-3">
+                          <span className="text-lg">⏰</span>
+                          <span>Round is Scheduled - Not Yet Available</span>
+                        </div>
+                      </div>
+                    ) : finalAvailability ? (
                       <button
                         onClick={() => startSpecificRound(roundId)}
                         disabled={loading}

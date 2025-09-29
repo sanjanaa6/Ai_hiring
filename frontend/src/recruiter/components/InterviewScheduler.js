@@ -1,8 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTheme } from '../../context/ThemeContext';
 import apiService from '../../services/apiService';
-import { Calendar, Clock, Users, Plus, Edit3, Trash2, X, CheckCircle, Play } from 'lucide-react';
+import { Calendar, Clock, Users, Plus, Edit3, Trash2, X, CheckCircle, Play, Timer, AlertCircle, Copy, ExternalLink, RefreshCw } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { getCurrentRoundStatus, formatTimeRemaining, getTimeUntilStart, getTimeUntilEnd } from '../../utils/timeValidation';
+import CandidateAccessValidator from '../../components/CandidateAccessValidator';
+import RoundNotificationSystem from '../../components/RoundNotificationSystem';
 
 const InterviewScheduler = ({ interviewId, onClose }) => {
   const { isDarkMode } = useTheme();
@@ -19,6 +22,8 @@ const InterviewScheduler = ({ interviewId, onClose }) => {
     maxCandidates: 10,
     status: 'scheduled'
   });
+  const [autoStatusUpdates, setAutoStatusUpdates] = useState(true);
+  const [showCandidateView, setShowCandidateView] = useState(false);
 
   const fetchInterviewAndSchedules = useCallback(async () => {
     try {
@@ -33,8 +38,7 @@ const InterviewScheduler = ({ interviewId, onClose }) => {
         console.error('Failed to fetch interview:', interviewResult.error);
       }
       
-      // Fetch existing round schedules - we need to add this method to apiService
-      // For now, let's use a direct axios call
+      // Fetch existing round schedules
       try {
         const token = localStorage.getItem('token');
         const apiBaseUrl = process.env.NODE_ENV === 'production' 
@@ -55,7 +59,6 @@ const InterviewScheduler = ({ interviewId, onClose }) => {
         }
       } catch (scheduleError) {
         console.error('Failed to fetch schedules:', scheduleError);
-        // Set empty array if schedules endpoint doesn't exist yet
         setRoundSchedules([]);
       }
     } catch (error) {
@@ -70,6 +73,37 @@ const InterviewScheduler = ({ interviewId, onClose }) => {
       fetchInterviewAndSchedules();
     }
   }, [interviewId, fetchInterviewAndSchedules]);
+
+  // Auto-update round statuses based on current time
+  useEffect(() => {
+    if (!autoStatusUpdates || roundSchedules.length === 0) return;
+
+    const updateStatuses = () => {
+      setRoundSchedules(prevSchedules => 
+        prevSchedules.map(schedule => {
+          const currentStatus = getCurrentRoundStatus(
+            schedule.startDateTime, 
+            schedule.endDateTime, 
+            schedule.status
+          );
+          
+          // Only update if status has changed
+          if (currentStatus !== schedule.status) {
+            return { ...schedule, status: currentStatus };
+          }
+          return schedule;
+        })
+      );
+    };
+
+    // Update immediately
+    updateStatuses();
+
+    // Update every minute
+    const interval = setInterval(updateStatuses, 60000);
+
+    return () => clearInterval(interval);
+  }, [autoStatusUpdates, roundSchedules.length]);
 
   const handleAddSchedule = async () => {
     if (!selectedRound) return;
@@ -158,22 +192,67 @@ const InterviewScheduler = ({ interviewId, onClose }) => {
     }
   };
 
+  const handleCopyAccessLink = (accessLink) => {
+    const fullUrl = `${window.location.origin}/round/${accessLink}`;
+    navigator.clipboard.writeText(fullUrl);
+    // You could add a toast notification here
+    alert('Access link copied to clipboard!');
+  };
+
+  const handleRegenerateAccessLink = async (scheduleId) => {
+    if (!window.confirm('Are you sure you want to regenerate the access link? The old link will no longer work.')) return;
+
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('token');
+      const apiBaseUrl = process.env.NODE_ENV === 'production' 
+        ? 'https://aihire.eval8.xyz/api' 
+        : 'http://localhost:5000/api';
+      const response = await fetch(`${apiBaseUrl}/interviews/${interviewId}/schedules/${scheduleId}/regenerate-link`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      const result = await response.json();
+      if (result.success) {
+        // Update the schedule in the list
+        setRoundSchedules(prev => prev.map(s => 
+          s._id === scheduleId 
+            ? { ...s, accessLink: result.data.schedule.accessLink, accessCode: result.data.schedule.accessCode }
+            : s
+        ));
+        alert('Access link regenerated successfully!');
+      }
+    } catch (error) {
+      console.error('Error regenerating access link:', error);
+      alert('Failed to regenerate access link');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const getStatusColor = (status) => {
     switch (status) {
-      case 'scheduled': return 'bg-blue-100 text-blue-800';
+      case 'scheduled':
+      case 'upcoming': return 'bg-blue-100 text-blue-800';
       case 'active': return 'bg-green-100 text-green-800';
       case 'completed': return 'bg-gray-100 text-gray-800';
       case 'cancelled': return 'bg-red-100 text-red-800';
+      case 'ended': return 'bg-gray-100 text-gray-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
 
   const getStatusIcon = (status) => {
     switch (status) {
-      case 'scheduled': return <Clock className="w-4 h-4" />;
+      case 'scheduled':
+      case 'upcoming': return <Clock className="w-4 h-4" />;
       case 'active': return <Play className="w-4 h-4" />;
       case 'completed': return <CheckCircle className="w-4 h-4" />;
       case 'cancelled': return <X className="w-4 h-4" />;
+      case 'ended': return <X className="w-4 h-4" />;
       default: return <Clock className="w-4 h-4" />;
     }
   };
@@ -213,29 +292,111 @@ const InterviewScheduler = ({ interviewId, onClose }) => {
                 AI Interview Round Scheduler
               </h2>
               <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                Schedule AI-generated interview rounds
+                Schedule AI-generated interview rounds with time-based access control
               </p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className={`p-2 rounded-lg transition-colors ${
-              isDarkMode 
-                ? 'hover:bg-gray-800 text-gray-400 hover:text-white' 
-                : 'hover:bg-gray-100 text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            <X className="w-5 h-5" />
-          </button>
+          
+          <div className="flex items-center space-x-3">
+            {/* Auto Status Updates Toggle */}
+            <div className="flex items-center space-x-2">
+              <label className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                Auto Updates
+              </label>
+              <button
+                onClick={() => setAutoStatusUpdates(!autoStatusUpdates)}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  autoStatusUpdates 
+                    ? 'bg-blue-600' 
+                    : isDarkMode ? 'bg-gray-600' : 'bg-gray-200'
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    autoStatusUpdates ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+            </div>
+
+            {/* Candidate View Toggle */}
+            <button
+              onClick={() => setShowCandidateView(!showCandidateView)}
+              className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+                showCandidateView
+                  ? isDarkMode
+                    ? 'bg-green-600 text-white'
+                    : 'bg-green-500 text-white'
+                  : isDarkMode
+                    ? 'bg-gray-700 hover:bg-gray-600 text-gray-300'
+                    : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
+              }`}
+            >
+              {showCandidateView ? 'Recruiter View' : 'Candidate View'}
+            </button>
+
+            <button
+              onClick={onClose}
+              className={`p-2 rounded-lg transition-colors ${
+                isDarkMode 
+                  ? 'hover:bg-gray-800 text-gray-400 hover:text-white' 
+                  : 'hover:bg-gray-100 text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* Content */}
         <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+          {/* Notification System */}
+          <RoundNotificationSystem 
+            schedules={roundSchedules}
+            onStatusChange={(notifications) => {
+              console.log('Round status notifications:', notifications);
+            }}
+            enableNotifications={true}
+            autoRefresh={autoStatusUpdates}
+          />
+
           {/* Loading State */}
           {loading && (
             <div className={`text-center py-8 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
               <p className="mt-2">Loading interview data...</p>
+            </div>
+          )}
+
+          {/* Candidate View */}
+          {showCandidateView && (
+            <div className="mb-6">
+              <h3 className={`text-lg font-semibold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                Candidate Access View
+              </h3>
+              {roundSchedules.length > 0 ? (
+                <div className="space-y-4">
+                  {roundSchedules.map((schedule) => (
+                    <CandidateAccessValidator
+                      key={schedule._id}
+                      schedule={schedule}
+                      onAccessGranted={(validation) => {
+                        console.log('Access granted for:', schedule.roundName, validation);
+                      }}
+                      onAccessDenied={(validation) => {
+                        console.log('Access denied for:', schedule.roundName, validation);
+                      }}
+                      showCountdown={true}
+                      autoRefresh={autoStatusUpdates}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className={`text-center py-8 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                  <AlertCircle className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <p>No scheduled rounds available for candidates.</p>
+                </div>
+              )}
             </div>
           )}
 
@@ -250,6 +411,74 @@ const InterviewScheduler = ({ interviewId, onClose }) => {
               <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                 {interview.jobTitle} • {interview.rounds?.length || 0} AI-generated rounds
               </p>
+              
+              {/* Access Links Section */}
+              {interview.accessLinks && interview.accessLinks.length > 0 && (
+                <div className="mt-4">
+                  <h4 className={`text-md font-medium mb-3 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                    Round Access Links
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {interview.accessLinks.map((accessLink) => {
+                      const isScheduled = roundSchedules.some(schedule => schedule.roundNumber === accessLink.roundNumber);
+                      const round = interview.rounds?.find(r => r.roundNumber === accessLink.roundNumber);
+                      
+                      return (
+                        <div
+                          key={accessLink.accessLink}
+                          className={`p-3 rounded-lg border ${
+                            isScheduled
+                              ? isDarkMode ? 'bg-green-900/20 border-green-700' : 'bg-green-50 border-green-200'
+                              : isDarkMode ? 'bg-yellow-900/20 border-yellow-700' : 'bg-yellow-50 border-yellow-200'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1 min-w-0">
+                              <h5 className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                                {round?.title || `Round ${accessLink.roundNumber}`}
+                              </h5>
+                              <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                                {isScheduled ? 'Scheduled' : 'Not Scheduled'}
+                              </p>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <button
+                                onClick={() => handleCopyAccessLink(accessLink.accessLink)}
+                                className={`p-1 rounded transition-colors ${
+                                  isDarkMode
+                                    ? 'hover:bg-gray-600 text-gray-400 hover:text-white'
+                                    : 'hover:bg-gray-200 text-gray-500 hover:text-gray-700'
+                                }`}
+                                title="Copy access link"
+                              >
+                                <Copy className="w-3 h-3" />
+                              </button>
+                              <button
+                                onClick={() => window.open(`/round/${accessLink.accessLink}`, '_blank')}
+                                className={`p-1 rounded transition-colors ${
+                                  isDarkMode
+                                    ? 'hover:bg-gray-600 text-gray-400 hover:text-white'
+                                    : 'hover:bg-gray-200 text-gray-500 hover:text-gray-700'
+                                }`}
+                                title="Open in new tab"
+                              >
+                                <ExternalLink className="w-3 h-3" />
+                              </button>
+                            </div>
+                          </div>
+                          <div className="mt-2">
+                            <code className={`text-xs px-2 py-1 rounded ${
+                              isDarkMode ? 'bg-gray-800 text-gray-300' : 'bg-white text-gray-600'
+                            }`}>
+                              {`${window.location.origin}/round/${accessLink.accessLink}`}
+                            </code>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -353,7 +582,10 @@ const InterviewScheduler = ({ interviewId, onClose }) => {
                         <input
                           type="date"
                           value={newSchedule.startDate}
-                          onChange={(e) => setNewSchedule(prev => ({ ...prev, startDate: e.target.value }))}
+                          onChange={(e) => {
+                            console.log('Start date changed:', e.target.value);
+                            setNewSchedule(prev => ({ ...prev, startDate: e.target.value }));
+                          }}
                           className={`w-full px-3 py-2 rounded-lg border ${
                             isDarkMode 
                               ? 'bg-gray-700 border-gray-600 text-white' 
@@ -369,7 +601,10 @@ const InterviewScheduler = ({ interviewId, onClose }) => {
                         <input
                           type="time"
                           value={newSchedule.startTime}
-                          onChange={(e) => setNewSchedule(prev => ({ ...prev, startTime: e.target.value }))}
+                          onChange={(e) => {
+                            console.log('Start time changed:', e.target.value);
+                            setNewSchedule(prev => ({ ...prev, startTime: e.target.value }));
+                          }}
                           className={`w-full px-3 py-2 rounded-lg border ${
                             isDarkMode 
                               ? 'bg-gray-700 border-gray-600 text-white' 
@@ -385,7 +620,10 @@ const InterviewScheduler = ({ interviewId, onClose }) => {
                         <input
                           type="date"
                           value={newSchedule.endDate}
-                          onChange={(e) => setNewSchedule(prev => ({ ...prev, endDate: e.target.value }))}
+                          onChange={(e) => {
+                            console.log('End date changed:', e.target.value);
+                            setNewSchedule(prev => ({ ...prev, endDate: e.target.value }));
+                          }}
                           className={`w-full px-3 py-2 rounded-lg border ${
                             isDarkMode 
                               ? 'bg-gray-700 border-gray-600 text-white' 
@@ -401,7 +639,10 @@ const InterviewScheduler = ({ interviewId, onClose }) => {
                         <input
                           type="time"
                           value={newSchedule.endTime}
-                          onChange={(e) => setNewSchedule(prev => ({ ...prev, endTime: e.target.value }))}
+                          onChange={(e) => {
+                            console.log('End time changed:', e.target.value);
+                            setNewSchedule(prev => ({ ...prev, endTime: e.target.value }));
+                          }}
                           className={`w-full px-3 py-2 rounded-lg border ${
                             isDarkMode 
                               ? 'bg-gray-700 border-gray-600 text-white' 
@@ -450,6 +691,19 @@ const InterviewScheduler = ({ interviewId, onClose }) => {
                     </div>
                   )}
 
+                  {/* Debug Info */}
+                  <div className={`p-3 rounded-lg text-xs ${
+                    isDarkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-600'
+                  }`}>
+                    <strong>Debug Info:</strong><br/>
+                    selectedRound: {selectedRound ? 'Selected' : 'Not Selected'}<br/>
+                    startDate: "{newSchedule.startDate}"<br/>
+                    startTime: "{newSchedule.startTime}"<br/>
+                    endDate: "{newSchedule.endDate}"<br/>
+                    endTime: "{newSchedule.endTime}"<br/>
+                    Button enabled: {(!selectedRound || !newSchedule.startDate || !newSchedule.startTime || !newSchedule.endDate || !newSchedule.endTime) ? 'NO' : 'YES'}
+                  </div>
+
                   {/* Action Buttons */}
                   <div className="flex justify-end space-x-3 pt-4">
                     <button
@@ -475,7 +729,7 @@ const InterviewScheduler = ({ interviewId, onClose }) => {
                     </button>
                     <button
                       onClick={handleAddSchedule}
-                      disabled={!selectedRound || !newSchedule.startDate || !newSchedule.startTime || !newSchedule.endDate || !newSchedule.endTime}
+                      disabled={false}
                       className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                         !selectedRound || !newSchedule.startDate || !newSchedule.startTime || !newSchedule.endDate || !newSchedule.endTime
                           ? isDarkMode
@@ -485,6 +739,7 @@ const InterviewScheduler = ({ interviewId, onClose }) => {
                             ? 'bg-blue-600 hover:bg-blue-700 text-white'
                             : 'bg-blue-600 hover:bg-blue-700 text-white'
                       }`}
+                      title={`Debug: selectedRound=${!!selectedRound}, startDate=${!!newSchedule.startDate}, startTime=${!!newSchedule.startTime}, endDate=${!!newSchedule.endDate}, endTime=${!!newSchedule.endTime}`}
                     >
                       Schedule Round
                     </button>
@@ -500,10 +755,11 @@ const InterviewScheduler = ({ interviewId, onClose }) => {
           )}
 
           {/* Scheduled Rounds List */}
-          <div>
-            <h3 className={`text-lg font-semibold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-              Scheduled Rounds
-            </h3>
+          {!showCandidateView && (
+            <div>
+              <h3 className={`text-lg font-semibold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                Scheduled Rounds
+              </h3>
             
             {loading ? (
               <div className={`text-center py-8 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
@@ -533,7 +789,7 @@ const InterviewScheduler = ({ interviewId, onClose }) => {
                           </span>
                         </div>
                         
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                           <div className="flex items-center space-x-2">
                             <Calendar className={`w-4 h-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} />
                             <span className={isDarkMode ? 'text-gray-300' : 'text-gray-600'}>
@@ -554,12 +810,93 @@ const InterviewScheduler = ({ interviewId, onClose }) => {
                               Max {schedule.maxCandidates} candidates
                             </span>
                           </div>
+
+                          {/* Real-time Countdown Timer */}
+                          {autoStatusUpdates && (
+                            <div className="flex items-center space-x-2">
+                              <Timer className={`w-4 h-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} />
+                              <span className={isDarkMode ? 'text-gray-300' : 'text-gray-600'}>
+                                {(() => {
+                                  const now = new Date();
+                                  const start = new Date(schedule.startDateTime);
+                                  const end = new Date(schedule.endDateTime);
+                                  
+                                  if (now < start) {
+                                    const timeUntil = getTimeUntilStart(schedule.startDateTime);
+                                    return `Starts in ${formatTimeRemaining(timeUntil)}`;
+                                  } else if (now >= start && now <= end) {
+                                    const timeUntil = getTimeUntilEnd(schedule.endDateTime);
+                                    return `Ends in ${formatTimeRemaining(timeUntil)}`;
+                                  } else {
+                                    return 'Round ended';
+                                  }
+                                })()}
+                              </span>
+                            </div>
+                          )}
                         </div>
                         
                         {schedule.description && (
                           <p className={`text-sm mt-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                             {schedule.description}
                           </p>
+                        )}
+
+                        {/* Access Link Section */}
+                        {schedule.accessLink && (
+                          <div className={`mt-4 p-3 rounded-lg ${
+                            isDarkMode ? 'bg-gray-700/50' : 'bg-gray-100'
+                          }`}>
+                            <div className="flex items-center justify-between">
+                              <div className="flex-1 min-w-0">
+                                <p className={`text-xs font-medium mb-1 ${
+                                  isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                                }`}>
+                                  Candidate Access Link:
+                                </p>
+                                <div className="flex items-center space-x-2">
+                                  <code className={`text-xs px-2 py-1 rounded ${
+                                    isDarkMode ? 'bg-gray-800 text-gray-300' : 'bg-white text-gray-600'
+                                  }`}>
+                                    {`${window.location.origin}/round/${schedule.accessLink}`}
+                                  </code>
+                                  <button
+                                    onClick={() => handleCopyAccessLink(schedule.accessLink)}
+                                    className={`p-1 rounded transition-colors ${
+                                      isDarkMode
+                                        ? 'hover:bg-gray-600 text-gray-400 hover:text-white'
+                                        : 'hover:bg-gray-200 text-gray-500 hover:text-gray-700'
+                                    }`}
+                                    title="Copy access link"
+                                  >
+                                    <Copy className="w-3 h-3" />
+                                  </button>
+                                  <button
+                                    onClick={() => window.open(`/round/${schedule.accessLink}`, '_blank')}
+                                    className={`p-1 rounded transition-colors ${
+                                      isDarkMode
+                                        ? 'hover:bg-gray-600 text-gray-400 hover:text-white'
+                                        : 'hover:bg-gray-200 text-gray-500 hover:text-gray-700'
+                                    }`}
+                                    title="Open in new tab"
+                                  >
+                                    <ExternalLink className="w-3 h-3" />
+                                  </button>
+                                </div>
+                              </div>
+                              <button
+                                onClick={() => handleRegenerateAccessLink(schedule._id)}
+                                className={`p-2 rounded-lg transition-colors ${
+                                  isDarkMode
+                                    ? 'hover:bg-gray-600 text-gray-400 hover:text-white'
+                                    : 'hover:bg-gray-200 text-gray-500 hover:text-gray-700'
+                                }`}
+                                title="Regenerate access link"
+                              >
+                                <RefreshCw className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
                         )}
                       </div>
                       
@@ -596,7 +933,8 @@ const InterviewScheduler = ({ interviewId, onClose }) => {
                 <p className="text-sm mt-1">Click "Schedule AI Round" to get started.</p>
               </div>
             )}
-          </div>
+            </div>
+          )}
         </div>
       </motion.div>
     </div>

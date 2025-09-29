@@ -77,6 +77,14 @@ const interviewSchema = new mongoose.Schema({
   },
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   status: { type: String, enum: ['active', 'inactive', 'completed'], default: 'active' },
+  accessLinks: [{
+    roundId: { type: String, required: true },
+    roundNumber: { type: Number, required: true },
+    accessLink: { type: String, unique: true, sparse: true },
+    accessCode: { type: String, unique: true, sparse: true },
+    isScheduled: { type: Boolean, default: false },
+    scheduleId: { type: mongoose.Schema.Types.ObjectId, ref: 'InterviewSchedule' }
+  }],
   candidateAnswers: [candidateAnswerSchema],
   statistics: {
     totalCandidates: { type: Number, default: 0 },
@@ -117,6 +125,51 @@ interviewSchema.methods.updateStatistics = function() {
   
   this.statistics.completionRate = uniqueCandidates > 0 ? (this.statistics.completedInterviews / uniqueCandidates) * 100 : 0;
   this.updatedAt = new Date();
+};
+
+// Generate access links for all rounds when interview is created
+interviewSchema.methods.generateAccessLinks = function() {
+  const crypto = require('crypto');
+  
+  this.accessLinks = this.rounds.map(round => {
+    const accessCode = crypto.randomBytes(8).toString('hex');
+    const accessLink = `${this.interviewId}-${round.roundNumber}-${accessCode}`;
+    
+    return {
+      roundId: round.roundId,
+      roundNumber: round.roundNumber,
+      accessLink: accessLink,
+      accessCode: accessCode,
+      isScheduled: false,
+      scheduleId: null
+    };
+  });
+  
+  return this.accessLinks;
+};
+
+// Update access link when round is scheduled
+interviewSchema.methods.updateAccessLinkForSchedule = function(roundNumber, scheduleId) {
+  const accessLinkIndex = this.accessLinks.findIndex(link => link.roundNumber === roundNumber);
+  
+  if (accessLinkIndex !== -1) {
+    this.accessLinks[accessLinkIndex].isScheduled = true;
+    this.accessLinks[accessLinkIndex].scheduleId = scheduleId;
+    this.updatedAt = new Date();
+    return this.accessLinks[accessLinkIndex];
+  }
+  
+  return null;
+};
+
+// Find access link by access code
+interviewSchema.statics.findByAccessLink = function(accessLink) {
+  return this.findOne({ 'accessLinks.accessLink': accessLink });
+};
+
+// Get access link info for a specific round
+interviewSchema.methods.getAccessLinkInfo = function(roundNumber) {
+  return this.accessLinks.find(link => link.roundNumber === roundNumber);
 };
 
 module.exports = mongoose.model('Interview', interviewSchema);

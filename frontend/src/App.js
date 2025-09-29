@@ -22,6 +22,7 @@ import JobDetails from './pages/JobDetails';
 import Applications from './pages/Applications';
 import Profile from './pages/Profile';
 import Interview from './pages/Interview';
+import RoundAccess from './pages/RoundAccess';
 import UserDashboard from './user/pages/UserDashboard';
 import StyleTest from './components/StyleTest';
 import OpenRouterTest from './components/OpenRouterTest';
@@ -101,6 +102,7 @@ function AppShell() {
           <Route path="/jobs" element={<JobSearch />} />
           <Route path="/jobs/:id" element={<JobDetails />} />
           <Route path="/interview/:interviewId" element={<Interview />} />
+          <Route path="/round/:accessLink" element={<RoundAccess />} />
           <Route path="/style-test" element={<StyleTest />} />
           <Route path="/openrouter-test" element={<OpenRouterTest />} />
           <Route path="/coding-tutor" element={<InteractiveCodingTutor />} />

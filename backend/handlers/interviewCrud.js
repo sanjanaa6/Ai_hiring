@@ -146,6 +146,14 @@ const getPublicInterview = async (req, res) => {
     console.log('📊 [GET PUBLIC INTERVIEW] Title:', interview.title);
     console.log('📊 [GET PUBLIC INTERVIEW] Rounds:', interview.rounds?.length || 0);
 
+    // Get schedules for this interview
+    const InterviewSchedule = require('../models/InterviewSchedule');
+    const schedules = await InterviewSchedule.find({ 
+      interviewId: interview.interviewId 
+    }).select('roundNumber startDateTime endDateTime status maxCandidates');
+
+    console.log('📊 [GET PUBLIC INTERVIEW] Schedules found:', schedules.length);
+
     res.json({
       success: true,
       data: {
@@ -153,6 +161,7 @@ const getPublicInterview = async (req, res) => {
         title: interview.title,
         totalDuration: interview.totalDuration,
         rounds: interview.rounds,
+        schedules: schedules, // Include schedules in the response
         approvalStatus: interview.approvalStatus,
         jobTitle: interview.jobTitle,
         jobDescription: interview.jobDescription,
@@ -408,6 +417,9 @@ const generateInterview = async (req, res) => {
       company: extractedJobDetails.company
     });
 
+    // Generate access links for all rounds
+    const accessLinks = interview.generateAccessLinks();
+    
     await interview.save();
 
     console.log('✅ [INTERVIEW GENERATE] Interview generated and saved successfully');
@@ -422,7 +434,12 @@ const generateInterview = async (req, res) => {
         title: interview.title,
         rounds: interview.rounds.length,
         totalDuration: interview.totalDuration,
-        approvalStatus: interview.approvalStatus
+        approvalStatus: interview.approvalStatus,
+        accessLinks: accessLinks.map(link => ({
+          roundNumber: link.roundNumber,
+          accessLink: link.accessLink,
+          isScheduled: link.isScheduled
+        }))
       }
     });
 
