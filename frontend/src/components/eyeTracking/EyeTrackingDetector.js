@@ -29,57 +29,8 @@ const EyeTrackingDetector = ({
   const detectionIntervalRef = useRef(null);
   const warningTimeoutRef = useRef(null);
 
-  // Initialize camera and start detection
-  const initializeCamera = useCallback(async () => {
-    try {
-      setError(null);
-      setIsDetecting(true);
-      
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          width: { ideal: 640 },
-          height: { ideal: 480 },
-          facingMode: 'user'
-        }
-      });
-      
-      streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-      }
-      
-      // Start detection after video is loaded
-      videoRef.current.onloadedmetadata = () => {
-        startEyeTracking();
-      };
-      
-    } catch (err) {
-      console.error('Camera access error:', err);
-      setError('Camera access denied or not available');
-      setIsDetecting(false);
-    }
-  }, []);
-
-  // Start eye tracking detection
-  const startEyeTracking = useCallback(() => {
-    if (!isEnabled || !videoRef.current || !canvasRef.current) return;
-    
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-    
-    // Set canvas size to match video
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    
-    // Start detection loop
-    detectionIntervalRef.current = setInterval(() => {
-      detectEyeMovement(video, canvas, ctx);
-    }, 100); // Check every 100ms
-  }, [isEnabled, detectEyeMovement]);
-
   // Detect eye movement and suspicious behaviors using enhanced computer vision
-  const detectEyeMovement = useCallback((video, canvas, ctx) => {
+  const detectEyeMovementEnhanced = useCallback((video, canvas, ctx) => {
     if (!video.videoWidth || !video.videoHeight) return;
     
     // Draw current frame to canvas
@@ -298,6 +249,55 @@ const EyeTrackingDetector = ({
       }
     }
   }, [isLookingAway, lookAwayStartTime, isFlagged, onLookAway, onLookBack, updateTotalLookAwayTime]);
+
+  // Start eye tracking detection
+  const startEyeTracking = useCallback(() => {
+    if (!isEnabled || !videoRef.current || !canvasRef.current) return;
+    
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    
+    // Set canvas size to match video
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    
+    // Start detection loop
+    detectionIntervalRef.current = setInterval(() => {
+      detectEyeMovementEnhanced(video, canvas, ctx);
+    }, 100); // Check every 100ms
+  }, [isEnabled, detectEyeMovementEnhanced]);
+
+  // Initialize camera and start detection
+  const initializeCamera = useCallback(async () => {
+    try {
+      setError(null);
+      setIsDetecting(true);
+      
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          width: { ideal: 640 },
+          height: { ideal: 480 },
+          facingMode: 'user'
+        }
+      });
+      
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+      
+      // Start detection after video is loaded
+      videoRef.current.onloadedmetadata = () => {
+        startEyeTracking();
+      };
+      
+    } catch (err) {
+      console.error('Camera access error:', err);
+      setError('Camera access denied or not available');
+      setIsDetecting(false);
+    }
+  }, [startEyeTracking]);
 
   // Cleanup function
   const cleanup = useCallback(() => {

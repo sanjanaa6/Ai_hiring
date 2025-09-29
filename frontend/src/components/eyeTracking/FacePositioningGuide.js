@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { CheckCircle, AlertTriangle, Camera, RotateCcw, ArrowUp, ArrowDown, ArrowLeft, ArrowRight } from 'lucide-react';
+import { CheckCircle, AlertTriangle, Camera, RotateCcw } from 'lucide-react';
 
 const FacePositioningGuide = ({ 
   onPositioningComplete, 
@@ -12,12 +12,12 @@ const FacePositioningGuide = ({
   const [faceInCircle, setFaceInCircle] = useState(false);
   const [shouldersVisible, setShouldersVisible] = useState(false);
   const [positioningScore, setPositioningScore] = useState(0);
-  const [instructions, setInstructions] = useState([
+  const instructions = [
     "Position your laptop so your shoulders are visible",
     "Center your face in the white circle",
     "Ensure good lighting on your face",
     "Keep your hands visible if needed for coding"
-  ]);
+  ];
   const [currentInstructionIndex, setCurrentInstructionIndex] = useState(0);
   const [countdown, setCountdown] = useState(0);
   

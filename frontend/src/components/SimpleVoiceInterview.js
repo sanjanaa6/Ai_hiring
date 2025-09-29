@@ -57,7 +57,6 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
   
   // AI Question Tracking System
   const [aiQuestionMap, setAiQuestionMap] = useState(new Map()); // Map to store question details
-  const [aiQuestionTranscriptions, setAiQuestionTranscriptions] = useState(new Map()); // Map to store transcriptions for each question
   const [aiQuestionProgress, setAiQuestionProgress] = useState({
     totalQuestions: 0,
     answeredQuestions: 0,
@@ -1147,7 +1146,6 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
         });
         
         setAiQuestionMap(questionMap);
-        setAiQuestionTranscriptions(new Map());
         setAiQuestionProgress({
           totalQuestions: 3,
           answeredQuestions: 0,
@@ -1377,9 +1375,16 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
   const updateAIQuestionTranscription = useCallback((transcription) => {
     const currentQuestionId = Array.from(aiQuestionMap.keys())[currentAiQuestionIndex];
     if (currentQuestionId) {
-      setAiQuestionTranscriptions(prevMap => {
+      // Update the question map with transcription
+      setAiQuestionMap(prevMap => {
         const newMap = new Map(prevMap);
-        newMap.set(currentQuestionId, transcription);
+        const questionData = newMap.get(currentQuestionId);
+        if (questionData) {
+          newMap.set(currentQuestionId, {
+            ...questionData,
+            transcription: transcription
+          });
+        }
         return newMap;
       });
     }
