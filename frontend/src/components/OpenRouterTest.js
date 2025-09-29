@@ -79,7 +79,6 @@ const OpenRouterTest = () => {
         {/* API Key Status */}
         <div className="bg-white rounded-xl shadow-lg p-6 mb-8 border border-gray-200">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">API Configuration Status</h2>
-          
           {apiKeyStatus === 'checking' && (
             <div className="flex items-center space-x-3 text-gray-600">
               <Loader className="h-5 w-5 animate-spin" />
