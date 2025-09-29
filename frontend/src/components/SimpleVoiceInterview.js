@@ -4,6 +4,8 @@ import { useTheme } from '../context/ThemeContext';
 import CodeEditor from './CodeEditor';
 import EnhancedCodeEditor from './EnhancedCodeEditor';
 import apiService from '../services/apiService';
+import { EyeTrackingDetector, FacePositioningGuide } from './eyeTracking';
+import monitoringService from '../services/monitoringService';
 
 // Helper function to determine if a round is a coding round
 const isCodingRound = (roundTitle) => {
@@ -65,7 +67,114 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
   const [aiResponses, setAiResponses] = useState([]);
   const [isCodeDone, setIsCodeDone] = useState(false);
   const [isAiQuestionAnswered, setIsAiQuestionAnswered] = useState(false);
+  
+  // Monitoring and Eye Tracking State
+  const [showFacePositioning, setShowFacePositioning] = useState(false);
+  const [eyeTrackingEnabled, setEyeTrackingEnabled] = useState(true);
+  const [monitoringData, setMonitoringData] = useState({
+    violations: [],
+    totalViolationTime: 0,
+    flagged: false
+  });
+  const [lookAwayStartTime, setLookAwayStartTime] = useState(null);
+  const [currentLookAwayDuration, setCurrentLookAwayDuration] = useState(0);
+  const [isTerminated, setIsTerminated] = useState(false);
 
+  // Monitoring Functions
+  const handleLookAway = useCallback(async (violationData) => {
+    if (!interviewId || !candidateInfo?.userId) return;
+    
+    try {
+      // Determine violation type based on detected behaviors
+      let violationType = 'look_away';
+      if (violationData?.mobilePhoneDetected) {
+        violationType = 'mobile_phone_detected';
+      } else if (violationData?.earphonesDetected) {
+        violationType = 'earphones_detected';
+      } else if (violationData?.suspiciousHandMovement) {
+        violationType = 'suspicious_hand_movement';
+      } else if (violationData?.violations?.includes('face_not_visible')) {
+        violationType = 'face_not_visible';
+      }
+      
+      // ULTRA AGGRESSIVE: If immediate termination is requested, terminate immediately
+      if (violationData?.immediateTermination) {
+        console.warn('🚨 IMMEDIATE TERMINATION: Suspicious behavior detected:', violationData);
+        setIsTerminated(true);
+        setError(`🚨 INTERVIEW TERMINATED: ${violationType.replace(/_/g, ' ').toUpperCase()} DETECTED`);
+        
+        // Force immediate termination without waiting for backend
+        onComplete && onComplete({ 
+          status: 'terminated', 
+          reason: 'suspicious_behavior',
+          violationType: violationType,
+          immediate: true
+        });
+        
+        // Still record the violation in background
+        monitoringService.recordViolation({
+          interviewId,
+          userId: candidateInfo.userId,
+          violationType,
+          duration: violationData?.duration || 0,
+          timestamp: new Date()
+        }).catch(err => console.error('Error recording violation:', err));
+        
+        return;
+      }
+      
+      const response = await monitoringService.recordViolation({
+        interviewId,
+        userId: candidateInfo.userId,
+        violationType,
+        duration: violationData?.duration || 0,
+        timestamp: new Date()
+      });
+      
+      setMonitoringData(prev => ({
+        ...prev,
+        violations: [...prev.violations, response.data.violation],
+        totalViolationTime: response.data.totalViolationTime,
+        flagged: response.data.flagged
+      }));
+      
+      if (response.data.flagged) {
+        console.warn('🚨 Interview flagged for suspicious behavior:', violationData);
+        
+        // AGGRESSIVE: Immediately terminate interview
+        setError(`🚨 INTERVIEW TERMINATED: ${violationType.replace(/_/g, ' ').toUpperCase()} DETECTED`);
+        
+        // Force immediate termination
+        onComplete && onComplete({ 
+          status: 'terminated', 
+          reason: 'suspicious_behavior',
+          violationType: violationType,
+          immediate: true
+        });
+      }
+    } catch (error) {
+      console.error('Error recording violation:', error);
+    }
+  }, [interviewId, candidateInfo?.userId, onComplete]);
+
+  const handleLookBack = useCallback(() => {
+    if (lookAwayStartTime) {
+      const duration = (Date.now() - lookAwayStartTime) / 1000;
+      setCurrentLookAwayDuration(duration);
+      setLookAwayStartTime(null);
+    }
+  }, [lookAwayStartTime]);
+
+  const handleFacePositioningComplete = useCallback((positioningData) => {
+    console.log('✅ Face positioning completed:', positioningData);
+    setShowFacePositioning(false);
+    setStep('interview');
+  }, []);
+
+  const handleFacePositioningFailed = useCallback((error) => {
+    console.error('❌ Face positioning failed:', error);
+    setError(`Camera setup failed: ${error}`);
+  }, []);
 
   // Auto-detect if current question is a coding question and reset showCodeEditor accordingly
   useEffect(() => {
@@ -1754,7 +1863,7 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
       setError(err.message || 'Failed to start recording');
       setIsRecording(false);
     }
-  }, [isRecording, cameraStream, isAiQuestioning, handleVoiceRecordingCompleteForAI, setTranscription, setError, setIsRecording]);
+  }, [isRecording, cameraStream, isAiQuestioning, handleVoiceRecordingCompleteForAI, setTranscription, setError, setIsRecording, networkRetryCount, transcription, updateAIQuestionTranscription]);
 
 
   // Manual submit (for when user clicks submit button)
@@ -2271,11 +2380,21 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
 
   if (step === 'setup') {
     return (
-      <div className={`fixed inset-0 overflow-hidden ${
-        isDarkMode 
-          ? 'bg-gradient-to-br from-slate-900 via-gray-900 to-black' 
-          : 'bg-gradient-to-br from-white via-blue-50 to-indigo-100'
-      }`}>
+      <>
+        {/* Face Positioning Guide */}
+        {showFacePositioning && (
+          <FacePositioningGuide
+            onPositioningComplete={handleFacePositioningComplete}
+            onPositioningFailed={handleFacePositioningFailed}
+            isVisible={showFacePositioning}
+          />
+        )}
+        
+        <div className={`fixed inset-0 overflow-hidden ${
+          isDarkMode 
+            ? 'bg-gradient-to-br from-slate-900 via-gray-900 to-black' 
+            : 'bg-gradient-to-br from-white via-blue-50 to-indigo-100'
+        }`}>
         <div className="h-full flex flex-col">
           {/* Header */}
           <div className={`backdrop-blur-md border-b px-6 py-4 ${
@@ -2440,22 +2559,51 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
                         </div>
                       )}
           </button>
+          
+          {/* Face Positioning Button */}
+          <button
+            onClick={() => setShowFacePositioning(true)}
+            className="mt-3 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white py-3 px-8 rounded-xl font-semibold transition-all duration-200 transform hover:scale-105 shadow-lg"
+          >
+            <div className="flex items-center justify-center space-x-3">
+              <div className="w-5 h-5 border-2 border-white rounded-full"></div>
+              <span>Position Your Face</span>
+            </div>
+          </button>
               </div>
             </div>
           </div>
         </div>
       </div>
+      </>
     );
   }
 
 
   if (step === 'interview') {
     return (
-      <div className={`fixed inset-0 overflow-hidden ${
-        isDarkMode 
-          ? 'bg-gradient-to-br from-slate-900 via-gray-900 to-black' 
-          : 'bg-gradient-to-br from-white via-blue-50 to-indigo-100'
-      }`}>
+      <>
+        {/* Termination Overlay */}
+        {isTerminated && (
+          <div className="fixed inset-0 bg-red-900 bg-opacity-95 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-8 text-center max-w-md">
+              <div className="text-6xl mb-4">🚨</div>
+              <h2 className="text-2xl font-bold text-red-600 mb-4">INTERVIEW TERMINATED</h2>
+              <p className="text-lg text-gray-800 mb-4">
+                Suspicious behavior detected. Your interview has been automatically terminated.
+              </p>
+              <p className="text-sm text-gray-600">
+                Please contact support if you believe this is an error.
+              </p>
+            </div>
+          </div>
+        )}
+        
+        <div className={`fixed inset-0 overflow-hidden ${
+          isDarkMode 
+            ? 'bg-gradient-to-br from-slate-900 via-gray-900 to-black' 
+            : 'bg-gradient-to-br from-white via-blue-50 to-indigo-100'
+        }`}>
         {/* Full-screen immersive interview interface */}
         <div className="h-full flex flex-col">
           {/* Top Status Bar */}
@@ -2522,6 +2670,50 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
 
           {/* Main Content Area */}
           <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
+            {/* Eye Tracking Monitor */}
+            {eyeTrackingEnabled && step === 'interview' && (
+              <div className="absolute top-20 right-4 z-10">
+                <EyeTrackingDetector
+                  onLookAway={handleLookAway}
+                  onLookBack={handleLookBack}
+                  isEnabled={eyeTrackingEnabled}
+                  sensitivity={0.8}
+                  warningThreshold={0.5}
+                  flagThreshold={1}
+                  className="bg-white/90 dark:bg-black/90 rounded-lg p-2 shadow-lg"
+                />
+                {/* Eye Tracking Toggle */}
+                <button
+                  onClick={() => setEyeTrackingEnabled(!eyeTrackingEnabled)}
+                  className="mt-2 px-3 py-1 text-xs bg-red-500/20 hover:bg-red-500/30 text-red-600 dark:text-red-400 rounded-full transition-colors"
+                  title="Toggle eye tracking"
+                >
+                  {eyeTrackingEnabled ? 'Disable' : 'Enable'} Eye Tracking
+                </button>
+                
+                {/* Monitoring Data Display */}
+                {monitoringData.violations.length > 0 && (
+                  <div className="mt-2 p-2 bg-yellow-500/20 rounded-lg text-xs">
+                    <div className="text-yellow-600 dark:text-yellow-400 font-semibold">
+                      Violations: {monitoringData.violations.length}
+                    </div>
+                    <div className="text-yellow-600 dark:text-yellow-400">
+                      Total Time: {monitoringData.totalViolationTime.toFixed(1)}s
+                    </div>
+                    {monitoringData.flagged && (
+                      <div className="text-red-600 dark:text-red-400 font-bold">
+                        ⚠️ FLAGGED
+                      </div>
+                    )}
+                    {currentLookAwayDuration > 0 && (
+                      <div className="text-orange-600 dark:text-orange-400">
+                        Last Look Away: {currentLookAwayDuration.toFixed(1)}s
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
             {/* Live Coding Round */}
             {isLiveCodingRound ? (
               <div className="w-full h-full flex flex-col">
@@ -3743,6 +3935,7 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
         </div>
 
       </div>
+      </>
     );
   }
 

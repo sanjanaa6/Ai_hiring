@@ -84,6 +84,20 @@ const interviewSchema = new mongoose.Schema({
     averageScore: { type: Number, default: 0 },
     completionRate: { type: Number, default: 0 }
   },
+  monitoring: {
+    flagged: { type: Boolean, default: false },
+    flagReason: { type: String },
+    flaggedAt: { type: Date },
+    flagClearedAt: { type: Date },
+    flagClearedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    flagClearReason: { type: String },
+    eyeTrackingEnabled: { type: Boolean, default: true },
+    facePositioningRequired: { type: Boolean, default: true },
+    autoRemoved: { type: Boolean, default: false },
+    autoRemovedAt: { type: Date },
+    autoRemovalReason: { type: String },
+    removedCandidateId: { type: String }
+  },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
 });
