@@ -8,7 +8,6 @@ import CodeEditorWelcome from './CodeEditorWelcome';
 import apiService from '../services/apiService';
 import { EyeTrackingDetector } from './eyeTracking';
 import monitoringService from '../services/monitoringService';
-import ttsService from '../services/ttsService';
 
 // Helper function to determine if a round is a coding round
 const isCodingRound = (roundTitle) => {
@@ -775,9 +774,9 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
     }
   }, [currentRound, currentQuestion, codeAnswer, transcription, isCodeDone, isAiQuestionAnswered, interviewId, candidateInfo, timeRemaining, updateProgress]);
 
-  // AI Text-to-Speech function using XTTS-v2
+  // AI Text-to-Speech function
   const speakQuestion = useCallback(async (questionText) => {
-    return new Promise(async (resolve) => {
+    return new Promise((resolve) => {
       setIsAISpeaking(true);
       
       // Validate questionText input
@@ -788,8 +787,88 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
         return;
       }
       
-      // Common function to handle speech end
-      function handleSpeechEnd() {
+      if ('speechSynthesis' in window) {
+        // Cancel any ongoing speech
+        window.speechSynthesis.cancel();
+        
+        const utterance = new SpeechSynthesisUtterance(questionText);
+        utterance.rate = 0.9;
+        utterance.pitch = 1.0;
+        utterance.volume = 0.8;
+        
+        // Try to use a female voice for AI
+        const voices = window.speechSynthesis.getVoices();
+        const femaleVoice = voices.find(voice => 
+          voice.name.toLowerCase().includes('female') || 
+          voice.name.toLowerCase().includes('zira') ||
+          voice.name.toLowerCase().includes('susan')
+        );
+        if (femaleVoice) {
+          utterance.voice = femaleVoice;
+        }
+        
+        utterance.onend = () => {
+          setIsAISpeaking(false);
+          // Start timer directly here to avoid circular dependency
+          const timeLimit = currentQuestion?.timeLimit * 60 || 300;
+          setTimeRemaining(timeLimit);
+          
+          if (timerRef.current) {
+            clearInterval(timerRef.current);
+          }
+          
+          timerRef.current = setInterval(() => {
+            setTimeRemaining(prev => {
+              if (prev <= 1) {
+                clearInterval(timerRef.current);
+                if (autoProgressEnabled && moveToNextQuestionRef.current) {
+                  moveToNextQuestionRef.current();
+                }
+                return 0;
+              }
+              return prev - 1;
+            });
+          }, 1000);
+          
+          // Set flag to trigger auto-recording via useEffect
+          console.log('🎙️ Setting auto-record flag after AI speech...');
+          setShouldAutoRecord(true);
+          resolve();
+        };
+        
+        utterance.onerror = () => {
+          setIsAISpeaking(false);
+          // Start timer directly here to avoid circular dependency
+          const timeLimit = currentQuestion?.timeLimit * 60 || 300;
+          setTimeRemaining(timeLimit);
+          
+          if (timerRef.current) {
+            clearInterval(timerRef.current);
+          }
+          
+          timerRef.current = setInterval(() => {
+            setTimeRemaining(prev => {
+              if (prev <= 1) {
+                clearInterval(timerRef.current);
+                if (autoProgressEnabled && moveToNextQuestionRef.current) {
+                  moveToNextQuestionRef.current();
+                }
+                return 0;
+              }
+              return prev - 1;
+            });
+          }, 1000);
+          
+          // Set flag to trigger auto-recording via useEffect
+          console.log('🎙️ Setting auto-record flag after speech error...');
+          setShouldAutoRecord(true);
+          resolve();
+        };
+        
+        console.log('🗣️ AI speaking question:', questionText && questionText.length > 50 ? questionText.substring(0, 50) + '...' : questionText || 'No question text');
+        window.speechSynthesis.speak(utterance);
+      } else {
+        console.warn('⚠️ Speech synthesis not supported');
         setIsAISpeaking(false);
         // Start timer directly here to avoid circular dependency
         const timeLimit = currentQuestion?.timeLimit * 60 || 300;
@@ -813,73 +892,9 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
         }, 1000);
         
         // Set flag to trigger auto-recording via useEffect
-        console.log('🎙️ Setting auto-record flag after AI speech...');
+        console.log('🎙️ Setting auto-record flag (no speech synthesis)...');
         setShouldAutoRecord(true);
         resolve();
-      }
-      
-      try {
-        console.log('🗣️ AI speaking question using XTTS-v2:', questionText && questionText.length > 50 ? questionText.substring(0, 50) + '...' : questionText || 'No question text');
-        console.log('🔑 [TTS] Auth token available:', !!localStorage.getItem('token'));
-        console.log('🌐 [TTS] API URL:', process.env.REACT_APP_API_URL || 'http://localhost:5000/api');
-        
-        // Use XTTS-v2 service for high-quality speech generation
-        await ttsService.speak(questionText, {
-          language: 'en',
-          speed: 0.9,
-          pitch: 1.0,
-          emotion: 'neutral'
-        });
-        
-        console.log('✅ AI finished speaking question with XTTS-v2');
-        handleSpeechEnd();
-        
-      } catch (error) {
-        console.error('❌ Error with XTTS-v2, falling back to browser speechSynthesis:', error);
-        console.error('❌ [TTS] Full error details:', error);
-        
-        // Check if it's an audio playback error vs API error
-        if (error.message.includes('Failed to play audio')) {
-          console.log('🔄 [TTS] Audio playback failed, trying browser TTS instead');
-        } else {
-          console.log('🔄 [TTS] TTS API failed, trying browser TTS instead');
-        }
-        
-        // Fallback to browser speechSynthesis if XTTS-v2 fails
-        if ('speechSynthesis' in window) {
-          window.speechSynthesis.cancel();
-          
-          const utterance = new SpeechSynthesisUtterance(questionText);
-          utterance.rate = 0.9;
-          utterance.pitch = 1.0;
-          utterance.volume = 0.8;
-          
-          // Try to use a female voice for AI
-          const voices = window.speechSynthesis.getVoices();
-          const femaleVoice = voices.find(voice => 
-            voice.name.toLowerCase().includes('female') || 
-            voice.name.toLowerCase().includes('zira') ||
-            voice.name.toLowerCase().includes('susan')
-          );
-          if (femaleVoice) {
-            utterance.voice = femaleVoice;
-          }
-          
-          utterance.onend = () => {
-            console.log('✅ Fallback speech finished');
-            handleSpeechEnd();
-          };
-          
-          utterance.onerror = () => {
-            console.log('⚠️ Fallback speech error');
-            handleSpeechEnd();
-          };
-          
-          window.speechSynthesis.speak(utterance);
-        } else {
-          console.warn('⚠️ Speech synthesis not supported');
-          handleSpeechEnd();
-        }
       }
     });
   }, [currentQuestion, autoProgressEnabled]);

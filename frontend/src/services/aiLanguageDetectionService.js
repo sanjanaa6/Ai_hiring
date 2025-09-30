@@ -8,18 +8,19 @@ class AILanguageDetectionService {
   // Enhanced AI-powered language detection
   async detectLanguageFromJobDescription(jobDescription, jobTitle = '') {
     try {
-      const response = await apiService.post('/detect-language', {
+      // Use axios directly since apiService doesn't have a direct post method
+      const response = await apiService.client.post('/ai/detect-language', {
         jobDescription,
         jobTitle,
         context: 'coding_interview'
       });
       
-      if (response.success) {
+      if (response.data && response.data.success) {
         return {
-          language: response.data.language,
-          confidence: response.data.confidence,
-          reasoning: response.data.reasoning,
-          alternatives: response.data.alternatives || []
+          language: response.data.data.language,
+          confidence: response.data.data.confidence,
+          reasoning: response.data.data.reasoning,
+          alternatives: response.data.data.alternatives || []
         };
       }
       

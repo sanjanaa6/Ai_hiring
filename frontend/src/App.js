@@ -33,6 +33,7 @@ import LanguageDetectionTest from './components/LanguageDetectionTest';
 import LanguageDetectionDebug from './components/LanguageDetectionDebug';
 import InterviewGenerationTest from './components/InterviewGenerationTest';
 import InterviewTest from './components/InterviewTest';
+import TTSTestPage from './pages/TTSTestPage';
 import NotFound from './pages/NotFound';
 
 // Recruiter components
@@ -110,8 +111,9 @@ function AppShell() {
           <Route path="/dynamic-interview-demo" element={<DynamicInterviewDemo />} />
           <Route path="/language-detection-test" element={<LanguageDetectionTest />} />
           <Route path="/language-detection-debug" element={<LanguageDetectionDebug />} />
-            <Route path="/interview-generation-test" element={<InterviewGenerationTest />} />
-            <Route path="/interview-test" element={<InterviewTest />} />
+          <Route path="/interview-generation-test" element={<InterviewGenerationTest />} />
+          <Route path="/interview-test" element={<InterviewTest />} />
+          <Route path="/tts-test" element={<TTSTestPage />} />
           
           {/* Protected Routes */}
           <Route path="/dashboard" element={
