@@ -176,12 +176,41 @@ interviewScheduleSchema.statics.findByAccessLink = function(accessLink) {
 interviewScheduleSchema.methods.validateAccess = function() {
   const now = new Date();
   const isWithinTime = now >= this.startDateTime && now <= this.endDateTime;
-  const isActive = this.status === 'active' || (isWithinTime && this.status === 'scheduled');
+  
+  // Only grant access if the round is explicitly set to 'active' status
+  // OR if it's within the time window AND the status is 'scheduled' (auto-activation)
+  const canAccess = this.status === 'active' || (isWithinTime && this.status === 'scheduled');
+  
+  let reason, message;
+  
+  if (now < this.startDateTime) {
+    reason = 'upcoming';
+    message = 'Round not started yet';
+  } else if (now > this.endDateTime) {
+    reason = 'ended';
+    message = 'Round has ended';
+  } else if (this.status === 'cancelled') {
+    reason = 'cancelled';
+    message = 'Round has been cancelled';
+  } else if (this.status === 'completed') {
+    reason = 'completed';
+    message = 'Round has been completed';
+  } else if (canAccess) {
+    reason = 'active';
+    message = 'Round is active - access granted';
+  } else if (isWithinTime && this.status === 'scheduled') {
+    // This case should not happen due to canAccess logic above, but just in case
+    reason = 'active';
+    message = 'Round is active - access granted';
+  } else {
+    reason = 'scheduled';
+    message = 'Round is scheduled but not yet active';
+  }
   
   return {
-    canAccess: isActive,
-    reason: isActive ? 'active' : (now < this.startDateTime ? 'upcoming' : 'ended'),
-    message: isActive ? 'Access granted' : (now < this.startDateTime ? 'Round not started yet' : 'Round has ended'),
+    canAccess,
+    reason,
+    message,
     timeRemaining: this.getTimeRemaining()
   };
 };

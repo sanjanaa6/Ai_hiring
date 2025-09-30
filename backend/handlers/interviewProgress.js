@@ -115,6 +115,53 @@ const startInterview = async (req, res) => {
     }
     
     // Check if user already has progress for this interview
+    let existingProgress = user.interviewProgress.find(
+      progress => progress.interviewId === interviewId
+    );
+    
+    // If user has existing progress, check their status
+    if (existingProgress) {
+      const allowedStatuses = ['passed', 'in_progress', 'started'];
+      if (!allowedStatuses.includes(existingProgress.status)) {
+        let message = 'Access denied';
+        let reason = 'status_restriction';
+        
+        switch (existingProgress.status) {
+          case 'rejected':
+            message = 'You have been rejected from this interview. Access denied.';
+            reason = 'rejected';
+            break;
+          case 'on_hold':
+            message = 'Your interview is on hold. Please wait for recruiter approval to continue.';
+            reason = 'on_hold';
+            break;
+          case 'failed':
+            message = 'You have failed this interview. Access denied.';
+            reason = 'failed';
+            break;
+          case 'completed':
+            message = 'You have already completed this interview.';
+            reason = 'completed';
+            break;
+          case 'abandoned':
+            message = 'You have abandoned this interview. Access denied.';
+            reason = 'abandoned';
+            break;
+          default:
+            message = 'Your interview status does not allow access at this time.';
+            reason = 'invalid_status';
+        }
+        
+        return res.status(403).json({
+          success: false,
+          error: message,
+          reason,
+          candidateStatus: existingProgress.status
+        });
+      }
+    }
+    
+    // Check if user already has progress for this interview
     let progressIndex = user.interviewProgress.findIndex(
       progress => progress.interviewId === interviewId
     );

@@ -601,19 +601,88 @@ router.put('/:interviewId/schedules/auto-status-all', auth, async (req, res) => 
 });
 
 // Get round access link and validate access
-router.get('/round/:accessLink', async (req, res) => {
+router.get('/round/:accessLink', auth, async (req, res) => {
   try {
     const { accessLink } = req.params;
+    const candidateId = req.user?.id;
     
     // First try to find by schedule (if scheduled)
     let schedule = await InterviewSchedule.findByAccessLink(accessLink);
     let interview = null;
     let accessValidation = null;
+    let candidateStatus = null;
     
     if (schedule) {
       // Round is scheduled - validate access based on schedule
       interview = await Interview.findOne({ interviewId: schedule.interviewId });
       accessValidation = schedule.validateAccess();
+      
+      // Check candidate status if user is authenticated
+      if (candidateId) {
+        const candidate = await User.findById(candidateId);
+        if (candidate) {
+          const interviewProgress = candidate.interviewProgress.find(
+            progress => progress.interviewId === schedule.interviewId
+          );
+          if (interviewProgress) {
+            candidateStatus = interviewProgress.status;
+            
+            // Check if candidate status allows access
+            const allowedStatuses = ['passed', 'in_progress', 'started'];
+            if (!allowedStatuses.includes(interviewProgress.status)) {
+              let message = 'Access denied';
+              let reason = 'status_restriction';
+              
+              switch (interviewProgress.status) {
+                case 'rejected':
+                  message = 'You have been rejected from this interview. Access denied.';
+                  reason = 'rejected';
+                  break;
+                case 'on_hold':
+                  message = 'Your interview is on hold. Please wait for recruiter approval to continue.';
+                  reason = 'on_hold';
+                  break;
+                case 'failed':
+                  message = 'You have failed this interview. Access denied.';
+                  reason = 'failed';
+                  break;
+                case 'completed':
+                  message = 'You have already completed this interview.';
+                  reason = 'completed';
+                  break;
+                case 'abandoned':
+                  message = 'You have abandoned this interview. Access denied.';
+                  reason = 'abandoned';
+                  break;
+                default:
+                  message = 'Your interview status does not allow access at this time.';
+                  reason = 'invalid_status';
+              }
+              
+              return res.status(403).json({
+                success: false,
+                message,
+                reason,
+                candidateStatus: interviewProgress.status,
+                data: {
+                  schedule: {
+                    _id: schedule._id,
+                    roundName: schedule.roundName,
+                    roundNumber: schedule.roundNumber,
+                    startDateTime: schedule.startDateTime,
+                    endDateTime: schedule.endDateTime,
+                    duration: schedule.duration,
+                    maxCandidates: schedule.maxCandidates,
+                    status: accessValidation.reason
+                  },
+                  accessValidation,
+                  currentTime: new Date().toISOString()
+                }
+              });
+            }
+          }
+        }
+      }
     } else {
       // Check if it's an unscheduled round access link
       interview = await Interview.findByAccessLink(accessLink);
@@ -675,7 +744,8 @@ router.get('/round/:accessLink', async (req, res) => {
             duration: schedule.duration,
             description: schedule.description,
             requirements: schedule.requirements,
-            accessLink: schedule.accessLink
+            accessLink: schedule.accessLink,
+            status: schedule.status
           },
           interview: interview ? {
             title: interview.title,
@@ -700,7 +770,8 @@ router.get('/round/:accessLink', async (req, res) => {
           duration: schedule.duration,
           description: schedule.description,
           requirements: schedule.requirements,
-          accessLink: schedule.accessLink
+          accessLink: schedule.accessLink,
+          status: schedule.status
         },
         interview: interview ? {
           title: interview.title,
@@ -708,6 +779,7 @@ router.get('/round/:accessLink', async (req, res) => {
           description: interview.description
         } : null,
         accessValidation,
+        candidateStatus,
         currentTime: new Date().toISOString()
       }
     });
@@ -717,10 +789,18 @@ router.get('/round/:accessLink', async (req, res) => {
   }
 });
 
-// Start round interview (candidate access)
-router.post('/round/:accessLink/start', async (req, res) => {
+// Middleware to validate candidate status for interview access
+const validateCandidateStatus = async (req, res, next) => {
   try {
     const { accessLink } = req.params;
+    const candidateId = req.user?.id; // Assuming user is authenticated
+    
+    if (!candidateId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
+    }
     
     // Find schedule by access link
     const schedule = await InterviewSchedule.findByAccessLink(accessLink);
@@ -732,7 +812,89 @@ router.post('/round/:accessLink/start', async (req, res) => {
       });
     }
     
-    // Validate access
+    // Get candidate's interview progress
+    const candidate = await User.findById(candidateId);
+    if (!candidate) {
+      return res.status(404).json({
+        success: false,
+        message: 'Candidate not found'
+      });
+    }
+    
+    // Find candidate's progress for this interview
+    const interviewProgress = candidate.interviewProgress.find(
+      progress => progress.interviewId === schedule.interviewId
+    );
+    
+    if (!interviewProgress) {
+      return res.status(403).json({
+        success: false,
+        message: 'You have not applied to this interview',
+        reason: 'not_applied'
+      });
+    }
+    
+    // Check candidate status - only allow access if status is 'passed' or 'in_progress'
+    const allowedStatuses = ['passed', 'in_progress', 'started'];
+    if (!allowedStatuses.includes(interviewProgress.status)) {
+      let message = 'Access denied';
+      let reason = 'status_restriction';
+      
+      switch (interviewProgress.status) {
+        case 'rejected':
+          message = 'You have been rejected from this interview. Access denied.';
+          reason = 'rejected';
+          break;
+        case 'on_hold':
+          message = 'Your interview is on hold. Please wait for recruiter approval to continue.';
+          reason = 'on_hold';
+          break;
+        case 'failed':
+          message = 'You have failed this interview. Access denied.';
+          reason = 'failed';
+          break;
+        case 'completed':
+          message = 'You have already completed this interview.';
+          reason = 'completed';
+          break;
+        case 'abandoned':
+          message = 'You have abandoned this interview. Access denied.';
+          reason = 'abandoned';
+          break;
+        default:
+          message = 'Your interview status does not allow access at this time.';
+          reason = 'invalid_status';
+      }
+      
+      return res.status(403).json({
+        success: false,
+        message,
+        reason,
+        candidateStatus: interviewProgress.status
+      });
+    }
+    
+    // Add schedule and interview progress to request for use in the main handler
+    req.schedule = schedule;
+    req.interviewProgress = interviewProgress;
+    next();
+  } catch (error) {
+    console.error('Error validating candidate status:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Internal server error during status validation' 
+    });
+  }
+};
+
+// Start round interview (candidate access)
+router.post('/round/:accessLink/start', auth, validateCandidateStatus, async (req, res) => {
+  try {
+    const { accessLink } = req.params;
+    const schedule = req.schedule; // From middleware
+    const interviewProgress = req.interviewProgress; // From middleware
+    
+    // Validate time-based access
     const accessValidation = schedule.validateAccess();
     
     if (!accessValidation.canAccess) {

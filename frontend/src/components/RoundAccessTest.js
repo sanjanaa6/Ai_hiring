@@ -13,15 +13,26 @@ const RoundAccessTest = () => {
       schedule: {
         startDateTime: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours from now
         endDateTime: new Date(Date.now() + 25 * 60 * 60 * 1000), // 25 hours from now
-        roundName: "Future Round Test"
+        roundName: "Future Round Test",
+        status: "scheduled"
       }
     },
     {
-      name: "Active Round (Now)",
+      name: "Active Round (Now) - Scheduled Status",
       schedule: {
         startDateTime: new Date(Date.now() - 30 * 60 * 1000), // 30 minutes ago
         endDateTime: new Date(Date.now() + 30 * 60 * 1000), // 30 minutes from now
-        roundName: "Active Round Test"
+        roundName: "Active Round Test - Scheduled",
+        status: "scheduled"
+      }
+    },
+    {
+      name: "Active Round (Now) - Active Status",
+      schedule: {
+        startDateTime: new Date(Date.now() - 30 * 60 * 1000), // 30 minutes ago
+        endDateTime: new Date(Date.now() + 30 * 60 * 1000), // 30 minutes from now
+        roundName: "Active Round Test - Active",
+        status: "active"
       }
     },
     {
@@ -29,7 +40,17 @@ const RoundAccessTest = () => {
       schedule: {
         startDateTime: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
         endDateTime: new Date(Date.now() - 1 * 60 * 60 * 1000), // 1 hour ago
-        roundName: "Ended Round Test"
+        roundName: "Ended Round Test",
+        status: "scheduled"
+      }
+    },
+    {
+      name: "Cancelled Round",
+      schedule: {
+        startDateTime: new Date(Date.now() - 30 * 60 * 1000), // 30 minutes ago
+        endDateTime: new Date(Date.now() + 30 * 60 * 1000), // 30 minutes from now
+        roundName: "Cancelled Round Test",
+        status: "cancelled"
       }
     }
   ];
@@ -37,10 +58,26 @@ const RoundAccessTest = () => {
   const runTests = () => {
     const results = testCases.map(testCase => {
       const validation = validateCandidateAccess(testCase.schedule);
+      
+      // Determine expected result based on test case
+      let expectedAccess = false;
+      if (testCase.name.includes("Active Round (Now) - Active Status")) {
+        expectedAccess = true; // Should have access when status is 'active'
+      } else if (testCase.name.includes("Active Round (Now) - Scheduled Status")) {
+        expectedAccess = true; // Should have access when status is 'scheduled' and within time
+      } else if (testCase.name.includes("Cancelled Round")) {
+        expectedAccess = false; // Should not have access when cancelled
+      } else if (testCase.name.includes("Ended Round")) {
+        expectedAccess = false; // Should not have access when ended
+      } else if (testCase.name.includes("Upcoming Round")) {
+        expectedAccess = false; // Should not have access when upcoming
+      }
+      
       return {
         ...testCase,
         validation,
-        passed: validation.canAccess === (testCase.name.includes("Active"))
+        passed: validation.canAccess === expectedAccess,
+        expectedAccess
       };
     });
     setTestResults(results);
@@ -51,6 +88,12 @@ const RoundAccessTest = () => {
       return <CheckCircle className="w-5 h-5 text-green-500" />;
     } else if (reason === 'upcoming') {
       return <Clock className="w-5 h-5 text-blue-500" />;
+    } else if (reason === 'scheduled') {
+      return <Clock className="w-5 h-5 text-yellow-500" />;
+    } else if (reason === 'cancelled') {
+      return <XCircle className="w-5 h-5 text-red-500" />;
+    } else if (reason === 'completed') {
+      return <CheckCircle className="w-5 h-5 text-gray-500" />;
     } else {
       return <XCircle className="w-5 h-5 text-red-500" />;
     }

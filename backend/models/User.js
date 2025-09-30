@@ -99,7 +99,7 @@ const userSchema = new mongoose.Schema({
     interviewTitle: { type: String, required: true },
     status: { 
       type: String, 
-      enum: ['started', 'in_progress', 'completed', 'abandoned'], 
+      enum: ['started', 'in_progress', 'completed', 'abandoned', 'applied', 'scheduled', 'passed', 'failed', 'on_hold', 'rejected'], 
       default: 'started' 
     },
     startedAt: { type: Date, default: Date.now },

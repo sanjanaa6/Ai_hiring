@@ -55,6 +55,7 @@ app.use('/api/interviews', require('./routes/interviewScheduling'));
 app.use('/api/interviews', require('./routes/interviews'));
 app.use('/api/ai', require('./routes/ai'));
 app.use('/api/ai', require('./routes/aiEvaluation'));
+app.use('/api/ai', require('./routes/aiLanguageDetection'));
 app.use('/api/coding-tutor', require('./routes/codingTutor'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/monitoring', require('./routes/monitoring'));

@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Camera, Mic, MicOff, AlertTriangle, CheckCircle, Clock, Volume2, SkipForward, Code } from 'lucide-react';
+import { Camera, AlertTriangle, CheckCircle, Clock, Volume2, SkipForward, Code } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import CodeEditor from './CodeEditor';
-import EnhancedCodeEditor from './EnhancedCodeEditor';
+import SuperCoolCodeEditor from './SuperCoolCodeEditor';
+import aiLanguageDetectionService from '../services/aiLanguageDetectionService';
+import CodeEditorWelcome from './CodeEditorWelcome';
 import apiService from '../services/apiService';
 import { EyeTrackingDetector } from './eyeTracking';
 import monitoringService from '../services/monitoringService';
@@ -48,6 +50,8 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
   const [codeAnswer, setCodeAnswer] = useState('');
   const [selectedLanguage, setSelectedLanguage] = useState('javascript');
   const [isLanguageLocked, setIsLanguageLocked] = useState(false);
+  const [aiDeterminedLanguage, setAiDeterminedLanguage] = useState(null);
+  const [showCodeEditorWelcome, setShowCodeEditorWelcome] = useState(false);
   const [showCodeEditor, setShowCodeEditor] = useState(false);
   const [isCodeEditorFullscreen, setIsCodeEditorFullscreen] = useState(false);
   const [aiQuestions, setAiQuestions] = useState([]);
@@ -58,13 +62,7 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
   
   // AI Question Tracking System
   const [aiQuestionMap, setAiQuestionMap] = useState(new Map()); // Map to store question details
-  const [aiQuestionProgress, setAiQuestionProgress] = useState({
-    totalQuestions: 0,
-    answeredQuestions: 0,
-    currentQuestionNumber: 0
-  });
   
-  const [aiResponses, setAiResponses] = useState([]);
   const [isCodeDone, setIsCodeDone] = useState(false);
   const [isAiQuestionAnswered, setIsAiQuestionAnswered] = useState(false);
   
@@ -362,15 +360,26 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
     setIsLiveCodingRound(isInteractiveCoding);
     setIsSalesRound(isSalesRound);
     
-    // Detect and lock language based on round title or question content
-    const detectedLanguage = detectLanguageFromRound(currentRound?.title, currentQuestion?.question);
-    if (detectedLanguage) {
-      setSelectedLanguage(detectedLanguage);
-      setIsLanguageLocked(true);
-      console.log('🔒 Language locked to:', detectedLanguage, 'for round:', currentRound?.title);
-    } else {
-      setIsLanguageLocked(false);
+    // Show welcome screen for coding rounds
+    if (isCurrentRoundCoding && !showCodeEditor) {
+      setShowCodeEditorWelcome(true);
     }
+    
+    // Detect and lock language based on round title or question content
+    const detectAndSetLanguage = async () => {
+      const detectedLanguage = await detectLanguageFromRound(currentRound?.title, currentQuestion?.question);
+      if (detectedLanguage) {
+        setSelectedLanguage(detectedLanguage);
+        setAiDeterminedLanguage(detectedLanguage);
+        setIsLanguageLocked(true);
+        console.log('🔒 Language locked to:', detectedLanguage, 'for round:', currentRound?.title);
+      } else {
+        setIsLanguageLocked(false);
+        setAiDeterminedLanguage(null);
+      }
+    };
+    
+    detectAndSetLanguage();
     
     // Reset states when question changes
     setIsCodeDone(false);
@@ -378,17 +387,33 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
     setIsAiQuestioning(false);
     setAiQuestions([]);
     setAiQuestionAnswers([]);
-    setAiResponses([]);
     
     // Reset showCodeEditor to false when question changes, but keep it available for coding questions
     // In coding rounds, the code editor will be available for all questions
     setShowCodeEditor(false);
-  }, [currentQuestion?.questionId, currentQuestion?.codeEditor?.enabled, currentQuestion?.question, currentQuestion?.type, currentRound?.title]);
+  }, [currentQuestion?.questionId, currentQuestion?.codeEditor?.enabled, currentQuestion?.question, currentQuestion?.type, currentRound?.title, showCodeEditor]);
 
-  // Detect language from round title or question content
-  const detectLanguageFromRound = (roundTitle, question) => {
+  // Enhanced AI-powered language detection
+  const detectLanguageFromRound = async (roundTitle, question, jobDescription = '') => {
     if (!roundTitle && !question) return null;
     
+    try {
+      // Use AI language detection service for better accuracy
+      const detectionResult = await aiLanguageDetectionService.detectLanguageFromJobDescription(
+        `${roundTitle || ''} ${question || ''} ${jobDescription}`,
+        roundTitle || 'Coding Interview'
+      );
+      
+      console.log('🤖 [AI LANGUAGE DETECTION] Result:', detectionResult);
+      
+      if (detectionResult && detectionResult.language) {
+        return detectionResult.language;
+      }
+    } catch (error) {
+      console.error('❌ [AI LANGUAGE DETECTION] Error:', error);
+    }
+    
+    // Fallback to simple pattern matching
     const text = `${roundTitle || ''} ${question || ''}`.toLowerCase();
     
     // Python Developer
@@ -1168,11 +1193,6 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
         });
         
         setAiQuestionMap(questionMap);
-        setAiQuestionProgress({
-          totalQuestions: 3,
-          answeredQuestions: 0,
-          currentQuestionNumber: 1
-        });
         
         // Store the original answer and question for subsequent questions
         setAiQuestions([firstQuestion]);
@@ -1240,10 +1260,6 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
         });
         
         // Update progress
-        setAiQuestionProgress(prev => ({
-          ...prev,
-          currentQuestionNumber: questionNumber
-        }));
         
         // Add the new question to the list
         const updatedQuestions = [...aiQuestions, nextQuestion];
@@ -1435,10 +1451,6 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
         });
         
         // Update progress
-        setAiQuestionProgress(prev => ({
-          ...prev,
-          answeredQuestions: prev.answeredQuestions + 1
-        }));
       }
       
       // Store the answer
@@ -1462,15 +1474,6 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
             isInterviewer: true
         });
         if (result.success && result.data && result.data.aiResponse) {
-          const newResponse = {
-            id: Date.now(),
-            question: aiQuestions[currentAiQuestionIndex],
-            answer: answer,
-            aiResponse: result.data.aiResponse.aiQuestion,
-            timestamp: new Date()
-          };
-          setAiResponses(prev => [...prev, newResponse]);
-          
           // Speak the AI response (use voiceText if available, otherwise use aiQuestion)
           const voiceText = result.data.voiceText || result.data.aiResponse.aiQuestion;
           await speakQuestion(voiceText);
@@ -1519,7 +1522,7 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
       setError(error.message || 'Failed to process AI question answer');
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [aiQuestionAnswers, aiQuestions, currentAiQuestionIndex, interviewId, codeAnswer, selectedLanguage, setAiQuestionAnswers, setIsAiQuestionAnswered, setAiResponses, setError]);
+  }, [aiQuestionAnswers, aiQuestions, currentAiQuestionIndex, interviewId, codeAnswer, selectedLanguage, setAiQuestionAnswers, setIsAiQuestionAnswered, setError]);
 
   // Store the function in ref to avoid circular dependency
   handleAIQuestionAnswerRef.current = handleAIQuestionAnswer;
@@ -2116,10 +2119,19 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
                   pr.status === 'in_progress'
                 ) : false;
               
-              // Simple schedule check - get schedule data from interview
+              // Check schedule and time-based availability
               const currentInterviewData = interviewData || {};
               const roundSchedule = currentInterviewData.schedules?.find(schedule => schedule.roundNumber === round.roundNumber);
               const isScheduled = !!roundSchedule;
+              
+              // Check if scheduled round is within its time window
+              let isScheduledAndActive = false;
+              if (roundSchedule && roundSchedule.startDateTime && roundSchedule.endDateTime) {
+                const now = new Date();
+                const start = new Date(roundSchedule.startDateTime);
+                const end = new Date(roundSchedule.endDateTime);
+                isScheduledAndActive = now >= start && now <= end;
+              }
               
               // Debug logging
               if (round.roundNumber === 2) { // Debug for round 2 specifically
@@ -2130,12 +2142,16 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
                   schedules: currentInterviewData.schedules,
                   roundSchedule: roundSchedule,
                   isScheduled: isScheduled,
-                  isAvailable: isAvailable
+                  isScheduledAndActive: isScheduledAndActive,
+                  isAvailable: isAvailable,
+                  startDateTime: roundSchedule?.startDateTime,
+                  endDateTime: roundSchedule?.endDateTime,
+                  currentTime: new Date().toISOString()
                 });
               }
               
-              // If round is scheduled, it should be locked (not available)
-              const finalAvailability = isAvailable && !isScheduled;
+              // Round is available if it's either not scheduled OR if it's scheduled and within time window
+              const finalAvailability = isAvailable && (!isScheduled || isScheduledAndActive);
               
               return (
                 <div
@@ -2301,7 +2317,7 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
                           Retake Round
                         </button>
                       </div>
-                    ) : isScheduled ? (
+                    ) : isScheduled && !isScheduledAndActive ? (
                       <div className={`w-full py-5 px-8 rounded-2xl font-bold text-sm transition-all duration-300 ${
                         isDarkMode 
                           ? 'bg-orange-800/40 text-orange-300 border-2 border-orange-600/40' 
@@ -2650,6 +2666,44 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
   if (step === 'interview') {
     return (
       <>
+        
+        {/* Code Editor Welcome Screen - Only for Developer Roles */}
+        {(() => {
+          // Check if this is specifically a developer role round
+          const isDeveloperRole = currentRound?.title && (
+            currentRound.title.toLowerCase().includes('developer') ||
+            currentRound.title.toLowerCase().includes('programming') ||
+            currentRound.title.toLowerCase().includes('coding') ||
+            currentRound.title.toLowerCase().includes('software engineer') ||
+            currentRound.title.toLowerCase().includes('backend developer') ||
+            currentRound.title.toLowerCase().includes('frontend developer') ||
+            currentRound.title.toLowerCase().includes('fullstack developer') ||
+            currentRound.title.toLowerCase().includes('python developer') ||
+            currentRound.title.toLowerCase().includes('javascript developer') ||
+            currentRound.title.toLowerCase().includes('java developer') ||
+            currentRound.title.toLowerCase().includes('c# developer') ||
+            currentRound.title.toLowerCase().includes('c++ developer') ||
+            currentRound.title.toLowerCase().includes('react developer') ||
+            currentRound.title.toLowerCase().includes('angular developer') ||
+            currentRound.title.toLowerCase().includes('vue developer') ||
+            currentRound.title.toLowerCase().includes('node.js developer') ||
+            currentRound.title.toLowerCase().includes('php developer') ||
+            currentRound.title.toLowerCase().includes('ruby developer') ||
+            currentRound.title.toLowerCase().includes('swift developer') ||
+            currentRound.title.toLowerCase().includes('kotlin developer') ||
+            currentRound.title.toLowerCase().includes('go developer') ||
+            currentRound.title.toLowerCase().includes('rust developer')
+          );
+          
+          return isDeveloperRole;
+        })() && (
+          <CodeEditorWelcome
+            language={selectedLanguage}
+            onStart={() => setShowCodeEditorWelcome(false)}
+            isVisible={showCodeEditorWelcome}
+          />
+        )}
+        
         {/* Termination Overlay */}
         {isTerminated && (
           <div className="fixed inset-0 bg-red-900 bg-opacity-95 flex items-center justify-center z-50">
@@ -3023,394 +3077,78 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
 
                 {/* Bottom Section - Code Editor and AI Questions */}
                 <div className="h-3/4 flex flex-col">
-                  {/* AI Questioning Section */}
-                  {isAiQuestioning && (
-                    <div className={`backdrop-blur-md border-2 rounded-2xl p-4 m-4 mb-2 transition-all duration-500 ${
-                      isDarkMode
-                        ? 'bg-gradient-to-br from-blue-900/60 via-indigo-900/40 to-purple-900/30 border-blue-600/40 shadow-2xl shadow-blue-500/30'
-                        : 'bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-100 border-blue-300 shadow-2xl shadow-blue-200/50'
-                    }`}>
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center space-x-2">
-                          <div className={`w-3 h-3 rounded-full ${
-                            isDarkMode ? 'bg-blue-500' : 'bg-blue-600'
-                          }`}></div>
-                          <h3 className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
-                            AI Interviewer
-                          </h3>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <div className={`w-2 h-2 rounded-full ${
-                            isDarkMode ? 'bg-green-400' : 'bg-green-500'
-                          }`}></div>
-                          <span className={`text-sm font-medium ${
-                            isDarkMode ? 'text-gray-300' : 'text-gray-600'
-                          }`}>
-                            Question {aiQuestionProgress.currentQuestionNumber} of {aiQuestionProgress.totalQuestions}
-                          </span>
-                          <div className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            isDarkMode 
-                              ? 'bg-blue-800/50 text-blue-200' 
-                              : 'bg-blue-100 text-blue-800'
-                          }`}>
-                            {aiQuestionProgress.answeredQuestions}/{aiQuestionProgress.totalQuestions} answered
-                          </div>
-                        </div>
-                      </div>
-                      
-                      {/* Progress Bar */}
-                      <div className="flex space-x-1 mb-4">
-                        {aiQuestions.map((_, index) => (
-                          <div
-                            key={index}
-                            className={`h-2 flex-1 rounded-full ${
-                              index <= currentAiQuestionIndex
-                                ? (isDarkMode ? 'bg-blue-500' : 'bg-blue-600')
-                                : (isDarkMode ? 'bg-slate-600' : 'bg-gray-300')
-                            }`}
-                          />
-                        ))}
-                      </div>
-
-                      {/* AI Questions Roadmap */}
-                      <div className="mb-4 space-y-2">
-                        <h4 className={`text-sm font-semibold ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                          AI Questions Roadmap:
-                        </h4>
-                        {[1, 2, 3].map((questionNum) => {
-                          const questionId = Array.from(aiQuestionMap.keys()).find(id => 
-                            aiQuestionMap.get(id)?.questionNumber === questionNum
-                          );
-                          const questionData = questionId ? aiQuestionMap.get(questionId) : null;
-                          const isCurrent = aiQuestionProgress.currentQuestionNumber === questionNum;
-                          const isCompleted = questionData?.isAnswered || false;
-                          const isUpcoming = questionNum > aiQuestionProgress.currentQuestionNumber;
-                          const isGenerated = questionData !== null;
-                          
-                          return (
-                            <div
-                              key={questionNum}
-                              className={`flex items-center space-x-3 p-2 rounded-lg border ${
-                                isCurrent
-                                  ? (isDarkMode 
-                                      ? 'bg-blue-900/40 border-blue-500/50' 
-                                      : 'bg-blue-100 border-blue-400')
-                                  : isCompleted
-                                    ? (isDarkMode 
-                                        ? 'bg-green-900/30 border-green-600/40' 
-                                        : 'bg-green-50 border-green-300')
-                                    : (isDarkMode 
-                                        ? 'bg-gray-800/30 border-gray-600/40' 
-                                        : 'bg-gray-50 border-gray-300')
-                              }`}
-                            >
-                              {/* Question Number Badge */}
-                              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                                isCurrent
-                                  ? (isDarkMode ? 'bg-blue-600 text-white' : 'bg-blue-500 text-white')
-                                  : isCompleted
-                                    ? (isDarkMode ? 'bg-green-600 text-white' : 'bg-green-500 text-white')
-                                    : (isDarkMode ? 'bg-gray-600 text-gray-300' : 'bg-gray-400 text-white')
-                              }`}>
-                                {questionNum}
-                              </div>
-                              
-                              {/* Question Content */}
-                              <div className="flex-1">
-                                <div className="flex items-center space-x-2">
-                                  <span className={`text-sm font-medium ${
-                                    isDarkMode ? 'text-white' : 'text-gray-900'
-                                  }`}>
-                                    Question {questionNum}:
-                                  </span>
-                                  <div className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                    isCurrent
-                                      ? (isDarkMode ? 'bg-blue-800/50 text-blue-200' : 'bg-blue-200 text-blue-800')
-                                      : isCompleted
-                                        ? (isDarkMode ? 'bg-green-800/50 text-green-200' : 'bg-green-200 text-green-800')
-                                        : (isDarkMode ? 'bg-gray-700/50 text-gray-300' : 'bg-gray-200 text-gray-600')
-                                  }`}>
-                                    {isCurrent ? (isGenerated ? 'Current' : 'Generating') : 
-                                     isCompleted ? 'Completed' : 
-                                     isGenerated ? 'Ready' : 'Waiting'}
-                                  </div>
-                                </div>
-                                
-                                {/* Question Text */}
-                                <p className={`text-xs mt-1 ${
-                                  isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                                }`}>
-                                  {isGenerated ? questionData.question :
-                                   isCurrent ? '🤖 AI is generating this question...' :
-                                   questionNum === 1 ? 'First AI follow-up question (will be generated after your answer)' :
-                                   questionNum === 2 ? 'Second AI follow-up question (will be generated after Question 1)' :
-                                   'Third AI follow-up question (will be generated after Question 2)'}
-                                </p>
-                                
-                                {/* Answer Status */}
-                                {isCompleted && questionData?.answer && (
-                                  <p className={`text-xs mt-1 italic ${
-                                    isDarkMode ? 'text-green-300' : 'text-green-600'
-                                  }`}>
-                                    ✓ Answered: "{questionData.answer.substring(0, 50)}..."
-                                  </p>
-                                )}
-                              </div>
-                              
-                              {/* Status Icon */}
-                              <div className="text-lg">
-                                {isCurrent && isGenerated && (
-                                  <span className={isDarkMode ? 'text-blue-400' : 'text-blue-500'}>
-                                    🎯
-                                  </span>
-                                )}
-                                {isCurrent && !isGenerated && (
-                                  <span className={isDarkMode ? 'text-blue-400' : 'text-blue-500'}>
-                                    🤖
-                                  </span>
-                                )}
-                                {isCompleted && (
-                                  <span className={isDarkMode ? 'text-green-400' : 'text-green-500'}>
-                                    ✅
-                                  </span>
-                                )}
-                                {isUpcoming && isGenerated && (
-                                  <span className={isDarkMode ? 'text-gray-500' : 'text-gray-400'}>
-                                    ⏳
-                                  </span>
-                                )}
-                                {isUpcoming && !isGenerated && (
-                                  <span className={isDarkMode ? 'text-gray-500' : 'text-gray-400'}>
-                                    ⏸️
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                      
-                      {/* Current AI Question Display */}
-                      {isAiQuestioning && aiQuestionProgress.currentQuestionNumber > 0 && (
-                        <div className={`mb-3 p-4 rounded-lg border-2 ${
-                          isDarkMode 
-                            ? 'bg-blue-900/40 border-blue-500/50 text-blue-100' 
-                            : 'bg-blue-50 border-blue-400 text-blue-900'
-                        }`}>
-                          <div className="flex items-start space-x-3">
-                            {/* Question Number Badge */}
-                            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg font-bold ${
-                              isDarkMode ? 'bg-blue-600 text-white' : 'bg-blue-500 text-white'
-                            }`}>
-                              {aiQuestionProgress.currentQuestionNumber}
-                            </div>
-                            
-                            <div className="flex-1">
-                              <div className="flex items-center space-x-2 mb-2">
-                                <p className="text-sm font-medium">Question {aiQuestionProgress.currentQuestionNumber}:</p>
-                                <div className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                  isDarkMode ? 'bg-blue-800/50 text-blue-200' : 'bg-blue-200 text-blue-800'
-                                }`}>
-                                  Current
-                                </div>
-                              </div>
-                              
-                              <p className="text-sm leading-relaxed mb-2">
-                                "{aiQuestions[currentAiQuestionIndex] || 'Generating question...'}"
-                              </p>
-                              
-                              <div className="flex items-center space-x-4 text-xs opacity-75">
-                                <span>🎤 AI Speaking</span>
-                                <span>{new Date().toLocaleTimeString()}</span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Completed Questions Display */}
-                      {isAiQuestioning && aiQuestionProgress.answeredQuestions > 0 && (
-                        <div className="mb-3 space-y-2">
-                          <h4 className={`text-sm font-semibold ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                            Completed Questions:
-                          </h4>
-                          {Array.from(aiQuestionMap.values())
-                            .filter(q => q.isAnswered)
-                            .sort((a, b) => a.questionNumber - b.questionNumber)
-                            .map((questionData) => (
-                              <div
-                                key={questionData.id}
-                                className={`p-3 rounded-lg border ${
-                                  isDarkMode 
-                                    ? 'bg-green-900/30 border-green-600/40 text-green-100' 
-                                    : 'bg-green-50 border-green-300 text-green-900'
-                                }`}
-                              >
-                                <div className="flex items-start space-x-3">
-                                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                                    isDarkMode ? 'bg-green-600 text-white' : 'bg-green-500 text-white'
-                                  }`}>
-                                    {questionData.questionNumber}
-                                  </div>
-                                  
-                                  <div className="flex-1">
-                                    <div className="flex items-center space-x-2 mb-1">
-                                      <span className="text-sm font-medium">Question {questionData.questionNumber}:</span>
-                                      <div className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                        isDarkMode ? 'bg-green-800/50 text-green-200' : 'bg-green-200 text-green-800'
-                                      }`}>
-                                        ✅ Completed
-                                      </div>
-                                    </div>
-                                    
-                                    <p className="text-xs mb-2 opacity-75">
-                                      "{questionData.question}"
-                                    </p>
-                                    
-                                    <p className="text-sm">
-                                      <span className="font-medium">Your Answer:</span> "{questionData.answer}"
-                                    </p>
-                                    
-                                    <p className="text-xs mt-1 opacity-75">
-                                      Answered at: {questionData.answeredAt?.toLocaleTimeString()}
-                                    </p>
-                                  </div>
-                                </div>
-                              </div>
-                            ))}
-                        </div>
-                      )}
-
-                      {/* Live Transcription Display */}
-                      {isAiQuestioning && !isAiQuestionAnswered && (
-                        <div className={`mb-3 p-4 rounded-lg border-2 ${
-                          isDarkMode 
-                            ? 'bg-red-900/30 border-red-600/50 text-red-100' 
-                            : 'bg-red-50 border-red-300 text-red-900'
-                        }`}>
-                          <div className="flex items-start space-x-3">
-                            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg font-bold ${
-                              isDarkMode ? 'bg-red-600 text-white' : 'bg-red-500 text-white'
-                            }`}>
-                              🎤
-                            </div>
-                            
-                            <div className="flex-1">
-                              <div className="flex items-center space-x-2 mb-2">
-                                <p className="text-sm font-medium">Live Transcription:</p>
-                                <div className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                  isDarkMode ? 'bg-red-800/50 text-red-200' : 'bg-red-200 text-red-800'
-                                }`}>
-                                  Question {aiQuestionProgress.currentQuestionNumber}
-                                </div>
-                              </div>
-                              
-                              <p className="text-sm leading-relaxed mb-2">
-                                {transcription || "Listening for your response..."}
-                              </p>
-                              
-                              <div className="flex items-center space-x-4 text-xs opacity-75">
-                                <span>{isRecording ? "🔴 Recording..." : "⏸️ Ready to record"}</span>
-                                <span>{new Date().toLocaleTimeString()}</span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* AI Responses Display */}
-                      {aiResponses.length > 0 && (
-                        <div className="mb-3 space-y-2 max-h-32 overflow-y-auto">
-                          {aiResponses.slice(-2).map((response) => (
-                            <div key={response.id} className={`p-3 rounded-lg border-2 ${
-                              isDarkMode 
-                                ? 'bg-blue-900/30 border-blue-600/50 text-blue-100' 
-                                : 'bg-blue-50 border-blue-300 text-blue-900'
-                            }`}>
-                              <div className="flex items-start space-x-2">
-                                <div className={`w-2 h-2 rounded-full mt-2 ${
-                                  isDarkMode ? 'bg-blue-400' : 'bg-blue-500'
-                                }`}></div>
-                                <div className="flex-1">
-                                  <p className="text-sm font-medium mb-1">AI Response:</p>
-                                  <p className="text-sm leading-relaxed">
-                                    "{response.aiResponse}"
-                                  </p>
-                                  <p className="text-xs mt-2 opacity-75">
-                                    {response.timestamp.toLocaleTimeString()}
-                                  </p>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                      
-                      {/* Voice Status */}
-                      <div className="flex items-center justify-center space-x-2">
-                        {isRecording ? (
-                          <>
-                            <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-                            <span className={`text-xs font-medium ${
-                              isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                            }`}>
-                              Recording...
-                            </span>
-                          </>
-                        ) : (
-                            <div className="flex items-center space-x-2">
-                          <span className={`text-xs font-medium ${
-                            isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                          }`}>
-                            🎤 Listen to AI question, then speak your answer
-                          </span>
-                              <button
-                                onClick={startVoiceRecordingForAI}
-                                className={`px-3 py-1 rounded-lg text-xs font-medium transition-all duration-200 ${
-                                  isDarkMode 
-                                    ? 'bg-blue-600 hover:bg-blue-500 text-white' 
-                                    : 'bg-blue-500 hover:bg-blue-600 text-white'
-                                }`}
-                              >
-                                {isRecording ? <MicOff className="h-3 w-3" /> : <Mic className="h-3 w-3" />}
-                                {isRecording ? 'Stop' : 'Start'} Recording
-                              </button>
-                            </div>
-                        )}
-                      </div>
-                      
-                      {transcription && (
-                        <div className={`mt-2 p-2 rounded-lg ${
-                          isDarkMode ? 'bg-slate-700/50' : 'bg-white/70'
-                        }`}>
-                          <p className={`text-xs ${
-                            isDarkMode ? 'text-gray-200' : 'text-gray-800'
-                          }`}>
-                            "{transcription}"
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  )}
                   
-                  {/* Code Editor Section */}
-                  <div className={`backdrop-blur-md border-2 rounded-2xl p-4 m-4 transition-all duration-500 ${
+                  {/* Code Editor Section - Full Width - Only for Developer Roles and Coding Rounds */}
+                  {(() => {
+                    // Check if current round is a coding round
+                    const isCurrentRoundCoding = isCodingRound(currentRound?.title);
+                    
+                    // Check if this is specifically a developer role round
+                    const isDeveloperRole = currentRound?.title && (
+                      currentRound.title.toLowerCase().includes('developer') ||
+                      currentRound.title.toLowerCase().includes('programming') ||
+                      currentRound.title.toLowerCase().includes('coding') ||
+                      currentRound.title.toLowerCase().includes('software engineer') ||
+                      currentRound.title.toLowerCase().includes('backend developer') ||
+                      currentRound.title.toLowerCase().includes('frontend developer') ||
+                      currentRound.title.toLowerCase().includes('fullstack developer') ||
+                      currentRound.title.toLowerCase().includes('python developer') ||
+                      currentRound.title.toLowerCase().includes('javascript developer') ||
+                      currentRound.title.toLowerCase().includes('java developer') ||
+                      currentRound.title.toLowerCase().includes('c# developer') ||
+                      currentRound.title.toLowerCase().includes('c++ developer') ||
+                      currentRound.title.toLowerCase().includes('react developer') ||
+                      currentRound.title.toLowerCase().includes('angular developer') ||
+                      currentRound.title.toLowerCase().includes('vue developer') ||
+                      currentRound.title.toLowerCase().includes('node.js developer') ||
+                      currentRound.title.toLowerCase().includes('php developer') ||
+                      currentRound.title.toLowerCase().includes('ruby developer') ||
+                      currentRound.title.toLowerCase().includes('swift developer') ||
+                      currentRound.title.toLowerCase().includes('kotlin developer') ||
+                      currentRound.title.toLowerCase().includes('go developer') ||
+                      currentRound.title.toLowerCase().includes('rust developer')
+                    );
+                    
+                    // Also check if question has explicit code editor enabled
+                    const hasExplicitCodeEditor = currentQuestion?.codeEditor?.enabled;
+                    
+                    // Check if question content suggests coding
+                    const isCodingQuestion = currentQuestion?.question && (
+                      currentQuestion.question.toLowerCase().includes('code editor') ||
+                      currentQuestion.question.toLowerCase().includes('write a function') ||
+                      currentQuestion.question.toLowerCase().includes('implement a function') ||
+                      currentQuestion.question.toLowerCase().includes('implement a class') ||
+                      currentQuestion.question.toLowerCase().includes('implement an algorithm') ||
+                      currentQuestion.question.toLowerCase().includes('implement a data structure') ||
+                      currentQuestion.question.toLowerCase().includes('coding') ||
+                      currentQuestion.question.toLowerCase().includes('programming') ||
+                      currentQuestion.question.toLowerCase().includes('write code') ||
+                      currentQuestion.question.toLowerCase().includes('write a program') ||
+                      currentQuestion.question.toLowerCase().includes('algorithm') ||
+                      currentQuestion.question.toLowerCase().includes('debug') ||
+                      currentQuestion.question.toLowerCase().includes('reverse') ||
+                      currentQuestion.question.toLowerCase().includes('palindrome') ||
+                      currentQuestion.question.toLowerCase().includes('factorial') ||
+                      currentQuestion.question.toLowerCase().includes('binary search') ||
+                      currentQuestion.question.toLowerCase().includes('sorting') ||
+                      currentQuestion.question.toLowerCase().includes('recursion') ||
+                      currentQuestion.question.toLowerCase().includes('data structure')
+                    );
+                    
+                    // Show code editor ONLY if: it's a developer role round AND (it's a coding round OR has explicit code editor OR question content suggests coding)
+                    return isDeveloperRole && (isCurrentRoundCoding || hasExplicitCodeEditor || isCodingQuestion);
+                  })() && (
+                  <div className={`backdrop-blur-md border rounded-2xl p-4 m-4 transition-all duration-500 ${
                     isDarkMode
-                      ? 'bg-gradient-to-br from-slate-900/60 via-gray-900/40 to-black/30 border-slate-600/40 shadow-2xl shadow-slate-500/30'
-                      : 'bg-gradient-to-br from-white via-blue-50 to-indigo-100 border-blue-300 shadow-2xl shadow-blue-200/50'
+                      ? 'bg-slate-800/60 border-slate-600/40'
+                      : 'bg-white border-gray-300'
                   }`}>
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center space-x-3">
-                        <div className={`w-3 h-3 rounded-full ${
-                          isDarkMode ? 'bg-blue-500' : 'bg-blue-600'
-                        }`}></div>
-                        <h3 className={`text-lg font-black ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Code Editor</h3>
+                        <h3 className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Code Editor</h3>
                       </div>
                       <div className="flex items-center space-x-3">
                         <div className="flex items-center space-x-2">
-                          <div className={`w-2 h-2 rounded-full ${
-                            isDarkMode ? 'bg-green-400' : 'bg-green-500'
-                          }`}></div>
                           <span className={`text-xs font-medium ${
                             isDarkMode ? 'text-gray-300' : 'text-gray-600'
                           }`}>
@@ -3431,8 +3169,7 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
                     </div>
                     
                     <div className={`bg-white rounded-lg p-2 ${
-                      isCodeEditorFullscreen ? 'fixed inset-0 z-50 h-screen w-screen rounded-none' : 
-                      isAiQuestioning ? 'h-[600px]' : 'h-[700px]'
+                      isCodeEditorFullscreen ? 'fixed inset-0 z-50 h-screen w-screen rounded-none' : 'h-[800px]'
                     }`}>
                       {isCodeEditorFullscreen && (
                         <div className="flex justify-between items-center mb-4 p-4 bg-gray-100 rounded-lg">
@@ -3445,7 +3182,7 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
                           </button>
                         </div>
                       )}
-                      <EnhancedCodeEditor
+                      <SuperCoolCodeEditor
                 language={currentQuestion?.codeEditor?.language || selectedLanguage}
                         starterCode={currentQuestion?.codeEditor?.starterCode || getDefaultStarterCode(selectedLanguage)}
                         testCases={currentQuestion?.codeEditor?.testCases || []}
@@ -3460,9 +3197,11 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
                         onToggleFullScreen={() => setIsCodeEditorFullscreen(!isCodeEditorFullscreen)}
                         sessionId={interviewId}
                         languageLocked={isLanguageLocked}
+                        aiDeterminedLanguage={aiDeterminedLanguage}
                       />
                     </div>
                   </div>
+                  )}
                 </div>
               </div>
             ) : (
@@ -3563,6 +3302,32 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
                 // Check if current round is a coding round
                 const isCurrentRoundCoding = isCodingRound(currentRound?.title);
                 
+                // Check if this is specifically a developer role round
+                const isDeveloperRole = currentRound?.title && (
+                  currentRound.title.toLowerCase().includes('developer') ||
+                  currentRound.title.toLowerCase().includes('programming') ||
+                  currentRound.title.toLowerCase().includes('coding') ||
+                  currentRound.title.toLowerCase().includes('software engineer') ||
+                  currentRound.title.toLowerCase().includes('backend developer') ||
+                  currentRound.title.toLowerCase().includes('frontend developer') ||
+                  currentRound.title.toLowerCase().includes('fullstack developer') ||
+                  currentRound.title.toLowerCase().includes('python developer') ||
+                  currentRound.title.toLowerCase().includes('javascript developer') ||
+                  currentRound.title.toLowerCase().includes('java developer') ||
+                  currentRound.title.toLowerCase().includes('c# developer') ||
+                  currentRound.title.toLowerCase().includes('c++ developer') ||
+                  currentRound.title.toLowerCase().includes('react developer') ||
+                  currentRound.title.toLowerCase().includes('angular developer') ||
+                  currentRound.title.toLowerCase().includes('vue developer') ||
+                  currentRound.title.toLowerCase().includes('node.js developer') ||
+                  currentRound.title.toLowerCase().includes('php developer') ||
+                  currentRound.title.toLowerCase().includes('ruby developer') ||
+                  currentRound.title.toLowerCase().includes('swift developer') ||
+                  currentRound.title.toLowerCase().includes('kotlin developer') ||
+                  currentRound.title.toLowerCase().includes('go developer') ||
+                  currentRound.title.toLowerCase().includes('rust developer')
+                );
+                
                 // Also check if question has explicit code editor enabled
                 const hasExplicitCodeEditor = currentQuestion?.codeEditor?.enabled;
                 
@@ -3589,26 +3354,23 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
                   currentQuestion.question.toLowerCase().includes('data structure')
                 );
                 
-                // Show code editor if: it's a coding round OR question has explicit code editor OR question content suggests coding
-                return isCurrentRoundCoding || hasExplicitCodeEditor || isCodingQuestion;
+                // Show code editor ONLY if: it's a developer role round AND (it's a coding round OR has explicit code editor OR question content suggests coding)
+                return isDeveloperRole && (isCurrentRoundCoding || hasExplicitCodeEditor || isCodingQuestion);
               })() && (
                 <div className="mb-3">
-                  <div className={`backdrop-blur-md border-2 rounded-2xl p-4 transition-all duration-500 transform hover:scale-105 ${
+                  <div className={`backdrop-blur-md border rounded-2xl p-4 transition-all duration-500 ${
                     isDarkMode 
-                      ? 'bg-gradient-to-br from-slate-900/60 via-gray-900/40 to-black/30 border-slate-600/40 shadow-2xl shadow-slate-500/30' 
-                      : 'bg-gradient-to-br from-white via-blue-50 to-indigo-100 border-blue-300 shadow-2xl shadow-blue-200/50'
+                      ? 'bg-slate-800/60 border-slate-600/40' 
+                      : 'bg-white border-gray-300'
                   }`}>
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center space-x-3">
-                        <div className={`w-3 h-3 rounded-full ${
-                          isDarkMode ? 'bg-blue-500' : 'bg-blue-600'
-                        }`}></div>
-                        <h3 className={`text-lg font-black ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Code Editor</h3>
+                        <h3 className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Code Editor</h3>
                       </div>
                       {!showCodeEditor && (
                         <button
                           onClick={() => setShowCodeEditor(true)}
-                          className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-slate-700 via-blue-600 to-indigo-600 hover:from-slate-600 hover:via-blue-500 hover:to-indigo-500 text-white rounded-xl font-bold transition-all duration-300 transform hover:scale-105 shadow-lg"
+                          className="flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-all duration-200"
                         >
                           <Code className="h-4 w-4" />
                           <span>
@@ -3634,15 +3396,15 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
                           </div>
                         )}
                         
-                        {/* Check if this is a coding round to use enhanced editor */}
+                        {/* Use Super Cool Code Editor for all coding rounds */}
                         {(isCodingRound(currentRound?.title) || currentQuestion?.codeEditor?.enabled) ? (
-                          <EnhancedCodeEditor
+                          <SuperCoolCodeEditor
                             language={currentQuestion.codeEditor?.language || selectedLanguage}
                             starterCode={currentQuestion.codeEditor?.starterCode || getDefaultStarterCode(selectedLanguage)}
                             testCases={currentQuestion.codeEditor?.testCases || []}
                             question={currentQuestion?.question || ''}
                             onCodeChange={(code) => {
-                              console.log('📝 Code changed (editor 2):', code);
+                              console.log('📝 Code changed (Super Cool Editor):', code);
                               setCodeAnswer(code);
                             }}
                             onAIQuestionGenerated={handleAIQuestionFromEditor}
@@ -3651,6 +3413,7 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
                             onToggleFullScreen={() => setIsCodeEditorFullscreen(!isCodeEditorFullscreen)}
                             sessionId={interviewId}
                             languageLocked={isLanguageLocked}
+                            aiDeterminedLanguage={aiDeterminedLanguage}
                           />
                         ) : (
                           <CodeEditor
@@ -3669,18 +3432,18 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
                     
                     {!showCodeEditor && (
                       <div className="text-center py-6">
-                        <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-2xl ${
+                        <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 ${
                           isDarkMode 
-                            ? 'bg-gradient-to-br from-slate-700 via-blue-600 to-indigo-700' 
-                            : 'bg-gradient-to-br from-blue-100 via-blue-200 to-indigo-300'
+                            ? 'bg-slate-700' 
+                            : 'bg-gray-200'
                         }`}>
-                          <Code className={`h-8 w-8 ${isDarkMode ? 'text-white' : 'text-slate-900'}`} />
+                          <Code className={`h-8 w-8 ${isDarkMode ? 'text-white' : 'text-gray-700'}`} />
                         </div>
                         <p className={`text-sm mb-2 ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>
                           {isCodingRound(currentRound?.title) ? (
                             <>
                               This is a coding round - all questions include a code editor for hands-on coding.
-                              <span className="block mt-1 text-blue-400 font-medium">
+                              <span className="block mt-1 text-blue-600 font-medium">
                                 Enhanced with AI interviewer questions and large code editor!
                               </span>
                             </>
@@ -3688,7 +3451,7 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
                             <>
                               This question includes a code editor for hands-on coding.
                               {currentQuestion?.codeEditor?.enabled && (
-                                <span className="block mt-1 text-blue-400 font-medium">
+                                <span className="block mt-1 text-blue-600 font-medium">
                                   Enhanced with AI interviewer questions and large code editor!
                                 </span>
                               )}
@@ -3878,79 +3641,79 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
             {/* Right Side - Video Feed */}
             <div className="w-full lg:w-1/2 flex flex-col items-center px-4 py-4 overflow-y-auto">
               <div className="relative w-full max-w-2xl">
-                    <video
-                      ref={videoRef}
-                      autoPlay
-                      muted
-                  playsInline
+                      <video
+                        ref={videoRef}
+                        autoPlay
+                        muted
+                    playsInline
                   className={`w-full h-64 lg:h-[400px] bg-black rounded-2xl object-cover shadow-2xl border-4 ${
-                    isDarkMode ? 'border-white/20' : 'border-blue-200'
-                  }`}
-                  onLoadedMetadata={() => {
-                    console.log('📹 Interview video metadata loaded');
-                    console.log('📹 Video dimensions:', videoRef.current?.videoWidth, 'x', videoRef.current?.videoHeight);
-                  }}
-                  onCanPlay={() => {
-                    console.log('📹 Interview video can play');
-                    setCameraStatus('playing');
-                  }}
-                  onPlay={() => {
-                    console.log('📹 Interview video started playing');
-                    setCameraStatus('playing');
-                  }}
-                  onError={(e) => {
-                    console.error('❌ Interview video error:', e);
-                    setCameraStatus('error');
-                  }}
-                />
-                
-                {/* Camera Status Overlay for Interview */}
-                {cameraStatus !== 'playing' && (
-                  <div className="absolute inset-0 bg-black/80 rounded-2xl flex items-center justify-center">
-                    <div className="text-center text-white">
-                      {cameraStatus === 'error' ? (
-                        <>
+                      isDarkMode ? 'border-white/20' : 'border-blue-200'
+                    }`}
+                    onLoadedMetadata={() => {
+                      console.log('📹 Interview video metadata loaded');
+                      console.log('📹 Video dimensions:', videoRef.current?.videoWidth, 'x', videoRef.current?.videoHeight);
+                    }}
+                    onCanPlay={() => {
+                      console.log('📹 Interview video can play');
+                      setCameraStatus('playing');
+                    }}
+                    onPlay={() => {
+                      console.log('📹 Interview video started playing');
+                      setCameraStatus('playing');
+                    }}
+                    onError={(e) => {
+                      console.error('❌ Interview video error:', e);
+                      setCameraStatus('error');
+                    }}
+                  />
+                  
+                  {/* Camera Status Overlay for Interview */}
+                  {cameraStatus !== 'playing' && (
+                    <div className="absolute inset-0 bg-black/80 rounded-2xl flex items-center justify-center">
+                      <div className="text-center text-white">
+                        {cameraStatus === 'error' ? (
+                          <>
                           <Camera className="h-12 w-12 mx-auto mb-3 text-red-400" />
                           <h3 className="text-lg font-semibold mb-1">Camera Error</h3>
                           <p className="text-gray-300 text-sm">Camera not available</p>
-                        </>
-                      ) : (
-                        <>
+                          </>
+                        ) : (
+                          <>
                           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-3"></div>
                           <h3 className="text-lg font-semibold mb-1">Connecting Camera...</h3>
                           <p className="text-gray-300 text-sm">Setting up video feed</p>
-                        </>
-                      )}
+                          </>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
                 
                 
-                
-                {/* Status Overlay */}
+                  
+                  {/* Status Overlay */}
                 <div className="absolute top-4 left-4 flex flex-col space-y-2">
                   <div className="flex items-center space-x-2 bg-green-600/90 backdrop-blur-sm text-white px-3 py-1 rounded-full text-xs font-medium">
                     <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
-                        <span>Live</span>
-                      </div>
-                      
-                      {isRecording && (
+                          <span>Live</span>
+                        </div>
+                        
+                        {isRecording && (
                     <div className="flex items-center space-x-2 bg-red-600/90 backdrop-blur-sm text-white px-3 py-1 rounded-full text-xs font-medium">
                       <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
-                          <span>Recording</span>
-                        </div>
-                      )}
-                      
-                      {isAISpeaking && (
+                            <span>Recording</span>
+                          </div>
+                        )}
+                        
+                        {isAISpeaking && (
                     <div className="flex items-center space-x-2 bg-blue-600/90 backdrop-blur-sm text-white px-3 py-1 rounded-full text-xs font-medium">
                       <Volume2 className="w-3 h-3 animate-pulse" />
-                          <span>AI Speaking</span>
-                        </div>
-                      )}
+                            <span>AI Speaking</span>
+                          </div>
+                        )}
 
-                    </div>
+                      </div>
 
-          </div>
+            </div>
 
               {/* Interview Stats */}
               <div className={`mt-4 backdrop-blur-md border-2 rounded-2xl p-4 w-full max-w-4xl transition-all duration-500 transform hover:scale-105 ${
@@ -3969,7 +3732,7 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
                     <div className={`text-xs font-medium ${
                       isDarkMode ? 'text-gray-300' : 'text-gray-600'
                     }`}>Current Round</div>
-        </div>
+                  </div>
                   <div className="text-center">
                     <div className={`text-lg font-black mb-1 ${
                       isDarkMode ? 'text-white' : 'text-slate-900'
@@ -3995,13 +3758,13 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
                 </div>
               </div>
 
-          </div>
             </div>
+          </div>
             )}
           </div>
         </div>
 
-      </div>
+        </div>
       </>
     );
   }

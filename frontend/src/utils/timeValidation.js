@@ -134,9 +134,10 @@ export const formatTimeRemaining = (timeObj) => {
  * Get access status message for candidates
  * @param {Date|string} startDateTime - Start date and time
  * @param {Date|string} endDateTime - End date and time
+ * @param {string} status - Round status (scheduled, active, completed, cancelled)
  * @returns {Object} - Object with access status and message
  */
-export const getAccessStatus = (startDateTime, endDateTime) => {
+export const getAccessStatus = (startDateTime, endDateTime, status = 'scheduled') => {
   const now = new Date();
   const start = new Date(startDateTime);
   const end = new Date(endDateTime);
@@ -145,6 +146,7 @@ export const getAccessStatus = (startDateTime, endDateTime) => {
     now: now.toISOString(),
     start: start.toISOString(),
     end: end.toISOString(),
+    status,
     nowTime: now.getTime(),
     startTime: start.getTime(),
     endTime: end.getTime(),
@@ -153,6 +155,28 @@ export const getAccessStatus = (startDateTime, endDateTime) => {
     isWithinWindow: now >= start && now <= end
   });
   
+  // Check status first
+  if (status === 'cancelled') {
+    console.log('🔍 Round is CANCELLED - access denied');
+    return {
+      canAccess: false,
+      status: 'cancelled',
+      message: 'Round has been cancelled',
+      timeRemaining: { days: 0, hours: 0, minutes: 0, seconds: 0, total: 0 }
+    };
+  }
+  
+  if (status === 'completed') {
+    console.log('🔍 Round is COMPLETED - access denied');
+    return {
+      canAccess: false,
+      status: 'completed',
+      message: 'Round has been completed',
+      timeRemaining: { days: 0, hours: 0, minutes: 0, seconds: 0, total: 0 }
+    };
+  }
+  
+  // Check time-based access
   if (now < start) {
     const timeUntil = getTimeUntilStart(startDateTime);
     console.log('🔍 Round is UPCOMING - access denied');
@@ -164,11 +188,16 @@ export const getAccessStatus = (startDateTime, endDateTime) => {
     };
   } else if (now >= start && now <= end) {
     const timeUntil = getTimeUntilEnd(endDateTime);
-    console.log('🔍 Round is ACTIVE - access granted');
+    // Grant access if status is 'active' or 'scheduled' (auto-activation)
+    // For scheduled rounds within time window, they should be accessible
+    const canAccess = status === 'active' || status === 'scheduled';
+    console.log(`🔍 Round is WITHIN TIME WINDOW - access ${canAccess ? 'granted' : 'denied'}`);
     return {
-      canAccess: true,
-      status: 'active',
-      message: `Round is active - ${formatTimeRemaining(timeUntil)} remaining`,
+      canAccess,
+      status: 'active', // Always return 'active' when within time window and accessible
+      message: canAccess 
+        ? `Round is active - ${formatTimeRemaining(timeUntil)} remaining`
+        : 'Round is scheduled but not yet active',
       timeRemaining: timeUntil
     };
   } else {
@@ -184,7 +213,7 @@ export const getAccessStatus = (startDateTime, endDateTime) => {
 
 /**
  * Validate if a candidate can access the round at the current time
- * @param {Object} schedule - Schedule object with startDateTime and endDateTime
+ * @param {Object} schedule - Schedule object with startDateTime, endDateTime, and status
  * @returns {Object} - Validation result with access status and details
  */
 export const validateCandidateAccess = (schedule) => {
@@ -205,6 +234,7 @@ export const validateCandidateAccess = (schedule) => {
     now: now.toISOString(),
     start: start.toISOString(),
     end: end.toISOString(),
+    status: schedule.status,
     nowTime: now.getTime(),
     startTime: start.getTime(),
     endTime: end.getTime(),
@@ -213,7 +243,7 @@ export const validateCandidateAccess = (schedule) => {
     isWithinWindow: now >= start && now <= end
   });
   
-  const accessStatus = getAccessStatus(schedule.startDateTime, schedule.endDateTime);
+  const accessStatus = getAccessStatus(schedule.startDateTime, schedule.endDateTime, schedule.status);
   
   return {
     canAccess: accessStatus.canAccess,
