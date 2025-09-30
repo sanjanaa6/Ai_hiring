@@ -4,7 +4,6 @@ import { useTheme } from '../context/ThemeContext';
 import CodeEditor from './CodeEditor';
 import SuperCoolCodeEditor from './SuperCoolCodeEditor';
 import aiLanguageDetectionService from '../services/aiLanguageDetectionService';
-import CodeEditorWelcome from './CodeEditorWelcome';
 import apiService from '../services/apiService';
 import { EyeTrackingDetector } from './eyeTracking';
 import monitoringService from '../services/monitoringService';
@@ -51,7 +50,6 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
   const [selectedLanguage, setSelectedLanguage] = useState('javascript');
   const [isLanguageLocked, setIsLanguageLocked] = useState(false);
   const [aiDeterminedLanguage, setAiDeterminedLanguage] = useState(null);
-  const [showCodeEditorWelcome, setShowCodeEditorWelcome] = useState(false);
   const [showCodeEditor, setShowCodeEditor] = useState(false);
   const [isCodeEditorFullscreen, setIsCodeEditorFullscreen] = useState(false);
   const [aiQuestions, setAiQuestions] = useState([]);
@@ -362,7 +360,7 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
     
     // Show welcome screen for coding rounds
     if (isCurrentRoundCoding && !showCodeEditor) {
-      setShowCodeEditorWelcome(true);
+      setShowCodeEditor(true);
     }
     
     // Detect and lock language based on round title or question content
@@ -2667,42 +2665,6 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
     return (
       <>
         
-        {/* Code Editor Welcome Screen - Only for Developer Roles */}
-        {(() => {
-          // Check if this is specifically a developer role round
-          const isDeveloperRole = currentRound?.title && (
-            currentRound.title.toLowerCase().includes('developer') ||
-            currentRound.title.toLowerCase().includes('programming') ||
-            currentRound.title.toLowerCase().includes('coding') ||
-            currentRound.title.toLowerCase().includes('software engineer') ||
-            currentRound.title.toLowerCase().includes('backend developer') ||
-            currentRound.title.toLowerCase().includes('frontend developer') ||
-            currentRound.title.toLowerCase().includes('fullstack developer') ||
-            currentRound.title.toLowerCase().includes('python developer') ||
-            currentRound.title.toLowerCase().includes('javascript developer') ||
-            currentRound.title.toLowerCase().includes('java developer') ||
-            currentRound.title.toLowerCase().includes('c# developer') ||
-            currentRound.title.toLowerCase().includes('c++ developer') ||
-            currentRound.title.toLowerCase().includes('react developer') ||
-            currentRound.title.toLowerCase().includes('angular developer') ||
-            currentRound.title.toLowerCase().includes('vue developer') ||
-            currentRound.title.toLowerCase().includes('node.js developer') ||
-            currentRound.title.toLowerCase().includes('php developer') ||
-            currentRound.title.toLowerCase().includes('ruby developer') ||
-            currentRound.title.toLowerCase().includes('swift developer') ||
-            currentRound.title.toLowerCase().includes('kotlin developer') ||
-            currentRound.title.toLowerCase().includes('go developer') ||
-            currentRound.title.toLowerCase().includes('rust developer')
-          );
-          
-          return isDeveloperRole;
-        })() && (
-          <CodeEditorWelcome
-            language={selectedLanguage}
-            onStart={() => setShowCodeEditorWelcome(false)}
-            isVisible={showCodeEditorWelcome}
-          />
-        )}
         
         {/* Termination Overlay */}
         {isTerminated && (

@@ -341,7 +341,11 @@ const EnhancedCodeEditor = ({
               <div className="relative">
                 <select
                   value={selectedLanguage}
-                  onChange={(e) => setSelectedLanguage(e.target.value)}
+                  onChange={(e) => {
+                    if (!languageLocked) {
+                      setSelectedLanguage(e.target.value);
+                    }
+                  }}
                   className="px-3 py-1 text-sm bg-white border border-gray-300 rounded hover:bg-gray-50"
                 >
                   {supportedLanguages.map((lang) => (

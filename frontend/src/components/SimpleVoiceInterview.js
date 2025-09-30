@@ -4,7 +4,6 @@ import { useTheme } from '../context/ThemeContext';
 import CodeEditor from './CodeEditor';
 import SuperCoolCodeEditor from './SuperCoolCodeEditor';
 import aiLanguageDetectionService from '../services/aiLanguageDetectionService';
-import CodeEditorWelcome from './CodeEditorWelcome';
 import apiService from '../services/apiService';
 import ttsService from '../services/ttsService';
 
@@ -49,7 +48,6 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
   const [selectedLanguage, setSelectedLanguage] = useState('javascript');
   const [isLanguageLocked, setIsLanguageLocked] = useState(false);
   const [aiDeterminedLanguage, setAiDeterminedLanguage] = useState(null);
-  const [showCodeEditorWelcome, setShowCodeEditorWelcome] = useState(false);
   const [showCodeEditor, setShowCodeEditor] = useState(false);
   const [isCodeEditorFullscreen, setIsCodeEditorFullscreen] = useState(false);
   const [aiQuestions, setAiQuestions] = useState([]);
@@ -264,9 +262,9 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
     setIsLiveCodingRound(isInteractiveCoding);
     setIsSalesRound(isSalesRound);
     
-    // Show welcome screen for coding rounds
+    // Skip welcome screen for coding rounds - go directly to code editor
     if (isCurrentRoundCoding && !showCodeEditor) {
-      setShowCodeEditorWelcome(true);
+      setShowCodeEditor(true);
     }
     
     // Detect and lock language based on round title or question content
@@ -294,7 +292,19 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
     
     // Reset showCodeEditor to false when question changes, but keep it available for coding questions
     // In coding rounds, the code editor will be available for all questions
-    setShowCodeEditor(false);
+    console.log('🔧 Code Editor Logic:', {
+      isCurrentRoundCoding,
+      currentRoundTitle: currentRound?.title,
+      showCodeEditor,
+      willShowEditor: isCurrentRoundCoding
+    });
+    
+    if (!isCurrentRoundCoding) {
+      setShowCodeEditor(false);
+    } else {
+      // For coding rounds, always show the code editor
+      setShowCodeEditor(true);
+    }
   }, [currentQuestion?.questionId, currentQuestion?.codeEditor?.enabled, currentQuestion?.question, currentQuestion?.type, currentRound?.title, showCodeEditor]);
 
   // Enhanced AI-powered language detection
@@ -2385,42 +2395,6 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
     return (
       <>
         
-        {/* Code Editor Welcome Screen - Only for Developer Roles */}
-        {(() => {
-          // Check if this is specifically a developer role round
-          const isDeveloperRole = currentRound?.title && (
-            currentRound.title.toLowerCase().includes('developer') ||
-            currentRound.title.toLowerCase().includes('programming') ||
-            currentRound.title.toLowerCase().includes('coding') ||
-            currentRound.title.toLowerCase().includes('software engineer') ||
-            currentRound.title.toLowerCase().includes('backend developer') ||
-            currentRound.title.toLowerCase().includes('frontend developer') ||
-            currentRound.title.toLowerCase().includes('fullstack developer') ||
-            currentRound.title.toLowerCase().includes('python developer') ||
-            currentRound.title.toLowerCase().includes('javascript developer') ||
-            currentRound.title.toLowerCase().includes('java developer') ||
-            currentRound.title.toLowerCase().includes('c# developer') ||
-            currentRound.title.toLowerCase().includes('c++ developer') ||
-            currentRound.title.toLowerCase().includes('react developer') ||
-            currentRound.title.toLowerCase().includes('angular developer') ||
-            currentRound.title.toLowerCase().includes('vue developer') ||
-            currentRound.title.toLowerCase().includes('node.js developer') ||
-            currentRound.title.toLowerCase().includes('php developer') ||
-            currentRound.title.toLowerCase().includes('ruby developer') ||
-            currentRound.title.toLowerCase().includes('swift developer') ||
-            currentRound.title.toLowerCase().includes('kotlin developer') ||
-            currentRound.title.toLowerCase().includes('go developer') ||
-            currentRound.title.toLowerCase().includes('rust developer')
-          );
-          
-          return isDeveloperRole;
-        })() && (
-          <CodeEditorWelcome
-            language={selectedLanguage}
-            onStart={() => setShowCodeEditorWelcome(false)}
-            isVisible={showCodeEditorWelcome}
-          />
-        )}
         
         
         <div className={`fixed inset-0 overflow-hidden ${
@@ -2794,17 +2768,17 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
                       currentQuestion.question.toLowerCase().includes('data structure')
                     );
                     
-                    // Show code editor ONLY if: it's a developer role round AND (it's a coding round OR has explicit code editor OR question content suggests coding)
-                    return isDeveloperRole && (isCurrentRoundCoding || hasExplicitCodeEditor || isCodingQuestion);
+                    // Show code editor if: it's a coding round OR it's a developer role round OR has explicit code editor OR question content suggests coding
+                    return isCurrentRoundCoding || isDeveloperRole || hasExplicitCodeEditor || isCodingQuestion;
                   })() && (
-                  <div className={`backdrop-blur-md border rounded-2xl p-4 m-4 transition-all duration-500 ${
+                  <div className={`backdrop-blur-md border rounded-2xl p-6 m-6 transition-all duration-500 ${
                     isDarkMode
                       ? 'bg-slate-800/60 border-slate-600/40'
                       : 'bg-white border-gray-300'
                   }`}>
-                    <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center justify-between mb-6">
                       <div className="flex items-center space-x-3">
-                        <h3 className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Code Editor</h3>
+                        <h3 className={`text-xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Code Editor</h3>
                       </div>
                       <div className="flex items-center space-x-3">
                         <div className="flex items-center space-x-2">
@@ -2827,8 +2801,8 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
                       </div>
                     </div>
                     
-                    <div className={`bg-white rounded-lg p-2 ${
-                      isCodeEditorFullscreen ? 'fixed inset-0 z-50 h-screen w-screen rounded-none' : 'h-[800px]'
+                    <div className={`bg-white rounded-xl p-4 shadow-lg ${
+                      isCodeEditorFullscreen ? 'fixed inset-0 z-50 h-screen w-screen rounded-none' : 'h-[900px]'
                     }`}>
                       {isCodeEditorFullscreen && (
                         <div className="flex justify-between items-center mb-4 p-4 bg-gray-100 rounded-lg">
@@ -3013,18 +2987,29 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
                   currentQuestion.question.toLowerCase().includes('data structure')
                 );
                 
-                // Show code editor ONLY if: it's a developer role round AND (it's a coding round OR has explicit code editor OR question content suggests coding)
-                return isDeveloperRole && (isCurrentRoundCoding || hasExplicitCodeEditor || isCodingQuestion);
+                // Show code editor if: it's a coding round OR it's a developer role round OR has explicit code editor OR question content suggests coding
+                const shouldShowEditor = isCurrentRoundCoding || isDeveloperRole || hasExplicitCodeEditor || isCodingQuestion;
+                
+                console.log('🎯 Code Editor Visibility Check:', {
+                  currentRoundTitle: currentRound?.title,
+                  isCurrentRoundCoding,
+                  isDeveloperRole,
+                  hasExplicitCodeEditor,
+                  isCodingQuestion,
+                  shouldShowEditor
+                });
+                
+                return shouldShowEditor;
               })() && (
-                <div className="mb-3">
-                  <div className={`backdrop-blur-md border rounded-2xl p-4 transition-all duration-500 ${
+                <div className="mb-6">
+                  <div className={`backdrop-blur-md border rounded-2xl p-6 transition-all duration-500 ${
                     isDarkMode 
                       ? 'bg-slate-800/60 border-slate-600/40' 
                       : 'bg-white border-gray-300'
                   }`}>
-                    <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center justify-between mb-6">
                       <div className="flex items-center space-x-3">
-                        <h3 className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Code Editor</h3>
+                        <h3 className={`text-xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Code Editor</h3>
                       </div>
                       {!showCodeEditor && (
                         <button
@@ -3042,7 +3027,7 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
                     </div>
                     
                     {showCodeEditor && (
-                      <div className={`${isCodeEditorFullscreen ? 'fixed inset-0 z-50 bg-white' : 'bg-white rounded-lg p-2 h-96'}`}>
+                      <div className={`${isCodeEditorFullscreen ? 'fixed inset-0 z-50 bg-white' : 'bg-white rounded-xl p-4 shadow-lg h-[600px]'}`}>
                         {!isCodeEditorFullscreen && (
                           <div className="flex items-center justify-between mb-4">
                             <h4 className="text-lg font-semibold text-gray-800">Code Editor</h4>
@@ -3084,6 +3069,7 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
                               setCodeAnswer(code);
                             }}
                             disabled={false}
+                            languageLocked={isLanguageLocked}
                           />
                         )}
                       </div>

@@ -11,7 +11,6 @@ import {
   Code2,
   Settings,
   Lock,
-  Trophy,
   Target,
   Brain,
   Mic,
@@ -44,8 +43,6 @@ const SuperCoolCodeEditor = ({
   const [editorTheme, setEditorTheme] = useState('vs-dark');
   const [showSettings, setShowSettings] = useState(false);
   const [linesOfCode, setLinesOfCode] = useState(0);
-  const [achievements, setAchievements] = useState([]);
-  const [showAchievements, setShowAchievements] = useState(false);
   const [codeQuality, setCodeQuality] = useState(0);
   const [isTyping, setIsTyping] = useState(false);
   
@@ -62,7 +59,6 @@ const SuperCoolCodeEditor = ({
   const chatEndRef = useRef(null);
   const codeUpdateTimeoutRef = useRef(null);
   const typingTimeoutRef = useRef(null);
-  const achievementTimeoutRef = useRef(null);
 
   // Premium themes for the editor
   const themes = [
@@ -75,71 +71,6 @@ const SuperCoolCodeEditor = ({
     { name: 'Solarized Light', value: 'solarized-light', icon: '🌞' }
   ];
 
-  // Achievement system
-  const checkAchievements = useCallback((newCode) => {
-    const newAchievements = [];
-    
-    // First Code Achievement
-    if (newCode.trim().length > 10 && !achievements.includes('first_code')) {
-      newAchievements.push({
-        id: 'first_code',
-        title: '🚀 First Code!',
-        description: 'You wrote your first line of code!',
-        icon: '🚀'
-      });
-    }
-    
-    // Function Master
-    if (newCode.includes('function') && !achievements.includes('function_master')) {
-      newAchievements.push({
-        id: 'function_master',
-        title: '⚡ Function Master',
-        description: 'You created your first function!',
-        icon: '⚡'
-      });
-    }
-    
-    // Loop Master
-    if ((newCode.includes('for') || newCode.includes('while')) && !achievements.includes('loop_master')) {
-      newAchievements.push({
-        id: 'loop_master',
-        title: '🔄 Loop Master',
-        description: 'You mastered loops!',
-        icon: '🔄'
-      });
-    }
-    
-    // 50 Lines Achievement
-    const lines = newCode.split('\n').length;
-    if (lines >= 50 && !achievements.includes('fifty_lines')) {
-      newAchievements.push({
-        id: 'fifty_lines',
-        title: '📝 Code Writer',
-        description: 'You wrote 50+ lines of code!',
-        icon: '📝'
-      });
-    }
-    
-    // Test Passer
-    if (testResults.some(result => result.passed) && !achievements.includes('test_passer')) {
-      newAchievements.push({
-        id: 'test_passer',
-        title: '✅ Test Master',
-        description: 'You passed your first test!',
-        icon: '✅'
-      });
-    }
-    
-    if (newAchievements.length > 0) {
-      setAchievements(prev => [...prev, ...newAchievements.map(a => a.id)]);
-      setShowAchievements(true);
-      
-      // Auto-hide achievements after 3 seconds
-      achievementTimeoutRef.current = setTimeout(() => {
-        setShowAchievements(false);
-      }, 3000);
-    }
-  }, [achievements, testResults]);
 
   const addLiveComment = useCallback((comment) => {
     const liveComment = {
@@ -242,10 +173,7 @@ const SuperCoolCodeEditor = ({
     if (testResults.some(result => result.passed)) quality += 25;
     
     setCodeQuality(Math.min(quality, 100));
-    
-    // Check achievements
-    checkAchievements(code);
-  }, [code, testResults, checkAchievements]);
+  }, [code, testResults]);
 
   // Supported programming languages with enhanced info
   const supportedLanguages = [
@@ -411,57 +339,31 @@ const SuperCoolCodeEditor = ({
 
   return (
     <div className={`w-full h-full flex ${isFullScreen ? 'fixed inset-0 z-50 bg-gray-900' : ''}`}>
-      {/* Achievement Notifications */}
-      {showAchievements && (
-        <div className="fixed top-4 right-4 z-50 space-y-2">
-          {achievements.slice(-3).map((achievementId) => {
-            const achievement = [
-              { id: 'first_code', title: '🚀 First Code!', description: 'You wrote your first line of code!' },
-              { id: 'function_master', title: '⚡ Function Master', description: 'You created your first function!' },
-              { id: 'loop_master', title: '🔄 Loop Master', description: 'You mastered loops!' },
-              { id: 'fifty_lines', title: '📝 Code Writer', description: 'You wrote 50+ lines of code!' },
-              { id: 'test_passer', title: '✅ Test Master', description: 'You passed your first test!' }
-            ].find(a => a.id === achievementId);
-            
-            return (
-              <div key={achievementId} className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white p-4 rounded-lg shadow-lg animate-bounce">
-                <div className="flex items-center space-x-2">
-                  <Trophy className="h-6 w-6" />
-                  <div>
-                    <div className="font-bold">{achievement.title}</div>
-                    <div className="text-sm opacity-90">{achievement.description}</div>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
 
       {/* Full Width Code Editor */}
       <div className="w-full flex flex-col bg-gray-50">
         {/* Header */}
-        <div className="bg-gray-800 text-white px-4 py-3 border-b border-gray-300">
+        <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white px-6 py-4 border-b border-slate-700 shadow-lg">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-6">
               {/* Language Display */}
-              <div className="flex items-center space-x-2 px-3 py-1 text-sm rounded-lg bg-white/20 border border-white/30">
+              <div className="flex items-center space-x-3 px-4 py-2 text-sm rounded-xl bg-slate-700/50 border border-slate-600/50 backdrop-blur-sm shadow-md">
                 <span className="text-2xl">{currentLanguage?.icon}</span>
-                <span className="font-bold">
+                <span className="font-semibold text-slate-100">
                   {currentLanguage?.label || 'JavaScript'}
                 </span>
                 {languageLocked && (
-                  <div className="flex items-center space-x-1">
-                    <Lock className="h-3 w-3" />
-                    <span className="text-xs bg-gray-600 px-2 py-1 rounded-full">
+                  <div className="flex items-center space-x-1.5">
+                    <Lock className="h-3.5 w-3.5 text-slate-300" />
+                    <span className="text-xs bg-slate-600/80 text-slate-200 px-2.5 py-1 rounded-full font-medium">
                       LOCKED
                     </span>
                   </div>
                 )}
                 {aiDeterminedLanguage && (
-                  <div className="flex items-center space-x-1">
-                    <Brain className="h-3 w-3" />
-                    <span className="text-xs bg-gray-600 px-2 py-1 rounded-full">
+                  <div className="flex items-center space-x-1.5">
+                    <Brain className="h-3.5 w-3.5 text-slate-300" />
+                    <span className="text-xs bg-slate-600/80 text-slate-200 px-2.5 py-1 rounded-full font-medium">
                       AI CHOSEN
                     </span>
                   </div>
@@ -469,31 +371,31 @@ const SuperCoolCodeEditor = ({
               </div>
               
               {/* Code Quality Indicator */}
-              <div className="flex items-center space-x-2">
-                <Target className="h-4 w-4" />
-                <div className="flex items-center space-x-1">
-                  <div className="w-16 h-2 bg-white/20 rounded-full overflow-hidden">
+              <div className="flex items-center space-x-3">
+                <Target className="h-4 w-4 text-slate-300" />
+                <div className="flex items-center space-x-2">
+                  <div className="w-20 h-2.5 bg-slate-700/50 rounded-full overflow-hidden shadow-inner">
                     <div 
-                      className="h-full bg-gray-400 transition-all duration-500"
+                      className="h-full bg-gradient-to-r from-slate-400 to-slate-300 transition-all duration-700 ease-out"
                       style={{ width: `${codeQuality}%` }}
                     />
                   </div>
-                  <span className="text-xs font-bold">{codeQuality}%</span>
+                  <span className="text-xs font-semibold text-slate-200">{codeQuality}%</span>
                 </div>
               </div>
             </div>
             
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-3">
               {/* Live Stats */}
-              <div className="flex items-center space-x-4 text-sm">
-                <div className="flex items-center space-x-1">
-                  <Code2 className="h-4 w-4" />
-                  <span>{linesOfCode} lines</span>
+              <div className="flex items-center space-x-6 text-sm">
+                <div className="flex items-center space-x-2 px-3 py-1.5 bg-slate-700/30 rounded-lg">
+                  <Code2 className="h-4 w-4 text-slate-300" />
+                  <span className="text-slate-200 font-medium">{linesOfCode} lines</span>
                 </div>
                 {isTyping && (
-                  <div className="flex items-center space-x-1 animate-pulse">
-                    <Zap className="h-4 w-4" />
-                    <span>Typing...</span>
+                  <div className="flex items-center space-x-2 px-3 py-1.5 bg-slate-700/30 rounded-lg animate-pulse">
+                    <Zap className="h-4 w-4 text-slate-300" />
+                    <span className="text-slate-200 font-medium">Typing...</span>
                   </div>
                 )}
               </div>
@@ -501,18 +403,18 @@ const SuperCoolCodeEditor = ({
               {/* Settings Button */}
               <button
                 onClick={() => setShowSettings(!showSettings)}
-                className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+                className="p-2.5 hover:bg-slate-700/50 rounded-xl transition-all duration-200 hover:scale-105"
               >
-                <Settings className="h-4 w-4" />
+                <Settings className="h-4 w-4 text-slate-300" />
               </button>
 
               {/* Fullscreen Toggle */}
               {onToggleFullScreen && (
                 <button
                   onClick={onToggleFullScreen}
-                  className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+                  className="p-2.5 hover:bg-slate-700/50 rounded-xl transition-all duration-200 hover:scale-105"
                 >
-                  {isFullScreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                  {isFullScreen ? <Minimize2 className="h-4 w-4 text-slate-300" /> : <Maximize2 className="h-4 w-4 text-slate-300" />}
                 </button>
               )}
             </div>
@@ -520,33 +422,33 @@ const SuperCoolCodeEditor = ({
 
           {/* Settings Panel */}
           {showSettings && (
-            <div className="mt-3 p-3 bg-white/10 backdrop-blur-sm rounded-lg">
-              <div className="grid grid-cols-2 gap-4">
+            <div className="mt-4 p-4 bg-slate-800/80 backdrop-blur-sm rounded-xl border border-slate-600/50 shadow-xl">
+              <div className="grid grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-medium mb-2">Editor Theme</label>
+                  <label className="block text-sm font-semibold text-slate-200 mb-3">Editor Theme</label>
                   <select
                     value={editorTheme}
                     onChange={(e) => setEditorTheme(e.target.value)}
-                    className="w-full px-3 py-1 bg-white/20 border border-white/30 rounded text-white text-sm"
+                    className="w-full px-4 py-2.5 bg-slate-700/50 border border-slate-600/50 rounded-lg text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-transparent transition-all"
                   >
                     {themes.map(theme => (
-                      <option key={theme.value} value={theme.value} className="text-gray-900">
+                      <option key={theme.value} value={theme.value} className="text-slate-900">
                         {theme.icon} {theme.name}
                       </option>
                     ))}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2">Live AI Monitoring</label>
+                  <label className="block text-sm font-semibold text-slate-200 mb-3">Live AI Monitoring</label>
                   <button
                     onClick={() => setIsLiveMonitoring(!isLiveMonitoring)}
-                    className={`w-full px-3 py-1 rounded text-sm font-medium transition-colors ${
+                    className={`w-full px-4 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 ${
                       isLiveMonitoring 
-                        ? 'bg-green-500 text-white' 
-                        : 'bg-white/20 text-white hover:bg-white/30'
+                        ? 'bg-slate-600 text-slate-100 border border-slate-500' 
+                        : 'bg-slate-700/50 text-slate-300 border border-slate-600/50 hover:bg-slate-600/50'
                     }`}
                   >
-                    {isLiveMonitoring ? <Mic className="h-4 w-4 inline mr-1" /> : <MicOff className="h-4 w-4 inline mr-1" />}
+                    {isLiveMonitoring ? <Mic className="h-4 w-4 inline mr-2" /> : <MicOff className="h-4 w-4 inline mr-2" />}
                     {isLiveMonitoring ? 'ON' : 'OFF'}
                   </button>
                 </div>
@@ -556,36 +458,36 @@ const SuperCoolCodeEditor = ({
         </div>
 
         {/* Action Bar */}
-        <div className="bg-white px-4 py-2 border-b border-gray-300 flex items-center justify-between">
-          <div className="flex items-center space-x-2">
+        <div className="bg-gradient-to-r from-slate-50 to-slate-100 px-6 py-4 border-b border-slate-200 flex items-center justify-between shadow-sm">
+          <div className="flex items-center space-x-3">
             <button
               onClick={resetCode}
               disabled={disabled || isRunning}
-              className="flex items-center space-x-1 px-3 py-1 text-sm bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="flex items-center space-x-2 px-4 py-2.5 text-sm bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:scale-105 shadow-sm border border-slate-300/50"
             >
               <RotateCcw className="h-4 w-4" />
-              <span>Reset</span>
+              <span className="font-medium">Reset</span>
             </button>
           </div>
           
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-3">
             <button
               onClick={runCode}
               disabled={disabled || isRunning}
-              className="flex items-center space-x-1 px-4 py-2 text-sm bg-green-600 hover:bg-green-700 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="flex items-center space-x-2 px-6 py-2.5 text-sm bg-slate-700 hover:bg-slate-800 text-slate-100 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:scale-105 shadow-lg border border-slate-600/50"
             >
               {isRunning ? (
-                <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <div className="h-4 w-4 border-2 border-slate-100 border-t-transparent rounded-full animate-spin" />
               ) : (
                 <Play className="h-4 w-4" />
               )}
-              <span>Run Code</span>
+              <span className="font-semibold">Run Code</span>
             </button>
           </div>
         </div>
 
         {/* Enhanced Code Editor */}
-        <div className="flex-1 min-h-0 relative">
+        <div className="flex-1 min-h-0 relative" style={{ minHeight: '500px' }}>
           <Editor
             height="100%"
             language={getLanguageForMonaco(selectedLanguage)}
@@ -612,7 +514,7 @@ const SuperCoolCodeEditor = ({
                 bracketPairs: true,
                 indentation: true
               },
-              padding: { top: 20, bottom: 20 },
+              padding: { top: 24, bottom: 24 },
               cursorBlinking: 'smooth',
               cursorSmoothCaretAnimation: true,
               smoothScrolling: true,
@@ -644,19 +546,19 @@ const SuperCoolCodeEditor = ({
           />
           
           {/* Floating Code Stats */}
-          <div className="absolute top-4 right-4 bg-black/50 backdrop-blur-sm text-white p-2 rounded-lg text-xs space-y-1">
-            <div className="flex items-center space-x-1">
-              <Code2 className="h-3 w-3" />
-              <span>{linesOfCode} lines</span>
+          <div className="absolute top-4 right-4 bg-slate-800/90 backdrop-blur-md text-slate-100 p-3 rounded-xl text-xs space-y-2 shadow-xl border border-slate-700/50">
+            <div className="flex items-center space-x-2">
+              <Code2 className="h-3.5 w-3.5 text-slate-300" />
+              <span className="font-medium">{linesOfCode} lines</span>
             </div>
-            <div className="flex items-center space-x-1">
-              <Target className="h-3 w-3" />
-              <span>{codeQuality}% quality</span>
+            <div className="flex items-center space-x-2">
+              <Target className="h-3.5 w-3.5 text-slate-300" />
+              <span className="font-medium">{codeQuality}% quality</span>
             </div>
             {isTyping && (
-              <div className="flex items-center space-x-1 animate-pulse">
-                <Zap className="h-3 w-3" />
-                <span>Typing...</span>
+              <div className="flex items-center space-x-2 animate-pulse">
+                <Zap className="h-3.5 w-3.5 text-slate-300" />
+                <span className="font-medium">Typing...</span>
               </div>
             )}
           </div>
@@ -664,62 +566,62 @@ const SuperCoolCodeEditor = ({
 
         {/* Enhanced Output Section */}
         {(output || testResults.length > 0) && (
-          <div className="border-t border-gray-300 bg-gray-900 text-green-400 p-4 max-h-40 overflow-y-auto">
-            <div className="space-y-2">
+          <div className="border-t border-slate-200 bg-slate-900 text-slate-200 p-6 max-h-64 overflow-y-auto shadow-inner">
+            <div className="space-y-4">
               {/* Console Output */}
               {output && (
-                <div className="bg-gray-800 p-3 rounded-lg font-mono text-sm">
-                  <div className="flex items-center space-x-2 mb-2">
-                    <span className="text-gray-400">💻 Console Output:</span>
+                <div className="bg-slate-800/80 p-4 rounded-xl font-mono text-sm border border-slate-700/50 shadow-lg">
+                  <div className="flex items-center space-x-2 mb-3">
+                    <span className="text-slate-400 font-semibold">💻 Console Output:</span>
                   </div>
-                  <pre className="whitespace-pre-wrap text-green-400">{output}</pre>
+                  <pre className="whitespace-pre-wrap text-slate-200 leading-relaxed">{output}</pre>
                 </div>
               )}
 
               {/* Test Results */}
               {testResults.length > 0 && (
-                <div className="space-y-2">
-                  <h4 className="font-medium text-white text-sm flex items-center space-x-2">
+                <div className="space-y-3">
+                  <h4 className="font-semibold text-slate-100 text-sm flex items-center space-x-3">
                     <span>🧪 Test Results:</span>
-                    <span className="text-xs bg-gray-700 px-2 py-1 rounded">
+                    <span className="text-xs bg-slate-700/80 px-3 py-1.5 rounded-full border border-slate-600/50">
                       {testResults.filter(r => r.passed).length}/{testResults.length} passed
                     </span>
                   </h4>
                   {testResults.map((result, index) => (
                     <div
                       key={index}
-                      className={`p-3 rounded-lg border text-xs ${
+                      className={`p-4 rounded-xl border text-xs shadow-lg ${
                         result.passed
-                          ? 'bg-green-900/50 border-green-500/50 text-green-300'
-                          : 'bg-red-900/50 border-red-500/50 text-red-300'
+                          ? 'bg-slate-800/60 border-slate-600/50 text-slate-200'
+                          : 'bg-slate-800/60 border-slate-600/50 text-slate-200'
                       }`}
                     >
-                      <div className="flex items-center space-x-2 mb-2">
+                      <div className="flex items-center space-x-3 mb-3">
                         {result.passed ? (
-                          <CheckCircle className="h-4 w-4 text-green-400" />
+                          <CheckCircle className="h-4 w-4 text-slate-300" />
                         ) : (
-                          <XCircle className="h-4 w-4 text-red-400" />
+                          <XCircle className="h-4 w-4 text-slate-300" />
                         )}
-                        <span className="font-medium">
+                        <span className="font-semibold">
                           Test {result.testCase} {result.passed ? '✅ PASSED' : '❌ FAILED'}
                         </span>
                       </div>
-                      <div className="space-y-1 text-xs">
+                      <div className="space-y-2 text-xs">
                         <div>
-                          <span className="text-gray-400">Input:</span> 
-                          <code className="ml-2 bg-gray-800 px-2 py-1 rounded text-green-300">
+                          <span className="text-slate-400 font-medium">Input:</span> 
+                          <code className="ml-2 bg-slate-700/80 px-2 py-1 rounded text-slate-200 border border-slate-600/30">
                             {result.input}
                           </code>
                         </div>
                         <div>
-                          <span className="text-gray-400">Expected:</span> 
-                          <code className="ml-2 bg-gray-800 px-2 py-1 rounded text-blue-300">
+                          <span className="text-slate-400 font-medium">Expected:</span> 
+                          <code className="ml-2 bg-slate-700/80 px-2 py-1 rounded text-slate-200 border border-slate-600/30">
                             {JSON.stringify(result.expected)}
                           </code>
                         </div>
                         <div>
-                          <span className="text-gray-400">Actual:</span> 
-                          <code className="ml-2 bg-gray-800 px-2 py-1 rounded text-yellow-300">
+                          <span className="text-slate-400 font-medium">Actual:</span> 
+                          <code className="ml-2 bg-slate-700/80 px-2 py-1 rounded text-slate-200 border border-slate-600/30">
                             {result.error ? result.error : JSON.stringify(result.actual)}
                           </code>
                         </div>

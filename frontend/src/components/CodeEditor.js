@@ -1,13 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Editor from '@monaco-editor/react';
-import { Play, RotateCcw, CheckCircle, XCircle, AlertCircle, ChevronDown } from 'lucide-react';
+import { Play, RotateCcw, CheckCircle, XCircle, AlertCircle, ChevronDown, Lock } from 'lucide-react';
 
 const CodeEditor = ({ 
   language = 'javascript', 
   starterCode = '', 
   testCases = [], 
   onCodeChange,
-  disabled = false 
+  disabled = false,
+  languageLocked = false
 }) => {
   const [code, setCode] = useState(starterCode);
   const [output, setOutput] = useState('');
@@ -144,6 +145,7 @@ const CodeEditor = ({
           })()
         `;
 
+        // eslint-disable-next-line no-eval
         const result = eval(wrappedCode);
         
         if (result.success) {
@@ -186,6 +188,10 @@ const CodeEditor = ({
   };
 
   const handleLanguageChange = (newLanguage) => {
+    if (languageLocked) {
+      return; // Don't allow language change if locked
+    }
+    
     setSelectedLanguage(newLanguage);
     setShowLanguageDropdown(false);
     
@@ -227,73 +233,96 @@ const CodeEditor = ({
   };
 
   return (
-    <div className="w-full space-y-4">
+    <div className="w-full space-y-6">
       {/* Code Editor */}
-      <div className="border border-gray-300 rounded-lg overflow-hidden">
-        <div className="bg-gray-50 px-4 py-2 border-b border-gray-300 flex items-center justify-between">
+      <div className="border border-slate-300 rounded-xl overflow-hidden shadow-lg">
+        <div className="bg-gradient-to-r from-slate-50 to-slate-100 px-6 py-4 border-b border-slate-200 flex items-center justify-between shadow-sm">
           <div className="flex items-center space-x-4">
-            {/* Language Selector */}
-            <div className="relative" ref={dropdownRef}>
-              <button
-                onClick={() => setShowLanguageDropdown(!showLanguageDropdown)}
-                disabled={disabled}
-                className="flex items-center space-x-2 px-3 py-1 text-sm bg-white border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <span className="font-medium text-gray-700">
-                  {supportedLanguages.find(lang => lang.value === selectedLanguage)?.label || 'JavaScript'}
-                </span>
-                <ChevronDown className="h-4 w-4 text-gray-500" />
-              </button>
-              
-              {showLanguageDropdown && (
-                <div className="absolute top-full left-0 mt-1 w-48 bg-white border border-gray-300 rounded-lg shadow-lg z-10 max-h-60 overflow-y-auto">
-                  {supportedLanguages.map((lang) => (
-                    <button
-                      key={lang.value}
-                      onClick={() => handleLanguageChange(lang.value)}
-                      className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-100 ${
-                        selectedLanguage === lang.value ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
-                      }`}
-                    >
-                      {lang.label}
-                    </button>
-                  ))}
+            {/* Language Display */}
+            <div className={`flex items-center space-x-3 px-4 py-2 text-sm rounded-xl shadow-sm border ${
+              languageLocked 
+                ? 'bg-slate-200 border-slate-300' 
+                : 'bg-slate-100 border-slate-200'
+            }`}>
+              <span className={`font-semibold ${
+                languageLocked ? 'text-slate-700' : 'text-slate-600'
+              }`}>
+                {supportedLanguages.find(lang => lang.value === selectedLanguage)?.label || 'JavaScript'}
+              </span>
+              {languageLocked && (
+                <div className="flex items-center space-x-1.5">
+                  <Lock className="h-3.5 w-3.5 text-slate-500" />
+                  <span className="text-xs text-slate-600 bg-slate-300 px-2.5 py-1 rounded-full font-medium">
+                    LOCKED
+                  </span>
                 </div>
               )}
             </div>
             
+            {/* Language Selector (only show if not locked) */}
+            {!languageLocked && (
+              <div className="relative" ref={dropdownRef}>
+                <button
+                  onClick={() => setShowLanguageDropdown(!showLanguageDropdown)}
+                  disabled={disabled}
+                  className="flex items-center space-x-2 px-4 py-2 text-sm bg-white border border-slate-300 rounded-xl hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm"
+                >
+                  <span className="font-semibold text-slate-700">
+                    {supportedLanguages.find(lang => lang.value === selectedLanguage)?.label || 'JavaScript'}
+                  </span>
+                  <ChevronDown className="h-4 w-4 text-slate-500" />
+                </button>
+                
+                {showLanguageDropdown && (
+                  <div className="absolute top-full left-0 mt-2 w-52 bg-white border border-slate-300 rounded-xl shadow-xl z-10 max-h-60 overflow-y-auto">
+                    {supportedLanguages.map((lang) => (
+                      <button
+                        key={lang.value}
+                        onClick={() => handleLanguageChange(lang.value)}
+                        className={`w-full text-left px-4 py-3 text-sm hover:bg-slate-50 transition-colors ${
+                          selectedLanguage === lang.value ? 'bg-slate-100 text-slate-800 font-semibold' : 'text-slate-700'
+                        }`}
+                      >
+                        {lang.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+            
             {disabled && (
-              <span className="text-xs text-gray-500 bg-gray-200 px-2 py-1 rounded">
+              <span className="text-xs text-slate-500 bg-slate-200 px-3 py-1.5 rounded-full font-medium">
                 Read Only
               </span>
             )}
           </div>
           
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-3">
             <button
               onClick={resetCode}
               disabled={disabled || isRunning}
-              className="flex items-center space-x-1 px-3 py-1 text-sm bg-gray-200 hover:bg-gray-300 text-gray-700 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center space-x-2 px-4 py-2 text-sm bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:scale-105 shadow-sm border border-slate-300/50"
             >
               <RotateCcw className="h-4 w-4" />
-              <span>Reset</span>
+              <span className="font-medium">Reset</span>
             </button>
             <button
               onClick={runCode}
               disabled={disabled || isRunning}
-              className="flex items-center space-x-1 px-3 py-1 text-sm bg-green-600 hover:bg-green-700 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center space-x-2 px-5 py-2 text-sm bg-slate-700 hover:bg-slate-800 text-slate-100 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:scale-105 shadow-lg border border-slate-600/50"
             >
               {isRunning ? (
-                <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <div className="h-4 w-4 border-2 border-slate-100 border-t-transparent rounded-full animate-spin" />
               ) : (
                 <Play className="h-4 w-4" />
               )}
-              <span>Run Code</span>
+              <span className="font-semibold">Run Code</span>
             </button>
           </div>
         </div>
         
-        <div className="h-64">
+        <div className="h-96">
           <Editor
             height="100%"
             language={getLanguageForMonaco(selectedLanguage)}
@@ -304,7 +333,7 @@ const CodeEditor = ({
               readOnly: disabled,
               minimap: { enabled: false },
               scrollBeyondLastLine: false,
-              fontSize: 14,
+              fontSize: 15,
               lineNumbers: 'on',
               roundedSelection: false,
               scrollbar: {
@@ -312,7 +341,15 @@ const CodeEditor = ({
                 horizontal: 'auto'
               },
               automaticLayout: true,
-              theme: 'vs-light'
+              theme: 'vs-light',
+              padding: { top: 20, bottom: 20 },
+              wordWrap: 'on',
+              folding: true,
+              bracketPairColorization: { enabled: true },
+              guides: {
+                bracketPairs: true,
+                indentation: true
+              }
             }}
           />
         </div>
@@ -320,58 +357,58 @@ const CodeEditor = ({
 
       {/* Output Section */}
       {(output || testResults.length > 0) && (
-        <div className="space-y-3">
+        <div className="space-y-4">
           {/* Console Output */}
           {output && (
-            <div className="bg-gray-900 text-green-400 p-3 rounded-lg font-mono text-sm">
-              <div className="flex items-center space-x-2 mb-2">
-                <span className="text-gray-400">Console Output:</span>
+            <div className="bg-slate-900 text-slate-200 p-4 rounded-xl font-mono text-sm border border-slate-700/50 shadow-lg">
+              <div className="flex items-center space-x-2 mb-3">
+                <span className="text-slate-400 font-semibold">💻 Console Output:</span>
               </div>
-              <pre className="whitespace-pre-wrap">{output}</pre>
+              <pre className="whitespace-pre-wrap leading-relaxed">{output}</pre>
             </div>
           )}
 
           {/* Test Results */}
           {testResults.length > 0 && (
-            <div className="space-y-2">
-              <h4 className="font-medium text-gray-700">Test Results:</h4>
+            <div className="space-y-3">
+              <h4 className="font-semibold text-slate-700 text-sm">🧪 Test Results:</h4>
               {testResults.map((result, index) => (
                 <div
                   key={index}
-                  className={`p-3 rounded-lg border ${
+                  className={`p-4 rounded-xl border shadow-sm ${
                     result.passed
-                      ? 'bg-green-50 border-green-200'
-                      : 'bg-red-50 border-red-200'
+                      ? 'bg-slate-50 border-slate-200'
+                      : 'bg-slate-50 border-slate-200'
                   }`}
                 >
-                  <div className="flex items-center space-x-2 mb-2">
+                  <div className="flex items-center space-x-3 mb-3">
                     {result.passed ? (
-                      <CheckCircle className="h-5 w-5 text-green-600" />
+                      <CheckCircle className="h-5 w-5 text-slate-600" />
                     ) : (
-                      <XCircle className="h-5 w-5 text-red-600" />
+                      <XCircle className="h-5 w-5 text-slate-600" />
                     )}
-                    <span className="font-medium">
+                    <span className="font-semibold text-slate-700">
                       Test Case {result.testCase}
                       {result.passed ? ' - PASSED' : ' - FAILED'}
                     </span>
                   </div>
                   
-                  <div className="text-sm space-y-1">
+                  <div className="text-sm space-y-2">
                     <div>
-                      <span className="font-medium">Input:</span> 
-                      <code className="ml-2 bg-gray-100 px-2 py-1 rounded text-xs">
+                      <span className="font-medium text-slate-600">Input:</span> 
+                      <code className="ml-2 bg-slate-100 px-2 py-1 rounded text-xs border border-slate-200">
                         {result.input}
                       </code>
                     </div>
                     <div>
-                      <span className="font-medium">Expected:</span> 
-                      <code className="ml-2 bg-gray-100 px-2 py-1 rounded text-xs">
+                      <span className="font-medium text-slate-600">Expected:</span> 
+                      <code className="ml-2 bg-slate-100 px-2 py-1 rounded text-xs border border-slate-200">
                         {JSON.stringify(result.expected)}
                       </code>
                     </div>
                     <div>
-                      <span className="font-medium">Actual:</span> 
-                      <code className="ml-2 bg-gray-100 px-2 py-1 rounded text-xs">
+                      <span className="font-medium text-slate-600">Actual:</span> 
+                      <code className="ml-2 bg-slate-100 px-2 py-1 rounded text-xs border border-slate-200">
                         {result.error ? result.error : JSON.stringify(result.actual)}
                       </code>
                     </div>
@@ -385,17 +422,19 @@ const CodeEditor = ({
 
       {/* Test Cases Info */}
       {testCases.length > 0 && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-          <div className="flex items-center space-x-2 mb-2">
-            <AlertCircle className="h-4 w-4 text-blue-600" />
-            <span className="font-medium text-blue-800">Test Cases</span>
+        <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 shadow-sm">
+          <div className="flex items-center space-x-2 mb-3">
+            <AlertCircle className="h-4 w-4 text-slate-600" />
+            <span className="font-semibold text-slate-700">📋 Test Cases</span>
           </div>
-          <div className="text-sm text-blue-700 space-y-1">
+          <div className="text-sm text-slate-600 space-y-2">
             {testCases.map((testCase, index) => (
-              <div key={index}>
-                <span className="font-medium">Test {index + 1}:</span> 
-                Input: <code className="bg-blue-100 px-1 rounded">{testCase.input}</code> → 
-                Expected: <code className="bg-blue-100 px-1 rounded">{JSON.stringify(testCase.expected)}</code>
+              <div key={index} className="p-3 bg-white rounded-lg border border-slate-200">
+                <span className="font-semibold text-slate-700">Test {index + 1}:</span> 
+                <div className="mt-1 space-y-1">
+                  <div>Input: <code className="bg-slate-100 px-2 py-1 rounded text-xs border border-slate-200">{testCase.input}</code></div>
+                  <div>Expected: <code className="bg-slate-100 px-2 py-1 rounded text-xs border border-slate-200">{JSON.stringify(testCase.expected)}</code></div>
+                </div>
               </div>
             ))}
           </div>
