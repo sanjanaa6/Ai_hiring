@@ -6,8 +6,6 @@ import SuperCoolCodeEditor from './SuperCoolCodeEditor';
 import aiLanguageDetectionService from '../services/aiLanguageDetectionService';
 import CodeEditorWelcome from './CodeEditorWelcome';
 import apiService from '../services/apiService';
-import { EyeTrackingDetector } from './eyeTracking';
-import monitoringService from '../services/monitoringService';
 import ttsService from '../services/ttsService';
 
 // Helper function to determine if a round is a coding round
@@ -42,7 +40,6 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
   const [allRounds, setAllRounds] = useState([]);
   const [completedRounds, setCompletedRounds] = useState(new Set());
   const [networkRetryCount, setNetworkRetryCount] = useState(0);
-  const [shouldAutoRecord, setShouldAutoRecord] = useState(false);
   const [cameraStatus, setCameraStatus] = useState('initializing');
   const [questionStartCountdown, setQuestionStartCountdown] = useState(0);
   const [isLiveCodingRound, setIsLiveCodingRound] = useState(false);
@@ -67,101 +64,7 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
   const [isCodeDone, setIsCodeDone] = useState(false);
   const [isAiQuestionAnswered, setIsAiQuestionAnswered] = useState(false);
   
-  // Monitoring and Eye Tracking State
-  const [eyeTrackingEnabled, setEyeTrackingEnabled] = useState(true);
-  const [monitoringData, setMonitoringData] = useState({
-    violations: [],
-    totalViolationTime: 0,
-    flagged: false
-  });
-  const [lookAwayStartTime, setLookAwayStartTime] = useState(null);
-  const [currentLookAwayDuration, setCurrentLookAwayDuration] = useState(0);
-  const [isTerminated, setIsTerminated] = useState(false);
 
-  // Monitoring Functions
-  const handleLookAway = useCallback(async (violationData) => {
-    if (!interviewId || !candidateInfo?.userId) return;
-    
-    try {
-      // Determine violation type based on detected behaviors
-      let violationType = 'look_away';
-      if (violationData?.mobilePhoneDetected) {
-        violationType = 'mobile_phone_detected';
-      } else if (violationData?.earphonesDetected) {
-        violationType = 'earphones_detected';
-      } else if (violationData?.suspiciousHandMovement) {
-        violationType = 'suspicious_hand_movement';
-      } else if (violationData?.violations?.includes('face_not_visible')) {
-        violationType = 'face_not_visible';
-      }
-      
-      // ULTRA AGGRESSIVE: If immediate termination is requested, terminate immediately
-      if (violationData?.immediateTermination) {
-        console.warn('🚨 IMMEDIATE TERMINATION: Suspicious behavior detected:', violationData);
-        setIsTerminated(true);
-        setError(`🚨 INTERVIEW TERMINATED: ${violationType.replace(/_/g, ' ').toUpperCase()} DETECTED`);
-        
-        // Force immediate termination without waiting for backend
-        onComplete && onComplete({ 
-          status: 'terminated', 
-          reason: 'suspicious_behavior',
-          violationType: violationType,
-          immediate: true
-        });
-        
-        // Still record the violation in background
-        monitoringService.recordViolation({
-          interviewId,
-          userId: candidateInfo.userId,
-          violationType,
-          duration: violationData?.duration || 0,
-          timestamp: new Date()
-        }).catch(err => console.error('Error recording violation:', err));
-        
-        return;
-      }
-      
-      const response = await monitoringService.recordViolation({
-        interviewId,
-        userId: candidateInfo.userId,
-        violationType,
-        duration: violationData?.duration || 0,
-        timestamp: new Date()
-      });
-      
-      setMonitoringData(prev => ({
-        ...prev,
-        violations: [...prev.violations, response.data.violation],
-        totalViolationTime: response.data.totalViolationTime,
-        flagged: response.data.flagged
-      }));
-      
-      if (response.data.flagged) {
-        console.warn('🚨 Interview flagged for suspicious behavior:', violationData);
-        
-        // AGGRESSIVE: Immediately terminate interview
-        setError(`🚨 INTERVIEW TERMINATED: ${violationType.replace(/_/g, ' ').toUpperCase()} DETECTED`);
-        
-        // Force immediate termination
-        onComplete && onComplete({ 
-          status: 'terminated', 
-          reason: 'suspicious_behavior',
-          violationType: violationType,
-          immediate: true
-        });
-      }
-    } catch (error) {
-      console.error('Error recording violation:', error);
-    }
-  }, [interviewId, candidateInfo?.userId, onComplete]);
-
-  const handleLookBack = useCallback(() => {
-    if (lookAwayStartTime) {
-      const duration = (Date.now() - lookAwayStartTime) / 1000;
-      setCurrentLookAwayDuration(duration);
-      setLookAwayStartTime(null);
-    }
-  }, [lookAwayStartTime]);
 
   // Sync completed rounds with user progress
   const syncCompletedRoundsWithProgress = useCallback(() => {
@@ -532,11 +435,9 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
   const videoRef = useRef(null);
   const recognitionRef = useRef(null);
   const timerRef = useRef(null);
-  const cameraMonitorInterval = useRef(null);
   const moveToNextQuestionRef = useRef(null);
   const speakQuestionRef = useRef(null);
   const handleAIQuestionAnswerRef = useRef(null);
-  const startVoiceRecordingForAIRef = useRef(null);
 
   // Step 1: Initialize camera and microphone
   const startSetup = async () => {
@@ -812,9 +713,7 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
           });
         }, 1000);
         
-        // Set flag to trigger auto-recording via useEffect
-        console.log('🎙️ Setting auto-record flag after AI speech...');
-        setShouldAutoRecord(true);
+        // Auto-recording removed - user must manually start recording
         resolve();
       }
       
@@ -935,7 +834,7 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
          setIsCodeDone(false); // Reset code done state
          setIsAiQuestionAnswered(false); // Reset AI question answered state
          // Don't reset showCodeEditor here - let it be determined by the next question
-        setShouldAutoRecord(false); // Reset auto-record flag
+        // Auto-record flag removed
          
         // Wait a moment for state to update, then start next question
         setTimeout(async () => {
@@ -1134,10 +1033,7 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
       console.log('🗣️ Speaking first question:', questions[0]);
       await speakQuestion(questions[0]);
       // Start listening for the answer after AI finishes speaking
-      setTimeout(() => {
-        console.log('🎙️ Starting voice recording for AI...');
-        startVoiceRecordingForAI();
-      }, 2000); // Wait 2 seconds after AI finishes speaking
+      // Auto-recording removed - user must manually start recording
     } catch (error) {
       console.error('❌ Error in handleCodeDone:', error);
       setError('Failed to generate AI questions: ' + error.message);
@@ -1190,10 +1086,7 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
         await speakQuestion(firstQuestion);
         
         // Start listening for the answer after AI finishes speaking
-        setTimeout(() => {
-          console.log('🎙️ Starting voice recording for sales AI...');
-          startVoiceRecordingForAI();
-        }, 2000); // Wait 2 seconds after AI finishes speaking
+        // Auto-recording removed - user must manually start recording
       } else {
         setError('No AI questions were generated. Please try again.');
         setLoading(false);
@@ -1257,10 +1150,7 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
         await speakQuestion(nextQuestion);
         
         // Start listening for the answer after AI finishes speaking
-        setTimeout(() => {
-          console.log(`🎙️ Starting voice recording for AI question ${questionNumber}...`);
-          startVoiceRecordingForAI();
-        }, 2000); // Wait 2 seconds after AI finishes speaking
+        // Auto-recording removed - user must manually start recording
       } else {
         setError(`Failed to generate AI question ${questionNumber}. Please try again.`);
         setLoading(false);
@@ -1288,111 +1178,10 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
     
     // Speak the question and start voice recording
     await speakQuestion(question);
-    setTimeout(() => {
-      startVoiceRecordingForAI();
-    }, 2000);
+    // Auto-recording removed - user must manually start recording
   };
 
-  // Start voice recording for AI question answer
-  const startVoiceRecordingForAI = useCallback(async () => {
-    if (isRecording) {
-      stopRecording();
-      return;
-    }
-
-    try {
-      setTranscription('');
-      setError('');
-      
-      // Initialize speech recognition if not already done
-      if (!recognitionRef.current) {
-        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-          const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-          recognitionRef.current = new SpeechRecognition();
-          
-          recognitionRef.current.continuous = true;
-          recognitionRef.current.interimResults = true;
-          recognitionRef.current.lang = 'en-US';
-          // Make speech recognition more tolerant
-          recognitionRef.current.maxAlternatives = 1;
-          
-          recognitionRef.current.onresult = (event) => {
-            let finalTranscript = '';
-            
-            for (let i = event.resultIndex; i < event.results.length; i++) {
-              const transcript = event.results[i][0].transcript;
-              if (event.results[i].isFinal) {
-                finalTranscript += transcript;
-              }
-            }
-            
-            if (finalTranscript) {
-              setTranscription(finalTranscript);
-              console.log('🎤 AI question answer received:', finalTranscript);
-              // Call handleAIQuestionAnswer via ref to avoid circular dependency
-              if (handleAIQuestionAnswerRef.current) {
-                handleAIQuestionAnswerRef.current(finalTranscript);
-              }
-            }
-          };
-          
-          recognitionRef.current.onerror = (event) => {
-            console.error('❌ Speech recognition error:', event.error);
-            if (event.error === 'not-allowed') {
-              setError('Microphone access denied. Please allow microphone access and try again.');
-            } else if (event.error === 'no-speech') {
-              console.log('⚠️ No speech detected, restarting speech recognition...');
-              // Show user-friendly message
-              setTranscription('🎤 No speech detected. Please speak clearly into your microphone...');
-              // Clear the message after 3 seconds
-              setTimeout(() => {
-                setTranscription('');
-              }, 3000);
-              // Restart speech recognition after a brief delay
-              setTimeout(() => {
-                if (isRecording && recognitionRef.current) {
-                  try {
-                    recognitionRef.current.start();
-                  } catch (err) {
-                    console.log('Speech recognition already started or not available');
-                  }
-                }
-              }, 1000);
-            } else if (event.error === 'aborted') {
-              console.log('⚠️ Speech recognition aborted, this is normal');
-            } else {
-              setError('Speech recognition error: ' + event.error);
-            }
-          };
-          
-          recognitionRef.current.onend = () => {
-            console.log('🛑 Speech recognition ended');
-            setIsRecording(false);
-          };
-          
-          recognitionRef.current.onstart = () => {
-            console.log('✅ Speech recognition started for AI question');
-            setIsRecording(true);
-            setNetworkRetryCount(0); // Reset retry counter on successful start
-          };
-        } else {
-          setError('Speech recognition not supported in this browser');
-          return;
-        }
-      }
-      
-      setIsRecording(true);
-      recognitionRef.current.start();
-      console.log('🎤 Voice recording started for AI question');
-    } catch (error) {
-      console.error('❌ Error starting voice recording:', error);
-      setError('Failed to start voice recording');
-      setIsRecording(false);
-    }
-  }, [isRecording, stopRecording]);
-
-  // Store the function in ref to avoid circular dependency
-  startVoiceRecordingForAIRef.current = startVoiceRecordingForAI;
+  // startVoiceRecordingForAI function removed - using manual recording controls instead
 
   // Update AI question transcription in real-time
   const updateAIQuestionTranscription = useCallback((transcription) => {
@@ -1575,7 +1364,7 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
         }
       }
       
-      // Restart device detection after camera is stable
+      // Wait for camera to stabilize
       console.log('⏳ Waiting for camera to stabilize...');
       setTimeout(() => {
         setIsCameraRestarting(false);
@@ -1702,11 +1491,7 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
         });
       }, 1000);
       
-      // Start electronic device detection (will be auto-started by useEffect when video is ready)
-      console.log('🎯 Device detection will start automatically when video is ready');
       
-      // Start camera monitoring to ensure it stays active
-      startCameraMonitoring();
       
       console.log('✅ Round started successfully');
       
@@ -1971,9 +1756,6 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
     if (recognitionRef.current) {
       recognitionRef.current.stop();
     }
-    if (cameraMonitorInterval.current) {
-      clearInterval(cameraMonitorInterval.current);
-    }
     if (timerRef.current) {
       clearInterval(timerRef.current);
     }
@@ -1991,24 +1773,7 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
     }
   }, [interviewId, userProgress, startInterviewTracking]);
 
-  // Auto-record when shouldAutoRecord flag is set
-  useEffect(() => {
-    if (shouldAutoRecord && !isRecording && !isAISpeaking && step === 'interview') {
-      console.log('🎙️ Auto-recording triggered by useEffect...');
-      const startAutoRecording = async () => {
-        try {
-          await startRecording();
-          setShouldAutoRecord(false);
-        } catch (err) {
-          console.error('❌ Auto-recording failed:', err);
-          setShouldAutoRecord(false);
-        }
-      };
-      
-      // Small delay to ensure state is settled
-      setTimeout(startAutoRecording, 1000);
-    }
-  }, [shouldAutoRecord, isRecording, isAISpeaking, step, startRecording]);
+  // Auto-recording removed - user must manually start recording
 
   // Ensure video element is connected to camera stream
   useEffect(() => {
@@ -2025,42 +1790,11 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
     }
   }, [cameraStream]);
 
-  // Auto-start device detection when video is ready during interview
 
 
 
 
   // Start camera monitoring to ensure it stays active
-  const startCameraMonitoring = () => {
-    if (cameraMonitorInterval.current) {
-      clearInterval(cameraMonitorInterval.current);
-    }
-    
-    console.log('📹 Starting camera monitoring...');
-    cameraMonitorInterval.current = setInterval(() => {
-      if (step === 'interview' && videoRef.current && cameraStream) {
-        const video = videoRef.current;
-        
-        // Check if video is still playing and has valid stream
-        if (video.readyState < 2 || !video.videoWidth || !video.videoHeight) {
-          console.log('⚠️ Camera stream appears to be inactive, attempting to restart...');
-          ensureCameraActive();
-        } else if (cameraStatus !== 'playing') {
-          console.log('⚠️ Camera status is not playing, attempting to restart...');
-          ensureCameraActive();
-        }
-      }
-    }, 5000); // Check every 5 seconds
-  };
-
-  // Stop camera monitoring
-  const stopCameraMonitoring = () => {
-    if (cameraMonitorInterval.current) {
-      clearInterval(cameraMonitorInterval.current);
-      cameraMonitorInterval.current = null;
-    }
-    console.log('🛑 Camera monitoring stopped');
-  };
 
   // Render different steps
 
@@ -2403,7 +2137,6 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
               <button
                 onClick={async () => {
                   setStep('complete');
-                  stopCameraMonitoring();
                   
                   // Mark interview as completed in user progress
                   try {
@@ -2522,7 +2255,7 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
                         }`}>Camera Access</p>
                         <p className={`text-sm ${
                           isDarkMode ? 'text-gray-300' : 'text-gray-600'
-                        }`}>We need camera access to monitor the interview environment and detect any electronic devices</p>
+                        }`}>We need camera access for the interview</p>
                         </div>
                       </div>
                       <div className="flex items-start space-x-4">
@@ -2544,7 +2277,7 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
                         }`}>Clean Environment</p>
                         <p className={`text-sm ${
                           isDarkMode ? 'text-gray-300' : 'text-gray-600'
-                        }`}>Ensure no electronic devices are visible during the interview</p>
+                        }`}>Ensure good lighting and a quiet environment</p>
                         </div>
                       </div>
                       <div className="flex items-start space-x-4">
@@ -2689,21 +2422,6 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
           />
         )}
         
-        {/* Termination Overlay */}
-        {isTerminated && (
-          <div className="fixed inset-0 bg-red-900 bg-opacity-95 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-8 text-center max-w-md">
-              <div className="text-6xl mb-4">🚨</div>
-              <h2 className="text-2xl font-bold text-red-600 mb-4">INTERVIEW TERMINATED</h2>
-              <p className="text-lg text-gray-800 mb-4">
-                Suspicious behavior detected. Your interview has been automatically terminated.
-              </p>
-              <p className="text-sm text-gray-600">
-                Please contact support if you believe this is an error.
-              </p>
-            </div>
-          </div>
-        )}
         
         <div className={`fixed inset-0 overflow-hidden ${
           isDarkMode 
@@ -2776,50 +2494,6 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
 
           {/* Main Content Area */}
           <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
-            {/* Eye Tracking Monitor */}
-            {eyeTrackingEnabled && step === 'interview' && (
-              <div className="absolute top-20 right-4 z-10">
-                <EyeTrackingDetector
-                  onLookAway={handleLookAway}
-                  onLookBack={handleLookBack}
-                  isEnabled={eyeTrackingEnabled}
-                  sensitivity={0.8}
-                  warningThreshold={0.5}
-                  flagThreshold={1}
-                  className="bg-white/90 dark:bg-black/90 rounded-lg p-2 shadow-lg"
-                />
-                {/* Eye Tracking Toggle */}
-                <button
-                  onClick={() => setEyeTrackingEnabled(!eyeTrackingEnabled)}
-                  className="mt-2 px-3 py-1 text-xs bg-red-500/20 hover:bg-red-500/30 text-red-600 dark:text-red-400 rounded-full transition-colors"
-                  title="Toggle eye tracking"
-                >
-                  {eyeTrackingEnabled ? 'Disable' : 'Enable'} Eye Tracking
-                </button>
-                
-                {/* Monitoring Data Display */}
-                {monitoringData.violations.length > 0 && (
-                  <div className="mt-2 p-2 bg-yellow-500/20 rounded-lg text-xs">
-                    <div className="text-yellow-600 dark:text-yellow-400 font-semibold">
-                      Violations: {monitoringData.violations.length}
-                    </div>
-                    <div className="text-yellow-600 dark:text-yellow-400">
-                      Total Time: {monitoringData.totalViolationTime.toFixed(1)}s
-                    </div>
-                    {monitoringData.flagged && (
-                      <div className="text-red-600 dark:text-red-400 font-bold">
-                        ⚠️ FLAGGED
-                      </div>
-                    )}
-                    {currentLookAwayDuration > 0 && (
-                      <div className="text-orange-600 dark:text-orange-400">
-                        Last Look Away: {currentLookAwayDuration.toFixed(1)}s
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
             {/* Live Coding Round */}
             {isLiveCodingRound ? (
               <div className="w-full h-full flex flex-col">
@@ -3460,17 +3134,62 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
                     ? 'bg-gradient-to-br from-slate-900/60 via-gray-900/40 to-black/30 border-slate-600/40 shadow-2xl shadow-slate-500/30' 
                     : 'bg-gradient-to-br from-white via-blue-50 to-indigo-100 border-blue-300 shadow-2xl shadow-blue-200/50'
                 }`}>
-                  <div className="flex items-center space-x-3 mb-3">
-                    <div className={`w-3 h-3 rounded-full ${
-                      isRecording ? 'bg-red-500 animate-pulse' : isDarkMode ? 'bg-gray-400' : 'bg-gray-500'
-                    }`}></div>
-                    <h3 className={`text-lg font-black ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Live Transcription</h3>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center space-x-3">
+                      <div className={`w-3 h-3 rounded-full ${
+                        isRecording ? 'bg-red-500 animate-pulse' : isDarkMode ? 'bg-gray-400' : 'bg-gray-500'
+                      }`}></div>
+                      <h3 className={`text-lg font-black ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Live Transcription</h3>
+                    </div>
+                    <div className="flex space-x-2">
+                      {/* Record/Stop Button */}
+                      <button
+                        onClick={isRecording ? stopRecording : startRecording}
+                        disabled={loading || isAISpeaking}
+                        className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-bold transition-all duration-300 transform hover:scale-105 disabled:transform-none backdrop-blur-md border-2 ${
+                          isRecording
+                            ? (isDarkMode 
+                                ? 'bg-red-600/80 hover:bg-red-700/90 text-white border-red-500/40' 
+                                : 'bg-red-100/80 hover:bg-red-200/90 text-red-900 border-red-300 shadow-lg')
+                            : (isDarkMode 
+                                ? 'bg-green-600/80 hover:bg-green-700/90 text-white border-green-500/40' 
+                                : 'bg-green-100/80 hover:bg-green-200/90 text-green-900 border-green-300 shadow-lg')
+                        }`}
+                      >
+                        {isRecording ? (
+                          <>
+                            <div className="w-3 h-3 bg-white rounded-sm"></div>
+                            <span>Stop</span>
+                          </>
+                        ) : (
+                          <>
+                            <div className="w-3 h-3 bg-white rounded-full"></div>
+                            <span>Record</span>
+                          </>
+                        )}
+                      </button>
+                      
+                      {/* Submit Button - only show when not recording and has transcription */}
+                      {!isRecording && transcription.trim() && (
+                        <button
+                          onClick={submitCurrentAnswer}
+                          disabled={loading || isAISpeaking}
+                          className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-bold transition-all duration-300 transform hover:scale-105 disabled:transform-none backdrop-blur-md border-2 ${
+                            isDarkMode 
+                              ? 'bg-blue-600/80 hover:bg-blue-700/90 text-white border-blue-500/40' 
+                              : 'bg-blue-100/80 hover:bg-blue-200/90 text-blue-900 border-blue-300 shadow-lg'
+                          }`}
+                        >
+                          <span>Submit</span>
+                        </button>
+                      )}
+                    </div>
                   </div>
                   <div className="min-h-[80px] max-h-32 overflow-y-auto">
                     <p className={`text-sm leading-relaxed ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>
                       {transcription || (
                         <span className={`italic ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                          {isRecording ? 'Start speaking...' : 'Recording will start automatically when you begin speaking'}
+                          {isRecording ? 'Start speaking...' : 'Click Record to start speaking, then Submit when done'}
                         </span>
                       )}
                     </p>
