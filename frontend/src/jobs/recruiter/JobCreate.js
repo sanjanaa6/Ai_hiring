@@ -3,16 +3,15 @@ import { useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from 'react-query';
 import apiService from '../../services/apiService';
 import { toast } from 'react-toastify';
-import { Plus, X, Save, ArrowLeft, Sparkles } from 'lucide-react';
-import AIJobPrompt from '../components/AIJobPrompt';
-import QuickJobCreator from '../components/QuickJobCreator';
+import { Plus, X, Save, ArrowLeft, Sparkles, Briefcase, MapPin, DollarSign, Users, CheckCircle } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { useTheme } from '../../context/ThemeContext';
 import OnePromptJobCreator from '../components/OnePromptJobCreator';
 
 const JobCreate = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [showAIPrompt, setShowAIPrompt] = useState(false);
-  const [showQuickCreator, setShowQuickCreator] = useState(false);
+  const { isDarkMode } = useTheme();
   const [showOnePromptCreator, setShowOnePromptCreator] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
@@ -108,80 +107,132 @@ const JobCreate = () => {
     createJobMutation.mutate(cleanedData);
   };
 
-  const handleAIJobGenerated = (aiJobData) => {
-    setFormData(prev => ({
-      ...prev,
-      title: aiJobData.title || prev.title,
-      description: aiJobData.description || prev.description,
-      requirements: aiJobData.requirements || prev.requirements,
-      skills: aiJobData.skills || prev.skills,
-      benefits: aiJobData.benefits || prev.benefits
-    }));
-    setShowAIPrompt(false);
-    toast.success('AI-generated content has been applied to your job posting!');
-  };
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-24 pb-8">
+    <div className={`min-h-screen transition-colors duration-300 ${isDarkMode ? 'bg-gray-900' : 'bg-gradient-to-br from-blue-50 to-indigo-100'} pt-24 pb-8`}>
       <div className="container mx-auto px-4">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-5xl mx-auto">
           {/* Header */}
-          <div className="mb-8">
-            <div className="flex items-center justify-between mb-4">
-              <button
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="mb-8"
+          >
+            <div className="flex items-center justify-between mb-6">
+              <motion.button
+                whileHover={{ x: -5 }}
+                whileTap={{ scale: 0.95 }}
                 onClick={() => navigate('/jobs/manage')}
-                className="flex items-center text-gray-600 hover:text-gray-900"
+                className={`flex items-center px-4 py-2 rounded-lg transition-all duration-200 ${
+                  isDarkMode 
+                    ? 'text-gray-300 hover:text-white hover:bg-gray-800' 
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
+                }`}
               >
-                <ArrowLeft className="h-5 w-5 mr-1" />
+                <ArrowLeft className="h-5 w-5 mr-2" />
                 Back to Jobs
-              </button>
+              </motion.button>
+              
               <div className="flex space-x-3">
-                <button
+                <motion.button
+                  whileHover={{ scale: 1.05, y: -2 }}
+                  whileTap={{ scale: 0.95 }}
                   onClick={() => setShowOnePromptCreator(true)}
-                  className="btn btn-primary flex items-center space-x-2"
+                  className="group relative inline-flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-xl shadow-lg hover:shadow-blue-500/25 transition-all duration-300 font-semibold"
                 >
-                  <Sparkles className="h-5 w-5" />
+                  <Sparkles className="h-5 w-5 group-hover:rotate-12 transition-transform duration-300" />
                   <span>One-Prompt Create</span>
-                </button>
-                <button
-                  onClick={() => setShowQuickCreator(true)}
-                  className="btn btn-outline flex items-center space-x-2"
-                >
-                  <Sparkles className="h-5 w-5" />
-                  <span>Step-by-Step</span>
-                </button>
-                <button
-                  onClick={() => setShowAIPrompt(true)}
-                  className="btn btn-outline flex items-center space-x-2"
-                >
-                  <Sparkles className="h-5 w-5" />
-                  <span>AI Assistant</span>
-                </button>
+                </motion.button>
               </div>
             </div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Post a New Job</h1>
-            <p className="text-gray-600">
-              Create a job posting to attract the best candidates for your open position. Choose your preferred method:
-            </p>
-            <div className="mt-3 text-sm text-gray-500">
-              <p><strong>One-Prompt Create:</strong> Describe your job in one sentence, AI fills all details and posts it</p>
-              <p><strong>Step-by-Step:</strong> AI generates content, then you review and customize before posting</p>
-              <p><strong>AI Assistant:</strong> Generate content to copy and paste into the manual form below</p>
+            
+            <div className="text-center mb-8">
+              <motion.h1 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.1 }}
+                className={`text-4xl font-bold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}
+              >
+                Post a New Job
+              </motion.h1>
+              <motion.p 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.2 }}
+                className={`text-lg ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} max-w-3xl mx-auto`}
+              >
+                Create a compelling job posting to attract the best candidates for your open position
+              </motion.p>
             </div>
-          </div>
 
-          <form onSubmit={handleSubmit} className="space-y-8">
+            {/* Quick Options Cards */}
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.3 }}
+              className="flex justify-center mb-8"
+            >
+              <div className={`p-6 rounded-2xl border transition-all duration-300 max-w-md ${
+                isDarkMode 
+                  ? 'bg-gray-800/50 border-gray-700 hover:border-blue-500' 
+                  : 'bg-white/70 border-gray-200 hover:border-blue-300'
+              }`}>
+                <div className="flex items-center mb-3">
+                  <div className="p-2 bg-blue-100 rounded-lg mr-3">
+                    <Sparkles className="h-6 w-6 text-blue-600" />
+                  </div>
+                  <h3 className={`font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                    One-Prompt Create
+                  </h3>
+                </div>
+                <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                  Describe your job in one sentence, AI fills all details and posts it automatically
+                </p>
+              </div>
+            </motion.div>
+          </motion.div>
+
+          <motion.form 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.4 }}
+            onSubmit={handleSubmit} 
+            className="space-y-8"
+          >
             {/* Basic Information */}
-            <div className="card">
-              <h2 className="text-xl font-semibold text-gray-900 mb-6">Basic Information</h2>
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.5 }}
+              className={`p-8 rounded-2xl border backdrop-blur-sm transition-all duration-300 ${
+                isDarkMode 
+                  ? 'bg-gray-800/50 border-gray-700 hover:border-gray-600' 
+                  : 'bg-white/80 border-gray-200 hover:border-gray-300 shadow-lg'
+              }`}
+            >
+              <div className="flex items-center mb-6">
+                <div className="p-3 bg-blue-100 rounded-xl mr-4">
+                  <Briefcase className="h-6 w-6 text-blue-600" />
+                </div>
+                <h2 className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                  Basic Information
+                </h2>
+              </div>
               
               <div className="grid md:grid-cols-2 gap-6">
                 <div>
-                  <label className="form-label">Job Title *</label>
+                  <label className={`block text-sm font-semibold mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    Job Title *
+                  </label>
                   <input
                     type="text"
                     name="title"
-                    className="form-input"
+                    className={`w-full px-4 py-3 rounded-xl border-2 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 ${
+                      isDarkMode 
+                        ? 'bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500' 
+                        : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-blue-500'
+                    }`}
                     placeholder="e.g., Senior Software Engineer"
                     value={formData.title}
                     onChange={handleChange}
@@ -190,11 +241,17 @@ const JobCreate = () => {
                 </div>
 
                 <div>
-                  <label className="form-label">Company *</label>
+                  <label className={`block text-sm font-semibold mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    Company *
+                  </label>
                   <input
                     type="text"
                     name="company"
-                    className="form-input"
+                    className={`w-full px-4 py-3 rounded-xl border-2 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 ${
+                      isDarkMode 
+                        ? 'bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500' 
+                        : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-blue-500'
+                    }`}
                     placeholder="e.g., Tech Corp"
                     value={formData.company}
                     onChange={handleChange}
@@ -203,23 +260,38 @@ const JobCreate = () => {
                 </div>
 
                 <div>
-                  <label className="form-label">Location *</label>
-                  <input
-                    type="text"
-                    name="location"
-                    className="form-input"
-                    placeholder="e.g., San Francisco, CA or Remote"
-                    value={formData.location}
-                    onChange={handleChange}
-                    required
-                  />
+                  <label className={`block text-sm font-semibold mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    Location *
+                  </label>
+                  <div className="relative">
+                    <MapPin className={`absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} />
+                    <input
+                      type="text"
+                      name="location"
+                      className={`w-full pl-10 pr-4 py-3 rounded-xl border-2 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 ${
+                        isDarkMode 
+                          ? 'bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500' 
+                          : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-blue-500'
+                      }`}
+                      placeholder="e.g., San Francisco, CA or Remote"
+                      value={formData.location}
+                      onChange={handleChange}
+                      required
+                    />
+                  </div>
                 </div>
 
                 <div>
-                  <label className="form-label">Job Type *</label>
+                  <label className={`block text-sm font-semibold mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    Job Type *
+                  </label>
                   <select
                     name="type"
-                    className="form-select"
+                    className={`w-full px-4 py-3 rounded-xl border-2 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 ${
+                      isDarkMode 
+                        ? 'bg-gray-700/50 border-gray-600 text-white focus:border-blue-500' 
+                        : 'bg-white border-gray-300 text-gray-900 focus:border-blue-500'
+                    }`}
                     value={formData.type}
                     onChange={handleChange}
                     required
@@ -232,10 +304,16 @@ const JobCreate = () => {
                 </div>
 
                 <div>
-                  <label className="form-label">Experience Level *</label>
+                  <label className={`block text-sm font-semibold mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    Experience Level *
+                  </label>
                   <select
                     name="experienceLevel"
-                    className="form-select"
+                    className={`w-full px-4 py-3 rounded-xl border-2 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 ${
+                      isDarkMode 
+                        ? 'bg-gray-700/50 border-gray-600 text-white focus:border-blue-500' 
+                        : 'bg-white border-gray-300 text-gray-900 focus:border-blue-500'
+                    }`}
                     value={formData.experienceLevel}
                     onChange={handleChange}
                     required
@@ -248,10 +326,16 @@ const JobCreate = () => {
                 </div>
 
                 <div>
-                  <label className="form-label">Status</label>
+                  <label className={`block text-sm font-semibold mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    Status
+                  </label>
                   <select
                     name="status"
-                    className="form-select"
+                    className={`w-full px-4 py-3 rounded-xl border-2 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 ${
+                      isDarkMode 
+                        ? 'bg-gray-700/50 border-gray-600 text-white focus:border-blue-500' 
+                        : 'bg-white border-gray-300 text-gray-900 focus:border-blue-500'
+                    }`}
                     value={formData.status}
                     onChange={handleChange}
                   >
@@ -263,10 +347,16 @@ const JobCreate = () => {
               </div>
 
               <div className="mt-6">
-                <label className="form-label">Job Description *</label>
+                <label className={`block text-sm font-semibold mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  Job Description *
+                </label>
                 <textarea
                   name="description"
-                  className="form-textarea"
+                  className={`w-full px-4 py-3 rounded-xl border-2 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 resize-none ${
+                    isDarkMode 
+                      ? 'bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500' 
+                      : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-blue-500'
+                  }`}
                   rows="6"
                   placeholder="Describe the role, responsibilities, and what makes this opportunity exciting..."
                   value={formData.description}
@@ -274,19 +364,41 @@ const JobCreate = () => {
                   required
                 />
               </div>
-            </div>
+            </motion.div>
 
             {/* Salary Information */}
-            <div className="card">
-              <h2 className="text-xl font-semibold text-gray-900 mb-6">Salary Information</h2>
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.6 }}
+              className={`p-8 rounded-2xl border backdrop-blur-sm transition-all duration-300 ${
+                isDarkMode 
+                  ? 'bg-gray-800/50 border-gray-700 hover:border-gray-600' 
+                  : 'bg-white/80 border-gray-200 hover:border-gray-300 shadow-lg'
+              }`}
+            >
+              <div className="flex items-center mb-6">
+                <div className="p-3 bg-emerald-100 rounded-xl mr-4">
+                  <DollarSign className="h-6 w-6 text-emerald-600" />
+                </div>
+                <h2 className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                  Salary Information
+                </h2>
+              </div>
               
               <div className="grid md:grid-cols-3 gap-6">
                 <div>
-                  <label className="form-label">Minimum Salary</label>
+                  <label className={`block text-sm font-semibold mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    Minimum Salary
+                  </label>
                   <input
                     type="number"
                     name="salary.min"
-                    className="form-input"
+                    className={`w-full px-4 py-3 rounded-xl border-2 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 ${
+                      isDarkMode 
+                        ? 'bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-emerald-500' 
+                        : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-emerald-500'
+                    }`}
                     placeholder="e.g., 80000"
                     value={formData.salary.min}
                     onChange={handleChange}
@@ -294,11 +406,17 @@ const JobCreate = () => {
                 </div>
 
                 <div>
-                  <label className="form-label">Maximum Salary</label>
+                  <label className={`block text-sm font-semibold mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    Maximum Salary
+                  </label>
                   <input
                     type="number"
                     name="salary.max"
-                    className="form-input"
+                    className={`w-full px-4 py-3 rounded-xl border-2 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 ${
+                      isDarkMode 
+                        ? 'bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-emerald-500' 
+                        : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-emerald-500'
+                    }`}
                     placeholder="e.g., 120000"
                     value={formData.salary.max}
                     onChange={handleChange}
@@ -306,10 +424,16 @@ const JobCreate = () => {
                 </div>
 
                 <div>
-                  <label className="form-label">Currency</label>
+                  <label className={`block text-sm font-semibold mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    Currency
+                  </label>
                   <select
                     name="salary.currency"
-                    className="form-select"
+                    className={`w-full px-4 py-3 rounded-xl border-2 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 ${
+                      isDarkMode 
+                        ? 'bg-gray-700/50 border-gray-600 text-white focus:border-emerald-500' 
+                        : 'bg-white border-gray-300 text-gray-900 focus:border-emerald-500'
+                    }`}
                     value={formData.salary.currency}
                     onChange={handleChange}
                   >
@@ -320,139 +444,309 @@ const JobCreate = () => {
                   </select>
                 </div>
               </div>
-            </div>
+            </motion.div>
 
             {/* Requirements */}
-            <div className="card">
-              <h2 className="text-xl font-semibold text-gray-900 mb-6">Requirements</h2>
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.7 }}
+              className={`p-8 rounded-2xl border backdrop-blur-sm transition-all duration-300 ${
+                isDarkMode 
+                  ? 'bg-gray-800/50 border-gray-700 hover:border-gray-600' 
+                  : 'bg-white/80 border-gray-200 hover:border-gray-300 shadow-lg'
+              }`}
+            >
+              <div className="flex items-center mb-6">
+                <div className="p-3 bg-orange-100 rounded-xl mr-4">
+                  <CheckCircle className="h-6 w-6 text-orange-600" />
+                </div>
+                <h2 className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                  Requirements
+                </h2>
+              </div>
               
               <div className="space-y-4">
                 {formData.requirements.map((requirement, index) => (
-                  <div key={index} className="flex items-center space-x-2">
+                  <motion.div 
+                    key={index} 
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.3, delay: index * 0.1 }}
+                    className="flex items-center space-x-3"
+                  >
                     <input
                       type="text"
-                      className="form-input flex-1"
+                      className={`flex-1 px-4 py-3 rounded-xl border-2 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-orange-500/20 ${
+                        isDarkMode 
+                          ? 'bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-orange-500' 
+                          : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-orange-500'
+                      }`}
                       placeholder="e.g., 3+ years of experience with React"
                       value={requirement}
                       onChange={(e) => handleArrayChange('requirements', index, e.target.value)}
                     />
-                    <button
+                    <motion.button
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
                       type="button"
                       onClick={() => removeArrayItem('requirements', index)}
-                      className="p-2 text-red-600 hover:bg-red-50 rounded-md"
+                      className={`p-3 rounded-xl transition-all duration-200 ${
+                        isDarkMode 
+                          ? 'text-red-400 hover:bg-red-500/20 hover:text-red-300' 
+                          : 'text-red-600 hover:bg-red-50 hover:text-red-700'
+                      }`}
                     >
                       <X className="h-5 w-5" />
-                    </button>
-                  </div>
+                    </motion.button>
+                  </motion.div>
                 ))}
-                <button
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                   type="button"
                   onClick={() => addArrayItem('requirements')}
-                  className="flex items-center text-blue-600 hover:text-blue-700"
+                  className={`flex items-center px-4 py-3 rounded-xl border-2 border-dashed transition-all duration-200 ${
+                    isDarkMode 
+                      ? 'border-orange-500 text-orange-400 hover:bg-orange-500/10 hover:border-orange-400' 
+                      : 'border-orange-300 text-orange-600 hover:bg-orange-50 hover:border-orange-400'
+                  }`}
                 >
-                  <Plus className="h-4 w-4 mr-1" />
+                  <Plus className="h-5 w-5 mr-2" />
                   Add Requirement
-                </button>
+                </motion.button>
               </div>
-            </div>
+            </motion.div>
 
             {/* Skills */}
-            <div className="card">
-              <h2 className="text-xl font-semibold text-gray-900 mb-6">Required Skills</h2>
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.8 }}
+              className={`p-8 rounded-2xl border backdrop-blur-sm transition-all duration-300 ${
+                isDarkMode 
+                  ? 'bg-gray-800/50 border-gray-700 hover:border-gray-600' 
+                  : 'bg-white/80 border-gray-200 hover:border-gray-300 shadow-lg'
+              }`}
+            >
+              <div className="flex items-center mb-6">
+                <div className="p-3 bg-blue-100 rounded-xl mr-4">
+                  <Users className="h-6 w-6 text-blue-600" />
+                </div>
+                <h2 className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                  Required Skills
+                </h2>
+              </div>
               
               <div className="space-y-4">
                 {formData.skills.map((skill, index) => (
-                  <div key={index} className="flex items-center space-x-2">
+                  <motion.div 
+                    key={index} 
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.3, delay: index * 0.1 }}
+                    className="flex items-center space-x-3"
+                  >
                     <input
                       type="text"
-                      className="form-input flex-1"
+                      className={`flex-1 px-4 py-3 rounded-xl border-2 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 ${
+                        isDarkMode 
+                          ? 'bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500' 
+                          : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-blue-500'
+                      }`}
                       placeholder="e.g., JavaScript, React, Node.js"
                       value={skill}
                       onChange={(e) => handleArrayChange('skills', index, e.target.value)}
                     />
-                    <button
+                    <motion.button
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
                       type="button"
                       onClick={() => removeArrayItem('skills', index)}
-                      className="p-2 text-red-600 hover:bg-red-50 rounded-md"
+                      className={`p-3 rounded-xl transition-all duration-200 ${
+                        isDarkMode 
+                          ? 'text-red-400 hover:bg-red-500/20 hover:text-red-300' 
+                          : 'text-red-600 hover:bg-red-50 hover:text-red-700'
+                      }`}
                     >
                       <X className="h-5 w-5" />
-                    </button>
-                  </div>
+                    </motion.button>
+                  </motion.div>
                 ))}
-                <button
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                   type="button"
                   onClick={() => addArrayItem('skills')}
-                  className="flex items-center text-blue-600 hover:text-blue-700"
+                  className={`flex items-center px-4 py-3 rounded-xl border-2 border-dashed transition-all duration-200 ${
+                    isDarkMode 
+                      ? 'border-blue-500 text-blue-400 hover:bg-blue-500/10 hover:border-blue-400' 
+                      : 'border-blue-300 text-blue-600 hover:bg-blue-50 hover:border-blue-400'
+                  }`}
                 >
-                  <Plus className="h-4 w-4 mr-1" />
+                  <Plus className="h-5 w-5 mr-2" />
                   Add Skill
-                </button>
+                </motion.button>
               </div>
-            </div>
+            </motion.div>
 
             {/* Benefits */}
-            <div className="card">
-              <h2 className="text-xl font-semibold text-gray-900 mb-6">Benefits & Perks</h2>
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.9 }}
+              className={`p-8 rounded-2xl border backdrop-blur-sm transition-all duration-300 ${
+                isDarkMode 
+                  ? 'bg-gray-800/50 border-gray-700 hover:border-gray-600' 
+                  : 'bg-white/80 border-gray-200 hover:border-gray-300 shadow-lg'
+              }`}
+            >
+              <div className="flex items-center mb-6">
+                <div className="p-3 bg-emerald-100 rounded-xl mr-4">
+                  <CheckCircle className="h-6 w-6 text-emerald-600" />
+                </div>
+                <h2 className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                  Benefits & Perks
+                </h2>
+              </div>
               
               <div className="space-y-4">
                 {formData.benefits.map((benefit, index) => (
-                  <div key={index} className="flex items-center space-x-2">
+                  <motion.div 
+                    key={index} 
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.3, delay: index * 0.1 }}
+                    className="flex items-center space-x-3"
+                  >
                     <input
                       type="text"
-                      className="form-input flex-1"
+                      className={`flex-1 px-4 py-3 rounded-xl border-2 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 ${
+                        isDarkMode 
+                          ? 'bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-emerald-500' 
+                          : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-emerald-500'
+                      }`}
                       placeholder="e.g., Health insurance, 401k matching, Flexible hours"
                       value={benefit}
                       onChange={(e) => handleArrayChange('benefits', index, e.target.value)}
                     />
-                    <button
+                    <motion.button
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
                       type="button"
                       onClick={() => removeArrayItem('benefits', index)}
-                      className="p-2 text-red-600 hover:bg-red-50 rounded-md"
+                      className={`p-3 rounded-xl transition-all duration-200 ${
+                        isDarkMode 
+                          ? 'text-red-400 hover:bg-red-500/20 hover:text-red-300' 
+                          : 'text-red-600 hover:bg-red-50 hover:text-red-700'
+                      }`}
                     >
                       <X className="h-5 w-5" />
-                    </button>
-                  </div>
+                    </motion.button>
+                  </motion.div>
                 ))}
-                <button
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                   type="button"
                   onClick={() => addArrayItem('benefits')}
-                  className="flex items-center text-blue-600 hover:text-blue-700"
+                  className={`flex items-center px-4 py-3 rounded-xl border-2 border-dashed transition-all duration-200 ${
+                    isDarkMode 
+                      ? 'border-emerald-500 text-emerald-400 hover:bg-emerald-500/10 hover:border-emerald-400' 
+                      : 'border-emerald-300 text-emerald-600 hover:bg-emerald-50 hover:border-emerald-400'
+                  }`}
                 >
-                  <Plus className="h-4 w-4 mr-1" />
+                  <Plus className="h-5 w-5 mr-2" />
                   Add Benefit
-                </button>
+                </motion.button>
               </div>
-            </div>
+            </motion.div>
 
             {/* Submit Buttons */}
-            <div className="flex justify-end space-x-4">
-              <button
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 1.0 }}
+              className="flex justify-end space-x-4 pt-6"
+            >
+              <motion.button
+                whileHover={{ scale: 1.05, y: -2 }}
+                whileTap={{ scale: 0.95 }}
                 type="button"
                 onClick={() => navigate('/jobs/manage')}
-                className="btn btn-secondary"
+                className={`px-8 py-4 rounded-xl border-2 transition-all duration-300 font-semibold ${
+                  isDarkMode 
+                    ? 'border-gray-600 text-gray-300 hover:bg-gray-700 hover:border-gray-500' 
+                    : 'border-gray-300 text-gray-600 hover:bg-gray-50 hover:border-gray-400'
+                }`}
               >
                 Cancel
-              </button>
-              <button
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.05, y: -2 }}
+                whileTap={{ scale: 0.95 }}
                 type="submit"
                 disabled={createJobMutation.isLoading}
-                className="btn btn-primary flex items-center space-x-2"
+                className="group relative inline-flex items-center space-x-3 px-8 py-4 bg-gradient-to-r from-blue-600 via-blue-700 to-slate-800 hover:from-blue-700 hover:via-blue-800 hover:to-slate-900 text-white rounded-xl shadow-2xl hover:shadow-blue-500/25 transition-all duration-300 font-semibold text-lg overflow-hidden disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <Save className="h-5 w-5" />
-                <span>{createJobMutation.isLoading ? 'Creating Job...' : 'Post Job'}</span>
-              </button>
-            </div>
-          </form>
+                {/* Animated background */}
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-blue-600 opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
+                
+                {/* Floating particles effect */}
+                <div className="absolute inset-0 overflow-hidden">
+                  <motion.div
+                    animate={{
+                      x: [0, 100, 0],
+                      opacity: [0, 1, 0]
+                    }}
+                    transition={{
+                      duration: 3,
+                      repeat: Infinity,
+                      ease: "easeInOut"
+                    }}
+                    className="absolute top-0 left-0 w-2 h-2 bg-white rounded-full"
+                  ></motion.div>
+                  <motion.div
+                    animate={{
+                      x: [0, -100, 0],
+                      opacity: [0, 1, 0]
+                    }}
+                    transition={{
+                      duration: 3,
+                      repeat: Infinity,
+                      ease: "easeInOut",
+                      delay: 1
+                    }}
+                    className="absolute bottom-0 right-0 w-1 h-1 bg-white rounded-full"
+                  ></motion.div>
+                </div>
+
+                <motion.div
+                  whileHover={{ rotate: 90 }}
+                  transition={{ duration: 0.3 }}
+                  className="relative z-10"
+                >
+                  <Save className="h-6 w-6" />
+                </motion.div>
+                <span className="relative z-10">
+                  {createJobMutation.isLoading ? 'Creating Job...' : 'Post Job'}
+                </span>
+
+                {/* Shine effect */}
+                <motion.div
+                  animate={{ x: ['-100%', '100%'] }}
+                  transition={{
+                    duration: 2,
+                    repeat: Infinity,
+                    ease: "easeInOut"
+                  }}
+                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-12"
+                ></motion.div>
+              </motion.button>
+            </motion.div>
+          </motion.form>
         </div>
       </div>
-
-      {/* AI Job Prompt Modal */}
-      {showAIPrompt && (
-        <AIJobPrompt
-          onJobGenerated={handleAIJobGenerated}
-          onClose={() => setShowAIPrompt(false)}
-        />
-      )}
 
       {/* One-Prompt Job Creator Modal */}
       {showOnePromptCreator && (
@@ -462,17 +756,6 @@ const JobCreate = () => {
             navigate('/jobs/manage');
           }}
           onClose={() => setShowOnePromptCreator(false)}
-        />
-      )}
-
-      {/* Quick Job Creator Modal */}
-      {showQuickCreator && (
-        <QuickJobCreator
-          onJobCreated={() => {
-            setShowQuickCreator(false);
-            navigate('/jobs/manage');
-          }}
-          onClose={() => setShowQuickCreator(false)}
         />
       )}
     </div>

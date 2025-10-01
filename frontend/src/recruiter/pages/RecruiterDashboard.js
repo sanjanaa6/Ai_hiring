@@ -919,10 +919,59 @@ The interview should feel natural and relevant to someone applying for this spec
                   transition: { duration: 0.2 }
                 }}
                 whileTap={{ scale: 0.95 }}
-                className="group relative inline-flex items-center space-x-3 px-8 py-4 bg-gradient-to-r from-green-600 via-emerald-600 to-teal-700 hover:from-green-500 hover:via-emerald-500 hover:to-teal-600 text-white rounded-2xl shadow-2xl hover:shadow-green-500/25 transition-all duration-300 font-semibold text-base overflow-hidden"
+                className="group relative inline-flex items-center space-x-3 px-10 py-5 bg-gradient-to-r from-blue-600 via-blue-700 to-slate-800 hover:from-blue-700 hover:via-blue-800 hover:to-slate-900 text-white rounded-2xl shadow-2xl hover:shadow-blue-500/25 transition-all duration-300 font-semibold text-lg overflow-hidden"
               >
-                <Briefcase className="h-5 w-5" />
-                <span>Post Regular Job</span>
+                {/* Animated background */}
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-blue-600 opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
+                
+                {/* Floating particles effect */}
+                <div className="absolute inset-0 overflow-hidden">
+                  <motion.div
+                    animate={{ 
+                      x: [0, 100, 0],
+                      opacity: [0, 1, 0]
+                    }}
+                    transition={{ 
+                      duration: 3,
+                      repeat: Infinity,
+                      ease: "easeInOut"
+                    }}
+                    className="absolute top-0 left-0 w-2 h-2 bg-white rounded-full"
+                  ></motion.div>
+                  <motion.div
+                    animate={{ 
+                      x: [0, -100, 0],
+                      opacity: [0, 1, 0]
+                    }}
+                    transition={{ 
+                      duration: 3,
+                      repeat: Infinity,
+                      ease: "easeInOut",
+                      delay: 1
+                    }}
+                    className="absolute bottom-0 right-0 w-1 h-1 bg-white rounded-full"
+                  ></motion.div>
+                </div>
+
+                <motion.div
+                  whileHover={{ rotate: 90 }}
+                  transition={{ duration: 0.3 }}
+                  className="relative z-10"
+                >
+                  <Briefcase className="h-6 w-6" />
+                </motion.div>
+                <span className="relative z-10">Post Regular Job</span>
+                
+                {/* Shine effect */}
+                <motion.div
+                  animate={{ x: ['-100%', '100%'] }}
+                  transition={{ 
+                    duration: 2,
+                    repeat: Infinity,
+                    ease: "easeInOut"
+                  }}
+                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-12"
+                ></motion.div>
               </motion.button>
             </div>
           </motion.div>

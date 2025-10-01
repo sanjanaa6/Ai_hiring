@@ -223,7 +223,7 @@ const JobManagement = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 pt-24 pb-8">
+      <div className={`min-h-screen pt-24 pb-8 transition-colors duration-300 ${isDarkMode ? 'bg-black' : 'bg-gray-50'}`}>
         <div className="container mx-auto px-4">
           <div className="loading">
             <div className="spinner"></div>
@@ -235,11 +235,11 @@ const JobManagement = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 pt-24 pb-8">
+      <div className={`min-h-screen pt-24 pb-8 transition-colors duration-300 ${isDarkMode ? 'bg-black' : 'bg-gray-50'}`}>
         <div className="container mx-auto px-4">
           <div className="text-center">
-            <h1 className="text-2xl font-bold text-gray-900 mb-4">Error Loading Jobs</h1>
-            <p className="text-gray-600">Please try again later.</p>
+            <h1 className={`text-2xl font-bold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Error Loading Jobs</h1>
+            <p className={`${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>Please try again later.</p>
           </div>
         </div>
       </div>
@@ -250,7 +250,7 @@ const JobManagement = () => {
     <div 
       className={`min-h-screen pt-24 pb-8 transition-colors duration-300 ${
         isDarkMode 
-          ? 'bg-gradient-to-br from-gray-900 via-blue-900/20 to-purple-900/20' 
+          ? 'bg-black' 
           : 'bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30'
       }`}
     >
@@ -264,7 +264,11 @@ const JobManagement = () => {
         >
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h1 className={`text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2`}>
+              <h1 className={`text-4xl font-bold mb-2 ${
+                isDarkMode 
+                  ? 'bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent' 
+                  : 'bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent'
+              }`}>
                 Job Management
               </h1>
               <p className={`text-lg transition-colors duration-300 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
@@ -466,10 +470,10 @@ const JobManagement = () => {
                 <input
                   type="text"
                   placeholder="Search by title, company..."
-                  className={`form-input pl-10 transition-colors duration-300 ${
+                  className={`w-full px-4 py-3 pl-10 rounded-lg border-2 transition-all duration-200 focus:outline-none focus:ring-2 ${
                     isDarkMode 
-                      ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-blue-400 focus:ring-blue-400' 
-                      : 'border-gray-200 focus:border-blue-500 focus:ring-blue-500'
+                      ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400 focus:border-blue-400 focus:ring-blue-400/20' 
+                      : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-blue-500 focus:ring-blue-500/20'
                   }`}
                   value={filters.search}
                   onChange={(e) => handleFilterChange('search', e.target.value)}
@@ -482,10 +486,10 @@ const JobManagement = () => {
                 isDarkMode ? 'text-gray-300' : 'text-gray-700'
               }`}>Job Status</label>
               <select
-                className={`form-select transition-colors duration-300 ${
+                className={`w-full px-4 py-3 rounded-lg border-2 transition-all duration-200 focus:outline-none focus:ring-2 ${
                   isDarkMode 
-                    ? 'bg-gray-700 border-gray-600 text-white focus:border-blue-400 focus:ring-blue-400' 
-                    : 'border-gray-200 focus:border-blue-500 focus:ring-blue-500'
+                    ? 'bg-gray-800 border-gray-600 text-white focus:border-blue-400 focus:ring-blue-400/20' 
+                    : 'bg-white border-gray-300 text-gray-900 focus:border-blue-500 focus:ring-blue-500/20'
                 }`}
                 value={filters.status}
                 onChange={(e) => handleFilterChange('status', e.target.value)}
@@ -503,10 +507,10 @@ const JobManagement = () => {
                 isDarkMode ? 'text-gray-300' : 'text-gray-700'
               }`}>Sort By</label>
               <select
-                className={`form-select transition-colors duration-300 ${
+                className={`w-full px-4 py-3 rounded-lg border-2 transition-all duration-200 focus:outline-none focus:ring-2 ${
                   isDarkMode 
-                    ? 'bg-gray-700 border-gray-600 text-white focus:border-blue-400 focus:ring-blue-400' 
-                    : 'border-gray-200 focus:border-blue-500 focus:ring-blue-500'
+                    ? 'bg-gray-800 border-gray-600 text-white focus:border-blue-400 focus:ring-blue-400/20' 
+                    : 'bg-white border-gray-300 text-gray-900 focus:border-blue-500 focus:ring-blue-500/20'
                 }`}
                 value={`${filters.sortBy}-${filters.sortOrder}`}
                 onChange={(e) => {
@@ -786,12 +790,20 @@ const JobManagement = () => {
             </div>
 
             {/* Application Filters */}
-            <div className="p-6 border-b bg-gray-50">
+            <div className={`p-6 border-b transition-colors duration-300 ${
+              isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'
+            }`}>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="form-label">Status</label>
+                  <label className={`block text-sm font-medium mb-2 transition-colors duration-300 ${
+                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                  }`}>Status</label>
                   <select
-                    className="form-select"
+                    className={`w-full px-4 py-3 rounded-lg border-2 transition-all duration-200 focus:outline-none focus:ring-2 ${
+                      isDarkMode 
+                        ? 'bg-gray-700 border-gray-600 text-white focus:border-blue-400 focus:ring-blue-400/20' 
+                        : 'bg-white border-gray-300 text-gray-900 focus:border-blue-500 focus:ring-blue-500/20'
+                    }`}
                     value={applicationFilters.status}
                     onChange={(e) => handleApplicationFilterChange('status', e.target.value)}
                   >
@@ -805,9 +817,15 @@ const JobManagement = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="form-label">Experience Level</label>
+                  <label className={`block text-sm font-medium mb-2 transition-colors duration-300 ${
+                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                  }`}>Experience Level</label>
                   <select
-                    className="form-select"
+                    className={`w-full px-4 py-3 rounded-lg border-2 transition-all duration-200 focus:outline-none focus:ring-2 ${
+                      isDarkMode 
+                        ? 'bg-gray-700 border-gray-600 text-white focus:border-blue-400 focus:ring-blue-400/20' 
+                        : 'bg-white border-gray-300 text-gray-900 focus:border-blue-500 focus:ring-blue-500/20'
+                    }`}
                     value={applicationFilters.experience}
                     onChange={(e) => handleApplicationFilterChange('experience', e.target.value)}
                   >
@@ -819,11 +837,17 @@ const JobManagement = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="form-label">Skills</label>
+                  <label className={`block text-sm font-medium mb-2 transition-colors duration-300 ${
+                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                  }`}>Skills</label>
                   <input
                     type="text"
                     placeholder="Filter by skills..."
-                    className="form-input"
+                    className={`w-full px-4 py-3 rounded-lg border-2 transition-all duration-200 focus:outline-none focus:ring-2 ${
+                      isDarkMode 
+                        ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-blue-400 focus:ring-blue-400/20' 
+                        : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-blue-500 focus:ring-blue-500/20'
+                    }`}
                     value={applicationFilters.skills}
                     onChange={(e) => handleApplicationFilterChange('skills', e.target.value)}
                   />
