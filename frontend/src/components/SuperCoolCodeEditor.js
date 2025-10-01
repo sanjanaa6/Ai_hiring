@@ -5,8 +5,6 @@ import {
   RotateCcw, 
   CheckCircle, 
   XCircle, 
-  Maximize2, 
-  Minimize2,
   Zap,
   Code2,
   Settings,
@@ -17,6 +15,9 @@ import {
   MicOff
 } from 'lucide-react';
 import aiService from '../services/aiService';
+import TestCaseManager from './TestCaseManager';
+import codeExecutionService from '../services/codeExecutionService';
+import { useResizeObserver, cleanupResizeObservers } from '../utils/resizeObserver';
 
 const SuperCoolCodeEditor = ({ 
   language = 'javascript', 
@@ -32,7 +33,7 @@ const SuperCoolCodeEditor = ({
   languageLocked = false,
   aiDeterminedLanguage = null
 }) => {
-  const [code, setCode] = useState(starterCode);
+  const [code, setCode] = useState(starterCode || '// Start typing your code here...\n\n');
   const [output, setOutput] = useState('');
   const [testResults, setTestResults] = useState([]);
   const [isRunning, setIsRunning] = useState(false);
@@ -42,6 +43,7 @@ const SuperCoolCodeEditor = ({
   const [isLiveMonitoring, setIsLiveMonitoring] = useState(true);
   const [editorTheme, setEditorTheme] = useState('vs-dark');
   const [showSettings, setShowSettings] = useState(false);
+  const [editorLoading, setEditorLoading] = useState(true);
   const [linesOfCode, setLinesOfCode] = useState(0);
   const [codeQuality, setCodeQuality] = useState(0);
   const [isTyping, setIsTyping] = useState(false);
@@ -175,6 +177,18 @@ const SuperCoolCodeEditor = ({
     setCodeQuality(Math.min(quality, 100));
   }, [code, testResults]);
 
+  // Cleanup ResizeObserver and editor handlers on unmount
+  useEffect(() => {
+    return () => {
+      cleanupResizeObservers();
+      
+      // Clean up editor resize handlers
+      if (editorRef.current && editorRef.current._resizeCleanup) {
+        editorRef.current._resizeCleanup();
+      }
+    };
+  }, []);
+
   // Supported programming languages with enhanced info
   const supportedLanguages = [
     { value: 'jsx', label: 'React (JSX)', extension: 'jsx', icon: '⚛️', color: 'bg-blue-500' },
@@ -232,10 +246,63 @@ const SuperCoolCodeEditor = ({
         'editor.foreground': '#24292e'
       }
     });
+
+    // Manual layout handling to prevent ResizeObserver issues
+    const handleResize = () => {
+      try {
+        editor.layout();
+      } catch (error) {
+        // Suppress ResizeObserver errors
+        if (error.message && error.message.includes('ResizeObserver')) {
+          return;
+        }
+        throw error;
+      }
+    };
+
+    // Use a debounced resize handler
+    let resizeTimeout;
+    const debouncedResize = () => {
+      clearTimeout(resizeTimeout);
+      resizeTimeout = setTimeout(handleResize, 100);
+    };
+
+    // Add resize listener
+    window.addEventListener('resize', debouncedResize);
+    
+    // Store cleanup function
+    editor._resizeCleanup = () => {
+      window.removeEventListener('resize', debouncedResize);
+      clearTimeout(resizeTimeout);
+    };
+
+    // Set editor as loaded
+    setEditorLoading(false);
   };
 
   const handleCodeChange = (value) => {
     setCode(value || '');
+    
+    // Show typing indicator when user types
+    if (value && value.trim()) {
+      setIsTyping(true);
+      
+      // Clear existing timeout
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+      
+      // Set new timeout to hide typing indicator
+      typingTimeoutRef.current = setTimeout(() => {
+        setIsTyping(false);
+      }, 1000);
+    } else {
+      setIsTyping(false);
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+    }
+    
     if (onCodeChange) {
       onCodeChange(value || '');
     }
@@ -253,57 +320,21 @@ const SuperCoolCodeEditor = ({
 
     try {
       if (['javascript', 'typescript', 'jsx', 'tsx'].includes(selectedLanguage)) {
-        const wrappedCode = `
-          (function() {
-            try {
-              ${code}
-              
-              const testResults = [];
-              ${testCases.map((testCase, index) => `
-                try {
-                  const result = eval('(' + \`${testCase.input}\`)');
-                  const expected = ${testCase.expected};
-                  testResults.push({
-                    testCase: ${index + 1},
-                    input: \`${testCase.input}\`,
-                    expected: expected,
-                    actual: result,
-                    passed: result === expected,
-                    error: null
-                  });
-                } catch (error) {
-                  testResults.push({
-                    testCase: ${index + 1},
-                    input: \`${testCase.input}\`,
-                    expected: ${testCase.expected},
-                    actual: null,
-                    passed: false,
-                    error: error.message
-                  });
-                }
-              `).join('\n')}
-              
-              return { success: true, testResults: testResults };
-            } catch (error) {
-              return { success: false, error: error.message };
-            }
-          })()
-        `;
-
-        // eslint-disable-next-line no-eval
-        const result = eval(wrappedCode);
+        const result = await codeExecutionService.executeCodeWithTests(code, testCases, selectedLanguage);
         
         if (result.success) {
           setTestResults(result.testResults || []);
-          setOutput('🎉 Code executed successfully!');
+          setOutput(result.output || '🎉 Code executed successfully!');
         } else {
           setOutput(`❌ Error: ${result.error}`);
+          setTestResults([]);
         }
       } else {
         setOutput(`💾 Code saved! Execution available for JavaScript/TypeScript/React. Your ${supportedLanguages.find(lang => lang.value === selectedLanguage)?.label} code is ready.`);
       }
     } catch (error) {
       setOutput(`💥 Execution Error: ${error.message}`);
+      setTestResults([]);
     } finally {
       setIsRunning(false);
     }
@@ -338,10 +369,9 @@ const SuperCoolCodeEditor = ({
   const currentLanguage = supportedLanguages.find(lang => lang.value === selectedLanguage);
 
   return (
-    <div className={`w-full h-full flex ${isFullScreen ? 'fixed inset-0 z-50 bg-gray-900' : ''}`}>
-
-      {/* Full Width Code Editor */}
-      <div className="w-full flex flex-col bg-gray-50">
+    <div className="w-full h-full flex">
+      {/* Left Side - Code Editor */}
+      <div className="flex-1 flex flex-col bg-gray-50">
         {/* Header */}
         <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white px-6 py-4 border-b border-slate-700 shadow-lg">
           <div className="flex items-center justify-between">
@@ -393,9 +423,9 @@ const SuperCoolCodeEditor = ({
                   <span className="text-slate-200 font-medium">{linesOfCode} lines</span>
                 </div>
                 {isTyping && (
-                  <div className="flex items-center space-x-2 px-3 py-1.5 bg-slate-700/30 rounded-lg animate-pulse">
-                    <Zap className="h-4 w-4 text-slate-300" />
-                    <span className="text-slate-200 font-medium">Typing...</span>
+                  <div className="flex items-center space-x-2 px-3 py-1.5 bg-blue-500/20 border border-blue-500/30 rounded-lg animate-pulse">
+                    <Zap className="h-4 w-4 text-blue-400 animate-spin" />
+                    <span className="text-blue-300 font-medium">Typing...</span>
                   </div>
                 )}
               </div>
@@ -408,15 +438,6 @@ const SuperCoolCodeEditor = ({
                 <Settings className="h-4 w-4 text-slate-300" />
               </button>
 
-              {/* Fullscreen Toggle */}
-              {onToggleFullScreen && (
-                <button
-                  onClick={onToggleFullScreen}
-                  className="p-2.5 hover:bg-slate-700/50 rounded-xl transition-all duration-200 hover:scale-105"
-                >
-                  {isFullScreen ? <Minimize2 className="h-4 w-4 text-slate-300" /> : <Maximize2 className="h-4 w-4 text-slate-300" />}
-                </button>
-              )}
             </div>
           </div>
 
@@ -487,9 +508,18 @@ const SuperCoolCodeEditor = ({
         </div>
 
         {/* Enhanced Code Editor */}
-        <div className="flex-1 min-h-0 relative" style={{ minHeight: '500px' }}>
+        <div className="flex-1 relative border-2 border-gray-300 rounded-lg overflow-hidden bg-white shadow-lg" style={{ minHeight: '400px', height: '500px' }}>
+          {editorLoading && (
+            <div className="absolute inset-0 bg-white flex items-center justify-center z-10">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-2"></div>
+                <p className="text-gray-600 text-sm">Loading code editor...</p>
+              </div>
+            </div>
+          )}
           <Editor
             height="100%"
+            width="100%"
             language={getLanguageForMonaco(selectedLanguage)}
             value={code}
             onChange={handleCodeChange}
@@ -497,16 +527,16 @@ const SuperCoolCodeEditor = ({
             theme={editorTheme}
             options={{
               readOnly: disabled,
-              minimap: { enabled: true },
+              minimap: { enabled: false },
               scrollBeyondLastLine: false,
-              fontSize: 16,
+              fontSize: 14,
               lineNumbers: 'on',
               roundedSelection: false,
               scrollbar: {
                 vertical: 'auto',
                 horizontal: 'auto'
               },
-              automaticLayout: true,
+              automaticLayout: true, // Re-enable for proper rendering
               wordWrap: 'on',
               folding: true,
               bracketPairColorization: { enabled: true },
@@ -541,7 +571,8 @@ const SuperCoolCodeEditor = ({
               find: {
                 seedSearchStringFromSelection: 'always',
                 autoFindInSelection: 'multiline'
-              }
+              },
+              placeholder: 'Start typing your code here...'
             }}
           />
           
@@ -555,84 +586,60 @@ const SuperCoolCodeEditor = ({
               <Target className="h-3.5 w-3.5 text-slate-300" />
               <span className="font-medium">{codeQuality}% quality</span>
             </div>
-            {isTyping && (
-              <div className="flex items-center space-x-2 animate-pulse">
-                <Zap className="h-3.5 w-3.5 text-slate-300" />
-                <span className="font-medium">Typing...</span>
-              </div>
-            )}
+              {isTyping && (
+                <div className="flex items-center space-x-2 animate-pulse bg-blue-500/20 border border-blue-500/30 rounded-lg px-2 py-1">
+                  <Zap className="h-3.5 w-3.5 text-blue-400 animate-spin" />
+                  <span className="font-medium text-blue-300">Typing...</span>
+                </div>
+              )}
           </div>
         </div>
 
-        {/* Enhanced Output Section */}
-        {(output || testResults.length > 0) && (
-          <div className="border-t border-slate-200 bg-slate-900 text-slate-200 p-6 max-h-64 overflow-y-auto shadow-inner">
-            <div className="space-y-4">
-              {/* Console Output */}
-              {output && (
-                <div className="bg-slate-800/80 p-4 rounded-xl font-mono text-sm border border-slate-700/50 shadow-lg">
-                  <div className="flex items-center space-x-2 mb-3">
-                    <span className="text-slate-400 font-semibold">💻 Console Output:</span>
-                  </div>
-                  <pre className="whitespace-pre-wrap text-slate-200 leading-relaxed">{output}</pre>
-                </div>
-              )}
-
-              {/* Test Results */}
-              {testResults.length > 0 && (
-                <div className="space-y-3">
-                  <h4 className="font-semibold text-slate-100 text-sm flex items-center space-x-3">
-                    <span>🧪 Test Results:</span>
-                    <span className="text-xs bg-slate-700/80 px-3 py-1.5 rounded-full border border-slate-600/50">
-                      {testResults.filter(r => r.passed).length}/{testResults.length} passed
-                    </span>
-                  </h4>
-                  {testResults.map((result, index) => (
-                    <div
-                      key={index}
-                      className={`p-4 rounded-xl border text-xs shadow-lg ${
-                        result.passed
-                          ? 'bg-slate-800/60 border-slate-600/50 text-slate-200'
-                          : 'bg-slate-800/60 border-slate-600/50 text-slate-200'
-                      }`}
-                    >
-                      <div className="flex items-center space-x-3 mb-3">
-                        {result.passed ? (
-                          <CheckCircle className="h-4 w-4 text-slate-300" />
-                        ) : (
-                          <XCircle className="h-4 w-4 text-slate-300" />
-                        )}
-                        <span className="font-semibold">
-                          Test {result.testCase} {result.passed ? '✅ PASSED' : '❌ FAILED'}
-                        </span>
-                      </div>
-                      <div className="space-y-2 text-xs">
-                        <div>
-                          <span className="text-slate-400 font-medium">Input:</span> 
-                          <code className="ml-2 bg-slate-700/80 px-2 py-1 rounded text-slate-200 border border-slate-600/30">
-                            {result.input}
-                          </code>
-                        </div>
-                        <div>
-                          <span className="text-slate-400 font-medium">Expected:</span> 
-                          <code className="ml-2 bg-slate-700/80 px-2 py-1 rounded text-slate-200 border border-slate-600/30">
-                            {JSON.stringify(result.expected)}
-                          </code>
-                        </div>
-                        <div>
-                          <span className="text-slate-400 font-medium">Actual:</span> 
-                          <code className="ml-2 bg-slate-700/80 px-2 py-1 rounded text-slate-200 border border-slate-600/30">
-                            {result.error ? result.error : JSON.stringify(result.actual)}
-                          </code>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
+        {/* Test Case Manager - Only show if test cases are provided and not empty */}
+        {testCases && testCases.length > 0 && (
+          <TestCaseManager
+            code={code}
+            testCases={testCases}
+            language={selectedLanguage}
+            onTestResults={setTestResults}
+            isRunning={isRunning}
+            disabled={disabled}
+          />
         )}
+      </div>
+
+      {/* Right Side - Output Panel */}
+      <div className="w-80 flex-shrink-0 border-l border-gray-200 bg-white flex flex-col">
+        {/* Output Header */}
+        <div className="bg-gray-100 border-b border-gray-200 px-4 py-3">
+          <h3 className="text-sm font-semibold text-gray-900 flex items-center space-x-2">
+            <span>💻</span>
+            <span>Console Output</span>
+          </h3>
+        </div>
+
+        {/* Output Content */}
+        <div className="flex-1 p-4 overflow-y-auto">
+          {output ? (
+            <div className="bg-gray-900 text-green-400 p-4 rounded-lg font-mono text-sm border border-gray-300">
+              <pre className="whitespace-pre-wrap leading-relaxed">{output}</pre>
+            </div>
+          ) : isTyping ? (
+            <div className="flex items-center justify-center h-full text-blue-500 text-sm">
+              <div className="text-center">
+                <div className="text-4xl mb-2 animate-pulse">⌨️</div>
+                <p className="animate-pulse">Typing code...</p>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center h-full text-gray-500 text-sm">
+              <div className="text-center">
+                <div className="text-4xl mb-2">🚀</div>
+                <p>Run your code to see output here</p>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
     </div>

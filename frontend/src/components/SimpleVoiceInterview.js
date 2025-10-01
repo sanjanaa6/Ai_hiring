@@ -39,7 +39,7 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
   const [allRounds, setAllRounds] = useState([]);
   const [completedRounds, setCompletedRounds] = useState(new Set());
   const [networkRetryCount, setNetworkRetryCount] = useState(0);
-  const [cameraStatus, setCameraStatus] = useState('initializing');
+  const [cameraStatus, setCameraStatus] = useState('stopped');
   const [questionStartCountdown, setQuestionStartCountdown] = useState(0);
   const [isLiveCodingRound, setIsLiveCodingRound] = useState(false);
   const [isSalesRound, setIsSalesRound] = useState(false);
@@ -464,11 +464,7 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
       }
       
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { 
-          width: { ideal: 1280, min: 640 },
-          height: { ideal: 720, min: 480 },
-          facingMode: 'user'
-        },
+        video: true,
         audio: true
       });
       
@@ -1332,11 +1328,7 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
       // Always get a fresh stream to ensure camera is working
       console.log('📹 Requesting fresh camera stream...');
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: { 
-            width: { ideal: 1280, min: 640 },
-            height: { ideal: 720, min: 480 },
-            facingMode: 'user'
-          },
+          video: true,
           audio: true
         });
       
@@ -1479,27 +1471,18 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
       setCodeAnswer(''); // Reset code answer
       setSelectedLanguage('javascript'); // Reset language selection
       setShowCodeEditor(false); // Reset code editor visibility for new round
+      
+      // Set step to interview immediately
       setStep('interview');
       
-      // Ensure camera is active before starting interview
-      await ensureCameraActive();
+      // Start the question with AI speaking it aloud immediately
+      console.log('🎤 Starting question immediately...');
+      speakQuestion(round.questions[0].question);
       
-      // Start the question with AI speaking it aloud
-      // Add 5-second delay for first question only
-      console.log('⏱️ Starting first question in 5 seconds...');
-      setQuestionStartCountdown(5);
-      
-      const countdownInterval = setInterval(() => {
-        setQuestionStartCountdown(prev => {
-          if (prev <= 1) {
-            clearInterval(countdownInterval);
-            // Start the question when countdown reaches 0
-            speakQuestion(round.questions[0].question);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
+      // Ensure camera is active in background (non-blocking)
+      ensureCameraActive().catch(err => {
+        console.warn('⚠️ Camera activation failed, but continuing with interview:', err);
+      });
       
       
       

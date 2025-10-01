@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
-import SimpleVoiceInterview from '../components/SimpleVoiceInterview';
+import ModernInterview from '../components/ModernInterview';
 import apiService from '../services/apiService';
 import { Bot, AlertCircle, ArrowLeft, User, Camera, Mic, Shield } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -200,7 +200,7 @@ const Interview = () => {
   }
 
   return (
-    <SimpleVoiceInterview 
+    <ModernInterview 
       interviewId={interviewId}
       candidateInfo={candidateInfo}
       onComplete={(result) => {
