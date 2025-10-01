@@ -511,7 +511,7 @@ const postCodingHints = async (req, res) => {
   console.log('🔍 [LIVE AI INTERVIEWER] Request body:', JSON.stringify(req.body, null, 2));
   
   try {
-    const { question, currentCode, language, difficulty, isLiveComment, isInterviewer, questionNumber, previousQuestions } = req.body;
+    const { question, currentCode, language, difficulty, isLiveComment, isInterviewer, questionNumber, previousQuestions, conversationHistory, previousResponses, codeLength, hasStartedCoding, userResponse, isFollowUp, conversationStep, isCodeComplete, generateTestCases } = req.body;
     
     // Find the interview
     const interview = await Interview.findOne({
@@ -525,6 +525,31 @@ const postCodingHints = async (req, res) => {
         success: false,
         error: 'Interview not found or not available'
       });
+    }
+
+    // Handle test case generation
+    if (generateTestCases) {
+      console.log('🧪 [TEST CASES] Generating test cases for question:', question);
+      
+      try {
+        const testCases = await generateTestCasesForQuestion(question, language);
+        
+        console.log('✅ [TEST CASES] Generated', testCases.length, 'test cases');
+        
+        return res.json({
+          success: true,
+          data: {
+            testCases: testCases,
+            timestamp: new Date().toISOString()
+          }
+        });
+      } catch (error) {
+        console.error('❌ [TEST CASES] Error generating test cases:', error);
+        return res.status(500).json({
+          success: false,
+          error: 'Failed to generate test cases'
+        });
+      }
     }
 
     // Check if this is a sales question
@@ -577,6 +602,23 @@ Difficulty: ${difficulty || 'medium'}
 Question Number: ${questionNumber || 1}
 Previous Questions Asked: ${previousQuestions ? previousQuestions.join(', ') : 'None'}
 
+CONVERSATION CONTEXT:
+- Previous AI Responses: ${previousResponses || 0}
+- Code Length: ${codeLength || 0} characters
+- Has Started Coding: ${hasStartedCoding ? 'Yes' : 'No'}
+- Code Complete: ${isCodeComplete ? 'Yes' : 'No'}
+- Conversation Step: ${conversationStep || 0}
+- Recent Conversation: ${conversationHistory || 'No previous conversation'}
+${userResponse ? `- User Response: "${userResponse}"` : ''}
+${isFollowUp ? '- This is a FOLLOW-UP response to user input' : ''}
+
+STRUCTURED CONVERSATION FLOW:
+${conversationStep === 1 ? '- STEP 1: Ask about their overall approach and strategy' : ''}
+${conversationStep === 2 ? '- STEP 2: Ask about implementation details, edge cases, or optimization' : ''}
+${conversationStep === 3 ? '- STEP 3: Thank them and indicate conversation is complete' : ''}
+
+IMPORTANT: Follow the structured conversation flow. Each step should build on the previous one.
+
 ANALYZE THE CURRENT CODE AND ASK SPECIFIC QUESTIONS:
 
 IMPORTANT: This is question ${questionNumber || 1} of 3. Make sure to ask a DIFFERENT type of question than the previous ones.
@@ -603,6 +645,28 @@ Be conversational and ask follow-up questions like:
 - "Can you explain your reasoning behind this approach?"
 - "What would happen if the input was different?"
 - "How would you test this code?"
+
+${conversationStep === 1 ? `
+STEP 1 GUIDELINES (First Question):
+- Ask about their overall approach and strategy
+- Focus on high-level problem-solving approach
+- Examples: "What was your overall strategy for solving this problem?", "How did you approach breaking down this challenge?", "What was your thought process for this solution?"
+` : ''}
+
+${conversationStep === 2 ? `
+STEP 2 GUIDELINES (Second Question):
+- Ask about implementation details, edge cases, or optimization
+- Focus on technical depth and code quality
+- Examples: "How would you handle edge cases like [specific scenario]?", "What's the time complexity of your approach?", "How would you optimize this for better performance?", "What would you do differently if you had more time?"
+` : ''}
+
+${conversationStep === 3 ? `
+STEP 3 GUIDELINES (Final Response):
+- Thank them for their detailed explanation
+- Acknowledge their problem-solving skills
+- Indicate the conversation is complete
+- Examples: "Thank you for the detailed explanation! Your approach shows excellent problem-solving skills.", "Great work! Your solution demonstrates good understanding of [concept]. Let's move on to the next question."
+` : ''}
 
 QUESTION FOCUS BY NUMBER:
 - Question 1: Focus on approach and strategy
@@ -895,11 +959,481 @@ const getCodingSubmissions = async (req, res) => {
   }
 };
 
+// Generate test cases for a coding question
+const generateTestCasesForQuestion = async (question, language) => {
+  try {
+    console.log('🧪 [TEST CASES] Analyzing question for test case generation:', question);
+    
+    // Create AI prompt for test case generation
+    const aiPrompt = `
+You are a test case generator for coding interviews. Generate SPECIFIC test cases for this exact question:
+
+QUESTION: "${question}"
+LANGUAGE: ${language}
+
+CRITICAL REQUIREMENTS:
+1. Analyze the question to understand what the code should accomplish
+2. Create REAL, SPECIFIC test cases with actual input values and expected outputs
+3. Do NOT use placeholder text like "realistic input" or "expected output"
+4. Use concrete examples that would actually test the solution
+5. Cover basic functionality, edge cases, and error conditions
+
+EXAMPLES OF GOOD TEST CASES:
+- For factorial: input "5", expectedOutput "120"
+- For string reversal: input "hello", expectedOutput "olleh"  
+- For array sorting: input "[3,1,4,1,5]", expectedOutput "[1,1,3,4,5]"
+- For web scraping: input "https://example.com", expectedOutput "Data scraped successfully"
+
+RESPOND WITH ONLY VALID JSON - NO OTHER TEXT:
+{
+  "testCases": [
+    {
+      "id": 1,
+      "name": "Basic functionality test",
+      "input": "ACTUAL_CONCRETE_INPUT_VALUE",
+      "expectedOutput": "ACTUAL_EXPECTED_OUTPUT_VALUE",
+      "description": "Tests basic functionality"
+    },
+    {
+      "id": 2,
+      "name": "Edge case test", 
+      "input": "ACTUAL_EDGE_CASE_INPUT",
+      "expectedOutput": "ACTUAL_EDGE_CASE_OUTPUT",
+      "description": "Tests edge case handling"
+    },
+    {
+      "id": 3,
+      "name": "Error handling test",
+      "input": "ACTUAL_ERROR_INPUT",
+      "expectedOutput": "ACTUAL_ERROR_OUTPUT",
+      "description": "Tests error handling"
+    }
+  ]
+}
+
+REMEMBER: Replace ALL placeholder text with actual, specific values that make sense for this question!
+`;
+
+    console.log('🧪 [TEST CASES] Sending AI prompt for test case generation');
+    
+    // Use the same AI service as other functions
+    const aiResponse = await parseAIResponse(aiPrompt);
+    
+    console.log('🧪 [TEST CASES] AI response received:', aiResponse);
+    
+    if (aiResponse && aiResponse.testCases && aiResponse.testCases.length > 0) {
+      // Validate that test cases don't contain placeholder text
+      const hasPlaceholderText = aiResponse.testCases.some(testCase => 
+        testCase.input && (
+          testCase.input.includes('realistic input') ||
+          testCase.input.includes('expected output') ||
+          testCase.input.includes('ACTUAL_') ||
+          testCase.input.includes('edge case input') ||
+          testCase.input.includes('invalid input')
+        ) ||
+        testCase.expectedOutput && (
+          testCase.expectedOutput.includes('expected output') ||
+          testCase.expectedOutput.includes('ACTUAL_') ||
+          testCase.expectedOutput.includes('edge case output') ||
+          testCase.expectedOutput.includes('error message')
+        )
+      );
+      
+      if (hasPlaceholderText) {
+        console.log('⚠️ [TEST CASES] AI response contains placeholder text, using fallback');
+        return generateFallbackTestCases(question, language);
+      }
+      
+      console.log('✅ [TEST CASES] Successfully generated', aiResponse.testCases.length, 'AI test cases');
+      return aiResponse.testCases;
+    } else {
+      console.log('⚠️ [TEST CASES] AI response invalid, using fallback');
+      return generateFallbackTestCases(question, language);
+    }
+  } catch (error) {
+    console.error('❌ [TEST CASES] Error generating test cases with AI:', error);
+    return generateFallbackTestCases(question, language);
+  }
+};
+
+// Extract key information from question for better test case generation
+const extractQuestionInfo = (question) => {
+  const lowerQuestion = question.toLowerCase();
+  
+  // Extract function names, variables, or specific requirements
+  const functionMatches = question.match(/(?:function|def|create|write|implement)\s+(\w+)/gi);
+  const variableMatches = question.match(/(?:variable|input|parameter)\s+(\w+)/gi);
+  const numberMatches = question.match(/\b(\d+)\b/g);
+  const stringMatches = question.match(/"([^"]+)"/g);
+  
+  return {
+    functions: functionMatches || [],
+    variables: variableMatches || [],
+    numbers: numberMatches || [],
+    strings: stringMatches || [],
+    isWebScraping: lowerQuestion.includes('scrape') || lowerQuestion.includes('web scraping') || lowerQuestion.includes('website'),
+    isArray: lowerQuestion.includes('array') || lowerQuestion.includes('list') || lowerQuestion.includes('sort'),
+    isString: lowerQuestion.includes('string') || lowerQuestion.includes('text') || lowerQuestion.includes('word'),
+    isDatabase: lowerQuestion.includes('database') || lowerQuestion.includes('sql') || lowerQuestion.includes('query'),
+    isFile: lowerQuestion.includes('file') || lowerQuestion.includes('read') || lowerQuestion.includes('write'),
+    isApi: lowerQuestion.includes('api') || lowerQuestion.includes('http') || lowerQuestion.includes('request'),
+    isFactorial: lowerQuestion.includes('factorial'),
+    isFibonacci: lowerQuestion.includes('fibonacci'),
+    isPrime: lowerQuestion.includes('prime'),
+    isPalindrome: lowerQuestion.includes('palindrome'),
+    isReverse: lowerQuestion.includes('reverse'),
+    isMathematical: lowerQuestion.includes('calculate') || lowerQuestion.includes('math') || lowerQuestion.includes('number')
+  };
+};
+
+// Fallback test case generation
+const generateFallbackTestCases = (question, language) => {
+  console.log('🔄 [FALLBACK] Generating fallback test cases for:', question);
+  
+  const questionInfo = extractQuestionInfo(question);
+  const lowerQuestion = question.toLowerCase();
+  
+  // Factorial questions
+  if (questionInfo.isFactorial) {
+    return [
+      {
+        id: 1,
+        name: "Basic Factorial Test",
+        input: "5",
+        expectedOutput: "120",
+        description: "Test factorial of 5"
+      },
+      {
+        id: 2,
+        name: "Edge Case - Zero",
+        input: "0",
+        expectedOutput: "1",
+        description: "Test factorial of 0"
+      },
+      {
+        id: 3,
+        name: "Edge Case - One",
+        input: "1",
+        expectedOutput: "1",
+        description: "Test factorial of 1"
+      }
+    ];
+  }
+  
+  // Fibonacci questions
+  if (questionInfo.isFibonacci) {
+    return [
+      {
+        id: 1,
+        name: "Basic Fibonacci Test",
+        input: "5",
+        expectedOutput: "5",
+        description: "Test fibonacci of 5"
+      },
+      {
+        id: 2,
+        name: "Edge Case - Zero",
+        input: "0",
+        expectedOutput: "0",
+        description: "Test fibonacci of 0"
+      },
+      {
+        id: 3,
+        name: "Edge Case - One",
+        input: "1",
+        expectedOutput: "1",
+        description: "Test fibonacci of 1"
+      }
+    ];
+  }
+  
+  // Prime number questions
+  if (questionInfo.isPrime) {
+    return [
+      {
+        id: 1,
+        name: "Prime Number Test",
+        input: "7",
+        expectedOutput: "true",
+        description: "Test if 7 is prime"
+      },
+      {
+        id: 2,
+        name: "Non-Prime Test",
+        input: "4",
+        expectedOutput: "false",
+        description: "Test if 4 is not prime"
+      },
+      {
+        id: 3,
+        name: "Edge Case - Two",
+        input: "2",
+        expectedOutput: "true",
+        description: "Test if 2 is prime"
+      }
+    ];
+  }
+  
+  // Palindrome questions
+  if (questionInfo.isPalindrome) {
+    return [
+      {
+        id: 1,
+        name: "Palindrome Test",
+        input: "racecar",
+        expectedOutput: "true",
+        description: "Test if 'racecar' is a palindrome"
+      },
+      {
+        id: 2,
+        name: "Non-Palindrome Test",
+        input: "hello",
+        expectedOutput: "false",
+        description: "Test if 'hello' is not a palindrome"
+      },
+      {
+        id: 3,
+        name: "Empty String Test",
+        input: "",
+        expectedOutput: "true",
+        description: "Test empty string palindrome"
+      }
+    ];
+  }
+  
+  // Web scraping questions
+  if (questionInfo.isWebScraping) {
+    const sampleUrl = questionInfo.strings.length > 0 ? questionInfo.strings[0].replace(/"/g, '') : "https://example.com";
+    return [
+      {
+        id: 1,
+        name: "Basic Scraping Test",
+        input: sampleUrl,
+        expectedOutput: "Data scraped successfully",
+        description: "Test basic web scraping functionality"
+      },
+      {
+        id: 2,
+        name: "Invalid URL Test",
+        input: "not-a-valid-url",
+        expectedOutput: "Error: Invalid URL format",
+        description: "Test error handling for invalid URLs"
+      },
+      {
+        id: 3,
+        name: "Empty Page Test",
+        input: "https://httpstat.us/204",
+        expectedOutput: "No content found",
+        description: "Test handling of empty pages"
+      }
+    ];
+  }
+  
+  // Array/List manipulation questions
+  if (questionInfo.isArray) {
+    const sampleNumbers = questionInfo.numbers.length > 0 ? questionInfo.numbers.slice(0, 5) : ["3", "1", "4", "1", "5"];
+    return [
+      {
+        id: 1,
+        name: "Basic Array Test",
+        input: `[${sampleNumbers.join(', ')}]`,
+        expectedOutput: `[${sampleNumbers.sort().join(', ')}]`,
+        description: "Test basic array processing"
+      },
+      {
+        id: 2,
+        name: "Empty Array Test",
+        input: "[]",
+        expectedOutput: "[]",
+        description: "Test empty array handling"
+      },
+      {
+        id: 3,
+        name: "Single Element Test",
+        input: `[${sampleNumbers[0]}]`,
+        expectedOutput: `[${sampleNumbers[0]}]`,
+        description: "Test single element array"
+      }
+    ];
+  }
+  
+  // String manipulation questions
+  if (questionInfo.isString) {
+    const sampleString = questionInfo.strings.length > 0 ? questionInfo.strings[0].replace(/"/g, '') : "Hello World";
+    return [
+      {
+        id: 1,
+        name: "Basic String Test",
+        input: sampleString,
+        expectedOutput: sampleString.split('').reverse().join(''),
+        description: "Test basic string manipulation"
+      },
+      {
+        id: 2,
+        name: "Empty String Test",
+        input: "",
+        expectedOutput: "",
+        description: "Test empty string handling"
+      },
+      {
+        id: 3,
+        name: "Special Characters Test",
+        input: "Hello, World! 123",
+        expectedOutput: "321 !dlroW ,olleH",
+        description: "Test string with special characters"
+      }
+    ];
+  }
+  
+  // Database questions
+  if (lowerQuestion.includes('database') || lowerQuestion.includes('sql') || lowerQuestion.includes('query')) {
+    return [
+      {
+        id: 1,
+        name: "Basic Query Test",
+        input: "SELECT * FROM users",
+        expectedOutput: "Query executed successfully",
+        description: "Test basic database query"
+      },
+      {
+        id: 2,
+        name: "Invalid Query Test",
+        input: "INVALID SQL",
+        expectedOutput: "Error: Invalid SQL syntax",
+        description: "Test error handling for invalid queries"
+      },
+      {
+        id: 3,
+        name: "Empty Result Test",
+        input: "SELECT * FROM empty_table",
+        expectedOutput: "No results found",
+        description: "Test handling of empty results"
+      }
+    ];
+  }
+  
+  // File handling questions
+  if (lowerQuestion.includes('file') || lowerQuestion.includes('read') || lowerQuestion.includes('write')) {
+    return [
+      {
+        id: 1,
+        name: "Basic File Test",
+        input: "test.txt",
+        expectedOutput: "File processed successfully",
+        description: "Test basic file operations"
+      },
+      {
+        id: 2,
+        name: "Non-existent File Test",
+        input: "nonexistent.txt",
+        expectedOutput: "Error: File not found",
+        description: "Test error handling for missing files"
+      },
+      {
+        id: 3,
+        name: "Empty File Test",
+        input: "empty.txt",
+        expectedOutput: "File is empty",
+        description: "Test handling of empty files"
+      }
+    ];
+  }
+  
+  // API questions
+  if (lowerQuestion.includes('api') || lowerQuestion.includes('http') || lowerQuestion.includes('request')) {
+    return [
+      {
+        id: 1,
+        name: "Basic API Test",
+        input: "GET /api/users",
+        expectedOutput: "API call successful",
+        description: "Test basic API functionality"
+      },
+      {
+        id: 2,
+        name: "Invalid Endpoint Test",
+        input: "GET /api/invalid",
+        expectedOutput: "Error: 404 Not Found",
+        description: "Test error handling for invalid endpoints"
+      },
+      {
+        id: 3,
+        name: "Server Error Test",
+        input: "GET /api/error",
+        expectedOutput: "Error: 500 Internal Server Error",
+        description: "Test handling of server errors"
+      }
+    ];
+  }
+  
+  // Default generic test cases
+  console.log('🔄 [FALLBACK] Using generic test cases');
+  return [
+    {
+      id: 1,
+      name: "Basic Functionality Test",
+      input: "test input",
+      expectedOutput: "expected output",
+      description: "Test basic functionality"
+    },
+    {
+      id: 2,
+      name: "Edge Case Test",
+      input: "edge case input",
+      expectedOutput: "edge case output",
+      description: "Test edge case handling"
+    },
+    {
+      id: 3,
+      name: "Error Handling Test",
+      input: "invalid input",
+      expectedOutput: "error message",
+      description: "Test error handling"
+    }
+  ];
+};
+
+// Debug endpoint to test test case generation
+const testTestCases = async (req, res) => {
+  try {
+    const { question, language } = req.body;
+    
+    if (!question) {
+      return res.status(400).json({
+        success: false,
+        error: 'Question is required'
+      });
+    }
+    
+    console.log('🧪 [DEBUG] Testing test case generation for:', question);
+    
+    const testCases = await generateTestCasesForQuestion(question, language || 'javascript');
+    
+    res.json({
+      success: true,
+      data: {
+        question,
+        language: language || 'javascript',
+        testCases,
+        timestamp: new Date().toISOString()
+      }
+    });
+  } catch (error) {
+    console.error('❌ [DEBUG] Error testing test cases:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to generate test cases'
+    });
+  }
+};
+
 module.exports = {
   codingAssistant,
   generateCodingQuestion,
   getCodingHints,
   postCodingHints,
   markCodingDone,
-  getCodingSubmissions
+  getCodingSubmissions,
+  testTestCases,
+  generateTestCasesForQuestion
 };

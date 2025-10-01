@@ -22,13 +22,12 @@ import {
 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import SuperCoolCodeEditor from '../SuperCoolCodeEditor';
-import TestCaseManager from '../TestCaseManager';
 import SmallCamera from './SmallCamera';
-import codeExecutionService from '../../services/codeExecutionService';
 import aiTestCaseService from '../../services/aiTestCaseService';
 import { cleanupResizeObservers } from '../../utils/resizeObserver';
 
 const CodingRound = ({
+  interviewId,
   currentRound,
   currentQuestion,
   questionIndex,
@@ -51,131 +50,34 @@ const CodingRound = ({
   onSubmitAnswer
 }) => {
   const { isDarkMode } = useTheme();
-  const [testResults, setTestResults] = useState([]);
-  const [isExecuting, setIsExecuting] = useState(false);
-  const [executionTime, setExecutionTime] = useState(0);
   const [showTestCases, setShowTestCases] = useState(false); // Start hidden
   const [showHints, setShowHints] = useState(false);
   const [codeQuality, setCodeQuality] = useState(0);
   const [linesOfCode, setLinesOfCode] = useState(0);
   const [isTyping, setIsTyping] = useState(false);
   const [lastExecutionTime, setLastExecutionTime] = useState(null);
-  const [aiGeneratedTestCases, setAiGeneratedTestCases] = useState([]);
-  const [isGeneratingTestCases, setIsGeneratingTestCases] = useState(false);
-  const [testCasesGenerated, setTestCasesGenerated] = useState(false);
+  const [conversationState, setConversationState] = useState({
+    conversationStep: 0,
+    isCodeDone: false,
+    isConversationComplete: false
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Get test cases from question or AI generation
-  const originalTestCases = currentQuestion?.codeEditor?.testCases || [];
-  const testCases = testCasesGenerated ? aiGeneratedTestCases : originalTestCases;
+  // Reset conversation state when question changes
+  useEffect(() => {
+    setConversationState({
+      conversationStep: 0,
+      isCodeDone: false,
+      isConversationComplete: false
+    });
+  }, [currentQuestion]);
+
   const hints = currentQuestion?.codeEditor?.hints || [];
   const timeLimit = currentQuestion?.timeLimit || 15;
   const difficulty = currentQuestion?.difficulty || 'Medium';
-  
-  // Ensure test cases have proper structure
-  const validatedTestCases = testCases.map((testCase, index) => ({
-    input: testCase.input || testCase.testInput || [],
-    expected: testCase.expected || testCase.expectedOutput,
-    description: testCase.description || `Test Case ${index + 1}`,
-    functionName: testCase.functionName || extractFunctionName(currentQuestion)
-  }));
 
-  // Calculate test statistics
-  const getTestStats = () => {
-    const passed = testResults.filter(r => r.passed).length;
-    const total = testResults.length;
-    const percentage = total > 0 ? Math.round((passed / total) * 100) : 0;
-    return { passed, total, percentage };
-  };
-
-  const stats = getTestStats();
-
-  // Extract function name from starter code
-  const extractFunctionName = (question) => {
-    const starterCode = question?.codeEditor?.starterCode || '';
-    const language = question?.codeEditor?.language || 'javascript';
-    
-    // JavaScript/TypeScript patterns
-    const jsPatterns = [
-      /function\s+(\w+)\s*\(/,
-      /const\s+(\w+)\s*=\s*\(/,
-      /let\s+(\w+)\s*=\s*\(/,
-      /var\s+(\w+)\s*=\s*\(/,
-      /(\w+)\s*:\s*function/,
-      /(\w+)\s*\(/ // Generic function call pattern
-    ];
-
-    // Python patterns
-    const pythonPatterns = [
-      /def\s+(\w+)\s*\(/,
-      /class\s+(\w+)/,
-      /(\w+)\s*=\s*lambda/
-    ];
-
-    if (language.toLowerCase() === 'python') {
-      // Try Python patterns first
-      for (const pattern of pythonPatterns) {
-        const match = starterCode.match(pattern);
-        if (match && match[1]) {
-          return match[1];
-        }
-      }
-    } else {
-      // Try JavaScript patterns
-      for (const pattern of jsPatterns) {
-        const match = starterCode.match(pattern);
-        if (match && match[1]) {
-          return match[1];
-        }
-      }
-    }
-
-    // Default function names based on problem type and language
-    if (question?.question?.toLowerCase().includes('sum')) {
-      return language.toLowerCase() === 'python' ? 'two_sum' : 'twoSum';
-    }
-    if (question?.question?.toLowerCase().includes('fibonacci')) return 'fibonacci';
-    if (question?.question?.toLowerCase().includes('palindrome')) {
-      return language.toLowerCase() === 'python' ? 'is_palindrome' : 'isPalindrome';
-    }
-    if (question?.question?.toLowerCase().includes('search')) {
-      return language.toLowerCase() === 'python' ? 'binary_search' : 'binarySearch';
-    }
-    if (question?.question?.toLowerCase().includes('sort')) {
-      return language.toLowerCase() === 'python' ? 'merge_sort' : 'mergeSort';
-    }
-    
-    return 'solution'; // Default fallback
-  };
-
-  // Generate AI test cases when code editor is first opened
-  const generateAITestCases = async () => {
-    if (testCasesGenerated || isGeneratingTestCases || !currentQuestion) return;
-
-    setIsGeneratingTestCases(true);
-    try {
-      console.log('🤖 Generating AI test cases for coding problem...');
-      const generatedCases = await aiTestCaseService.generateTestCases(
-        currentQuestion, 
-        selectedLanguage
-      );
-      
-      if (generatedCases.length > 0) {
-        setAiGeneratedTestCases(generatedCases);
-        setTestCasesGenerated(true);
-        console.log('✅ AI generated', generatedCases.length, 'test cases');
-      }
-    } catch (error) {
-      console.error('❌ Failed to generate AI test cases:', error);
-    } finally {
-      setIsGeneratingTestCases(false);
-    }
-  };
-
-  // Show test cases and generate them with AI when code editor is opened
+  // Show test cases toggle
   const handleShowTestCases = () => {
-    if (!showTestCases && !testCasesGenerated) {
-      generateAITestCases();
-    }
     setShowTestCases(!showTestCases);
   };
 
@@ -206,63 +108,34 @@ const CodingRound = ({
     };
   }, []);
 
-  // Auto-run tests when code changes (debounced)
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      if (codeAnswer && codeAnswer.trim() && validatedTestCases.length > 0) {
-        runTests();
-      }
-    }, 1500);
 
-    return () => clearTimeout(timeoutId);
-  }, [codeAnswer, validatedTestCases]);
-
-  // Run tests
-  const runTests = async () => {
-    if (!codeAnswer.trim()) {
-      setTestResults([]);
-      return;
-    }
-
-    setIsExecuting(true);
-    const startTime = Date.now();
-
-    try {
-      const result = await codeExecutionService.executeCodeWithTests(
-        codeAnswer, 
-        validatedTestCases, 
-        selectedLanguage
-      );
-      
-      if (result.success) {
-        setTestResults(result.testResults || []);
-        setExecutionTime(result.executionTime || 0);
-        setLastExecutionTime(new Date());
-      } else {
-        setTestResults([]);
-        setExecutionTime(0);
-      }
-    } catch (error) {
-      console.error('Test execution failed:', error);
-      setTestResults([]);
-      setExecutionTime(0);
-    } finally {
-      setIsExecuting(false);
-    }
+  // Handle conversation state changes from SuperCoolCodeEditor
+  const handleConversationStateChange = (newState) => {
+    setConversationState(newState);
   };
 
   // Handle code submission
   const handleSubmitCode = () => {
-    if (onSubmitAnswer) {
+    if (onSubmitAnswer && !isSubmitting) {
+      setIsSubmitting(true);
+      
       onSubmitAnswer({
         code: codeAnswer,
-        testResults: testResults,
-        executionTime: executionTime,
-        stats: stats,
         timestamp: new Date()
       });
+      
+      // Move to next question after submission
+      setTimeout(() => {
+        if (onNextQuestion) {
+          onNextQuestion();
+        }
+        setIsSubmitting(false);
+      }, 2000); // Show success message for 2 seconds
     }
   };
+
+  // Check if submit button should be enabled
+  const isSubmitEnabled = codeAnswer.trim() && conversationState.isConversationComplete;
 
   // Get difficulty color
   const getDifficultyColor = (difficulty) => {
@@ -281,11 +154,24 @@ const CodingRound = ({
   };
 
   return (
-    <div className={`min-h-screen flex flex-col ${
+    <div className={`min-h-screen flex flex-col relative ${
       isDarkMode 
         ? 'bg-gradient-to-br from-slate-900 via-gray-900 to-black' 
         : 'bg-gradient-to-br from-white via-blue-50 to-indigo-100'
     }`}>
+      {/* Success Overlay */}
+      {isSubmitting && (
+        <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 shadow-xl text-center">
+            <div className="text-green-500 text-4xl mb-4">✅</div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Code Submitted Successfully!</h3>
+            <p className="text-gray-600">Moving to next question...</p>
+            <div className="mt-4">
+              <div className="animate-spin rounded-full h-6 w-6 border-2 border-green-500 border-t-transparent mx-auto"></div>
+            </div>
+          </div>
+        </div>
+      )}
       
       {/* Enhanced Header for Coding Round */}
       <div className={`flex-shrink-0 backdrop-blur-md border-b px-6 py-4 ${
@@ -355,25 +241,31 @@ const CodingRound = ({
               </span>
             </div>
 
-            {/* Test Results */}
-            {testResults.length > 0 && (
-              <div className={`flex items-center space-x-2 px-3 py-1.5 rounded-lg ${
-                stats.percentage === 100 
-                  ? 'bg-green-500/20 text-green-400 border border-green-500/30'
-                  : stats.percentage > 0
-                    ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
-                    : 'bg-red-500/20 text-red-400 border border-red-500/30'
-              }`}>
-                {stats.percentage === 100 ? (
-                  <CheckCircle className="h-4 w-4" />
-                ) : (
-                  <XCircle className="h-4 w-4" />
-                )}
-                <span className="text-sm font-semibold">
-                  {stats.passed}/{stats.total}
+            {/* Conversation Status */}
+            {conversationState.isCodeDone && (
+              <div className="flex items-center space-x-2">
+                <Brain className="h-4 w-4 text-blue-500" />
+                <span className={`text-sm font-medium ${
+                  conversationState.isConversationComplete 
+                    ? 'text-green-500' 
+                    : 'text-blue-500'
+                }`}>
+                  {conversationState.isConversationComplete 
+                    ? 'AI Discussion Complete' 
+                    : `AI Discussion (${conversationState.conversationStep}/2)`
+                  }
                 </span>
               </div>
             )}
+
+            {/* Test Cases Status */}
+            <div className="flex items-center space-x-2">
+              <CheckCircle className="h-4 w-4 text-purple-500" />
+              <span className="text-sm font-medium text-purple-500">
+                Test Cases Available
+              </span>
+            </div>
+
           </div>
 
           {/* Right: Controls */}
@@ -507,13 +399,13 @@ const CodingRound = ({
             <SuperCoolCodeEditor
               language={selectedLanguage}
               starterCode={currentQuestion?.codeEditor?.starterCode || ''}
-              testCases={validatedTestCases}
               question={currentQuestion?.question || ''}
               onCodeChange={onCodeChange}
               disabled={false}
-              sessionId={`coding-round-${currentRound?._id}`}
+              sessionId={interviewId}
               languageLocked={isLanguageLocked}
               aiDeterminedLanguage={aiDeterminedLanguage}
+              onConversationStateChange={handleConversationStateChange}
             />
           </div>
 
@@ -529,25 +421,17 @@ const CodingRound = ({
                 {/* Left: Test Case Toggle */}
                 <button
                   onClick={handleShowTestCases}
-                  disabled={isGeneratingTestCases}
                   className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all ${
-                    isGeneratingTestCases
-                      ? 'bg-gray-400 cursor-not-allowed text-gray-600'
-                      : showTestCases
-                        ? isDarkMode
-                          ? 'bg-blue-500 text-white'
-                          : 'bg-blue-500 text-white'
-                        : isDarkMode
-                          ? 'bg-slate-700 text-gray-300 hover:bg-slate-600'
-                          : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    showTestCases
+                      ? isDarkMode
+                        ? 'bg-blue-500 text-white'
+                        : 'bg-blue-500 text-white'
+                      : isDarkMode
+                        ? 'bg-slate-700 text-gray-300 hover:bg-slate-600'
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                   }`}
                 >
-                  {isGeneratingTestCases ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      <span>Generating...</span>
-                    </>
-                  ) : showTestCases ? (
+                  {showTestCases ? (
                     <>
                       <EyeOff className="h-4 w-4" />
                       <span>Hide Test Cases</span>
@@ -563,38 +447,29 @@ const CodingRound = ({
                 {/* Center: Action Buttons */}
                 <div className="flex items-center space-x-3">
                   <button
-                    onClick={runTests}
-                    disabled={isExecuting || !codeAnswer.trim()}
-                    className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all ${
-                      isExecuting || !codeAnswer.trim()
-                        ? 'bg-gray-400 cursor-not-allowed text-gray-600'
-                        : 'bg-green-500 hover:bg-green-600 text-white'
-                    }`}
-                  >
-                    {isExecuting ? (
-                      <>
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                        <span>Running...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Play className="h-4 w-4" />
-                        <span>Run Tests</span>
-                      </>
-                    )}
-                  </button>
-
-                  <button
                     onClick={handleSubmitCode}
-                    disabled={!codeAnswer.trim()}
+                    disabled={!isSubmitEnabled || isSubmitting}
                     className={`flex items-center space-x-2 px-6 py-2 rounded-lg font-medium transition-all ${
-                      !codeAnswer.trim()
+                      !isSubmitEnabled || isSubmitting
                         ? 'bg-gray-400 cursor-not-allowed text-gray-600'
                         : 'bg-blue-500 hover:bg-blue-600 text-white'
                     }`}
                   >
-                    <CheckCircle className="h-4 w-4" />
-                    <span>Submit Code</span>
+                    {isSubmitting ? (
+                      <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <CheckCircle className="h-4 w-4" />
+                    )}
+                    <span>
+                      {isSubmitting 
+                        ? 'Submitting...' 
+                        : !codeAnswer.trim() 
+                          ? 'Submit Code' 
+                          : !conversationState.isConversationComplete 
+                            ? 'Complete AI Discussion' 
+                            : 'Submit Code'
+                      }
+                    </span>
                   </button>
                 </div>
 
@@ -656,17 +531,16 @@ const CodingRound = ({
               </div>
             </div>
 
-            {/* Test Cases Section */}
+            {/* Test Cases Section - Removed */}
             {showTestCases && (
-              <div className="flex-1 overflow-y-auto">
-                <TestCaseManager
-                  code={codeAnswer}
-                  testCases={validatedTestCases}
-                  language={selectedLanguage}
-                  onTestResults={setTestResults}
-                  isRunning={isExecuting}
-                  disabled={false}
-                />
+              <div className="flex-1 overflow-y-auto p-4">
+                <div className={`text-center py-8 ${
+                  isDarkMode ? 'text-slate-400' : 'text-gray-500'
+                }`}>
+                  <Code2 className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                  <p className="text-sm">Test cases integration removed</p>
+                  <p className="text-xs mt-1">Code execution available in the editor</p>
+                </div>
               </div>
             )}
           </div>

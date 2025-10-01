@@ -603,6 +603,7 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
     case 'interview':
       return (
         <InterviewMain
+          interviewId={interviewId}
           currentRound={currentRound}
           currentQuestion={currentQuestion}
           questionIndex={questionIndex}

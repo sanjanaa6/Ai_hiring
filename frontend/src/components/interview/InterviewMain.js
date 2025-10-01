@@ -20,6 +20,7 @@ import CodingRound from './CodingRound';
 import aiTestCaseService from '../../services/aiTestCaseService';
 
 const InterviewMain = ({
+  interviewId,
   currentRound,
   currentQuestion,
   questionIndex,
@@ -85,6 +86,7 @@ const InterviewMain = ({
   if (shouldShowCodingRound) {
     return (
       <CodingRound
+        interviewId={interviewId}
         currentRound={currentRound}
         currentQuestion={currentQuestion}
         questionIndex={questionIndex}

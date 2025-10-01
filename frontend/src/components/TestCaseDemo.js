@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Play, CheckCircle, XCircle } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
-import codeExecutionService from '../services/codeExecutionService';
 
 const TestCaseDemo = () => {
   const { isDarkMode } = useTheme();
@@ -58,20 +57,71 @@ const TestCaseDemo = () => {
   const runTests = async () => {
     setIsRunning(true);
     try {
-      const result = await codeExecutionService.executeCodeWithTests(
-        code, 
-        testCases, 
-        selectedLanguage
-      );
+      // Simple code execution without test cases
+      const wrappedCode = `
+        (function() {
+          try {
+            // Capture console.log for output
+            const originalConsoleLog = console.log;
+            const outputs = [];
+            console.log = function(...args) {
+              outputs.push(args.map(arg => 
+                typeof arg === 'object' ? JSON.stringify(arg) : String(arg)
+              ).join(' '));
+              originalConsoleLog.apply(console, args);
+            };
+
+            // Execute user code
+            ${code}
+            
+            return {
+              success: true,
+              output: outputs.join('\\n') || '🎉 Code executed successfully!'
+            };
+          } catch (error) {
+            return {
+              success: false,
+              error: error.message
+            };
+          }
+        })()
+      `;
+      
+      // eslint-disable-next-line no-eval
+      const result = eval(wrappedCode);
       
       if (result.success) {
-        setTestResults(result.testResults || []);
+        setTestResults([{
+          testCase: 1,
+          input: 'Code execution',
+          expected: 'Success',
+          actual: result.output,
+          passed: true,
+          error: null,
+          description: 'Code execution test'
+        }]);
       } else {
-        setTestResults([]);
+        setTestResults([{
+          testCase: 1,
+          input: 'Code execution',
+          expected: 'Success',
+          actual: null,
+          passed: false,
+          error: result.error,
+          description: 'Code execution test'
+        }]);
       }
     } catch (error) {
       console.error('Test execution failed:', error);
-      setTestResults([]);
+      setTestResults([{
+        testCase: 1,
+        input: 'Code execution',
+        expected: 'Success',
+        actual: null,
+        passed: false,
+        error: error.message,
+        description: 'Code execution test'
+      }]);
     } finally {
       setIsRunning(false);
     }

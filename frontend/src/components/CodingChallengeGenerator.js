@@ -10,7 +10,6 @@ import {
   Star
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
-import codeExecutionService from '../services/codeExecutionService';
 
 const CodingChallengeGenerator = ({ onChallengeSelect }) => {
   const { isDarkMode } = useTheme();
