@@ -1,5 +1,5 @@
 .header {
-  height: 64px;
+  height: 64px; /* Fixed header height */
   background: rgba(255, 255, 255, 0.98);
   position: fixed;
   top: 0;
@@ -60,6 +60,7 @@
   width: 100%;
 }
 
+/* Animation for dropdown */
 @keyframes slideDown {
   from {
     opacity: 0;
@@ -75,6 +76,7 @@
   animation: slideDown 0.2s ease-out;
 }
 
+/* Mobile menu animation */
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -103,6 +105,7 @@
   }
 }
 
+/* Get Started Button Styles */
 .get-started-btn {
   position: relative;
   overflow: hidden;
@@ -136,6 +139,7 @@
   transform: translate(-50%, -50%) scale(1);
 }
 
+/* Add shine effect */
 .get-started-btn::after {
   content: '';
   position: absolute;
@@ -162,6 +166,7 @@
   }
 }
 
+/* Download Button Styles */
 .download-btn {
   position: relative;
   overflow: hidden;
