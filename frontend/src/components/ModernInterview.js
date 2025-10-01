@@ -194,25 +194,43 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
       const isAuthenticated = localStorage.getItem('token') || sessionStorage.getItem('token');
       if (!isAuthenticated) {
         console.log('🔒 User not authenticated, skipping round completion');
+        // For anonymous users, just update local state
+        setCompletedRounds(prev => new Set([...prev, roundId]));
         return;
       }
 
-      // Use the same approach as the original - update progress to completed
-      const result = await apiService.updateInterviewProgress(interviewId, {
-        roundId,
-        questionId: null,
-        status: 'completed',
-        timeSpent: 0
-      });
-      
-      if (result.success) {
-        setCompletedRounds(prev => new Set([...prev, roundId]));
-        console.log('✅ Round marked as completed');
+      // Mark all questions in the round as answered to trigger round completion
+      const currentRound = allRounds.find(r => (r._id || r.id || r.roundId) === roundId);
+      if (currentRound && currentRound.questions) {
+        // Mark each question as answered
+        for (const question of currentRound.questions) {
+          await apiService.updateInterviewProgress(interviewId, {
+            roundId,
+            questionId: question._id || question.id,
+            status: 'answered',
+            timeSpent: 0
+          });
+        }
       }
+      
+      // Update local state immediately
+      setCompletedRounds(prev => new Set([...prev, roundId]));
+      
+      // Also store in localStorage as backup
+      const storageKey = `completedRounds_${interviewId}`;
+      const storedRounds = JSON.parse(localStorage.getItem(storageKey) || '[]');
+      if (!storedRounds.includes(roundId)) {
+        storedRounds.push(roundId);
+        localStorage.setItem(storageKey, JSON.stringify(storedRounds));
+      }
+      
+      console.log('✅ Round marked as completed');
     } catch (error) {
       console.error('❌ Failed to mark round as completed:', error);
+      // Even if backend fails, update local state to prevent UI issues
+      setCompletedRounds(prev => new Set([...prev, roundId]));
     }
-  }, [interviewId, setCompletedRounds]);
+  }, [interviewId, allRounds, setCompletedRounds]);
 
   // Speak question
   const speakQuestion = useCallback(async (questionText) => {
@@ -258,7 +276,7 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
       } else {
         // Round completed
         console.log('🏁 Round completed, moving to round selection');
-        const roundId = currentRound._id || currentRound.id;
+        const roundId = currentRound._id || currentRound.id || currentRound.roundId;
         await markRoundCompleted(roundId);
         setStep('round-selection');
       }
@@ -272,7 +290,7 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
     try {
       if (!currentQuestion || !currentRound) return;
 
-      const roundId = currentRound._id || currentRound.id;
+      const roundId = currentRound._id || currentRound.id || currentRound.roundId;
       const questionId = currentQuestion._id || currentQuestion.id;
       
       let answerContent = '';
@@ -351,6 +369,31 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
       setIsLiveCodingRound(isCoding);
       setIsSalesRound(isSales);
       
+      // AI Language Detection for coding rounds
+      if (isCoding) {
+        try {
+          console.log('🤖 Detecting language from round prompt...');
+          const promptText = `${round.title || ''} ${round.description || ''} ${round.questions?.[0]?.question || ''}`;
+          
+          const detectionResult = await aiLanguageDetectionService.detectLanguageFromJobDescription(
+            promptText,
+            round.title || 'Coding Interview'
+          );
+          
+          if (detectionResult && detectionResult.language) {
+            console.log('🤖 Language detected and suggested:', detectionResult.language);
+            setSelectedLanguage(detectionResult.language);
+            setIsLanguageLocked(false); // Allow user to change language
+            setAiDeterminedLanguage(detectionResult.language);
+          }
+        } catch (error) {
+          console.error('❌ Language detection failed:', error);
+          // Fallback to default language
+          setSelectedLanguage('javascript');
+          setIsLanguageLocked(false); // Allow user to change language
+        }
+      }
+      
       // Set first question
       if (round.questions && round.questions.length > 0) {
         const firstQuestion = round.questions[0];
@@ -367,7 +410,7 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
       console.error('❌ Failed to select round:', error);
       setError(`Failed to start round: ${error.message}`);
     }
-  }, [setCurrentRound, setQuestionIndex, setIsLiveCodingRound, setIsSalesRound, setCurrentQuestion, setStep, setError, speakQuestion]);
+  }, [setCurrentRound, setQuestionIndex, setIsLiveCodingRound, setIsSalesRound, setCurrentQuestion, setStep, setError, speakQuestion, setSelectedLanguage, setIsLanguageLocked, setAiDeterminedLanguage]);
 
   // Handle start interview
   const handleStartInterview = useCallback(async () => {
@@ -413,6 +456,47 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
     }
   }, [interviewId, loadInterviewData]);
 
+  // Set language based on interview data
+  useEffect(() => {
+    if (interviewData) {
+      console.log('🔍 Interview data loaded:', interviewData);
+      
+      // Check if interview has a specific language set
+      if (interviewData.language) {
+        setSelectedLanguage(interviewData.language);
+        setIsLanguageLocked(true);
+        console.log('🔒 Language locked to (interview level):', interviewData.language);
+      } else {
+        // Check if any coding questions specify a language
+        const codingQuestions = interviewData.rounds?.flatMap(round => 
+          round.questions?.filter(q => q.codeEditor?.enabled) || []
+        ) || [];
+        
+        console.log('🔍 Found coding questions:', codingQuestions.length);
+        
+        if (codingQuestions.length > 0) {
+          const firstCodingQuestion = codingQuestions[0];
+          console.log('🔍 First coding question:', firstCodingQuestion);
+          
+          if (firstCodingQuestion.codeEditor?.language) {
+            setSelectedLanguage(firstCodingQuestion.codeEditor.language);
+            setIsLanguageLocked(true);
+            console.log('🔒 Language locked to (question level):', firstCodingQuestion.codeEditor.language);
+          }
+        }
+      }
+    }
+  }, [interviewData, setSelectedLanguage, setIsLanguageLocked]);
+
+  // Also check current question for language
+  useEffect(() => {
+    if (currentQuestion && currentQuestion.codeEditor?.language) {
+      setSelectedLanguage(currentQuestion.codeEditor.language);
+      setIsLanguageLocked(true);
+      console.log('🔒 Language locked to (current question):', currentQuestion.codeEditor.language);
+    }
+  }, [currentQuestion, setSelectedLanguage, setIsLanguageLocked]);
+
   // Load rounds when interview data is available
   useEffect(() => {
     if (interviewData && interviewData.rounds) {
@@ -422,19 +506,32 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
 
   // Sync completed rounds with user progress
   useEffect(() => {
-    if (userProgress && userProgress.rounds && allRounds.length > 0) {
+    if (allRounds.length > 0) {
       const completedRoundIds = new Set();
       
-      userProgress.rounds.forEach(progressRound => {
-        if (progressRound.status === 'completed') {
-          completedRoundIds.add(progressRound.roundId);
-        }
-      });
+      // Check user progress first
+      if (userProgress && userProgress.rounds) {
+        userProgress.rounds.forEach(progressRound => {
+          if (progressRound.status === 'completed') {
+            completedRoundIds.add(progressRound.roundId);
+          }
+        });
+      }
+      
+      // Also check localStorage as fallback
+      const storageKey = `completedRounds_${interviewId}`;
+      const storedRounds = JSON.parse(localStorage.getItem(storageKey) || '[]');
+      storedRounds.forEach(roundId => completedRoundIds.add(roundId));
       
       console.log('🔄 Syncing completed rounds:', Array.from(completedRoundIds));
+      if (userProgress && userProgress.rounds) {
+        console.log('🔄 User progress rounds:', userProgress.rounds.map(r => ({ roundId: r.roundId, status: r.status })));
+      }
+      console.log('🔄 All rounds:', allRounds.map(r => ({ id: r._id || r.id || r.roundId, title: r.title })));
+      console.log('🔄 Stored rounds from localStorage:', storedRounds);
       setCompletedRounds(completedRoundIds);
     }
-  }, [userProgress, allRounds, setCompletedRounds]);
+  }, [userProgress, allRounds, setCompletedRounds, interviewId]);
 
   // Error handling
   if (error) {
@@ -517,6 +614,7 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
           codeAnswer={codeAnswer}
           selectedLanguage={selectedLanguage}
           isLanguageLocked={isLanguageLocked}
+          aiDeterminedLanguage={aiDeterminedLanguage}
           showCodeEditor={showCodeEditor}
           isCodeEditorFullscreen={isCodeEditorFullscreen}
           isLiveCodingRound={isLiveCodingRound}

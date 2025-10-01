@@ -17,7 +17,8 @@ import {
   AlertTriangle,
   Eye,
   EyeOff,
-  Loader2
+  Loader2,
+  Lock
 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import SuperCoolCodeEditor from '../SuperCoolCodeEditor';
@@ -38,6 +39,7 @@ const CodingRound = ({
   codeAnswer,
   selectedLanguage,
   isLanguageLocked,
+  aiDeterminedLanguage,
   cameraStream,
   onStartRecording,
   onStopRecording,
@@ -68,6 +70,14 @@ const CodingRound = ({
   const hints = currentQuestion?.codeEditor?.hints || [];
   const timeLimit = currentQuestion?.timeLimit || 15;
   const difficulty = currentQuestion?.difficulty || 'Medium';
+  
+  // Ensure test cases have proper structure
+  const validatedTestCases = testCases.map((testCase, index) => ({
+    input: testCase.input || testCase.testInput || [],
+    expected: testCase.expected || testCase.expectedOutput,
+    description: testCase.description || `Test Case ${index + 1}`,
+    functionName: testCase.functionName || extractFunctionName(currentQuestion)
+  }));
 
   // Calculate test statistics
   const getTestStats = () => {
@@ -78,6 +88,64 @@ const CodingRound = ({
   };
 
   const stats = getTestStats();
+
+  // Extract function name from starter code
+  const extractFunctionName = (question) => {
+    const starterCode = question?.codeEditor?.starterCode || '';
+    const language = question?.codeEditor?.language || 'javascript';
+    
+    // JavaScript/TypeScript patterns
+    const jsPatterns = [
+      /function\s+(\w+)\s*\(/,
+      /const\s+(\w+)\s*=\s*\(/,
+      /let\s+(\w+)\s*=\s*\(/,
+      /var\s+(\w+)\s*=\s*\(/,
+      /(\w+)\s*:\s*function/,
+      /(\w+)\s*\(/ // Generic function call pattern
+    ];
+
+    // Python patterns
+    const pythonPatterns = [
+      /def\s+(\w+)\s*\(/,
+      /class\s+(\w+)/,
+      /(\w+)\s*=\s*lambda/
+    ];
+
+    if (language.toLowerCase() === 'python') {
+      // Try Python patterns first
+      for (const pattern of pythonPatterns) {
+        const match = starterCode.match(pattern);
+        if (match && match[1]) {
+          return match[1];
+        }
+      }
+    } else {
+      // Try JavaScript patterns
+      for (const pattern of jsPatterns) {
+        const match = starterCode.match(pattern);
+        if (match && match[1]) {
+          return match[1];
+        }
+      }
+    }
+
+    // Default function names based on problem type and language
+    if (question?.question?.toLowerCase().includes('sum')) {
+      return language.toLowerCase() === 'python' ? 'two_sum' : 'twoSum';
+    }
+    if (question?.question?.toLowerCase().includes('fibonacci')) return 'fibonacci';
+    if (question?.question?.toLowerCase().includes('palindrome')) {
+      return language.toLowerCase() === 'python' ? 'is_palindrome' : 'isPalindrome';
+    }
+    if (question?.question?.toLowerCase().includes('search')) {
+      return language.toLowerCase() === 'python' ? 'binary_search' : 'binarySearch';
+    }
+    if (question?.question?.toLowerCase().includes('sort')) {
+      return language.toLowerCase() === 'python' ? 'merge_sort' : 'mergeSort';
+    }
+    
+    return 'solution'; // Default fallback
+  };
 
   // Generate AI test cases when code editor is first opened
   const generateAITestCases = async () => {
@@ -141,13 +209,13 @@ const CodingRound = ({
   // Auto-run tests when code changes (debounced)
   useEffect(() => {
     const timeoutId = setTimeout(() => {
-      if (codeAnswer && codeAnswer.trim() && testCases.length > 0) {
+      if (codeAnswer && codeAnswer.trim() && validatedTestCases.length > 0) {
         runTests();
       }
     }, 1500);
 
     return () => clearTimeout(timeoutId);
-  }, [codeAnswer, testCases]);
+  }, [codeAnswer, validatedTestCases]);
 
   // Run tests
   const runTests = async () => {
@@ -162,7 +230,7 @@ const CodingRound = ({
     try {
       const result = await codeExecutionService.executeCodeWithTests(
         codeAnswer, 
-        testCases, 
+        validatedTestCases, 
         selectedLanguage
       );
       
@@ -213,7 +281,7 @@ const CodingRound = ({
   };
 
   return (
-    <div className={`h-screen flex flex-col ${
+    <div className={`min-h-screen flex flex-col ${
       isDarkMode 
         ? 'bg-gradient-to-br from-slate-900 via-gray-900 to-black' 
         : 'bg-gradient-to-br from-white via-blue-50 to-indigo-100'
@@ -247,8 +315,22 @@ const CodingRound = ({
             </div>
           </div>
 
-          {/* Center: Live Stats */}
+          {/* Center: Language Lock & Live Stats */}
           <div className="flex items-center space-x-4">
+            {/* AI Suggested Language Display */}
+            {aiDeterminedLanguage && (
+              <div className={`flex items-center space-x-2 px-3 py-2 rounded-lg border ${
+                isDarkMode 
+                  ? 'bg-blue-900/20 border-blue-500/30 text-blue-300' 
+                  : 'bg-blue-100 border-blue-300 text-blue-700'
+              }`}>
+                <Brain className="h-4 w-4" />
+                <span className="text-sm font-semibold">
+                  AI Suggested: {selectedLanguage}
+                </span>
+              </div>
+            )}
+
             {/* Code Quality */}
             <div className="flex items-center space-x-2">
               <Target className="h-4 w-4 text-blue-500" />
@@ -330,7 +412,7 @@ const CodingRound = ({
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex overflow-y-auto">
         
         {/* Left: Question & Code Editor */}
         <div className="flex-1 flex flex-col">
@@ -425,12 +507,13 @@ const CodingRound = ({
             <SuperCoolCodeEditor
               language={selectedLanguage}
               starterCode={currentQuestion?.codeEditor?.starterCode || ''}
-              testCases={testCases}
+              testCases={validatedTestCases}
               question={currentQuestion?.question || ''}
               onCodeChange={onCodeChange}
               disabled={false}
               sessionId={`coding-round-${currentRound?._id}`}
               languageLocked={isLanguageLocked}
+              aiDeterminedLanguage={aiDeterminedLanguage}
             />
           </div>
 
@@ -578,7 +661,7 @@ const CodingRound = ({
               <div className="flex-1 overflow-y-auto">
                 <TestCaseManager
                   code={codeAnswer}
-                  testCases={testCases}
+                  testCases={validatedTestCases}
                   language={selectedLanguage}
                   onTestResults={setTestResults}
                   isRunning={isExecuting}

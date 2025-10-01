@@ -31,6 +31,7 @@ const InterviewMain = ({
   codeAnswer,
   selectedLanguage,
   isLanguageLocked,
+  aiDeterminedLanguage,
   showCodeEditor,
   isCodeEditorFullscreen,
   isLiveCodingRound,
@@ -94,6 +95,7 @@ const InterviewMain = ({
         codeAnswer={codeAnswer}
         selectedLanguage={selectedLanguage}
         isLanguageLocked={isLanguageLocked}
+        aiDeterminedLanguage={aiDeterminedLanguage}
         cameraStream={cameraStream}
         onStartRecording={onStartRecording}
         onStopRecording={onStopRecording}
@@ -522,7 +524,8 @@ const InterviewMain = ({
                 onChange={onCodeChange}
                 language={selectedLanguage}
                 onLanguageChange={onLanguageChange}
-                isLanguageLocked={isLanguageLocked}
+                languageLocked={isLanguageLocked}
+                aiDeterminedLanguage={aiDeterminedLanguage}
                 isFullscreen={isCodeEditorFullscreen}
               />
             </div>

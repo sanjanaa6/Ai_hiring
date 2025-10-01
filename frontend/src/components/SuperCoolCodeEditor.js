@@ -56,6 +56,12 @@ const SuperCoolCodeEditor = ({
       setSelectedLanguage(language);
     }
   }, [language, aiDeterminedLanguage]);
+
+  // Handle language changes (allow user to override AI detection)
+  const handleLanguageChange = (newLanguage) => {
+    setSelectedLanguage(newLanguage);
+    console.log('🔄 Language changed from', selectedLanguage, 'to', newLanguage);
+  };
   
   const editorRef = useRef(null);
   const chatEndRef = useRef(null);
@@ -369,7 +375,7 @@ const SuperCoolCodeEditor = ({
   const currentLanguage = supportedLanguages.find(lang => lang.value === selectedLanguage);
 
   return (
-    <div className="w-full h-full flex">
+    <div className="w-full min-h-full flex">
       {/* Left Side - Code Editor */}
       <div className="flex-1 flex flex-col bg-gray-50">
         {/* Header */}
@@ -382,19 +388,19 @@ const SuperCoolCodeEditor = ({
                 <span className="font-semibold text-slate-100">
                   {currentLanguage?.label || 'JavaScript'}
                 </span>
-                {languageLocked && (
+                {aiDeterminedLanguage && aiDeterminedLanguage !== selectedLanguage && (
                   <div className="flex items-center space-x-1.5">
-                    <Lock className="h-3.5 w-3.5 text-slate-300" />
-                    <span className="text-xs bg-slate-600/80 text-slate-200 px-2.5 py-1 rounded-full font-medium">
-                      LOCKED
+                    <Brain className="h-3.5 w-3.5 text-blue-400" />
+                    <span className="text-xs bg-blue-500/20 text-blue-300 px-2.5 py-1 rounded-full font-medium border border-blue-500/30">
+                      AI SUGGESTED: {supportedLanguages.find(lang => lang.value === aiDeterminedLanguage)?.label}
                     </span>
                   </div>
                 )}
-                {aiDeterminedLanguage && (
+                {aiDeterminedLanguage && aiDeterminedLanguage === selectedLanguage && (
                   <div className="flex items-center space-x-1.5">
-                    <Brain className="h-3.5 w-3.5 text-slate-300" />
-                    <span className="text-xs bg-slate-600/80 text-slate-200 px-2.5 py-1 rounded-full font-medium">
-                      AI CHOSEN
+                    <Brain className="h-3.5 w-3.5 text-green-400" />
+                    <span className="text-xs bg-green-500/20 text-green-300 px-2.5 py-1 rounded-full font-medium border border-green-500/30">
+                      AI MATCHED
                     </span>
                   </div>
                 )}
@@ -428,6 +434,21 @@ const SuperCoolCodeEditor = ({
                     <span className="text-blue-300 font-medium">Typing...</span>
                   </div>
                 )}
+              </div>
+
+              {/* Language Selector */}
+              <div className="flex items-center space-x-2">
+                <select
+                  value={selectedLanguage}
+                  onChange={(e) => handleLanguageChange(e.target.value)}
+                  className="px-3 py-2 bg-slate-700/50 border border-slate-600/50 rounded-lg text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-transparent transition-all"
+                >
+                  {supportedLanguages.map(lang => (
+                    <option key={lang.value} value={lang.value} className="text-slate-900">
+                      {lang.icon} {lang.label}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               {/* Settings Button */}

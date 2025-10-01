@@ -534,7 +534,11 @@ CRITICAL REQUIREMENTS:
    - enabled: true
    - language: "${language}"
    - starterCode: appropriate starter code for the language
-   - testCases: array of test cases with input/output
+   - testCases: array of 3-5 comprehensive test cases with:
+     * input: array of input parameters (e.g., [2, 7, 11, 15], 9)
+     * expected: expected output value (e.g., [0, 1])
+     * description: clear description of what the test validates
+     * functionName: name of the function to test
 3. Include followUpQuestions for interactive questions
 4. Set appropriate timeLimit (2-6 minutes per question)
 5. Set difficulty levels: easy, medium, hard
@@ -543,6 +547,7 @@ CRITICAL REQUIREMENTS:
 8. Ensure questions test both technical skills and soft skills
 9. Make questions progressive in difficulty within each round
 10. Include real-world scenarios and practical applications
+11. Test cases must cover: basic functionality, edge cases, and boundary conditions
 
 Return ONLY valid JSON in this exact format:
 {
@@ -573,7 +578,12 @@ Return ONLY valid JSON in this exact format:
             "language": "${language}",
             "starterCode": "Appropriate starter code",
             "testCases": [
-              {"input": "test input", "output": "expected output", "description": "Test case description"}
+              {
+                "input": ["test", "input", "parameters"],
+                "expected": "expected_output_value",
+                "description": "Test case description",
+                "functionName": "functionNameToTest"
+              }
             ]
           }
         }

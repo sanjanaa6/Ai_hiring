@@ -66,7 +66,19 @@ const RoundSelection = ({
               {allRounds.map((round, index) => {
                 const roundId = round._id || round.id || round.roundId;
                 const isCompleted = completedRounds.has(roundId);
-                const isAvailable = index === 0 || completedRounds.has(allRounds[index - 1]?._id || allRounds[index - 1]?.id || allRounds[index - 1]?.roundId);
+                const previousRoundId = allRounds[index - 1]?._id || allRounds[index - 1]?.id || allRounds[index - 1]?.roundId;
+                const isAvailable = index === 0 || (previousRoundId && completedRounds.has(previousRoundId));
+                
+                // Debug logging for first few rounds
+                if (index < 3) {
+                  console.log(`🔍 Round ${index + 1} (${round.title}):`, {
+                    roundId,
+                    isCompleted,
+                    previousRoundId,
+                    isAvailable,
+                    completedRounds: Array.from(completedRounds)
+                  });
+                }
                 
                 // Check if round is in progress (has some answered questions but not completed)
                 const isInProgress = userProgress && userProgress.rounds ? 

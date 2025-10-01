@@ -38,6 +38,8 @@ import TTSTestPage from './pages/TTSTestPage';
 import CameraTest from './components/CameraTest';
 import CodingChallengePage from './pages/CodingChallengePage';
 import CodingInterviewDemo from './pages/CodingInterviewDemo';
+import TestCaseDemo from './components/TestCaseDemo';
+import LanguageDetectionDemo from './components/LanguageDetectionDemo';
 import NotFound from './pages/NotFound';
 
 // Recruiter components
@@ -121,6 +123,8 @@ function AppShell() {
           <Route path="/camera-test" element={<CameraTest />} />
           <Route path="/coding-challenges" element={<CodingChallengePage />} />
           <Route path="/coding-interview-demo" element={<CodingInterviewDemo />} />
+          <Route path="/test-case-demo" element={<TestCaseDemo />} />
+          <Route path="/language-detection-demo" element={<LanguageDetectionDemo />} />
           
           {/* Protected Routes */}
           <Route path="/dashboard" element={
