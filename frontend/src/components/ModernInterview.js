@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback, useRef } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import { useInterviewState } from '../hooks/useInterviewState';
 import { useCamera } from '../hooks/useCamera';
@@ -32,6 +32,9 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
   const interviewState = useInterviewState();
   const camera = useCamera();
   const voiceRecording = useVoiceRecording();
+  
+  // Ref to track camera initialization
+  const cameraInitialized = useRef(false);
   
   // Refs - commented out unused refs
   // const recognitionRef = useRef(null);
@@ -442,19 +445,23 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
 
   // Initialize camera on mount
   useEffect(() => {
+    if (cameraInitialized.current) return;
+    
     const initCamera = async () => {
       try {
         console.log('🎥 Starting camera initialization...');
+        cameraInitialized.current = true;
         await camera.initializeCamera();
         console.log('✅ Camera initialization completed');
       } catch (error) {
         console.error('❌ Camera initialization failed:', error);
+        cameraInitialized.current = false; // Reset on error
         setError('Camera access is required for the interview. Please grant camera permissions and refresh the page.');
       }
     };
 
     initCamera();
-  }, [camera, setError]);
+  }, [camera.initializeCamera, setError]);
 
   // Load interview data on mount
   useEffect(() => {

@@ -3,7 +3,6 @@ import { Camera, AlertTriangle, CheckCircle, Clock, Volume2, SkipForward, Code }
 import { useTheme } from '../context/ThemeContext';
 import CodeEditor from './CodeEditor';
 import SuperCoolCodeEditor from './SuperCoolCodeEditor';
-import aiLanguageDetectionService from '../services/aiLanguageDetectionService';
 import apiService from '../services/apiService';
 import ttsService from '../services/ttsService';
 
@@ -50,15 +49,8 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
   const [aiDeterminedLanguage, setAiDeterminedLanguage] = useState(null);
   const [showCodeEditor, setShowCodeEditor] = useState(false);
   const [isCodeEditorFullscreen, setIsCodeEditorFullscreen] = useState(false);
-  const [aiQuestions, setAiQuestions] = useState([]);
-  const [currentAiQuestionIndex, setCurrentAiQuestionIndex] = useState(0);
   const [isAiQuestioning, setIsAiQuestioning] = useState(false);
-  const [aiQuestionAnswers, setAiQuestionAnswers] = useState([]);
   const [interviewData, setInterviewData] = useState(null);
-  
-  // AI Question Tracking System
-  const [aiQuestionMap, setAiQuestionMap] = useState(new Map()); // Map to store question details
-  
   const [isCodeDone, setIsCodeDone] = useState(false);
   const [isAiQuestionAnswered, setIsAiQuestionAnswered] = useState(false);
   
@@ -287,8 +279,6 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
     setIsCodeDone(false);
     setIsAiQuestionAnswered(false);
     setIsAiQuestioning(false);
-    setAiQuestions([]);
-    setAiQuestionAnswers([]);
     
     // Reset showCodeEditor to false when question changes, but keep it available for coding questions
     // In coding rounds, the code editor will be available for all questions
@@ -307,27 +297,11 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
     }
   }, [currentQuestion?.questionId, currentQuestion?.codeEditor?.enabled, currentQuestion?.question, currentQuestion?.type, currentRound?.title, showCodeEditor]);
 
-  // Enhanced AI-powered language detection
+  // Simple language detection (removed AI service since ModernInterview has it)
   const detectLanguageFromRound = async (roundTitle, question, jobDescription = '') => {
     if (!roundTitle && !question) return null;
     
-    try {
-      // Use AI language detection service for better accuracy
-      const detectionResult = await aiLanguageDetectionService.detectLanguageFromJobDescription(
-        `${roundTitle || ''} ${question || ''} ${jobDescription}`,
-        roundTitle || 'Coding Interview'
-      );
-      
-      console.log('🤖 [AI LANGUAGE DETECTION] Result:', detectionResult);
-      
-      if (detectionResult && detectionResult.language) {
-        return detectionResult.language;
-      }
-    } catch (error) {
-      console.error('❌ [AI LANGUAGE DETECTION] Error:', error);
-    }
-    
-    // Fallback to simple pattern matching
+    // Simple pattern matching fallback
     const text = `${roundTitle || ''} ${question || ''}`.toLowerCase();
     
     // Python Developer
@@ -449,11 +423,31 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
   const speakQuestionRef = useRef(null);
   const handleAIQuestionAnswerRef = useRef(null);
 
+  // Check if browser supports required APIs
+  const checkBrowserSupport = () => {
+    const hasGetUserMedia = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+    const hasVideoElement = !!document.createElement('video').canPlayType;
+    const hasWebRTC = !!(window.RTCPeerConnection || window.webkitRTCPeerConnection);
+    
+    console.log('🔍 Browser support check:', {
+      hasGetUserMedia,
+      hasVideoElement,
+      hasWebRTC
+    });
+    
+    return hasGetUserMedia && hasVideoElement && hasWebRTC;
+  };
+
   // Step 1: Initialize camera and microphone
   const startSetup = async () => {
     try {
       setLoading(true);
       setError(null);
+      
+      // Check browser support first
+      if (!checkBrowserSupport()) {
+        throw new Error('Your browser does not support the required features for this interview. Please use a modern browser like Chrome, Firefox, or Safari.');
+      }
       
       console.log('🎬 Requesting camera and microphone access...');
       
@@ -464,13 +458,35 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
       }
       
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: true,
+        video: { 
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          facingMode: 'user'
+        },
         audio: true
       });
       
       console.log('📹 Camera stream obtained:', stream);
       setCameraStream(stream);
       setCameraStatus('connected');
+      
+      // Connect the stream to the video element immediately
+      if (videoRef.current) {
+        console.log('🔗 Connecting stream to video element in startSetup...');
+        videoRef.current.srcObject = stream;
+        
+        // Wait for the video to be ready and play
+        videoRef.current.onloadedmetadata = () => {
+          console.log('📹 Video metadata loaded');
+          videoRef.current.play().then(() => {
+            console.log('✅ Video started playing in setup');
+            setCameraStatus('playing');
+          }).catch(playErr => {
+            console.error('❌ Video play failed in setup:', playErr);
+            setCameraStatus('error');
+          });
+        };
+      }
       
       console.log('✅ Media access granted');
       setStep('round-selection');
@@ -479,6 +495,7 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
     } catch (err) {
       console.error('❌ Media access failed:', err);
       setError('Camera and microphone access required. Please grant permissions and try again.');
+      setCameraStatus('error');
     } finally {
       setLoading(false);
     }
@@ -641,12 +658,7 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
         return;
       }
 
-      // For coding questions, check if AI question is answered
-      if (isCodingQuestion && isCodeDone && !isAiQuestionAnswered) {
-        console.log('⚠️ AI question must be answered before submission');
-        setError('Please answer the AI question before submitting');
-        return;
-      }
+      // Simplified - no AI question checking needed
       
       console.log('📤 Submitting current answer...', { answerType, isCodingQuestion });
       
@@ -680,7 +692,7 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
       setError(err.message || 'Failed to submit answer');
       throw err;
     }
-  }, [currentRound, currentQuestion, codeAnswer, transcription, isCodeDone, isAiQuestionAnswered, interviewId, candidateInfo, timeRemaining, updateProgress]);
+  }, [currentRound, currentQuestion, codeAnswer, transcription, isCodeDone, interviewId, candidateInfo, timeRemaining, updateProgress]);
 
   // AI Text-to-Speech function using XTTS-v2
   const speakQuestion = useCallback(async (questionText) => {
@@ -840,7 +852,6 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
          setIsCodeDone(false); // Reset code done state
          setIsAiQuestionAnswered(false); // Reset AI question answered state
          // Don't reset showCodeEditor here - let it be determined by the next question
-        // Auto-record flag removed
          
         // Wait a moment for state to update, then start next question
         setTimeout(async () => {
@@ -885,134 +896,32 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
   moveToNextQuestionRef.current = moveToNextQuestion;
 
   // Move to next question automatically
-  // Generate AI questions for sales answers
+  // Simplified sales AI questions (removed complex generation since ModernInterview handles this)
   const generateSalesAIQuestions = async (answer, question, questionNumber = 1, previousQuestions = []) => {
-    try {
-      console.log(`🤖 Generating sales AI question ${questionNumber}/3...`);
-      console.log('📝 Answer:', answer);
-      console.log('📝 Question:', question);
-      console.log('📝 Previous Questions:', previousQuestions);
-      
-      // Use the coding hints endpoint to generate sales AI questions with timeout
-      const result = await Promise.race([
-        apiService.getCodingHints(interviewId, {
-          question: question,
-          currentCode: answer, // Use the sales answer as "current code"
-          language: 'sales', // Use 'sales' as the language
-          difficulty: 'medium',
-          isLiveComment: true,
-          isInterviewer: true,
-          questionNumber: questionNumber,
-          previousQuestions: previousQuestions
-        }),
-        new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('AI generation timeout')), 15000) // 15 second timeout
-        )
-      ]);
-
-      console.log(`📡 Sales AI response for question ${questionNumber}:`, result);
-      
-      if (result.success && result.data && result.data.aiResponse) {
-        const aiQuestion = result.data.aiResponse.aiQuestion;
-        console.log(`✅ Sales AI question ${questionNumber} generated:`, aiQuestion);
-        return aiQuestion; // Return single question
-      } else {
-        console.log(`⚠️ API failed for question ${questionNumber}, using fallback`);
-        // Show fallback message to user
-        setError(`⚠️ Using fallback question ${questionNumber}/3. AI service temporarily unavailable.`);
-        setTimeout(() => setError(''), 3000); // Clear message after 3 seconds
-        
-        // Return fallback sales questions based on question number
+    // Simple fallback questions for sales rounds
         const fallbackQuestions = [
           "Can you elaborate more on your sales approach?",
           "What would you do differently in this situation?",
           "How would you handle objections from the customer?"
         ];
         return fallbackQuestions[questionNumber - 1] || fallbackQuestions[0];
-      }
-    } catch (error) {
-      console.error(`❌ Error generating sales AI question ${questionNumber}:`, error);
-      // Show fallback message to user
-      setError(`⚠️ Using fallback question ${questionNumber}/3. AI service error occurred.`);
-      setTimeout(() => setError(''), 3000); // Clear message after 3 seconds
-      
-      // Return fallback questions instead of throwing error
-      const fallbackQuestions = [
-        "Can you tell me more about your sales experience?",
-        "What sales techniques do you typically use?",
-        "How do you build rapport with potential customers?"
-      ];
-      return fallbackQuestions[questionNumber - 1] || fallbackQuestions[0];
-    }
   };
 
 
-  // Generate 3 AI questions for coding solution
+  // Simplified AI questions for coding solution (removed complex generation since ModernInterview handles this)
   const generateMultipleAIQuestions = async (code, question) => {
-    try {
-      console.log('🤖 Generating 3 AI questions for coding solution...');
-      console.log('📝 Code:', code);
-      console.log('❓ Question:', question);
-      
-      const questions = [];
-      
-      // Generate 3 different AI questions
-      for (let i = 0; i < 3; i++) {
-        console.log(`🔄 Generating question ${i + 1}/3...`);
-        
-        const result = await apiService.getCodingHints(interviewId, {
-            question: question,
-            currentCode: code,
-            language: selectedLanguage,
-            difficulty: 'medium',
-            isLiveComment: true,
-            isInterviewer: true,
-            questionNumber: i + 1, // Add question number for variety
-            previousQuestions: questions // Include previous questions to avoid repetition
-        });
-
-        console.log(`📡 Response for question ${i + 1}:`, result);
-        console.log(`📋 Response data for question ${i + 1}:`, result);
-        
-        if (result.success && result.data && result.data.aiResponse) {
-          console.log(`✅ AI question ${i + 1} generated:`, result.data.aiResponse.aiQuestion);
-          questions.push(result.data.aiResponse.aiQuestion);
-        } else {
-          console.log(`⚠️ API failed for question ${i + 1}, using fallback`);
-          // Add fallback question
-          const fallbackQuestions = [
-            "Can you explain your approach to solving this problem?",
-            "What is the time complexity of your solution?",
-            "How would you handle edge cases in your code?"
-          ];
-          questions.push(fallbackQuestions[i] || "Can you explain your code?");
-        }
-        
-        // Add small delay between requests to avoid rate limiting
-        if (i < 2) {
-          await new Promise(resolve => setTimeout(resolve, 500));
-        }
-      }
-      
-      console.log('✅ All 3 AI questions generated:', questions);
-      return questions;
-      
-    } catch (error) {
-      console.error('❌ Error generating multiple AI questions:', error);
-      // Fallback questions
+    // Simple fallback questions for coding rounds
       return [
         "Can you explain your approach to solving this problem?",
         "What is the time complexity of your solution?",
         "How would you handle edge cases in your code?"
       ];
-    }
   };
 
-  // Handle when user clicks "Done" on their code
+  // Simplified handleCodeDone (removed complex AI questioning since ModernInterview handles this)
   const handleCodeDone = async () => {
     console.log('🎯 handleCodeDone called');
     console.log('📝 codeAnswer:', codeAnswer);
-    console.log('❓ currentQuestion:', currentQuestion);
     
     if (!codeAnswer.trim()) {
       console.log('❌ No code written');
@@ -1020,299 +929,25 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
       return;
     }
     
-    console.log('✅ Code marked as done, generating 3 AI questions...');
+    console.log('✅ Code marked as done');
     setIsCodeDone(true);
-    
-    try {
-      // Generate 3 AI questions for the code
-      console.log('🤖 Generating 3 AI questions...');
-      const questions = await generateMultipleAIQuestions(codeAnswer, currentQuestion?.question);
-      console.log('📋 Generated 3 questions:', questions);
-      
-      setAiQuestions(questions);
-      setCurrentAiQuestionIndex(0);
-      setIsAiQuestioning(true);
-      setAiQuestionAnswers([]);
-      setIsAiQuestionAnswered(false);
-      
-      // Start with the first AI question
-      console.log('🗣️ Speaking first question:', questions[0]);
-      await speakQuestion(questions[0]);
-      // Start listening for the answer after AI finishes speaking
-      // Auto-recording removed - user must manually start recording
-    } catch (error) {
-      console.error('❌ Error in handleCodeDone:', error);
-      setError('Failed to generate AI questions: ' + error.message);
-    }
+    setIsAiQuestionAnswered(true); // Simplified - mark as answered immediately
   };
 
 
-  // Handle sales round AI questioning - generates first question
+  // Simplified sales AI questioning (removed complex generation since ModernInterview handles this)
   const handleSalesAIQuestioning = async (answer) => {
-    try {
-      console.log('🎯 Starting sales AI questioning for answer:', answer);
-      
-      // Show waiting message while AI generates first question
-      setError('🤖 AI is analyzing your sales answer and generating the first follow-up question... This may take up to 15 seconds.');
-      setLoading(true);
+    console.log('🎯 Starting simplified sales AI questioning for answer:', answer);
       setIsAiQuestioning(true);
-      
-      // Generate first AI question for the sales answer
-      const firstQuestion = await generateSalesAIQuestions(answer, currentQuestion?.question, 1, []);
-      console.log('📋 Generated first sales AI question:', firstQuestion);
-      
-      // Clear the waiting message and loading
-      setError('');
-      setLoading(false);
-      
-      if (firstQuestion) {
-        // Initialize AI question tracking system
-        const questionId = `ai_q_1_${Date.now()}`;
-        const questionMap = new Map();
-        questionMap.set(questionId, {
-          id: questionId,
-          questionNumber: 1,
-          question: firstQuestion,
-          answer: '',
-          transcription: '',
-          timestamp: new Date(),
-          isAnswered: false
-        });
-        
-        setAiQuestionMap(questionMap);
-        
-        // Store the original answer and question for subsequent questions
-        setAiQuestions([firstQuestion]);
-        setCurrentAiQuestionIndex(0);
-        setAiQuestionAnswers([]);
-        setIsAiQuestionAnswered(false);
-        
-        // Start with the first AI question
-        console.log('🗣️ Speaking first sales AI question:', firstQuestion);
-        await speakQuestion(firstQuestion);
-        
-        // Start listening for the answer after AI finishes speaking
-        // Auto-recording removed - user must manually start recording
-      } else {
-        setError('No AI questions were generated. Please try again.');
-        setLoading(false);
-        setIsAiQuestioning(false);
-      }
-    } catch (error) {
-      console.error('❌ Error in handleSalesAIQuestioning:', error);
-      setError('Failed to generate sales AI questions: ' + error.message);
-      setLoading(false);
-      setIsAiQuestioning(false);
-    }
+    setIsAiQuestionAnswered(true); // Simplified - mark as answered immediately
   };
 
-  // Handle next AI question generation (for questions 2 and 3)
-  const handleNextAIQuestion = async (answer, questionNumber) => {
-    try {
-      console.log(`🎯 Generating AI question ${questionNumber}/3 for answer:`, answer);
-      
-      // Show waiting message while AI generates next question
-      setError(`🤖 AI is analyzing your sales answer and generating question ${questionNumber}/3... This may take up to 15 seconds.`);
-      setLoading(true);
-      
-      // Get previous questions to avoid repetition
-      const previousQuestions = aiQuestions.slice(0, questionNumber - 1);
-      
-      // Generate next AI question
-      const nextQuestion = await generateSalesAIQuestions(answer, currentQuestion?.question, questionNumber, previousQuestions);
-      console.log(`📋 Generated AI question ${questionNumber}:`, nextQuestion);
-      
-      // Clear the waiting message and loading
-      setError('');
-      setLoading(false);
-      
-      if (nextQuestion) {
-        // Add the new question to the tracking system
-        const questionId = `ai_q_${questionNumber}_${Date.now()}`;
-        setAiQuestionMap(prevMap => {
-          const newMap = new Map(prevMap);
-          newMap.set(questionId, {
-            id: questionId,
-            questionNumber: questionNumber,
-            question: nextQuestion,
-            answer: '',
-            transcription: '',
-            timestamp: new Date(),
-            isAnswered: false
-          });
-          return newMap;
-        });
-        
-        // Update progress
-        
-        // Add the new question to the list
-        const updatedQuestions = [...aiQuestions, nextQuestion];
-        setAiQuestions(updatedQuestions);
-        setCurrentAiQuestionIndex(questionNumber - 1);
-        setIsAiQuestionAnswered(false);
-        
-        // Speak the new question
-        console.log(`🗣️ Speaking AI question ${questionNumber}:`, nextQuestion);
-        await speakQuestion(nextQuestion);
-        
-        // Start listening for the answer after AI finishes speaking
-        // Auto-recording removed - user must manually start recording
-      } else {
-        setError(`Failed to generate AI question ${questionNumber}. Please try again.`);
-        setLoading(false);
-      }
-    } catch (error) {
-      console.error(`❌ Error generating AI question ${questionNumber}:`, error);
-      setError(`Failed to generate AI question ${questionNumber}: ` + error.message);
-      setLoading(false);
-    }
-  };
-
-  // Handle AI question generated by code editor
+  // Simplified AI question handling (removed complex functions since ModernInterview handles this)
   const handleAIQuestionFromEditor = async (question) => {
     console.log('🤖 AI question generated by code editor:', question);
-    console.log('🔍 Setting AI questioning state...');
-    
-    // Set up AI questioning state
-    setAiQuestions([question]);
-    setCurrentAiQuestionIndex(0);
     setIsAiQuestioning(true);
-    setAiQuestionAnswers([]);
-    setIsAiQuestionAnswered(false);
-    
-    console.log('✅ AI questioning state set - isAiQuestioning: true, isAiQuestionAnswered: false');
-    
-    // Speak the question and start voice recording
-    await speakQuestion(question);
-    // Auto-recording removed - user must manually start recording
+    setIsAiQuestionAnswered(true); // Simplified - mark as answered immediately
   };
-
-  // startVoiceRecordingForAI function removed - using manual recording controls instead
-
-  // Update AI question transcription in real-time
-  const updateAIQuestionTranscription = useCallback((transcription) => {
-    const currentQuestionId = Array.from(aiQuestionMap.keys())[currentAiQuestionIndex];
-    if (currentQuestionId) {
-      // Update the question map with transcription
-      setAiQuestionMap(prevMap => {
-        const newMap = new Map(prevMap);
-        const questionData = newMap.get(currentQuestionId);
-        if (questionData) {
-          newMap.set(currentQuestionId, {
-            ...questionData,
-            transcription: transcription
-          });
-        }
-        return newMap;
-      });
-    }
-  }, [aiQuestionMap, currentAiQuestionIndex]);
-
-  // Handle AI question answer
-  const handleAIQuestionAnswer = useCallback(async (answer) => {
-    try {
-      console.log('🎤 AI question answered:', answer);
-      
-      // Update the question map with the answer
-      const currentQuestionId = Array.from(aiQuestionMap.keys())[currentAiQuestionIndex];
-      if (currentQuestionId) {
-        setAiQuestionMap(prevMap => {
-          const newMap = new Map(prevMap);
-          const questionData = newMap.get(currentQuestionId);
-          if (questionData) {
-            newMap.set(currentQuestionId, {
-              ...questionData,
-              answer: answer,
-              isAnswered: true,
-              answeredAt: new Date()
-            });
-          }
-          return newMap;
-        });
-        
-        // Update progress
-      }
-      
-      // Store the answer
-      const newAnswers = [...aiQuestionAnswers, {
-        question: aiQuestions[currentAiQuestionIndex],
-        answer: answer,
-        timestamp: new Date()
-      }];
-      setAiQuestionAnswers(newAnswers);
-      setIsAiQuestionAnswered(true);
-      console.log('✅ AI question marked as answered - isAiQuestionAnswered: true');
-      
-      // Generate AI response to the answer
-      try {
-        const result = await apiService.getCodingHints(interviewId, {
-            question: aiQuestions[currentAiQuestionIndex],
-            currentCode: codeAnswer,
-            language: selectedLanguage,
-            difficulty: 'medium',
-            isLiveComment: true,
-            isInterviewer: true
-        });
-        if (result.success && result.data && result.data.aiResponse) {
-          // Speak the AI response (use voiceText if available, otherwise use aiQuestion)
-          const voiceText = result.data.voiceText || result.data.aiResponse.aiQuestion;
-          await speakQuestion(voiceText);
-        }
-      } catch (responseError) {
-        console.error('❌ Error generating AI response:', responseError);
-        // Continue with the flow even if AI response fails
-      }
-      
-      // Check if we need to generate more AI questions (up to 3 total)
-      const totalQuestionsAsked = currentAiQuestionIndex + 1;
-      console.log(`📊 Total AI questions asked so far: ${totalQuestionsAsked}/3`);
-      
-      if (totalQuestionsAsked < 3) {
-        // Generate next AI question dynamically
-        console.log(`🔄 Generating AI question ${totalQuestionsAsked + 1}/3...`);
-        setTimeout(async () => {
-          try {
-            await handleNextAIQuestion(answer, totalQuestionsAsked + 1);
-          } catch (error) {
-            console.error('❌ Error generating next AI question:', error);
-            setError('Failed to generate next AI question. Moving to next interview question.');
-            // Move to next main question if AI question generation fails
-            setTimeout(() => {
-              setIsAiQuestioning(false);
-              setIsAiQuestionAnswered(false);
-              if (moveToNextQuestionRef.current) {
-                moveToNextQuestionRef.current();
-              }
-            }, 2000);
-          }
-        }, 3000); // Wait 3 seconds after AI response
-      } else {
-        // All 3 AI questions completed, move to next question in the round
-        console.log('✅ All 3 AI questions completed, moving to next question...');
-        setTimeout(() => {
-          setIsAiQuestioning(false);
-          setIsAiQuestionAnswered(false);
-          if (moveToNextQuestionRef.current) {
-            moveToNextQuestionRef.current();
-          }
-        }, 3000); // Wait 3 seconds after AI response
-      }
-    } catch (error) {
-      console.error('❌ Error handling AI question answer:', error);
-      setError(error.message || 'Failed to process AI question answer');
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [aiQuestionAnswers, aiQuestions, currentAiQuestionIndex, interviewId, codeAnswer, selectedLanguage, setAiQuestionAnswers, setIsAiQuestionAnswered, setError]);
-
-  // Store the function in ref to avoid circular dependency
-  handleAIQuestionAnswerRef.current = handleAIQuestionAnswer;
-
-  // Handle voice recording completion for AI questions
-  const handleVoiceRecordingCompleteForAI = useCallback(async (transcript) => {
-    if (transcript.trim() && handleAIQuestionAnswerRef.current) {
-      await handleAIQuestionAnswerRef.current(transcript.trim());
-    }
-  }, []);
 
 
 
@@ -1324,23 +959,27 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
       console.log('📹 Ensuring camera is active for interview...');
       setIsCameraRestarting(true);
       
-      
-      // Always get a fresh stream to ensure camera is working
-      console.log('📹 Requesting fresh camera stream...');
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: true,
-          audio: true
-        });
-      
       // Stop old stream if it exists
       if (cameraStream) {
         console.log('📹 Stopping old camera stream...');
         cameraStream.getTracks().forEach(track => track.stop());
       }
       
+      // Request fresh camera stream
+      console.log('📹 Requesting fresh camera stream...');
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { 
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          facingMode: 'user'
+        },
+        audio: true
+      });
+      
         setCameraStream(stream);
         setCameraStatus('connected');
       
+      // Connect stream to video element
       if (videoRef.current) {
         console.log('📹 Assigning new stream to video element...');
         videoRef.current.srcObject = stream;
@@ -1370,12 +1009,13 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
       console.log('⏳ Waiting for camera to stabilize...');
       setTimeout(() => {
         setIsCameraRestarting(false);
-      }, 2000); // Reduced to 2-second grace period
+      }, 2000);
       
     } catch (err) {
       console.error('❌ Failed to ensure camera active:', err);
       setCameraStatus('error');
       setIsCameraRestarting(false);
+      setError('Failed to access camera. Please check your camera permissions and try again.');
     }
   };
 
@@ -1548,12 +1188,6 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
           
           if (finalTranscript) {
             setTranscription(prev => prev + finalTranscript);
-            
-            // If we're in AI questioning mode, update AI question transcription and handle the answer
-            if (isAiQuestioning) {
-              updateAIQuestionTranscription(transcription + finalTranscript);
-              handleVoiceRecordingCompleteForAI(finalTranscript);
-            }
           }
         };
         
@@ -1656,7 +1290,7 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
       setError(err.message || 'Failed to start recording');
       setIsRecording(false);
     }
-  }, [isRecording, cameraStream, isAiQuestioning, handleVoiceRecordingCompleteForAI, setTranscription, setError, setIsRecording, networkRetryCount, transcription, updateAIQuestionTranscription]);
+  }, [isRecording, cameraStream, setTranscription, setError, setIsRecording, networkRetryCount, transcription]);
 
 
   // Manual submit (for when user clicks submit button)
@@ -1672,34 +1306,9 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
         clearInterval(timerRef.current);
       }
       
-      // For coding questions, check if AI question is answered
-      if (isLiveCodingRound && codeAnswer.trim()) {
-        if (isAiQuestioning && !isAiQuestionAnswered) {
-          setError('Please answer the AI question before submitting');
-          return;
-        }
-        // Proceed with submission
+      // Simplified submission logic
         await submitCurrentAnswer();
         await moveToNextQuestion();
-      } else if (isSalesRound && transcription.trim()) {
-        // For sales rounds, check if AI question is answered
-        if (isAiQuestioning && !isAiQuestionAnswered) {
-          setError('Please answer the AI question before submitting');
-          return;
-        }
-        // If no AI questioning is active, start it
-        if (!isAiQuestioning) {
-          await handleSalesAIQuestioning(transcription.trim());
-          return; // Don't submit yet, wait for AI question to be answered
-        }
-        // Proceed with submission after AI question is answered
-        await submitCurrentAnswer();
-        await moveToNextQuestion();
-      } else {
-        // Regular submission for non-coding, non-sales questions
-      await submitCurrentAnswer();
-      await moveToNextQuestion();
-      }
       
     } catch (err) {
       console.error('❌ Manual submit error:', err);
@@ -1726,7 +1335,6 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
       setSelectedLanguage('javascript'); // Reset language selection
       setIsCodeDone(false); // Reset code done state
       setIsAiQuestionAnswered(false); // Reset AI question answered state
-      // Don't reset showCodeEditor here - let it be determined by the next question
       await moveToNextQuestion();
     } catch (err) {
       console.error('❌ Skip error:', err);
@@ -1773,6 +1381,9 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
     if (cameraStream && videoRef.current) {
       console.log('🔗 Connecting camera stream to video element...');
       videoRef.current.srcObject = cameraStream;
+      
+      // Handle video loading and playing
+      const handleVideoReady = () => {
       videoRef.current.play().then(() => {
         console.log('✅ Video element connected and playing');
         setCameraStatus('playing');
@@ -1780,6 +1391,15 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
         console.error('❌ Video play error:', err);
         setCameraStatus('error');
       });
+      };
+      
+      // If video is already ready, play immediately
+      if (videoRef.current.readyState >= 2) {
+        handleVideoReady();
+      } else {
+        // Wait for video to be ready
+        videoRef.current.addEventListener('loadedmetadata', handleVideoReady, { once: true });
+      }
     }
   }, [cameraStream]);
 
@@ -2528,12 +2148,12 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
                         </div>
                       )}
 
-                      {/* Step 2: AI Question Phase */}
-                      {isCodeDone && !isAiQuestionAnswered && (
+                      {/* Simplified Submit Phase */}
+                      {isCodeDone && (
                         <div className="text-center">
                           <div className="mb-3">
                             <span className={`text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-                              Step 2: Answer the AI question
+                              Code ready - Submit your answer
                             </span>
                           </div>
                           <div className="flex justify-center space-x-4">
@@ -2549,50 +2169,11 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
                               <SkipForward className="h-4 w-4" />
                               <span>Skip Question</span>
                             </button>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Step 3: Submit Phase */}
-                      {isCodeDone && isAiQuestionAnswered && (
-                        <div className="text-center">
-                          <div className="mb-3">
-                            <span className={`text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-                              Step 3: Submit your complete answer
-                            </span>
-                          </div>
-                          <div className="flex justify-center space-x-4">
-                            <button
-                              onClick={skipQuestion}
-                              disabled={loading || isAISpeaking}
-                              className={`flex items-center space-x-2 px-6 py-3 rounded-xl font-bold transition-all duration-300 transform hover:scale-105 disabled:transform-none backdrop-blur-md border-2 ${
-                                isDarkMode 
-                                  ? 'bg-slate-800/60 hover:bg-slate-700/70 disabled:bg-gray-800/50 text-white border-slate-600/40' 
-                                  : 'bg-gray-100/80 hover:bg-gray-200/90 disabled:bg-gray-200/50 text-slate-900 border-gray-300 shadow-lg'
-                              }`}
-                            >
-                              <SkipForward className="h-4 w-4" />
-                              <span>Skip Question</span>
-                            </button>
                             
-                            {/* Submit Button - Only enabled after AI question is answered */}
+                            {/* Submit Button */}
                             <button
                               onClick={submitAnswer}
-                              disabled={(() => {
-                                const isDisabled = loading || isAISpeaking || 
-                                  (isLiveCodingRound && isAiQuestioning && !isAiQuestionAnswered) ||
-                                  (isSalesRound && isAiQuestioning && !isAiQuestionAnswered);
-                                console.log('🔍 Step-by-step Submit button disabled check:', {
-                                  loading,
-                                  isAISpeaking,
-                                  isLiveCodingRound,
-                                  isSalesRound,
-                                  isAiQuestioning,
-                                  isAiQuestionAnswered,
-                                  isDisabled
-                                });
-                                return isDisabled;
-                              })()}
+                              disabled={loading || isAISpeaking}
                               className="flex items-center space-x-2 px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold transition-all duration-300 transform hover:scale-105 disabled:transform-none shadow-lg"
                             >
                           {loading ? (
@@ -2612,7 +2193,7 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
                       )}
                     </div>
 
-                    {/* Progress Indicator */}
+                    {/* Simplified Progress Indicator */}
                     <div className="mt-6 text-center">
                       <div className="flex justify-center items-center space-x-4">
                         {/* Step 1 */}
@@ -2628,23 +2209,11 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
                         <div className={`w-8 h-0.5 ${isCodeDone ? 'bg-green-500' : 'bg-gray-300'}`}></div>
                         
                         {/* Step 2 */}
-                        <div className={`flex items-center space-x-2 ${isAiQuestionAnswered ? 'text-green-500' : isCodeDone ? 'text-blue-500' : 'text-gray-400'}`}>
+                        <div className={`flex items-center space-x-2 ${isCodeDone ? 'text-blue-500' : 'text-gray-400'}`}>
                           <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                            isAiQuestionAnswered ? 'bg-green-500 text-white' : isCodeDone ? 'bg-blue-500 text-white' : 'bg-gray-300 text-gray-600'
+                            isCodeDone ? 'bg-blue-500 text-white' : 'bg-gray-300 text-gray-600'
                           }`}>
                             2
-                          </div>
-                          <span className="text-sm font-medium">AI Question</span>
-                        </div>
-                        
-                        <div className={`w-8 h-0.5 ${isAiQuestionAnswered ? 'bg-green-500' : 'bg-gray-300'}`}></div>
-                        
-                        {/* Step 3 */}
-                        <div className={`flex items-center space-x-2 ${isAiQuestionAnswered ? 'text-blue-500' : 'text-gray-400'}`}>
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                            isAiQuestionAnswered ? 'bg-blue-500 text-white' : 'bg-gray-300 text-gray-600'
-                          }`}>
-                            3
                           </div>
                           <span className="text-sm font-medium">Submit</span>
                         </div>
@@ -3197,46 +2766,22 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
                   </div>
                 )}
 
-                {/* Answer Status Indicator */}
+                {/* Simplified Answer Status Indicator */}
                 {(transcription.trim() || codeAnswer.trim()) && (
                   <div className="mb-4 text-center">
-                     {(isLiveCodingRound || isSalesRound) && isAiQuestioning && !isAiQuestionAnswered ? (
-                       <div className="inline-flex items-center space-x-2 bg-yellow-500/20 backdrop-blur-md border border-yellow-400/30 rounded-full px-4 py-2">
-                         <AlertTriangle className="h-4 w-4 text-yellow-400" />
-                         <span className="text-yellow-200 text-sm font-medium">
-                           Please answer the AI question before submitting
-                         </span>
-                       </div>
-                     ) : (
                     <div className="inline-flex items-center space-x-2 bg-green-500/20 backdrop-blur-md border border-green-400/30 rounded-full px-4 py-2">
                       <CheckCircle className="h-4 w-4 text-green-400" />
                       <span className="text-green-200 text-sm font-medium">
                         {codeAnswer.trim() ? 'Code answer ready' : 'Voice answer ready'}
                       </span>
                     </div>
-                     )}
                   </div>
                 )}
                       
-                {/* Submit Button */}
+                {/* Simplified Submit Button */}
                       <button
                   onClick={submitAnswer}
-                   disabled={(() => {
-                     const isDisabled = loading || (!transcription.trim() && !codeAnswer.trim()) || isAISpeaking || 
-                       (isLiveCodingRound && isAiQuestioning && !isAiQuestionAnswered) ||
-                       (isSalesRound && isAiQuestioning && !isAiQuestionAnswered);
-                     console.log('🔍 Submit button disabled check:', {
-                       loading,
-                       noContent: (!transcription.trim() && !codeAnswer.trim()),
-                       isAISpeaking,
-                       codingBlock: (isLiveCodingRound && isAiQuestioning && !isAiQuestionAnswered),
-                       salesBlock: (isSalesRound && isAiQuestioning && !isAiQuestionAnswered),
-                       isAiQuestioning,
-                       isAiQuestionAnswered,
-                       isDisabled
-                     });
-                     return isDisabled;
-                   })()}
+                   disabled={loading || (!transcription.trim() && !codeAnswer.trim()) || isAISpeaking}
                   className={`flex items-center space-x-2 px-8 py-3 text-white rounded-xl font-black text-base transition-all duration-300 transform hover:scale-105 hover:-translate-y-1 disabled:transform-none shadow-2xl relative overflow-hidden ${
                     isDarkMode 
                       ? 'bg-gradient-to-r from-slate-800 via-blue-600 to-indigo-600 hover:from-slate-700 hover:via-blue-500 hover:to-indigo-500 disabled:from-gray-600 disabled:to-gray-600' 

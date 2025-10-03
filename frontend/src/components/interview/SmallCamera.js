@@ -15,7 +15,32 @@ const SmallCamera = ({
   useEffect(() => {
     if (cameraStream && videoRef.current) {
       videoRef.current.srcObject = cameraStream;
-      videoRef.current.play();
+      
+      // Handle video play with error handling
+      const playVideo = async () => {
+        try {
+          await videoRef.current.play();
+        } catch (error) {
+          // Handle play interruption gracefully
+          if (error.name === 'AbortError' || error.message.includes('interrupted')) {
+            console.log('🔄 Video play was interrupted, retrying...');
+            // Retry after a short delay
+            setTimeout(async () => {
+              try {
+                if (videoRef.current && videoRef.current.srcObject === cameraStream) {
+                  await videoRef.current.play();
+                }
+              } catch (retryError) {
+                console.log('🔄 Video retry failed, this is normal during stream changes');
+              }
+            }, 100);
+          } else {
+            console.error('❌ Video play error:', error);
+          }
+        }
+      };
+      
+      playVideo();
     }
   }, [cameraStream]);
 
