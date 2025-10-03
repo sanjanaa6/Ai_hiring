@@ -4,6 +4,7 @@
 
 ### 1. **Get OpenRouter API Key**
 
+
 1. Go to [OpenRouter.ai](https://openrouter.ai/)
 2. Sign up for an account
 3. Navigate to "API Keys" in your dashboard
