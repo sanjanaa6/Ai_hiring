@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Camera, AlertTriangle, CheckCircle } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import CameraDebug from '../CameraDebug';
@@ -39,6 +39,7 @@ const InterviewSetup = ({
         return 'Setting up camera...';
     }
   };
+
 
   return (
     <div className={`min-h-screen flex items-center justify-center p-4 ${

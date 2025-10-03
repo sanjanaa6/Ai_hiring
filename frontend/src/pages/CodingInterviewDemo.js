@@ -7,7 +7,6 @@ import ResizeObserverTest from '../components/ResizeObserverTest';
 import { 
   Code2, 
   Play, 
-  Settings, 
   Users, 
   Clock,
   Target,
@@ -20,7 +19,7 @@ import {
 const CodingInterviewDemo = () => {
   const { isDarkMode } = useTheme();
   const [selectedInterview, setSelectedInterview] = useState(null);
-  const [candidateInfo, setCandidateInfo] = useState({
+  const [candidateInfo] = useState({
     name: 'John Doe',
     email: 'john.doe@example.com',
     experience: '3 years',

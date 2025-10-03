@@ -4,18 +4,16 @@ import {
   Play, 
   RotateCcw, 
   CheckCircle, 
-  XCircle, 
   Zap,
   Code2,
   Settings,
-  Lock,
   Target,
   Brain,
   Mic,
   MicOff
 } from 'lucide-react';
 import aiService from '../services/aiService';
-import { useResizeObserver, cleanupResizeObservers } from '../utils/resizeObserver';
+import { cleanupResizeObservers } from '../utils/resizeObserver';
 
 const SuperCoolCodeEditor = ({ 
   language = 'javascript', 
@@ -72,7 +70,6 @@ const SuperCoolCodeEditor = ({
   
   const editorRef = useRef(null);
   const chatEndRef = useRef(null);
-  const codeUpdateTimeoutRef = useRef(null);
   const typingTimeoutRef = useRef(null);
 
   // Premium themes for the editor
@@ -223,82 +220,7 @@ const SuperCoolCodeEditor = ({
     }
   }, [conversationStep, isCodeDone, onConversationStateChange]);
 
-  // Generate test cases when question changes
-  useEffect(() => {
-    if (question && selectedLanguage) {
-      generateTestCases();
-    }
-  }, [question, selectedLanguage]);
-
-  // Reset everything when question changes (for next question)
-  useEffect(() => {
-    if (question) {
-      // Reset conversation state
-      setConversationStep(0);
-      setIsCodeDone(false);
-      setUserResponse('');
-      setIsResponding(false);
-      
-      // Clear chat
-      setLiveComments([]);
-      
-      // Clear test results (but keep test cases for new question)
-      setTestResults([]);
-      setIsRunningTests(false);
-      
-      // Reset code to starter code
-      setCode(starterCode || '// Start typing your code here...\n\n');
-      setOutput('');
-      
-      // Notify parent of reset
-      if (onCodeChange) {
-        onCodeChange(starterCode || '// Start typing your code here...\n\n');
-      }
-    }
-  }, [question, starterCode, onCodeChange]);
-
-  const generateTestCases = useCallback(async () => {
-    if (!question || !selectedLanguage) {
-      console.log('⚠️ [FRONTEND] Cannot generate test cases - missing question or language');
-      return;
-    }
-    
-    console.log('🧪 [FRONTEND] Generating test cases for question:', question);
-    console.log('🧪 [FRONTEND] Language:', selectedLanguage);
-    
-    setIsGeneratingTestCases(true);
-    try {
-      const data = {
-        question: question,
-        language: selectedLanguage,
-        generateTestCases: true
-      };
-
-      console.log('🧪 [FRONTEND] Sending request to backend:', data);
-      const result = await aiService.getCodingHints(sessionId, data);
-      console.log('🧪 [FRONTEND] Backend response:', result);
-      
-      if (result.success && result.data.testCases) {
-        setTestCases(result.data.testCases);
-        setTestResults([]); // Clear previous results
-        console.log(`✅ [FRONTEND] Generated ${result.data.testCases.length} test cases for new question:`, result.data.testCases);
-      } else {
-        // Fallback to basic test cases
-        const fallbackCases = generateBasicTestCases();
-        setTestCases(fallbackCases);
-        console.log(`⚠️ [FRONTEND] Using fallback test cases:`, fallbackCases);
-      }
-    } catch (error) {
-      console.error('❌ [FRONTEND] Error generating test cases:', error);
-      const fallbackCases = generateBasicTestCases();
-      setTestCases(fallbackCases);
-      console.log(`🔄 [FRONTEND] Using fallback after error:`, fallbackCases);
-    } finally {
-      setIsGeneratingTestCases(false);
-    }
-  }, [question, selectedLanguage, sessionId]);
-
-  const generateBasicTestCases = () => {
+  const generateBasicTestCases = useCallback(() => {
     console.log('🔄 [FRONTEND] Generating frontend fallback test cases for:', question);
     
     const lowerQuestion = question.toLowerCase();
@@ -408,7 +330,83 @@ const SuperCoolCodeEditor = ({
         description: "Test error handling"
       }
     ];
-  };
+  }, [question]);
+
+  const generateTestCases = useCallback(async () => {
+    if (!question || !selectedLanguage) {
+      console.log('⚠️ [FRONTEND] Cannot generate test cases - missing question or language');
+      return;
+    }
+    
+    console.log('🧪 [FRONTEND] Generating test cases for question:', question);
+    console.log('🧪 [FRONTEND] Language:', selectedLanguage);
+    
+    setIsGeneratingTestCases(true);
+    try {
+      const data = {
+        question: question,
+        language: selectedLanguage,
+        generateTestCases: true
+      };
+
+      console.log('🧪 [FRONTEND] Sending request to backend:', data);
+      const result = await aiService.getCodingHints(sessionId, data);
+      console.log('🧪 [FRONTEND] Backend response:', result);
+      
+      if (result.success && result.data.testCases) {
+        setTestCases(result.data.testCases);
+        setTestResults([]); // Clear previous results
+        console.log(`✅ [FRONTEND] Generated ${result.data.testCases.length} test cases for new question:`, result.data.testCases);
+      } else {
+        // Fallback to basic test cases
+        const fallbackCases = generateBasicTestCases();
+        setTestCases(fallbackCases);
+        console.log(`⚠️ [FRONTEND] Using fallback test cases:`, fallbackCases);
+      }
+    } catch (error) {
+      console.error('❌ [FRONTEND] Error generating test cases:', error);
+      const fallbackCases = generateBasicTestCases();
+      setTestCases(fallbackCases);
+      console.log(`🔄 [FRONTEND] Using fallback after error:`, fallbackCases);
+    } finally {
+      setIsGeneratingTestCases(false);
+    }
+  }, [question, selectedLanguage, sessionId, generateBasicTestCases]);
+
+  // Generate test cases when question changes
+  useEffect(() => {
+    if (question && selectedLanguage) {
+      generateTestCases();
+    }
+  }, [question, selectedLanguage, generateTestCases]);
+
+  // Reset everything when question changes (for next question)
+  useEffect(() => {
+    if (question) {
+      // Reset conversation state
+      setConversationStep(0);
+      setIsCodeDone(false);
+      setUserResponse('');
+      setIsResponding(false);
+      
+      // Clear chat
+      setLiveComments([]);
+      
+      // Clear test results (but keep test cases for new question)
+      setTestResults([]);
+      setIsRunningTests(false);
+      
+      // Reset code to starter code
+      setCode(starterCode || '// Start typing your code here...\n\n');
+      setOutput('');
+      
+      // Notify parent of reset
+      if (onCodeChange) {
+        onCodeChange(starterCode || '// Start typing your code here...\n\n');
+      }
+    }
+  }, [question, starterCode, onCodeChange]);
+
 
   // Removed automatic AI monitoring - now using manual "Done" button approach
 

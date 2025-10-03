@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../../context/AuthContext';
 import AdminLayout from '../components/AdminLayout';
 import { Users, Search, Edit, Trash2, Eye, Shield, UserCheck } from 'lucide-react';
 
 const AdminUsers = () => {
-  const { user } = useAuth();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');

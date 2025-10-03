@@ -5,7 +5,6 @@ import { motion } from 'framer-motion';
 import { useNavigate, Link } from 'react-router-dom';
 import apiService from '../../services/apiService';
 import { 
-  Bot, 
   Link as LinkIcon, 
   AlertCircle,
   User,
@@ -13,29 +12,20 @@ import {
   Search,
   FileText,
   Home,
-  BarChart3,
   Clock,
   CheckCircle,
   Play,
   Award,
-  TrendingUp,
   BookOpen,
   Target,
-  Users,
-  Star,
   ArrowRight,
   RefreshCw,
-  Menu,
-  X,
   LogOut,
   Settings,
   Activity,
-  PieChart,
   Clock3,
   Trophy,
-  ChevronRight,
-  Eye,
-  ExternalLink
+  Eye
 } from 'lucide-react';
 
 const UserDashboard = () => {
@@ -47,7 +37,6 @@ const UserDashboard = () => {
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
   const [progress, setProgress] = useState(null);
-  const [progressLoading, setProgressLoading] = useState(true);
 
   // Check if there's an interview link in URL params
   useEffect(() => {
@@ -65,7 +54,6 @@ const UserDashboard = () => {
 
   const fetchUserProgress = async () => {
     try {
-      setProgressLoading(true);
       const result = await apiService.getUserProgress();
       
       if (result.success) {
@@ -73,8 +61,6 @@ const UserDashboard = () => {
       }
     } catch (err) {
       console.error('Error fetching progress:', err);
-    } finally {
-      setProgressLoading(false);
     }
   };
 

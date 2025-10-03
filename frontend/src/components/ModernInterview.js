@@ -3,11 +3,13 @@ import { useTheme } from '../context/ThemeContext';
 import { useInterviewState } from '../hooks/useInterviewState';
 import { useCamera } from '../hooks/useCamera';
 import { useVoiceRecording } from '../hooks/useVoiceRecording';
+import { useEyeTracking } from '../hooks/useEyeTracking';
 import InterviewSetup from './interview/InterviewSetup';
 import RoundSelection from './interview/RoundSelection';
 import InterviewMain from './interview/InterviewMain';
 import InterviewComplete from './interview/InterviewComplete';
 import FileUploadRound from './FileUploadRound';
+import EyeTrackingMonitor from './EyeTrackingMonitor';
 import aiLanguageDetectionService from '../services/aiLanguageDetectionService';
 import apiService from '../services/apiService';
 import ttsService from '../services/ttsService';
@@ -32,6 +34,7 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
   const interviewState = useInterviewState();
   const camera = useCamera();
   const voiceRecording = useVoiceRecording();
+  const eyeTracking = useEyeTracking(interviewId);
   
   // Ref to track camera initialization
   const cameraInitialized = useRef(false);
@@ -440,8 +443,23 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
   // Handle restart interview
   const handleRestartInterview = useCallback(() => {
     resetInterviewState();
+    eyeTracking.resetViolations();
     setStep('setup');
-  }, [resetInterviewState, setStep]);
+  }, [resetInterviewState, setStep, eyeTracking]);
+
+  // Handle user removal due to violations
+  const handleRemoveUser = useCallback(() => {
+    console.log('🚨 Removing user from interview due to violations');
+    setError('Interview terminated due to multiple violations. Please contact support if you believe this is an error.');
+    eyeTracking.stopTracking();
+    eyeTracking.resetViolations(); // Reset violations when removing user
+  }, [setError, eyeTracking]);
+
+  // Handle violation threshold
+  const handleViolationThreshold = useCallback((count, max) => {
+    console.log(`⚠️ Violation threshold reached: ${count}/${max}`);
+    // Could send notification to backend here
+  }, []);
 
   // Initialize camera on mount
   useEffect(() => {
@@ -462,6 +480,13 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
 
     initCamera();
   }, [camera, setError]);
+
+  // Start eye tracking when interview is active
+  useEffect(() => {
+    if (step === 'interview' && !eyeTracking.isTracking && !error) {
+      eyeTracking.startTracking();
+    }
+  }, [step, eyeTracking.isTracking, eyeTracking, error]);
 
   // Load interview data on mount
   useEffect(() => {
@@ -616,41 +641,53 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
 
     case 'interview':
       return (
-        <InterviewMain
-          interviewId={interviewId}
-          currentRound={currentRound}
-          currentQuestion={currentQuestion}
-          questionIndex={questionIndex}
-          timeRemaining={timeRemaining}
-          isAISpeaking={isAISpeaking}
-          isRecording={voiceRecording.isRecording}
-          transcription={voiceRecording.transcription}
-          interimTranscription={voiceRecording.interimTranscription}
-          codeAnswer={codeAnswer}
-          selectedLanguage={selectedLanguage}
-          isLanguageLocked={isLanguageLocked}
-          aiDeterminedLanguage={aiDeterminedLanguage}
-          showCodeEditor={showCodeEditor}
-          isCodeEditorFullscreen={isCodeEditorFullscreen}
-          isLiveCodingRound={isLiveCodingRound}
-          isSalesRound={isSalesRound}
-          isAiQuestioning={false}
-          aiQuestions={[]}
-          currentAiQuestionIndex={0}
-          cameraStream={camera.cameraStream}
-          onStartRecording={voiceRecording.startRecording}
-          onStopRecording={voiceRecording.stopRecording}
-          onSkipQuestion={moveToNextQuestion}
-          onNextQuestion={moveToNextQuestion}
-          onSubmitAnswer={submitCurrentAnswer}
-          onCodeChange={setCodeAnswer}
-          onLanguageChange={setSelectedLanguage}
-          onToggleCodeEditor={() => setShowCodeEditor(!showCodeEditor)}
-          onToggleFullscreen={() => setIsCodeEditorFullscreen(!isCodeEditorFullscreen)}
-          onToggleAISpeaking={() => setIsAISpeaking(!isAISpeaking)}
-          onAnswerAIQuestion={() => {}}
-          interviewData={interviewData}
-        />
+        <>
+          <InterviewMain
+            interviewId={interviewId}
+            currentRound={currentRound}
+            currentQuestion={currentQuestion}
+            questionIndex={questionIndex}
+            timeRemaining={timeRemaining}
+            isAISpeaking={isAISpeaking}
+            isRecording={voiceRecording.isRecording}
+            transcription={voiceRecording.transcription}
+            interimTranscription={voiceRecording.interimTranscription}
+            codeAnswer={codeAnswer}
+            selectedLanguage={selectedLanguage}
+            isLanguageLocked={isLanguageLocked}
+            aiDeterminedLanguage={aiDeterminedLanguage}
+            showCodeEditor={showCodeEditor}
+            isCodeEditorFullscreen={isCodeEditorFullscreen}
+            isLiveCodingRound={isLiveCodingRound}
+            isSalesRound={isSalesRound}
+            isAiQuestioning={false}
+            aiQuestions={[]}
+            currentAiQuestionIndex={0}
+            cameraStream={camera.cameraStream}
+            onStartRecording={voiceRecording.startRecording}
+            onStopRecording={voiceRecording.stopRecording}
+            onSkipQuestion={moveToNextQuestion}
+            onNextQuestion={moveToNextQuestion}
+            onSubmitAnswer={submitCurrentAnswer}
+            onCodeChange={setCodeAnswer}
+            onLanguageChange={setSelectedLanguage}
+            onToggleCodeEditor={() => setShowCodeEditor(!showCodeEditor)}
+            onToggleFullscreen={() => setIsCodeEditorFullscreen(!isCodeEditorFullscreen)}
+            onToggleAISpeaking={() => setIsAISpeaking(!isAISpeaking)}
+            onAnswerAIQuestion={() => {}}
+            interviewData={interviewData}
+          />
+          
+          {/* Eye Tracking Monitor */}
+          <EyeTrackingMonitor
+            gazeDirection={eyeTracking.gazeDirection}
+            violationCount={eyeTracking.violationCount}
+            maxViolations={eyeTracking.MAX_VIOLATIONS}
+            isLookingAway={eyeTracking.isLookingAway}
+            onRemoveUser={handleRemoveUser}
+          />
+
+        </>
       );
 
     case 'file-upload':

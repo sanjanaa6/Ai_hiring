@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
   Mic, 
   MicOff, 
@@ -8,12 +8,10 @@ import {
   Code, 
   Clock,
   CheckCircle,
-  AlertTriangle,
   Play,
   Pause
 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
-import CodeEditor from '../CodeEditor';
 import SuperCoolCodeEditor from '../SuperCoolCodeEditor';
 import SmallCamera from './SmallCamera';
 import CodingRound from './CodingRound';
@@ -57,7 +55,6 @@ const InterviewMain = ({
   const { isDarkMode } = useTheme();
   const [isMinimized, setIsMinimized] = useState(false);
   const [showTranscription, setShowTranscription] = useState(true);
-  const videoRef = useRef(null);
 
   // Check if this is a developer interview with coding rounds
   const isDeveloperInterview = aiTestCaseService.isDeveloperInterview(interviewData);

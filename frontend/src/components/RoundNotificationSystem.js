@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import { validateCandidateAccess, getCurrentRoundStatus } from '../utils/timeValidation';
-import { Bell, BellOff, Clock, CheckCircle, XCircle, AlertTriangle, Info } from 'lucide-react';
+import { Bell, BellOff, Clock, CheckCircle, XCircle, Info } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const RoundNotificationSystem = ({ 
@@ -16,7 +16,7 @@ const RoundNotificationSystem = ({
   const [lastUpdate, setLastUpdate] = useState(new Date());
 
   // Generate notifications based on schedule status
-  const generateNotifications = () => {
+  const generateNotifications = useCallback(() => {
     const newNotifications = [];
     
     schedules.forEach(schedule => {
@@ -75,14 +75,14 @@ const RoundNotificationSystem = ({
     
     // Call status change callback
     onStatusChange?.(newNotifications);
-  };
+  }, [schedules, onStatusChange]);
 
   // Initial notification generation
   useEffect(() => {
     if (schedules.length > 0) {
       generateNotifications();
     }
-  }, [schedules]);
+  }, [schedules, generateNotifications]);
 
   // Auto-refresh notifications
   useEffect(() => {
@@ -93,7 +93,7 @@ const RoundNotificationSystem = ({
     }, 30000); // Update every 30 seconds
 
     return () => clearInterval(interval);
-  }, [autoRefresh, schedules]);
+  }, [autoRefresh, schedules, generateNotifications]);
 
   // Get notification summary
   const getNotificationSummary = () => {
@@ -106,7 +106,6 @@ const RoundNotificationSystem = ({
 
   const summary = getNotificationSummary();
   const hasActiveRounds = summary.activeCount > 0;
-  const hasUpcomingRounds = summary.upcomingCount > 0;
 
   const getPriorityColor = (priority) => {
     switch (priority) {

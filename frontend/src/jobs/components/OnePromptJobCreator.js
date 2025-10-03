@@ -15,7 +15,6 @@ import {
 const OnePromptJobCreator = ({ onClose, onJobCreated }) => {
   const queryClient = useQueryClient();
   const [prompt, setPrompt] = useState('');
-  const [generatedJob, setGeneratedJob] = useState(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isPosting, setIsPosting] = useState(false);
   const [editableJob, setEditableJob] = useState(null);
@@ -27,7 +26,6 @@ const OnePromptJobCreator = ({ onClose, onJobCreated }) => {
     },
     {
       onSuccess: (data) => {
-        setGeneratedJob(data);
         setEditableJob(data);
         toast.success('Job details generated successfully!');
       },
@@ -440,7 +438,6 @@ const OnePromptJobCreator = ({ onClose, onJobCreated }) => {
                     </button>
                     <button
                       onClick={() => {
-                        setGeneratedJob(null);
                         setEditableJob(null);
                       }}
                       className="btn btn-secondary"

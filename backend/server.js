@@ -60,6 +60,7 @@ app.use('/api/coding-tutor', require('./routes/codingTutor'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/tts', require('./routes/tts'));
 app.use('/api/files', require('./routes/fileUpload'));
+app.use('/api/eye-tracking', require('./routes/eyeTracking'));
 
 
 

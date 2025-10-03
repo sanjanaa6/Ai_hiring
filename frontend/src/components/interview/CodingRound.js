@@ -1,29 +1,19 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Code2, 
-  Play, 
-  RotateCcw, 
   CheckCircle, 
-  XCircle, 
   Clock, 
   Target,
   Brain,
-  Zap,
-  Mic,
-  MicOff,
   Volume2,
   VolumeX,
   SkipForward,
-  AlertTriangle,
   Eye,
-  EyeOff,
-  Loader2,
-  Lock
+  EyeOff
 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import SuperCoolCodeEditor from '../SuperCoolCodeEditor';
 import SmallCamera from './SmallCamera';
-import aiTestCaseService from '../../services/aiTestCaseService';
 import { cleanupResizeObservers } from '../../utils/resizeObserver';
 
 const CodingRound = ({
@@ -54,8 +44,6 @@ const CodingRound = ({
   const [showHints, setShowHints] = useState(false);
   const [codeQuality, setCodeQuality] = useState(0);
   const [linesOfCode, setLinesOfCode] = useState(0);
-  const [isTyping, setIsTyping] = useState(false);
-  const [lastExecutionTime, setLastExecutionTime] = useState(null);
   const [conversationState, setConversationState] = useState({
     conversationStep: 0,
     isCodeDone: false,
@@ -551,3 +539,5 @@ const CodingRound = ({
 };
 
 export default CodingRound;
+
+
