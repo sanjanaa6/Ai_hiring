@@ -3,5 +3,3 @@ module.exports = {
     allowedHosts: "all",
   },
 };
-
-
