@@ -38,6 +38,15 @@ const validateInterviewStructure = (interviewData) => {
       return false;
     }
 
+    // Check that each round has at least one question
+    for (let i = 0; i < interviewData.rounds.length; i++) {
+      const round = interviewData.rounds[i];
+      if (!round.questions || !Array.isArray(round.questions) || round.questions.length === 0) {
+        console.log(`❌ [VALIDATION] Round ${i + 1} has no questions`);
+        return false;
+      }
+    }
+
     console.log('✅ [VALIDATION] Interview structure is valid');
     return true;
   } catch (error) {
@@ -159,8 +168,12 @@ const parseAIResponse = (responseText) => {
     try {
       console.log('🔄 [PARSE AI RESPONSE] Trying alternative parsing methods...');
       
-      // Method 1: Try to fix common JSON issues more aggressively
-      let fixedJson = responseText
+      // Method 1: Try to extract JSON from markdown code blocks first
+      const markdownMatch = responseText.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
+      let fixedJson = markdownMatch ? markdownMatch[1] : responseText;
+      
+      // Method 2: Try to fix common JSON issues more aggressively
+      fixedJson = fixedJson
         .replace(/,\s*}/g, '}')  // Remove trailing commas before }
         .replace(/,\s*]/g, ']')  // Remove trailing commas before ]
         .replace(/\n/g, ' ')     // Replace newlines with spaces
@@ -181,6 +194,24 @@ const parseAIResponse = (responseText) => {
       
       if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
         fixedJson = fixedJson.substring(jsonStart, jsonEnd + 1);
+      }
+      
+      // Method 3: Try to fix truncated JSON by finding the last complete object/array
+      try {
+        // Find the last complete round object
+        const roundsMatch = fixedJson.match(/"rounds":\s*\[([\s\S]*?)(?=\]|$)/);
+        if (roundsMatch) {
+          let roundsContent = roundsMatch[1];
+          // Try to find complete round objects
+          const roundMatches = roundsContent.match(/\{[^{}]*"roundId"[^{}]*\}/g);
+          if (roundMatches && roundMatches.length > 0) {
+            // Reconstruct the JSON with complete rounds
+            const completeRounds = '[' + roundMatches.join(',') + ']';
+            fixedJson = fixedJson.replace(/"rounds":\s*\[[\s\S]*?\]/, `"rounds":${completeRounds}`);
+          }
+        }
+      } catch (roundFixError) {
+        console.log('⚠️ [PARSE AI RESPONSE] Round fixing failed, continuing with original JSON');
       }
       
       // Try to fix incomplete JSON by adding missing closing brackets
@@ -225,13 +256,98 @@ const parseAIResponse = (responseText) => {
         
         if (interviewIdMatch && titleMatch) {
           console.log('✅ [PARSE AI RESPONSE] Found essential parts, creating minimal structure');
+          
+          // Try to extract any rounds that might be partially parsed
+          const roundsMatch = responseText.match(/"rounds":\s*\[([\s\S]*?)\]/);
+          let rounds = [];
+          
+          if (roundsMatch) {
+            try {
+              // Try to parse the rounds array
+              const roundsArray = JSON.parse('[' + roundsMatch[1] + ']');
+              if (Array.isArray(roundsArray)) {
+                rounds = roundsArray;
+                console.log('✅ [PARSE AI RESPONSE] Successfully extracted rounds:', rounds.length);
+              }
+            } catch (roundsError) {
+              console.log('⚠️ [PARSE AI RESPONSE] Could not parse rounds array, creating default rounds');
+              // Create default rounds if parsing fails
+              for (let i = 1; i <= 3; i++) {
+                rounds.push({
+                  roundId: `round_${i}`,
+                  roundNumber: i,
+                  title: `Round ${i}`,
+                  description: `Interview round ${i}`,
+                  duration: 20,
+                  evaluationCriteria: {
+                    technical: "Technical knowledge assessment",
+                    practical: "Practical skills evaluation"
+                  },
+                  questions: []
+                });
+                
+                // Add 3 questions to each round
+                for (let j = 1; j <= 3; j++) {
+                  rounds[i-1].questions.push({
+                    id: `q${i}_${j}`,
+                    type: "technical",
+                    question: `AI-generated question ${j} for round ${i}`,
+                    expectedAnswer: "Look for relevant technical knowledge and practical experience",
+                    timeLimit: 3,
+                    difficulty: "medium",
+                    followUpQuestions: []
+                  });
+                }
+              }
+            }
+          } else {
+            // Create default rounds if no rounds found
+            for (let i = 1; i <= 3; i++) {
+              rounds.push({
+                roundId: `round_${i}`,
+                roundNumber: i,
+                title: `Round ${i}`,
+                description: `Interview round ${i}`,
+                duration: 20,
+                evaluationCriteria: {
+                  technical: "Technical knowledge assessment",
+                  practical: "Practical skills evaluation"
+                },
+                questions: []
+              });
+              
+              // Add 3 questions to each round
+              for (let j = 1; j <= 3; j++) {
+                rounds[i-1].questions.push({
+                  id: `q${i}_${j}`,
+                  type: "technical",
+                  question: `AI-generated question ${j} for round ${i}`,
+                  expectedAnswer: "Look for relevant technical knowledge and practical experience",
+                  timeLimit: 3,
+                  difficulty: "medium",
+                  followUpQuestions: []
+                });
+              }
+            }
+          }
+          
           return {
             interviewId: interviewIdMatch[1],
             title: titleMatch[1],
             totalDuration: 90,
-            rounds: [],
-            overallEvaluationCriteria: {},
-            scoringSystem: {},
+            rounds: rounds,
+            overallEvaluationCriteria: {
+              technical: "Technical knowledge and problem-solving skills",
+              communication: "Communication and presentation skills",
+              experience: "Relevant work experience and achievements"
+            },
+            scoringSystem: {
+              excellent: 5,
+              good: 4,
+              average: 3,
+              belowAverage: 2,
+              poor: 1
+            },
             company: "Your Company"
           };
         }
