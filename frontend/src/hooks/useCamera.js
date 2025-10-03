@@ -58,23 +58,24 @@ export const useCamera = () => {
 
   // Connect video element to camera stream
   useEffect(() => {
-    if (cameraStream && videoRef.current) {
+    const videoElement = videoRef.current;
+    if (cameraStream && videoElement) {
       console.log('🔗 Connecting camera stream to video element...');
       
       // Stop any existing playback first
-      if (videoRef.current.srcObject) {
+      if (videoElement.srcObject) {
         console.log('🛑 Stopping existing video stream...');
-        videoRef.current.pause();
-        videoRef.current.srcObject = null;
+        videoElement.pause();
+        videoElement.srcObject = null;
         // Wait a bit for the stream to fully stop
         setTimeout(() => {
-          if (videoRef.current) {
-            videoRef.current.srcObject = cameraStream;
+          if (videoElement) {
+            videoElement.srcObject = cameraStream;
           }
         }, 50);
       } else {
         // Set the new stream immediately if no existing stream
-        videoRef.current.srcObject = cameraStream;
+        videoElement.srcObject = cameraStream;
       }
       
       // Set up event listeners for video loading
@@ -82,10 +83,10 @@ export const useCamera = () => {
         console.log('📹 Video metadata loaded');
         // Use a longer delay to ensure the stream is fully ready
         setTimeout(() => {
-          if (videoRef.current && videoRef.current.srcObject === cameraStream) {
+          if (videoElement && videoElement.srcObject === cameraStream) {
             // Check if video is ready to play
-            if (videoRef.current.readyState >= 2) {
-              videoRef.current.play().then(() => {
+            if (videoElement.readyState >= 2) {
+              videoElement.play().then(() => {
                 console.log('✅ Video element connected and playing');
                 setCameraStatus('playing');
               }).catch((err) => {
@@ -95,8 +96,8 @@ export const useCamera = () => {
                   console.log('🔄 Play was interrupted, retrying...');
                   // Retry after a short delay
                   setTimeout(() => {
-                    if (videoRef.current && videoRef.current.srcObject === cameraStream) {
-                      videoRef.current.play().then(() => {
+                    if (videoElement && videoElement.srcObject === cameraStream) {
+                      videoElement.play().then(() => {
                         console.log('✅ Video retry successful');
                         setCameraStatus('playing');
                       }).catch((retryErr) => {
@@ -125,21 +126,21 @@ export const useCamera = () => {
       };
 
       // Add event listeners
-      videoRef.current.addEventListener('loadedmetadata', handleLoadedMetadata, { once: true });
-      videoRef.current.addEventListener('canplay', handleCanPlay, { once: true });
-      videoRef.current.addEventListener('error', handleError, { once: true });
+      videoElement.addEventListener('loadedmetadata', handleLoadedMetadata, { once: true });
+      videoElement.addEventListener('canplay', handleCanPlay, { once: true });
+      videoElement.addEventListener('error', handleError, { once: true });
 
       // If video is already ready, play immediately
-      if (videoRef.current.readyState >= 2) {
+      if (videoElement.readyState >= 2) {
         handleLoadedMetadata();
       }
 
       // Cleanup function
       return () => {
-        if (videoRef.current) {
-          videoRef.current.removeEventListener('loadedmetadata', handleLoadedMetadata);
-          videoRef.current.removeEventListener('canplay', handleCanPlay);
-          videoRef.current.removeEventListener('error', handleError);
+        if (videoElement) {
+          videoElement.removeEventListener('loadedmetadata', handleLoadedMetadata);
+          videoElement.removeEventListener('canplay', handleCanPlay);
+          videoElement.removeEventListener('error', handleError);
         }
       };
     }

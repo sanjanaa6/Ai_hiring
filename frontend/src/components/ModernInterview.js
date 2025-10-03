@@ -461,7 +461,7 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
     };
 
     initCamera();
-  }, [camera.initializeCamera, setError]);
+  }, [camera, setError]);
 
   // Load interview data on mount
   useEffect(() => {
