@@ -259,7 +259,7 @@ class ApiService {
 
   async getUserProfile() {
     try {
-      const response = await this.client.get('/users/profile');
+      const response = await this.client.get('/auth/me');
       return response.data;
     } catch (error) {
       // eslint-disable-next-line no-console
@@ -809,7 +809,117 @@ class ApiService {
       };
     }
   }
+
+  // File Upload Methods
+  async uploadInterviewFile(interviewId, formData) {
+    try {
+      const response = await this.client.post(`/files/interviews/${interviewId}/upload`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      return response.data;
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('Upload interview file error:', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to upload file'
+      };
+    }
+  }
+
+  async getCandidateUploads(interviewId, roundId = null) {
+    try {
+      const params = roundId ? { roundId } : {};
+      const response = await this.client.get(`/files/interviews/${interviewId}/uploads`, { params });
+      return response.data;
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('Get candidate uploads error:', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to get uploads'
+      };
+    }
+  }
+
+  async getInterviewFileUploads(interviewId) {
+    try {
+      const response = await this.client.get(`/files/interviews/${interviewId}/all-uploads`);
+      return response.data;
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('Get interview file uploads error:', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to get interview file uploads'
+      };
+    }
+  }
+
+  async downloadFile(interviewId, fileName) {
+    try {
+      const response = await this.client.get(`/files/interviews/${interviewId}/files/${fileName}/download`, {
+        responseType: 'blob'
+      });
+      return response;
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('Download file error:', error);
+      throw error;
+    }
+  }
+
+  async downloadInterviewFile(interviewId, fileName) {
+    try {
+      const response = await this.client.get(`/files/interviews/${interviewId}/files/${fileName}/download`, {
+        responseType: 'blob'
+      });
+      return response;
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('Download interview file error:', error);
+      throw error;
+    }
+  }
+
+  async reviewFile(interviewId, fileName, status, reviewNotes = '') {
+    try {
+      const response = await this.client.put(`/files/interviews/${interviewId}/files/${fileName}/review`, {
+        status,
+        reviewNotes
+      });
+      return response.data;
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('Review file error:', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to review file'
+      };
+    }
+  }
+
+  async reviewInterviewFile(interviewId, fileName, status, reviewNotes = '') {
+    try {
+      const response = await this.client.put(`/files/interviews/${interviewId}/files/${fileName}/review`, {
+        status,
+        reviewNotes
+      });
+      return response.data;
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('Review interview file error:', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to review interview file'
+      };
+    }
+  }
 }
 
 const apiService = new ApiService();
 export default apiService;
+
+

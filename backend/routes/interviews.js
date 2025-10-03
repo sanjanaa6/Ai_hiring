@@ -4,6 +4,7 @@ const { auth } = require('../middleware/auth');
 
 // Import all handlers
 const {
+  createInterview,
   getAllInterviews,
   getInterviewById,
   getPublicInterview,
@@ -107,6 +108,9 @@ router.get('/', auth, getAllInterviews);
 
 // Generate interview
 router.post('/generate', auth, generateInterview);
+
+// Create interview
+router.post('/create', auth, createInterview);
 
 // ===== INTERVIEW-SPECIFIC AUTHENTICATED ROUTES =====
 

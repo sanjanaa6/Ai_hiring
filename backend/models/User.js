@@ -135,8 +135,16 @@ const userSchema = new mongoose.Schema({
         timeSpent: { type: Number, default: 0 }
       }]
     }],
+    fileUploads: [{
+      roundId: { type: String, required: true },
+      requirementId: { type: String, required: true },
+      fileName: { type: String, required: true },
+      originalFileName: { type: String, required: true },
+      uploadedAt: { type: Date, default: Date.now }
+    }],
     totalTimeSpent: { type: Number, default: 0 },
-    lastAccessedAt: { type: Date, default: Date.now }
+    lastAccessedAt: { type: Date, default: Date.now },
+    lastActivity: { type: Date, default: Date.now }
   }]
 }, {
   timestamps: true

@@ -59,6 +59,7 @@ app.use('/api/ai', require('./routes/aiLanguageDetection'));
 app.use('/api/coding-tutor', require('./routes/codingTutor'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/tts', require('./routes/tts'));
+app.use('/api/files', require('./routes/fileUpload'));
 
 
 

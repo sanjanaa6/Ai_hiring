@@ -973,6 +973,7 @@ The interview should feel natural and relevant to someone applying for this spec
                   className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-12"
                 ></motion.div>
               </motion.button>
+
             </div>
           </motion.div>
 
@@ -3448,6 +3449,7 @@ The interview should feel natural and relevant to someone applying for this spec
           }}
         />
       )}
+
     </div>
   );
 };

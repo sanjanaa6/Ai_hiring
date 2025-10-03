@@ -3,6 +3,107 @@ const Interview = require('../models/Interview');
 const { auth } = require('../middleware/auth');
 const { validateInterviewStructure, extractJobDetailsFromPrompt } = require('../utils/interviewUtils');
 const { createStructuredInterview } = require('../services/aiInterviewService');
+const crypto = require('crypto');
+
+// Create interview endpoint
+const createInterview = async (req, res) => {
+  console.log('📝 [CREATE INTERVIEW] Creating new interview for user:', req.user.id);
+  console.log('📋 [CREATE INTERVIEW] Interview data:', req.body);
+  
+  try {
+    const {
+      title,
+      jobTitle,
+      jobDescription,
+      jobRequirements,
+      jobLevel,
+      totalDuration,
+      rounds
+    } = req.body;
+
+    // Validate required fields
+    if (!title || !jobTitle || !jobDescription) {
+      return res.status(400).json({
+        success: false,
+        error: 'Title, job title, and job description are required'
+      });
+    }
+
+    if (!rounds || rounds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'At least one round is required'
+      });
+    }
+
+    // Generate unique interview ID
+    const interviewId = `interview_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
+
+    // Create interview object
+    const interview = new Interview({
+      interviewId: interviewId,
+      title: title,
+      jobTitle: jobTitle,
+      jobDescription: jobDescription,
+      jobRequirements: jobRequirements || '',
+      jobLevel: jobLevel || 'Mid-level',
+      totalDuration: totalDuration || 60,
+      rounds: rounds,
+      approvalStatus: 'pending',
+      createdBy: req.user.id,
+      status: 'active',
+      overallEvaluationCriteria: {
+        technical: '',
+        communication: '',
+        problemSolving: '',
+        culturalFit: '',
+        leadership: '',
+        motivation: ''
+      },
+      scoringSystem: {
+        excellent: '4 - Exceeds expectations',
+        good: '3 - Meets expectations',
+        satisfactory: '2 - Partially meets expectations',
+        needsImprovement: '1 - Below expectations'
+      }
+    });
+
+    // Generate access links for all rounds
+    interview.generateAccessLinks();
+
+    // Save interview
+    await interview.save();
+
+    console.log('✅ [CREATE INTERVIEW] Interview created successfully:', interviewId);
+
+    res.json({
+      success: true,
+      data: {
+        interviewId: interview.interviewId,
+        title: interview.title,
+        jobTitle: interview.jobTitle,
+        totalDuration: interview.totalDuration,
+        rounds: interview.rounds.length,
+        approvalStatus: interview.approvalStatus,
+        createdAt: interview.createdAt,
+        link: `/recruiter/review/${interview.interviewId}`
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ [CREATE INTERVIEW] Error occurred:', error.message);
+    console.error('🔍 [CREATE INTERVIEW] Error details:', {
+      name: error.name,
+      message: error.message,
+      stack: error.stack?.substring(0, 500) + '...'
+    });
+
+    res.status(500).json({
+      success: false,
+      error: 'Failed to create interview'
+    });
+  }
+};
 
 // Get all interviews for user endpoint (must come before /:interviewId route)
 const getAllInterviews = async (req, res) => {
@@ -231,7 +332,9 @@ const updateInterview = async (req, res) => {
     // Validate and clean rounds data before saving
     if (updateFields.rounds && Array.isArray(updateFields.rounds)) {
       console.log('🧹 [UPDATE INTERVIEW] Cleaning rounds data before saving...');
+      console.log('🧹 [UPDATE INTERVIEW] Original rounds data:', JSON.stringify(updateFields.rounds, null, 2));
       updateFields.rounds = updateFields.rounds.map((round, index) => {
+        console.log(`🧹 [UPDATE INTERVIEW] Processing round ${index + 1}:`, JSON.stringify(round, null, 2));
         // Clean and validate questions
         let cleanQuestions = (round.questions || []).map((question, qIndex) => ({
           id: question.id || `q${index + 1}_${qIndex + 1}`,
@@ -243,8 +346,8 @@ const updateInterview = async (req, res) => {
           followUpQuestions: question.followUpQuestions || []
         }));
         
-        // If no questions exist, add a default question
-        if (cleanQuestions.length === 0) {
+        // If no questions exist and it's an interview round, add a default question
+        if (cleanQuestions.length === 0 && round.type !== 'file_upload') {
           cleanQuestions = [{
             id: `q${index + 1}_1`,
             type: 'technical',
@@ -254,7 +357,7 @@ const updateInterview = async (req, res) => {
             difficulty: 'medium',
             followUpQuestions: []
           }];
-          console.log(`🔧 [UPDATE INTERVIEW] Added default question to empty round ${index + 1}`);
+          console.log(`🔧 [UPDATE INTERVIEW] Added default question to empty interview round ${index + 1}`);
         }
         
         // Ensure required fields have default values
@@ -264,7 +367,7 @@ const updateInterview = async (req, res) => {
           title: round.title || `Round ${index + 1}`,
           description: round.description || `Round ${index + 1} description`,
           duration: round.duration || 10, // Default to 10 minutes if missing
-          questions: cleanQuestions,
+          type: round.type || 'interview', // Preserve round type
           evaluationCriteria: round.evaluationCriteria || {
             technical: '',
             communication: '',
@@ -274,6 +377,19 @@ const updateInterview = async (req, res) => {
             motivation: ''
           }
         };
+
+        // Handle different round types
+        if (round.type === 'file_upload') {
+          // For file upload rounds, preserve fileUploadRequirements and remove questions
+          cleanedRound.fileUploadRequirements = round.fileUploadRequirements || [];
+          delete cleanedRound.questions; // Remove questions field for file upload rounds
+          console.log(`📁 [UPDATE INTERVIEW] Preserving file upload round ${index + 1} with ${cleanedRound.fileUploadRequirements.length} requirements`);
+        } else {
+          // For interview rounds, use questions and remove fileUploadRequirements
+          cleanedRound.questions = cleanQuestions;
+          delete cleanedRound.fileUploadRequirements; // Remove fileUploadRequirements field for interview rounds
+          console.log(`💬 [UPDATE INTERVIEW] Preserving interview round ${index + 1} with ${cleanQuestions.length} questions`);
+        }
         
         // Log if we're fixing a null duration
         if (round.duration === null || round.duration === undefined) {
@@ -459,6 +575,7 @@ const generateInterview = async (req, res) => {
 };
 
 module.exports = {
+  createInterview,
   getAllInterviews,
   getInterviewById,
   getPublicInterview,

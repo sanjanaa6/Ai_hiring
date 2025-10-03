@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useRef } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import { useInterviewState } from '../hooks/useInterviewState';
 import { useCamera } from '../hooks/useCamera';
@@ -7,6 +7,7 @@ import InterviewSetup from './interview/InterviewSetup';
 import RoundSelection from './interview/RoundSelection';
 import InterviewMain from './interview/InterviewMain';
 import InterviewComplete from './interview/InterviewComplete';
+import FileUploadRound from './FileUploadRound';
 import aiLanguageDetectionService from '../services/aiLanguageDetectionService';
 import apiService from '../services/apiService';
 import ttsService from '../services/ttsService';
@@ -32,10 +33,10 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
   const camera = useCamera();
   const voiceRecording = useVoiceRecording();
   
-  // Refs
-  const recognitionRef = useRef(null);
-  const handleAIQuestionAnswerRef = useRef(null);
-  const handleVoiceRecordingCompleteForAIRef = useRef(null);
+  // Refs - commented out unused refs
+  // const recognitionRef = useRef(null);
+  // const handleAIQuestionAnswerRef = useRef(null);
+  // const handleVoiceRecordingCompleteForAIRef = useRef(null);
 
   // Destructure state and setters
   const {
@@ -45,14 +46,14 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
     userProgress, setUserProgress,
     currentQuestion, setCurrentQuestion,
     currentRound, setCurrentRound,
-    timeRemaining, setTimeRemaining,
+    timeRemaining, // setTimeRemaining,
     isAISpeaking, setIsAISpeaking,
     questionIndex, setQuestionIndex,
-    roundIndex, setRoundIndex,
+    // roundIndex, setRoundIndex,
     allRounds, setAllRounds,
     completedRounds, setCompletedRounds,
-    networkRetryCount, setNetworkRetryCount,
-    questionStartCountdown, setQuestionStartCountdown,
+    // networkRetryCount, setNetworkRetryCount,
+    // questionStartCountdown, setQuestionStartCountdown,
     isLiveCodingRound, setIsLiveCodingRound,
     isSalesRound, setIsSalesRound,
     codeAnswer, setCodeAnswer,
@@ -61,14 +62,14 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
     aiDeterminedLanguage, setAiDeterminedLanguage,
     showCodeEditor, setShowCodeEditor,
     isCodeEditorFullscreen, setIsCodeEditorFullscreen,
-    aiQuestions, setAiQuestions,
-    currentAiQuestionIndex, setCurrentAiQuestionIndex,
-    isAiQuestioning, setIsAiQuestioning,
-    aiQuestionAnswers, setAiQuestionAnswers,
+    // aiQuestions, setAiQuestions,
+    // currentAiQuestionIndex, setCurrentAiQuestionIndex,
+    // isAiQuestioning, setIsAiQuestioning,
+    // aiQuestionAnswers, setAiQuestionAnswers,
     interviewData, setInterviewData,
-    aiQuestionMap, setAiQuestionMap,
-    isCodeDone, setIsCodeDone,
-    isAiQuestionAnswered, setIsAiQuestionAnswered,
+    // aiQuestionMap, setAiQuestionMap,
+    // isCodeDone, setIsCodeDone,
+    // isAiQuestionAnswered, setIsAiQuestionAnswered,
     resetInterviewState
   } = interviewState;
 
@@ -135,31 +136,31 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
     }
   }, [interviewId, interviewData, setAllRounds, setError]);
 
-  // Refresh user progress
-  const refreshUserProgress = useCallback(async () => {
-    try {
-      const isAuthenticated = localStorage.getItem('token') || sessionStorage.getItem('token');
-      if (!isAuthenticated) {
-        console.log('🔒 User not authenticated, skipping progress refresh');
-        return;
-      }
+  // Refresh user progress - commented out unused function
+  // const refreshUserProgress = useCallback(async () => {
+  //   try {
+  //     const isAuthenticated = localStorage.getItem('token') || sessionStorage.getItem('token');
+  //     if (!isAuthenticated) {
+  //       console.log('🔒 User not authenticated, skipping progress refresh');
+  //       return;
+  //     }
 
-      const result = await apiService.getUserProgress();
+  //     const result = await apiService.getUserProgress();
       
-      if (result.success && result.data.interviewProgress) {
-        // Find progress for current interview
-        const interviewProgress = result.data.interviewProgress.find(
-          progress => progress.interviewId === interviewId
-        );
-        if (interviewProgress) {
-          setUserProgress(interviewProgress);
-          console.log('✅ User progress refreshed:', interviewProgress);
-        }
-      }
-    } catch (error) {
-      console.error('❌ Failed to refresh user progress:', error);
-    }
-  }, [interviewId, setUserProgress]);
+  //     if (result.success && result.data.interviewProgress) {
+  //       // Find progress for current interview
+  //       const interviewProgress = result.data.interviewProgress.find(
+  //         progress => progress.interviewId === interviewId
+  //       );
+  //       if (interviewProgress) {
+  //         setUserProgress(interviewProgress);
+  //         console.log('✅ User progress refreshed:', interviewProgress);
+  //       }
+  //     }
+  //   } catch (error) {
+  //     console.error('❌ Failed to refresh user progress:', error);
+  //   }
+  // }, [interviewId, setUserProgress]);
 
   // Update progress
   const updateProgress = useCallback(async (roundId, questionId, status, timeSpent) => {
@@ -283,7 +284,7 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
     } catch (error) {
       console.error('❌ Failed to move to next question:', error);
     }
-  }, [currentRound, questionIndex, setQuestionIndex, setCurrentQuestion, setStep, speakQuestion, voiceRecording.clearTranscription, setCodeAnswer, markRoundCompleted]);
+  }, [currentRound, questionIndex, setQuestionIndex, setCurrentQuestion, setStep, speakQuestion, voiceRecording, setCodeAnswer, markRoundCompleted]);
 
   // Submit current answer
   const submitCurrentAnswer = useCallback(async (answerData = null) => {
@@ -365,6 +366,7 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
       // Determine round type
       const isCoding = isCodingRound(round.title);
       const isSales = round.title?.toLowerCase().includes('sales');
+      const isFileUpload = round.type === 'file_upload';
       
       setIsLiveCodingRound(isCoding);
       setIsSalesRound(isSales);
@@ -394,17 +396,22 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
         }
       }
       
-      // Set first question
-      if (round.questions && round.questions.length > 0) {
-        const firstQuestion = round.questions[0];
-        setCurrentQuestion(firstQuestion);
-      }
-      
-      setStep('interview');
-      
-      // Speak the question after setting the step
-      if (round.questions && round.questions.length > 0 && round.questions[0].question) {
-        speakQuestion(round.questions[0].question);
+      // Handle different round types
+      if (isFileUpload) {
+        setStep('file-upload');
+      } else {
+        // Set first question for interview rounds
+        if (round.questions && round.questions.length > 0) {
+          const firstQuestion = round.questions[0];
+          setCurrentQuestion(firstQuestion);
+        }
+        
+        setStep('interview');
+        
+        // Speak the question after setting the step
+        if (round.questions && round.questions.length > 0 && round.questions[0].question) {
+          speakQuestion(round.questions[0].question);
+        }
       }
     } catch (error) {
       console.error('❌ Failed to select round:', error);
@@ -447,7 +454,7 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
     };
 
     initCamera();
-  }, [camera.initializeCamera, setError]);
+  }, [camera, setError]);
 
   // Load interview data on mount
   useEffect(() => {
@@ -620,9 +627,9 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
           isCodeEditorFullscreen={isCodeEditorFullscreen}
           isLiveCodingRound={isLiveCodingRound}
           isSalesRound={isSalesRound}
-          isAiQuestioning={isAiQuestioning}
-          aiQuestions={aiQuestions}
-          currentAiQuestionIndex={currentAiQuestionIndex}
+          isAiQuestioning={false}
+          aiQuestions={[]}
+          currentAiQuestionIndex={0}
           cameraStream={camera.cameraStream}
           onStartRecording={voiceRecording.startRecording}
           onStopRecording={voiceRecording.stopRecording}
@@ -636,6 +643,51 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
           onToggleAISpeaking={() => setIsAISpeaking(!isAISpeaking)}
           onAnswerAIQuestion={() => {}}
           interviewData={interviewData}
+        />
+      );
+
+    case 'file-upload':
+      return (
+        <FileUploadRound
+          interview={interviewData}
+          round={currentRound}
+          candidateInfo={candidateInfo}
+          onComplete={() => {
+            // Mark round as completed
+            const roundId = currentRound._id || currentRound.id || currentRound.roundId;
+            setCompletedRounds(prev => new Set([...prev, roundId]));
+            
+            // Update user progress
+            setUserProgress(prev => {
+              if (!prev) return prev;
+              
+              const updatedRounds = prev.rounds.map(r => 
+                r.roundId === roundId 
+                  ? { ...r, status: 'completed', completedAt: new Date() }
+                  : r
+              );
+              
+              return {
+                ...prev,
+                rounds: updatedRounds,
+                progress: {
+                  ...prev.progress,
+                  completedRounds: prev.progress.completedRounds + 1
+                }
+              };
+            });
+          }}
+          onNext={() => {
+            // Go back to round selection or complete if all rounds done
+            const totalRounds = allRounds.length;
+            const completedCount = completedRounds.size + 1; // +1 for the round we just completed
+            
+            if (completedCount >= totalRounds) {
+              setStep('complete');
+            } else {
+              setStep('round-selection');
+            }
+          }}
         />
       );
 

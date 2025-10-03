@@ -10,13 +10,24 @@ const questionSchema = new mongoose.Schema({
   followUpQuestions: [{ type: String }]
 });
 
+const fileUploadRequirementSchema = new mongoose.Schema({
+  id: { type: String, required: true },
+  title: { type: String, required: true },
+  description: { type: String, required: true },
+  fileTypes: [{ type: String }], // e.g., ['pdf', 'ppt', 'pptx', 'doc', 'docx']
+  maxFileSize: { type: Number, default: 10 }, // in MB
+  required: { type: Boolean, default: true }
+});
+
 const roundSchema = new mongoose.Schema({
   roundId: { type: String, required: true },
   roundNumber: { type: Number, required: true },
   title: { type: String, required: true },
   description: { type: String, required: true },
   duration: { type: Number, required: true },
+  type: { type: String, enum: ['interview', 'file_upload'], default: 'interview' },
   questions: [questionSchema],
+  fileUploadRequirements: [fileUploadRequirementSchema], // For file upload rounds
   evaluationCriteria: {
     technical: { type: String },
     communication: { type: String },
@@ -43,6 +54,25 @@ const candidateAnswerSchema = new mongoose.Schema({
     strengths: [{ type: String }],
     improvements: [{ type: String }]
   }
+});
+
+const fileUploadSchema = new mongoose.Schema({
+  candidateId: { type: String, required: true },
+  candidateName: { type: String, required: true },
+  candidateEmail: { type: String, required: true },
+  roundId: { type: String, required: true },
+  requirementId: { type: String, required: true },
+  requirementTitle: { type: String, required: true },
+  fileName: { type: String, required: true },
+  originalFileName: { type: String, required: true },
+  filePath: { type: String, required: true },
+  fileSize: { type: Number, required: true }, // in bytes
+  fileType: { type: String, required: true },
+  uploadedAt: { type: Date, default: Date.now },
+  status: { type: String, enum: ['uploaded', 'reviewed', 'approved', 'rejected'], default: 'uploaded' },
+  reviewNotes: { type: String },
+  reviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  reviewedAt: { type: Date }
 });
 
 const interviewSchema = new mongoose.Schema({
@@ -86,6 +116,7 @@ const interviewSchema = new mongoose.Schema({
     scheduleId: { type: mongoose.Schema.Types.ObjectId, ref: 'InterviewSchedule' }
   }],
   candidateAnswers: [candidateAnswerSchema],
+  fileUploads: [fileUploadSchema],
   statistics: {
     totalCandidates: { type: Number, default: 0 },
     completedInterviews: { type: Number, default: 0 },

@@ -18,11 +18,13 @@ import {
   RefreshCw,
   ArrowLeft,
   Share2,
+  Upload,
   Eye,
   EyeOff
 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import ThemeSwitcher from '../../components/common/ThemeSwitcher';
+import FileUploadRoundManager from './FileUploadRoundManager';
 
 // Use apiService instead of custom axios instance
 
@@ -41,6 +43,23 @@ const InterviewReviewer = () => {
   const [showLinkPreview, setShowLinkPreview] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [activeTab, setActiveTab] = useState('rounds');
+  const [showAddRoundModal, setShowAddRoundModal] = useState(false);
+  const [showAddFileRequirementModal, setShowAddFileRequirementModal] = useState(false);
+  const [selectedRoundIndex, setSelectedRoundIndex] = useState(null);
+  const [newRoundData, setNewRoundData] = useState({
+    type: 'interview',
+    title: '',
+    description: '',
+    duration: 10
+  });
+  const [newFileRequirement, setNewFileRequirement] = useState({
+    title: '',
+    description: '',
+    fileTypes: ['pdf', 'doc', 'docx'],
+    maxFileSize: 10,
+    required: true
+  });
 
   const fetchInterview = useCallback(async () => {
     console.log('Fetching interview with ID:', interviewId);
@@ -63,6 +82,14 @@ const InterviewReviewer = () => {
       }
       
       console.log('Processed interview data:', interviewData);
+      console.log('Interview rounds:', interviewData.rounds);
+      if (interviewData.rounds) {
+        interviewData.rounds.forEach((round, index) => {
+          console.log(`Round ${index}:`, round);
+          console.log(`Round ${index} type:`, round.type);
+          console.log(`Round ${index} fileUploadRequirements:`, round.fileUploadRequirements);
+        });
+      }
       setInterview(interviewData);
     } catch (err) {
       console.error('Error fetching interview:', err);
@@ -133,13 +160,30 @@ const InterviewReviewer = () => {
   };
 
   const handleAddRound = () => {
+    setNewRoundData({
+      type: 'interview',
+      title: '',
+      description: '',
+      duration: 10
+    });
+    setShowAddRoundModal(true);
+  };
+
+  const handleSaveRound = async () => {
+    if (!newRoundData.title.trim() || !newRoundData.description.trim()) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
     const newRound = {
-      roundId: `round_${(interview?.rounds || []).length + 1}`,
+      roundId: `round_${Date.now()}`,
       roundNumber: (interview?.rounds || []).length + 1,
-      title: prompt('Enter round title:') || 'New Round',
-      description: prompt('Enter round description:') || 'New round description',
-      duration: parseInt(prompt('Enter duration in minutes:') || '10'),
-      questions: [],
+      title: newRoundData.title,
+      description: newRoundData.description,
+      duration: newRoundData.duration,
+      type: newRoundData.type,
+      questions: newRoundData.type === 'interview' ? [] : undefined,
+      fileUploadRequirements: newRoundData.type === 'file_upload' ? [] : undefined,
       evaluationCriteria: {
         technical: '',
         communication: '',
@@ -149,10 +193,88 @@ const InterviewReviewer = () => {
         motivation: ''
       }
     };
+
+    console.log('Creating new round:', newRound);
+    console.log('Round type being saved:', newRound.type);
+    console.log('File upload requirements being saved:', newRound.fileUploadRequirements);
     
-    if (newRound.title !== 'New Round') {
+    const updatedInterview = { ...interview };
+    updatedInterview.rounds.push(newRound);
+    setInterview(updatedInterview);
+    markAsChanged();
+    setShowAddRoundModal(false);
+
+    // Save to backend immediately
+    try {
+      console.log('Saving new round to backend:', newRound);
+      console.log('Full interview data being sent:', JSON.stringify(updatedInterview, null, 2));
+      await apiService.updateInterview(interviewId, updatedInterview);
+      console.log('Round saved successfully to backend');
+    } catch (error) {
+      console.error('Error saving round to backend:', error);
+    }
+  };
+
+  // Function to add file upload requirement to a round
+  const handleAddFileRequirement = (roundIndex) => {
+    setSelectedRoundIndex(roundIndex);
+    setNewFileRequirement({
+      title: '',
+      description: '',
+      fileTypes: ['pdf', 'doc', 'docx'],
+      maxFileSize: 10,
+      required: true
+    });
+    setShowAddFileRequirementModal(true);
+  };
+
+  const handleSaveFileRequirement = async () => {
+    if (!newFileRequirement.title.trim() || !newFileRequirement.description.trim()) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
+    const requirement = {
+      id: `req_${Date.now()}`,
+      title: newFileRequirement.title,
+      description: newFileRequirement.description,
+      fileTypes: newFileRequirement.fileTypes,
+      maxFileSize: newFileRequirement.maxFileSize,
+      required: newFileRequirement.required
+    };
+
+    const updatedInterview = { ...interview };
+    if (!updatedInterview.rounds[selectedRoundIndex].fileUploadRequirements) {
+      updatedInterview.rounds[selectedRoundIndex].fileUploadRequirements = [];
+    }
+    updatedInterview.rounds[selectedRoundIndex].fileUploadRequirements.push(requirement);
+    
+    console.log('Adding file requirement:', requirement);
+    console.log('Updated round:', updatedInterview.rounds[selectedRoundIndex]);
+    console.log('All requirements:', updatedInterview.rounds[selectedRoundIndex].fileUploadRequirements);
+    
+    setInterview(updatedInterview);
+    markAsChanged();
+    setShowAddFileRequirementModal(false);
+    
+    // Also save to backend immediately
+    try {
+      console.log('Saving interview to backend with data:', updatedInterview);
+      console.log('Round being saved:', updatedInterview.rounds[selectedRoundIndex]);
+      await apiService.updateInterview(interviewId, updatedInterview);
+      console.log('Interview updated successfully with new file requirement');
+      // Force a re-render by updating the state again
+      setInterview({...updatedInterview});
+    } catch (error) {
+      console.error('Error saving interview:', error);
+    }
+  };
+
+  // Function to remove file upload requirement
+  const handleRemoveFileRequirement = (roundIndex, requirementIndex) => {
+    if (window.confirm('Are you sure you want to remove this file requirement?')) {
       const updatedInterview = { ...interview };
-      updatedInterview.rounds.push(newRound);
+      updatedInterview.rounds[roundIndex].fileUploadRequirements.splice(requirementIndex, 1);
       setInterview(updatedInterview);
       markAsChanged();
     }
@@ -620,34 +742,97 @@ const InterviewReviewer = () => {
           )}
         </AnimatePresence>
 
-        {/* Interview Rounds Section */}
+        {/* Interview Management Tabs */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
           className="space-y-6"
         >
-          <div className="flex justify-between items-center">
-            <div>
-              <h2 className={`text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                Interview Rounds
-              </h2>
-              <p className={`text-sm mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                Manage and review interview rounds and questions
-              </p>
-            </div>
+          {/* Tab Navigation */}
+          <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg">
             <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={handleAddRound}
-              className="bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-6 rounded-lg transition-colors duration-200 flex items-center gap-2"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => setActiveTab('rounds')}
+              className={`flex-1 py-2 px-4 rounded-md font-medium transition-colors duration-200 ${
+                activeTab === 'rounds'
+                  ? 'bg-white text-blue-600 shadow-sm'
+                  : isDarkMode 
+                    ? 'text-gray-400 hover:text-white' 
+                    : 'text-gray-600 hover:text-gray-900'
+              }`}
             >
-              <Plus className="w-4 h-4" />
-              Add Round
+              Interview Rounds
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => setActiveTab('file-uploads')}
+              className={`flex-1 py-2 px-4 rounded-md font-medium transition-colors duration-200 ${
+                activeTab === 'file-uploads'
+                  ? 'bg-white text-purple-600 shadow-sm'
+                  : isDarkMode 
+                    ? 'text-gray-400 hover:text-white' 
+                    : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              File Upload Rounds
             </motion.button>
           </div>
 
+          {/* Tab Content */}
+          {activeTab === 'rounds' && (
+            <div className="space-y-6">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h2 className={`text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                    Interview Rounds
+                  </h2>
+                  <p className={`text-sm mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                    Manage and review interview rounds and questions
+                  </p>
+                </div>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={handleAddRound}
+                  className="bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-6 rounded-lg transition-colors duration-200 flex items-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add Round
+                </motion.button>
+              </div>
+
           <div className="grid gap-6" key={interview?.interviewId || 'no-interview'}>
+            {/* Check if there are any file upload rounds */}
+            {(interview?.rounds || []).filter(round => round.type === 'file_upload').length === 0 && (
+              <div className={`p-6 rounded-lg border-2 border-dashed mb-6 ${
+                isDarkMode 
+                  ? 'border-gray-600 bg-gray-700/30' 
+                  : 'border-gray-300 bg-gray-50'
+              }`}>
+                <div className="text-center">
+                  <Upload className={`w-12 h-12 mx-auto mb-4 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`} />
+                  <h3 className={`text-lg font-medium mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                    No File Upload Rounds Yet
+                  </h3>
+                  <p className={`text-sm mb-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                    To add file upload requirements, first create a "File Upload Round" by clicking "Add Round" and selecting "File Upload Round (Documents)".
+                  </p>
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={handleAddRound}
+                    className="bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 flex items-center gap-2 mx-auto"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Add File Upload Round
+                  </motion.button>
+                </div>
+              </div>
+            )}
+
             {(interview?.rounds || []).map((round, roundIndex) => (
               <motion.div
                 key={round.roundId}
@@ -684,7 +869,17 @@ const InterviewReviewer = () => {
                         isDarkMode ? 'text-gray-400' : 'text-gray-600'
                       }`}>
                         <Target className="w-4 h-4" />
-                        {round.questions.length} questions
+                        {round.type === 'file_upload' 
+                          ? `${(round.fileUploadRequirements || []).length} file requirements`
+                          : `${(round.questions || []).length} questions`
+                        }
+                      </div>
+                      <div className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        round.type === 'file_upload'
+                          ? 'bg-purple-100 text-purple-700' 
+                          : 'bg-blue-100 text-blue-700'
+                      }`}>
+                        {round.type === 'file_upload' ? '📁 File Upload' : '💬 Interview'}
                       </div>
                     </div>
                   </div>
@@ -712,17 +907,20 @@ const InterviewReviewer = () => {
                   </div>
                 </div>
 
-                {/* Questions */}
+                {/* Questions or File Requirements */}
                 <div className="space-y-4">
                   {editingRound === roundIndex && (
                     <motion.button
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
-                      onClick={() => handleAddQuestion(roundIndex)}
+                      onClick={() => round.type === 'file_upload' 
+                        ? handleAddFileRequirement(roundIndex) 
+                        : handleAddQuestion(roundIndex)
+                      }
                       className="w-full bg-green-100 hover:bg-green-200 text-green-700 font-medium py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
                     >
                       <Plus className="w-4 h-4" />
-                      Add Question
+                      {round.type === 'file_upload' ? 'Add File Requirement' : 'Add Question'}
                     </motion.button>
                   )}
                   
@@ -789,10 +987,123 @@ const InterviewReviewer = () => {
                       </div>
                     </motion.div>
                   ))}
+                  
+                  {/* File Upload Requirements */}
+                  {round.type === 'file_upload' && (
+                    <div className="mb-4">
+                      <div className={`text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                        File Upload Requirements ({round?.fileUploadRequirements?.length || 0})
+                      </div>
+                      {console.log('Rendering file upload requirements for round:', roundIndex, 'Round type:', round.type, 'Requirements:', round?.fileUploadRequirements, 'Requirements length:', round?.fileUploadRequirements?.length)}
+                      {(round?.fileUploadRequirements || []).length === 0 ? (
+                        <div className={`p-4 rounded-lg border-2 border-dashed ${
+                          isDarkMode 
+                            ? 'border-gray-600 bg-gray-700/30' 
+                            : 'border-gray-300 bg-gray-50'
+                        }`}>
+                          <div className="text-center">
+                            <Upload className={`w-8 h-8 mx-auto mb-2 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`} />
+                            <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                              No file requirements added yet. Click "Add File Requirement" to get started.
+                            </p>
+                            <button
+                              onClick={() => {
+                                const testRequirement = {
+                                  id: `test_${Date.now()}`,
+                                  title: 'Test Resume',
+                                  description: 'Please upload your resume',
+                                  fileTypes: ['pdf', 'doc'],
+                                  maxFileSize: 5,
+                                  required: true
+                                };
+                                const updatedInterview = { ...interview };
+                                if (!updatedInterview.rounds[roundIndex].fileUploadRequirements) {
+                                  updatedInterview.rounds[roundIndex].fileUploadRequirements = [];
+                                }
+                                updatedInterview.rounds[roundIndex].fileUploadRequirements.push(testRequirement);
+                                setInterview(updatedInterview);
+                                console.log('Added test requirement:', testRequirement);
+                              }}
+                              className="mt-2 px-3 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600"
+                            >
+                              Add Test Requirement
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        (round?.fileUploadRequirements || []).map((requirement, reqIndex) => (
+                    <motion.div
+                      key={requirement.id}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: reqIndex * 0.05 }}
+                      className={`p-4 rounded-lg border-l-4 border-purple-500 ${
+                        isDarkMode 
+                          ? 'bg-gray-700/50 border-gray-600' 
+                          : 'bg-purple-50 border-gray-200'
+                      }`}
+                    >
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className={`text-sm font-medium ${
+                              isDarkMode ? 'text-purple-400' : 'text-purple-600'
+                            }`}>
+                              File Requirement {reqIndex + 1}
+                            </span>
+                            <span className={`text-xs px-2 py-1 rounded-full ${
+                              requirement.required 
+                                ? 'bg-red-100 text-red-700' 
+                                : 'bg-gray-100 text-gray-700'
+                            }`}>
+                              {requirement.required ? 'Required' : 'Optional'}
+                            </span>
+                          </div>
+                          <p className={`font-medium mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                            {requirement.title}
+                          </p>
+                          <div className={`text-sm mb-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                            {requirement.description}
+                          </div>
+                          <div className={`text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
+                            <strong>Allowed types:</strong> {requirement.fileTypes.join(', ')} | 
+                            <strong> Max size:</strong> {requirement.maxFileSize}MB
+                          </div>
+                        </div>
+                        {editingRound === roundIndex && (
+                          <div className="flex gap-2 ml-4">
+                            <motion.button
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() => handleRemoveFileRequirement(roundIndex, reqIndex)}
+                              className="p-1 text-red-500 hover:text-red-600 transition-colors duration-200"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </motion.button>
+                          </div>
+                        )}
+                      </div>
+                    </motion.div>
+                        ))
+                      )}
+                    </div>
+                  )}
                 </div>
               </motion.div>
             ))}
-          </div>
+            </div>
+            </div>
+          )}
+
+          {activeTab === 'file-uploads' && (
+            <FileUploadRoundManager 
+              interview={interview} 
+              onUpdate={(updatedInterview) => {
+                setInterview(updatedInterview);
+                markAsChanged();
+              }} 
+            />
+          )}
         </motion.div>
 
         {/* Action Buttons */}
@@ -865,6 +1176,244 @@ const InterviewReviewer = () => {
           </div>
         </motion.div>
       </div>
+
+      {/* Add Round Modal */}
+      <AnimatePresence>
+        {showAddRoundModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className={`p-6 rounded-lg max-w-md w-full mx-4 ${
+                isDarkMode ? 'bg-gray-800' : 'bg-white'
+              }`}
+            >
+              <h3 className={`text-lg font-semibold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                Add New Round
+              </h3>
+              <div className="space-y-3">
+                <div>
+                  <label className={`block text-sm font-medium mb-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    Round Type
+                  </label>
+                  <select
+                    value={newRoundData.type}
+                    onChange={(e) => setNewRoundData(prev => ({ ...prev, type: e.target.value }))}
+                    className={`w-full px-3 py-2 rounded-lg border ${
+                      isDarkMode 
+                        ? 'bg-gray-700 border-gray-600 text-white' 
+                        : 'bg-white border-gray-300 text-gray-900'
+                    }`}
+                  >
+                    <option value="interview">Interview Round (Questions)</option>
+                    <option value="file_upload">File Upload Round (Documents)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className={`block text-sm font-medium mb-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    Round Title *
+                  </label>
+                  <input
+                    type="text"
+                    value={newRoundData.title}
+                    onChange={(e) => setNewRoundData(prev => ({ ...prev, title: e.target.value }))}
+                    className={`w-full px-3 py-2 rounded-lg border ${
+                      isDarkMode 
+                        ? 'bg-gray-700 border-gray-600 text-white' 
+                        : 'bg-white border-gray-300 text-gray-900'
+                    }`}
+                    placeholder="e.g., Technical Assessment, Document Review"
+                  />
+                </div>
+                <div>
+                  <label className={`block text-sm font-medium mb-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    Description *
+                  </label>
+                  <textarea
+                    value={newRoundData.description}
+                    onChange={(e) => setNewRoundData(prev => ({ ...prev, description: e.target.value }))}
+                    className={`w-full px-3 py-2 rounded-lg border ${
+                      isDarkMode 
+                        ? 'bg-gray-700 border-gray-600 text-white' 
+                        : 'bg-white border-gray-300 text-gray-900'
+                    }`}
+                    rows="3"
+                    placeholder="Describe what this round will cover..."
+                  />
+                </div>
+                <div>
+                  <label className={`block text-sm font-medium mb-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    Duration (minutes)
+                  </label>
+                  <input
+                    type="number"
+                    value={newRoundData.duration}
+                    onChange={(e) => setNewRoundData(prev => ({ ...prev, duration: parseInt(e.target.value) }))}
+                    className={`w-full px-3 py-2 rounded-lg border ${
+                      isDarkMode 
+                        ? 'bg-gray-700 border-gray-600 text-white' 
+                        : 'bg-white border-gray-300 text-gray-900'
+                    }`}
+                    min="5"
+                    max="60"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={handleSaveRound}
+                    className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200"
+                  >
+                    Add Round
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setShowAddRoundModal(false)}
+                    className="bg-gray-500 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200"
+                  >
+                    Cancel
+                  </motion.button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Add File Requirement Modal */}
+      <AnimatePresence>
+        {showAddFileRequirementModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className={`p-6 rounded-lg max-w-md w-full mx-4 ${
+                isDarkMode ? 'bg-gray-800' : 'bg-white'
+              }`}
+            >
+              <h3 className={`text-lg font-semibold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                Add File Requirement
+              </h3>
+              <div className="space-y-3">
+                <div>
+                  <label className={`block text-sm font-medium mb-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    Title *
+                  </label>
+                  <input
+                    type="text"
+                    value={newFileRequirement.title}
+                    onChange={(e) => setNewFileRequirement(prev => ({ ...prev, title: e.target.value }))}
+                    className={`w-full px-3 py-2 rounded-lg border ${
+                      isDarkMode 
+                        ? 'bg-gray-700 border-gray-600 text-white' 
+                        : 'bg-white border-gray-300 text-gray-900'
+                    }`}
+                    placeholder="e.g., Resume, Portfolio, Presentation"
+                  />
+                </div>
+                <div>
+                  <label className={`block text-sm font-medium mb-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    Description *
+                  </label>
+                  <textarea
+                    value={newFileRequirement.description}
+                    onChange={(e) => setNewFileRequirement(prev => ({ ...prev, description: e.target.value }))}
+                    className={`w-full px-3 py-2 rounded-lg border ${
+                      isDarkMode 
+                        ? 'bg-gray-700 border-gray-600 text-white' 
+                        : 'bg-white border-gray-300 text-gray-900'
+                    }`}
+                    rows="2"
+                    placeholder="Describe what the candidate should upload..."
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className={`block text-sm font-medium mb-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                      File Types
+                    </label>
+                    <input
+                      type="text"
+                      value={newFileRequirement.fileTypes.join(', ')}
+                      onChange={(e) => setNewFileRequirement(prev => ({ 
+                        ...prev, 
+                        fileTypes: e.target.value.split(',').map(type => type.trim().toLowerCase())
+                      }))}
+                      className={`w-full px-3 py-2 rounded-lg border ${
+                        isDarkMode 
+                          ? 'bg-gray-700 border-gray-600 text-white' 
+                          : 'bg-white border-gray-300 text-gray-900'
+                      }`}
+                      placeholder="pdf, doc, docx, ppt, pptx"
+                    />
+                  </div>
+                  <div>
+                    <label className={`block text-sm font-medium mb-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                      Max Size (MB)
+                    </label>
+                    <input
+                      type="number"
+                      value={newFileRequirement.maxFileSize}
+                      onChange={(e) => setNewFileRequirement(prev => ({ ...prev, maxFileSize: parseInt(e.target.value) }))}
+                      className={`w-full px-3 py-2 rounded-lg border ${
+                        isDarkMode 
+                          ? 'bg-gray-700 border-gray-600 text-white' 
+                          : 'bg-white border-gray-300 text-gray-900'
+                      }`}
+                      min="1"
+                      max="100"
+                    />
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="required"
+                    checked={newFileRequirement.required}
+                    onChange={(e) => setNewFileRequirement(prev => ({ ...prev, required: e.target.checked }))}
+                    className="rounded"
+                  />
+                  <label htmlFor="required" className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    Required submission
+                  </label>
+                </div>
+                <div className="flex gap-2">
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={handleSaveFileRequirement}
+                    className="bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200"
+                  >
+                    Add Requirement
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setShowAddFileRequirementModal(false)}
+                    className="bg-gray-500 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200"
+                  >
+                    Cancel
+                  </motion.button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
