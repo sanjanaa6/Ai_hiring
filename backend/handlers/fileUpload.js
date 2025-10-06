@@ -62,6 +62,10 @@ const upload = multer({
 
 // Upload file for interview round
 const uploadInterviewFile = async (req, res) => {
+  // Set CORS headers explicitly
+  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  
   console.log('📁 [FILE UPLOAD] Starting file upload for interview:', req.params.interviewId);
   console.log('👤 [FILE UPLOAD] User ID:', req.user.id);
   console.log('📋 [FILE UPLOAD] Request body:', req.body);
@@ -238,11 +242,25 @@ const uploadInterviewFile = async (req, res) => {
     
   } catch (error) {
     console.error('❌ [FILE UPLOAD] Error occurred:', error.message);
+    console.error('❌ [FILE UPLOAD] Error stack:', error.stack);
+    console.error('❌ [FILE UPLOAD] Request details:', {
+      method: req.method,
+      url: req.url,
+      headers: req.headers,
+      body: req.body,
+      params: req.params,
+      file: req.file ? {
+        originalname: req.file.originalname,
+        mimetype: req.file.mimetype,
+        size: req.file.size
+      } : null
+    });
     
     // Clean up uploaded file if there was an error
     if (req.file && fs.existsSync(req.file.path)) {
       try {
         fs.unlinkSync(req.file.path);
+        console.log('🧹 [FILE UPLOAD] Cleaned up uploaded file');
       } catch (cleanupError) {
         console.error('❌ [FILE UPLOAD] Could not clean up file:', cleanupError.message);
       }
@@ -250,7 +268,8 @@ const uploadInterviewFile = async (req, res) => {
     
     res.status(500).json({
       success: false,
-      error: 'Failed to upload file'
+      error: 'Failed to upload file',
+      details: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
     });
   }
 };

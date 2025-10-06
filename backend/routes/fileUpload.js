@@ -11,6 +11,15 @@ const {
   reviewFile
 } = require('../handlers/fileUpload');
 
+// Handle CORS preflight requests for file upload
+router.options('/interviews/:interviewId/upload', (req, res) => {
+  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+  res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.sendStatus(200);
+});
+
 // Upload file for interview round
 router.post('/interviews/:interviewId/upload', 
   auth, 
