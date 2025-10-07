@@ -111,13 +111,11 @@ const getAllInterviews = async (req, res) => {
   console.log('👤 [GET INTERVIEWS] User role:', req.user.role);
   
   try {
-    // Find all interviews - allow recruiters and admins to see all interviews
-    let query = {};
-    
-    // If user is not recruiter or admin, only show their own interviews
-    if (req.user.role !== 'recruiter' && req.user.role !== 'admin') {
-      query.createdBy = req.user.id;
-    }
+    // Scope interviews
+    // - Admin: can see all
+    // - Recruiter: can only see interviews they created (createdBy)
+    // - Others: can only see interviews they created (createdBy)
+    const query = req.user.role === 'admin' ? {} : { createdBy: req.user.id };
     
     const interviews = await Interview.find(query).sort({ createdAt: -1 });
 
@@ -161,13 +159,10 @@ const getInterviewById = async (req, res) => {
   console.log('👤 [GET INTERVIEW] User role:', req.user.role);
   
   try {
-    // Find the interview - allow access for recruiters and admins to all interviews
-    let query = { interviewId: req.params.interviewId };
-    
-    // If user is not recruiter or admin, only allow access to their own interviews
-    if (req.user.role !== 'recruiter' && req.user.role !== 'admin') {
-      query.createdBy = req.user.id;
-    }
+    // Scope access to interview by ownership unless admin
+    const query = req.user.role === 'admin'
+      ? { interviewId: req.params.interviewId }
+      : { interviewId: req.params.interviewId, createdBy: req.user.id };
     
     console.log('🔍 [GET INTERVIEW] Query:', JSON.stringify(query));
     const interview = await Interview.findOne(query);

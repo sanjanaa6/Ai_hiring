@@ -14,10 +14,23 @@ async function seedAdmin() {
     
     console.log('✅ Connected to MongoDB');
 
-    // Check if admin with Gmail already exists
+    // Ensure only one admin exists
+    const admins = await User.find({ role: 'admin' });
+    if (admins.length > 1) {
+      console.log('⚠️  Multiple admins found. Keeping the first, downgrading others to recruiter.');
+      const [keep, ...others] = admins;
+      for (const other of others) {
+        other.role = 'recruiter';
+        other.isApproved = false;
+        other.approvalStatus = 'pending';
+        await other.save();
+      }
+    }
+
+    // Check if target admin exists
     const existingGmailAdmin = await User.findOne({ email: 'admin@gmail.com' });
     if (existingGmailAdmin) {
-      console.log('⚠️  Admin user with Gmail already exists:', existingGmailAdmin.email);
+      console.log('✅ Admin user exists:', existingGmailAdmin.email);
       return;
     }
 

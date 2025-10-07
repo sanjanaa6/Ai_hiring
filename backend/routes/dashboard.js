@@ -72,8 +72,8 @@ router.get('/recruiter', authAndRole(['recruiter', 'admin']), async (req, res) =
   try {
     const userId = req.user._id;
     
-    // Get recruiter's jobs
-    const jobs = await Job.find({ recruiter: userId })
+    // Get recruiter's jobs (match Job.postedBy)
+    const jobs = await Job.find({ postedBy: userId })
       .sort({ createdAt: -1 })
       .limit(10);
 
@@ -87,7 +87,7 @@ router.get('/recruiter', authAndRole(['recruiter', 'admin']), async (req, res) =
 
     // Get statistics
     const jobStats = await Job.aggregate([
-      { $match: { recruiter: userId } },
+      { $match: { postedBy: userId } },
       {
         $group: {
           _id: '$status',
@@ -145,7 +145,7 @@ router.get('/admin', authAndRole(['admin']), async (req, res) => {
 
     // Get all jobs
     const jobs = await Job.find()
-      .populate('recruiter', 'name email')
+      .populate('postedBy', 'name email')
       .sort({ createdAt: -1 })
       .limit(20);
 

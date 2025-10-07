@@ -830,9 +830,12 @@ router.get('/:interviewId', auth, async (req, res) => {
   console.log('👤 [GET INTERVIEW] User role:', req.user.role);
   
   try {
-    const interview = await Interview.findOne({
-      interviewId: req.params.interviewId
-    });
+    // Only admins can access any; others must be the creator
+    const interview = await Interview.findOne(
+      req.user.role === 'admin'
+        ? { interviewId: req.params.interviewId }
+        : { interviewId: req.params.interviewId, createdBy: req.user.id }
+    );
 
     if (!interview) {
       console.log('❌ [GET INTERVIEW] Interview not found:', req.params.interviewId);
@@ -842,18 +845,7 @@ router.get('/:interviewId', auth, async (req, res) => {
       });
     }
 
-    // Check if user is a recruiter or the interview creator
-    const isRecruiter = req.user.role === 'recruiter' || req.user.role === 'admin';
-    const isCreator = interview.createdBy.toString() === req.user.id.toString();
-
-    // For candidates, only show approved interviews
-    if (!isRecruiter && !isCreator && interview.approvalStatus !== 'approved') {
-      console.log('⚠️ [GET INTERVIEW] Attempt to access unapproved interview');
-      return res.status(403).json({
-        success: false,
-        error: 'This interview is not available yet'
-      });
-    }
+    // If non-admin reached here, they are the creator due to query filter
 
     console.log('✅ [GET INTERVIEW] Interview found:', {
       id: interview.interviewId,
@@ -889,9 +881,9 @@ router.get('/', auth, async (req, res) => {
   console.log('📋 [GET INTERVIEWS] Fetching interviews for user:', req.user.id);
   
   try {
-    const interviews = await Interview.find({
-      createdBy: req.user.id
-    }).sort({ createdAt: -1 });
+    // Admin sees all; others only their own
+    const filter = req.user.role === 'admin' ? {} : { createdBy: req.user.id };
+    const interviews = await Interview.find(filter).sort({ createdAt: -1 });
 
     console.log(`✅ [GET INTERVIEWS] Found ${interviews.length} interviews`);
 
@@ -957,9 +949,11 @@ router.post('/:interviewId/approve', auth, async (req, res) => {
   console.log('✅ [APPROVE INTERVIEW] Approving interview:', req.params.interviewId);
   
   try {
-    const interview = await Interview.findOne({
-      interviewId: req.params.interviewId
-    });
+    const interview = await Interview.findOne(
+      req.user.role === 'admin'
+        ? { interviewId: req.params.interviewId }
+        : { interviewId: req.params.interviewId, createdBy: req.user.id }
+    );
 
     if (!interview) {
       return res.status(404).json({
@@ -968,15 +962,9 @@ router.post('/:interviewId/approve', auth, async (req, res) => {
       });
     }
 
-    // Check if user has permission to approve
-    const isRecruiter = req.user.role === 'recruiter' || req.user.role === 'admin';
-    const isCreator = interview.createdBy.toString() === req.user.id.toString();
-
-    if (!isRecruiter && !isCreator) {
-      return res.status(403).json({
-        success: false,
-        error: 'You do not have permission to approve this interview'
-      });
+    // Only creator or admin can approve
+    if (req.user.role !== 'admin' && interview.createdBy.toString() !== req.user.id.toString()) {
+      return res.status(403).json({ success: false, error: 'You do not have permission to approve this interview' });
     }
 
     interview.approvalStatus = 'approved';

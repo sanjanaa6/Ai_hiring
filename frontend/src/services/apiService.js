@@ -214,6 +214,21 @@ class ApiService {
     }
   }
 
+  // Admin auth API call
+  async adminLogin(email, password) {
+    try {
+      const response = await this.client.post('/admin/login', { email, password });
+      return response.data;
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('Admin login error:', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.response?.data?.message || error.message || 'Admin login failed'
+      };
+    }
+  }
+
   async register(userData) {
     try {
       const response = await this.client.post('/auth/register', userData);

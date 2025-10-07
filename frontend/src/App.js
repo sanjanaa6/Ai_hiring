@@ -41,6 +41,7 @@ import CodingInterviewDemo from './pages/CodingInterviewDemo';
 import TestCaseDemo from './components/TestCaseDemo';
 import LanguageDetectionDemo from './components/LanguageDetectionDemo';
 import NotFound from './pages/NotFound';
+import AdminLoginPage from './pages/AdminLoginPage';
 
 // Recruiter components
 import { InterviewReviewer } from './recruiter/components/InterviewReviewer';
@@ -104,6 +105,7 @@ function AppShell() {
           <Route path="/pricing" element={<Pricing />} />
           
           {/* Public Routes */}
+          <Route path="/admin/loginpage" element={<AdminLoginPage />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/jobs" element={<JobSearch />} />

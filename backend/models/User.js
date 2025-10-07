@@ -70,15 +70,15 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: true
   },
-  // Approval status for recruiters - now auto-approved
+  // Approval status for recruiters
   isApproved: {
     type: Boolean,
-    default: true  // All users including recruiters are auto-approved
+    default: function() { return this.role === 'recruiter' ? false : true; }
   },
   approvalStatus: {
     type: String,
     enum: ['pending', 'approved', 'rejected'],
-    default: 'approved'  // All users including recruiters are auto-approved
+    default: function() { return this.role === 'recruiter' ? 'pending' : 'approved'; }
   },
   approvedBy: {
     type: mongoose.Schema.Types.ObjectId,

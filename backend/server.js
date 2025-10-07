@@ -15,16 +15,26 @@ app.use(cors({
   origin: function (origin, callback) {
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
-    
-    // List of allowed origins
+
+    // Normalize origin (strip trailing slash)
+    const normalizedOrigin = origin.replace(/\/$/, '');
+
+    // In development, allow all localhost origins to ease integration
+    const isDev = (process.env.NODE_ENV || 'development') !== 'production';
+    if (isDev && /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(normalizedOrigin)) {
+      return callback(null, true);
+    }
+
+    // List of allowed origins (production safelist)
     const allowedOrigins = [
       'http://localhost:3000',
       'http://localhost:3001',
+      'http://localhost:5000',
       'https://aihiring.eval8.xyz',
       'https://aihire.eval8.xyz'
     ];
-    
-    if (allowedOrigins.indexOf(origin) !== -1) {
+
+    if (allowedOrigins.indexOf(normalizedOrigin) !== -1) {
       callback(null, true);
     } else {
       console.log('CORS blocked origin:', origin);
@@ -77,6 +87,7 @@ app.use('/api/ai', require('./routes/aiEvaluation'));
 app.use('/api/ai', require('./routes/aiLanguageDetection'));
 app.use('/api/coding-tutor', require('./routes/codingTutor'));
 app.use('/api/admin', require('./routes/admin'));
+app.use('/api/admin', require('./routes/adminAuth'));
 app.use('/api/tts', require('./routes/tts'));
 // Add specific CORS handling for file upload routes
 app.use('/api/files', (req, res, next) => {

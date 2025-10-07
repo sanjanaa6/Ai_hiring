@@ -25,8 +25,10 @@ const auth = async (req, res, next) => {
       return res.status(401).json({ message: 'Token is not valid' });
     }
 
-    // Recruiters can now login without admin approval
-    // Removed approval check for recruiters
+    // Enforce recruiter approval: block access until approved
+    if (user.role === 'recruiter' && user.approvalStatus !== 'approved') {
+      return res.status(403).json({ message: 'Recruiter pending approval. Please wait for admin approval.' });
+    }
 
     console.log('✅ [AUTH] User authenticated:', {
       id: user._id,

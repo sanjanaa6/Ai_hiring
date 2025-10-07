@@ -30,8 +30,14 @@ router.post('/register', [
 
     // Create new user
     const user = new User({ name, email, password, role });
+    // For recruiters, ensure pending approval by default
+    if (user.role === 'recruiter') {
+      user.isApproved = false;
+      user.approvalStatus = 'pending';
+    }
     await user.save();
 
+    // If recruiter not approved, allow login but they will be blocked on protected routes
     // Generate JWT token
     const token = jwt.sign(
       { userId: user._id, role: user.role },
@@ -55,7 +61,7 @@ router.post('/register', [
   }
 });
 
-// Login
+// Login (candidates and recruiters)
 router.post('/login', [
   body('email').isEmail().withMessage('Please enter a valid email'),
   body('password').exists().withMessage('Password is required')
@@ -78,6 +84,8 @@ router.post('/login', [
       console.log('❌ [AUTH] User not found for email:', email);
       return res.status(400).json({ message: 'Invalid credentials' });
     }
+
+    // Allow admins to log in here too so tokens work across the app
 
     console.log('👤 [AUTH] User found:', { id: user._id, email: user.email, role: user.role });
 
