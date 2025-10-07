@@ -1,4 +1,6 @@
 const express = require('express');
+const path = require('path');
+const fs = require('fs');
 const User = require('../models/User');
 const { auth } = require('../middleware/auth');
 const { requireRole } = require('../middleware/roleAuth');
@@ -38,9 +40,48 @@ router.get('/recruiters', auth, requireRole(['admin']), async (req, res) => {
 
     console.log('📊 [ADMIN] Found', recruiters.length, 'recruiters');
 
+    // Map in safe document URLs for admin preview
+    const withDocUrls = recruiters.map(r => {
+      const plain = r.toObject();
+      let docs = plain.recruiterDocuments ? { ...plain.recruiterDocuments } : null;
+
+      // If DB doesn't have docs, attempt to infer from filesystem
+      if (!docs || (!docs.gstFile && !docs.panFile)) {
+        try {
+          const userDir = path.join(__dirname, '..', 'uploads', 'recruiter-docs', String(r._id));
+          if (fs.existsSync(userDir)) {
+            const files = fs.readdirSync(userDir);
+            const gst = files.find(f => /^gst[-_]/i.test(f)) || files.find(f => /gst/i.test(f));
+            const pan = files.find(f => /^pan[-_]/i.test(f)) || files.find(f => /pan/i.test(f));
+            if (gst || pan) {
+              docs = docs || {};
+              if (gst) {
+                docs.gstFile = path.join(userDir, gst).replace(/\\/g, '/');
+              }
+              if (pan) {
+                docs.panFile = path.join(userDir, pan).replace(/\\/g, '/');
+              }
+            }
+          }
+        } catch (fsErr) {
+          console.warn('[ADMIN] Could not infer recruiter docs from FS for', r._id, fsErr.message);
+        }
+      }
+
+      if (docs) {
+        docs.gstFileUrl = docs.gstFile ? `/uploads/recruiter-docs/${String(r._id)}/${path.basename(docs.gstFile)}` : null;
+        docs.panFileUrl = docs.panFile ? `/uploads/recruiter-docs/${String(r._id)}/${path.basename(docs.panFile)}` : null;
+      }
+
+      return {
+        ...plain,
+        recruiterDocuments: docs
+      };
+    });
+
     res.json({
       success: true,
-      data: recruiters
+      data: withDocUrls
     });
   } catch (error) {
     console.error('❌ [ADMIN] Error fetching recruiters:', error);
@@ -299,6 +340,57 @@ router.patch('/users/:id/status', auth, requireRole(['admin']), async (req, res)
       success: false,
       message: 'Error updating user status'
     });
+  }
+});
+
+// Get recruiter document details (DB or filesystem fallback)
+router.get('/recruiters/:id/docs', auth, requireRole(['admin']), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = await User.findById(id).select('-password');
+    if (!user || user.role !== 'recruiter') {
+      return res.status(404).json({ success: false, message: 'Recruiter not found' });
+    }
+
+    let docs = user.recruiterDocuments ? { ...user.recruiterDocuments } : {};
+
+    // If paths missing, scan filesystem
+    try {
+      const userDir = path.join(__dirname, '..', 'uploads', 'recruiter-docs', String(user._id));
+      if (fs.existsSync(userDir)) {
+        const files = fs.readdirSync(userDir);
+        if (!docs.gstFile) {
+          const gst = files.find(f => /^gst[-_]/i.test(f)) || files.find(f => /gst/i.test(f));
+          if (gst) docs.gstFile = path.join(userDir, gst).replace(/\\/g, '/');
+        }
+        if (!docs.panFile) {
+          const pan = files.find(f => /^pan[-_]/i.test(f)) || files.find(f => /pan/i.test(f));
+          if (pan) docs.panFile = path.join(userDir, pan).replace(/\\/g, '/');
+        }
+      }
+    } catch (e) {
+      console.warn('[ADMIN] FS scan error for recruiter docs', e.message);
+    }
+
+    // Build public URLs (served by server.js static mapping)
+    const buildUrl = (absPath) => {
+      if (!absPath) return null;
+      const fileName = path.basename(absPath);
+      return `/uploads/recruiter-docs/${String(user._id)}/${fileName}`;
+    };
+
+    return res.json({
+      success: true,
+      data: {
+        gstNumber: docs.gstNumber || null,
+        panNumber: docs.panNumber || null,
+        gstFileUrl: buildUrl(docs.gstFile),
+        panFileUrl: buildUrl(docs.panFile)
+      }
+    });
+  } catch (error) {
+    console.error('Error getting recruiter docs:', error);
+    return res.status(500).json({ success: false, message: 'Failed to get recruiter documents' });
   }
 });
 

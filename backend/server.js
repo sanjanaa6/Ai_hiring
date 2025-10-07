@@ -89,6 +89,8 @@ app.use('/api/coding-tutor', require('./routes/codingTutor'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/admin', require('./routes/adminAuth'));
 app.use('/api/tts', require('./routes/tts'));
+// Serve recruiter documents statically for admin review
+app.use('/uploads/recruiter-docs', express.static(path.join(__dirname, 'uploads', 'recruiter-docs')));
 // Add specific CORS handling for file upload routes
 app.use('/api/files', (req, res, next) => {
   // Set CORS headers for file upload routes

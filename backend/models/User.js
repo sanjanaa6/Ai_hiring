@@ -60,6 +60,14 @@ const userSchema = new mongoose.Schema({
     hiringBudget: String,
     preferredLocations: [String]
   },
+  // Recruiter KYC documents (GST/PAN)
+  recruiterDocuments: {
+    gstNumber: { type: String },
+    panNumber: { type: String },
+    gstFile: { type: String }, // absolute or relative path under uploads/recruiter-docs/<userId>/
+    panFile: { type: String }, // absolute or relative path under uploads/recruiter-docs/<userId>/
+    uploadedAt: { type: Date }
+  },
   // Admin specific fields
   adminProfile: {
     permissions: [String],

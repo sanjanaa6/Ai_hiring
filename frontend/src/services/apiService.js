@@ -231,6 +231,25 @@ class ApiService {
 
   async register(userData) {
     try {
+      // If files are present (recruiter registration), send multipart/form-data
+      const hasFiles = userData && (userData.gstFile || userData.panFile);
+      if (hasFiles) {
+        const form = new FormData();
+        Object.entries(userData).forEach(([key, value]) => {
+          if (value === undefined || value === null) return;
+          // Append files and primitives appropriately
+          if (key === 'gstFile' || key === 'panFile') {
+            form.append(key, value);
+          } else {
+            form.append(key, value);
+          }
+        });
+        const response = await this.client.post('/auth/register', form, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        return response.data;
+      }
+
       const response = await this.client.post('/auth/register', userData);
       return response.data;
     } catch (error) {

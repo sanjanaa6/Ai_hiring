@@ -11,7 +11,11 @@ const Register = () => {
     email: '',
     password: '',
     confirmPassword: '',
-    role: 'candidate'
+    role: 'candidate',
+    gstNumber: '',
+    panNumber: '',
+    gstFile: null,
+    panFile: null
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -27,11 +31,37 @@ const Register = () => {
   }, [isAuthenticated, navigate]);
 
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
+    const { name, value, files, type } = e.target;
+    if (type === 'file') {
+      setFormData(prev => ({ ...prev, [name]: files && files[0] ? files[0] : null }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
   };
+
+  // Local previews for selected files
+  const [gstPreviewUrl, setGstPreviewUrl] = useState('');
+  const [panPreviewUrl, setPanPreviewUrl] = useState('');
+
+  useEffect(() => {
+    if (formData.gstFile) {
+      const url = URL.createObjectURL(formData.gstFile);
+      setGstPreviewUrl(url);
+      return () => URL.revokeObjectURL(url);
+    } else {
+      setGstPreviewUrl('');
+    }
+  }, [formData.gstFile]);
+
+  useEffect(() => {
+    if (formData.panFile) {
+      const url = URL.createObjectURL(formData.panFile);
+      setPanPreviewUrl(url);
+      return () => URL.revokeObjectURL(url);
+    } else {
+      setPanPreviewUrl('');
+    }
+  }, [formData.panFile]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -51,6 +81,13 @@ const Register = () => {
     }
 
     try {
+      if (formData.role === 'recruiter') {
+        if (!formData.gstNumber || !formData.panNumber || !formData.gstFile || !formData.panFile) {
+          toast.error('Recruiters must provide GST/PAN numbers and files');
+          setLoading(false);
+          return;
+        }
+      }
       const { confirmPassword, ...registerData } = formData;
       const result = await register(registerData);
       
@@ -363,6 +400,77 @@ const Register = () => {
                   </motion.label>
                 </div>
               </motion.div>
+
+              {/* Recruiter Verification (shown only when role=recruiter) */}
+              {formData.role === 'recruiter' && (
+                <motion.div
+                  initial={{ x: -20, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  transition={{ delay: 0.75, duration: 0.5 }}
+                  className="p-4 rounded-xl border border-blue-500/30 bg-black/30 space-y-4"
+                >
+                  <h3 className="text-white font-semibold">Recruiter Verification</h3>
+                  <p className="text-sm text-blue-200/80">Upload GST and PAN details for admin approval.</p>
+                  <div>
+                    <label className="block text-sm font-medium text-blue-200 mb-1">GST Number</label>
+                    <input
+                      type="text"
+                      name="gstNumber"
+                      value={formData.gstNumber || ''}
+                      onChange={handleChange}
+                      className="w-full px-3 py-2 bg-black/50 border border-blue-500/30 rounded text-white"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-blue-200 mb-1">PAN Number</label>
+                    <input
+                      type="text"
+                      name="panNumber"
+                      value={formData.panNumber || ''}
+                      onChange={handleChange}
+                      className="w-full px-3 py-2 bg-black/50 border border-blue-500/30 rounded text-white"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-blue-200 mb-1">GST Document (PDF/JPG/PNG)</label>
+                    <input
+                      type="file"
+                      name="gstFile"
+                      accept=".pdf,.jpg,.jpeg,.png"
+                      onChange={handleChange}
+                      required
+                    />
+                    {formData.gstFile && (
+                      <div className="mt-2 text-xs text-blue-200/90">
+                        Selected: <span className="font-medium">{formData.gstFile.name}</span>
+                        {/^image\//.test(formData.gstFile.type) && gstPreviewUrl && (
+                          <a href={gstPreviewUrl} target="_blank" rel="noreferrer" className="underline ml-2">Preview</a>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-blue-200 mb-1">PAN Document (PDF/JPG/PNG)</label>
+                    <input
+                      type="file"
+                      name="panFile"
+                      accept=".pdf,.jpg,.jpeg,.png"
+                      onChange={handleChange}
+                      required
+                    />
+                    {formData.panFile && (
+                      <div className="mt-2 text-xs text-blue-200/90">
+                        Selected: <span className="font-medium">{formData.panFile.name}</span>
+                        {/^image\//.test(formData.panFile.type) && panPreviewUrl && (
+                          <a href={panPreviewUrl} target="_blank" rel="noreferrer" className="underline ml-2">Preview</a>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              )}
 
               {/* Password Field */}
               <motion.div

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import AdminLayout from '../components/AdminLayout';
+import apiService from '../../services/apiService';
 import { 
   Users, 
   CheckCircle, 
@@ -21,10 +22,70 @@ const RecruiterApprovals = () => {
   const [showModal, setShowModal] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
+  const [showDocs, setShowDocs] = useState(false);
+  const [docsRecruiter, setDocsRecruiter] = useState(null);
 
   useEffect(() => {
     fetchRecruiters();
   }, []);
+
+  // Build backend origin for static file links (use API base URL, not window origin)
+  const getBackendOrigin = () => {
+    try {
+      const apiBase = apiService.client?.defaults?.baseURL || '';
+      if (apiBase) {
+        return apiBase.replace(/\/api$/i, '');
+      }
+    } catch (_) {}
+    // Dev fallback: if running on localhost:3000, serve static from :5000
+    if (typeof window !== 'undefined') {
+      const { protocol, hostname } = window.location;
+      if (/localhost|127\.0\.0\.1/.test(hostname)) {
+        return `${protocol}//${hostname}:5000`;
+      }
+      return window.location.origin;
+    }
+    return '';
+  };
+
+  const buildDocUrl = (maybeUrl, maybePath) => {
+    const origin = getBackendOrigin();
+    if (maybeUrl) return `${origin}${maybeUrl}`;
+    if (maybePath && /recruiter-docs\//.test(maybePath)) {
+      const tail = maybePath.split('recruiter-docs/')[1] || '';
+      return `${origin}/uploads/recruiter-docs/${tail}`;
+    }
+    return '';
+  };
+
+  const openDocsModal = async (recruiter) => {
+    try {
+      const token = localStorage.getItem('token');
+      const resp = await fetch(`/api/admin/recruiters/${recruiter._id}/docs`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        const merged = {
+          ...recruiter,
+          recruiterDocuments: {
+            ...recruiter.recruiterDocuments,
+            ...data.data
+          }
+        };
+        setDocsRecruiter(merged);
+      } else {
+        setDocsRecruiter(recruiter);
+      }
+    } catch (_) {
+      setDocsRecruiter(recruiter);
+    }
+    setShowDocs(true);
+  };
+  const closeDocsModal = () => {
+    setDocsRecruiter(null);
+    setShowDocs(false);
+  };
 
   const fetchRecruiters = async () => {
     try {
@@ -337,12 +398,22 @@ const RecruiterApprovals = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <div className="flex justify-end space-x-2">
-                          <button 
-                            className="text-blue-600 hover:text-blue-900"
-                            onClick={() => {/* View details */}}
-                          >
-                            <Eye className="h-4 w-4" />
-                          </button>
+                          {(
+                            recruiter.recruiterDocuments?.gstFileUrl ||
+                            recruiter.recruiterDocuments?.panFileUrl ||
+                            recruiter.recruiterDocuments?.gstFile ||
+                            recruiter.recruiterDocuments?.panFile
+                          ) ? (
+                            <button 
+                              className="px-2 py-1 text-xs rounded border border-blue-600 text-blue-600 hover:bg-blue-50"
+                              onClick={() => openDocsModal(recruiter)}
+                              title="View uploaded documents"
+                            >
+                              View Docs
+                            </button>
+                          ) : (
+                            <span className="text-gray-400 text-xs">No docs</span>
+                          )}
                           {recruiter.approvalStatus === 'pending' && (
                             <>
                               <button 
@@ -426,6 +497,53 @@ const RecruiterApprovals = () => {
                 >
                   {actionLoading ? 'Rejecting...' : 'Reject'}
                 </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Docs Modal */}
+      {showDocs && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg shadow-lg max-w-2xl w-full p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">Uploaded Documents</h3>
+              <button onClick={closeDocsModal} className="text-gray-500 hover:text-gray-700">Close</button>
+            </div>
+            <div className="space-y-3 text-sm">
+              <div>
+                <span className="font-medium mr-2">GST Number:</span>
+                <span>{docsRecruiter?.recruiterDocuments?.gstNumber || '—'}</span>
+              </div>
+              <div>
+                <span className="font-medium mr-2">PAN Number:</span>
+                <span>{docsRecruiter?.recruiterDocuments?.panNumber || '—'}</span>
+              </div>
+              <div className="flex items-center space-x-4">
+                {buildDocUrl(docsRecruiter?.recruiterDocuments?.gstFileUrl, docsRecruiter?.recruiterDocuments?.gstFile) ? (
+                  <a
+                    href={buildDocUrl(docsRecruiter?.recruiterDocuments?.gstFileUrl, docsRecruiter?.recruiterDocuments?.gstFile)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="px-3 py-2 text-xs rounded border border-blue-600 text-blue-600 hover:bg-blue-50"
+                  >
+                    Open GST Document
+                  </a>
+                ) : (
+                  <span className="text-gray-400 text-xs">No GST document</span>
+                )}
+                {buildDocUrl(docsRecruiter?.recruiterDocuments?.panFileUrl, docsRecruiter?.recruiterDocuments?.panFile) ? (
+                  <a
+                    href={buildDocUrl(docsRecruiter?.recruiterDocuments?.panFileUrl, docsRecruiter?.recruiterDocuments?.panFile)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="px-3 py-2 text-xs rounded border border-blue-600 text-blue-600 hover:bg-blue-50"
+                  >
+                    Open PAN Document
+                  </a>
+                ) : (
+                  <span className="text-gray-400 text-xs">No PAN document</span>
+                )}
               </div>
             </div>
           </div>
