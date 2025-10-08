@@ -41,9 +41,9 @@ const InterviewScheduler = ({ interviewId, onClose }) => {
       // Fetch existing round schedules
       try {
         const token = localStorage.getItem('token');
-        const apiBaseUrl = process.env.NODE_ENV === 'production' 
-          ? 'https://aihire.eval8.xyz/api' 
-          : 'http://localhost:5000/api';
+        const apiBaseUrl = process.env.REACT_APP_API_URL || (process.env.NODE_ENV === 'production' 
+          ? `${window.location.origin.replace(/\/$/, '')}/api` 
+          : 'http://localhost:5000/api');
         const response = await fetch(`${apiBaseUrl}/interviews/${interviewId}/schedules`, {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -126,9 +126,9 @@ const InterviewScheduler = ({ interviewId, onClose }) => {
 
       // Use direct fetch for now since we don't have this method in apiService
       const token = localStorage.getItem('token');
-      const apiBaseUrl = process.env.NODE_ENV === 'production' 
-        ? 'https://aihire.eval8.xyz/api' 
-        : 'http://localhost:5000/api';
+      const apiBaseUrl = process.env.REACT_APP_API_URL || (process.env.NODE_ENV === 'production' 
+        ? `${window.location.origin.replace(/\/$/, '')}/api` 
+        : 'http://localhost:5000/api');
       console.log('🔍 [SCHEDULER] Creating schedule:', scheduleData);
       console.log('🔍 [SCHEDULER] Interview ID:', interviewId);
       
@@ -171,9 +171,9 @@ const InterviewScheduler = ({ interviewId, onClose }) => {
       setLoading(true);
       // Use direct fetch for now since we don't have this method in apiService
       const token = localStorage.getItem('token');
-      const apiBaseUrl = process.env.NODE_ENV === 'production' 
-        ? 'https://aihire.eval8.xyz/api' 
-        : 'http://localhost:5000/api';
+      const apiBaseUrl = process.env.REACT_APP_API_URL || (process.env.NODE_ENV === 'production' 
+        ? `${window.location.origin.replace(/\/$/, '')}/api` 
+        : 'http://localhost:5000/api');
       const response = await fetch(`${apiBaseUrl}/interviews/${interviewId}/schedules/${scheduleId}`, {
         method: 'DELETE',
         headers: {

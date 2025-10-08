@@ -57,6 +57,9 @@ const RecruiterDashboard = () => {
   const [schedulerInterviewId, setSchedulerInterviewId] = useState(null);
   const [showCandidateManager, setShowCandidateManager] = useState(false);
   const [candidateManagerInterviewId, setCandidateManagerInterviewId] = useState(null);
+  // PCB inline link generation state
+  const [pcbLink, setPcbLink] = useState('');
+  const [pcbCopied, setPcbCopied] = useState(false);
 
   // Answers state
   const [answersLoading, setAnswersLoading] = useState(false);
@@ -235,6 +238,23 @@ const RecruiterDashboard = () => {
     } finally {
       setCandidatesLoading(false);
     }
+  };
+
+  // Inline PCB link generation
+  const createPcbRoundLink = () => {
+    // Match backend-like format: interviewId-roundNumber-accessCode
+    const accessCode = Array.from(crypto.getRandomValues(new Uint8Array(8)))
+      .map(b => b.toString(16).padStart(2, '0')).join('');
+    const token = `pcb-0-${accessCode}`;
+    const url = `${window.location.origin.replace(/\/$/, '')}/pcb-round/${token}`;
+    setPcbLink(url);
+  };
+
+  const copyPcbLink = () => {
+    if (!pcbLink) return;
+    navigator.clipboard.writeText(pcbLink);
+    setPcbCopied(true);
+    setTimeout(() => setPcbCopied(false), 1000);
   };
 
   const groupAnswersByCandidate = () => {
@@ -974,6 +994,8 @@ The interview should feel natural and relevant to someone applying for this spec
                 ></motion.div>
               </motion.button>
 
+              {/* PCB Round Links button removed as requested */}
+
             </div>
           </motion.div>
 
@@ -1167,6 +1189,20 @@ The interview should feel natural and relevant to someone applying for this spec
                                   💼 Sales Interview
                                 </button>
                                 <button
+                                  onClick={() => setJobType('pcb')}
+                                  className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+                                    jobType === 'pcb'
+                                      ? isDarkMode
+                                        ? 'bg-blue-600 text-white shadow-lg'
+                                        : 'bg-blue-600 text-white shadow-lg'
+                                      : isDarkMode
+                                        ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                  }`}
+                                >
+                                  🔌 Electronics (PCB)
+                                </button>
+                                <button
                                   onClick={() => setJobType('generic')}
                                   className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
                                     jobType === 'generic'
@@ -1186,11 +1222,14 @@ The interview should feel natural and relevant to someone applying for this spec
                                   ? 'Technical rounds: Intro (no coding), Basic Tech (theory only), Coding (hands-on), Advanced Tech (concepts), Behavioral, Final Feedback'
                                   : jobType === 'sales'
                                     ? 'Sales rounds: Self Intro, Basic Sales, Sales Pitch, Objection Handling, Communication, Final Feedback'
+                                    : jobType === 'pcb'
+                                      ? 'Electronics round: generate a shareable link that opens the PCB interface. No AI rounds are created.'
                                     : 'AI analyzes your job description and creates custom interview rounds tailored to the specific role, skills, and requirements'
                                 }
                               </p>
                             </motion.div>
                             
+                            {jobType !== 'pcb' ? (
                             <motion.div 
                               initial={{ opacity: 0, y: 20 }}
                               animate={{ opacity: 1, y: 0 }}
@@ -1242,6 +1281,25 @@ The interview should feel natural and relevant to someone applying for this spec
                                 </motion.div>
                               )}
                             </motion.div>
+                            ) : (
+                              <div className={`${isDarkMode ? 'bg-black/30 border-gray-600' : 'bg-white/80 border-gray-300'} border-2 rounded-xl p-6`}>
+                                <p className={`${isDarkMode ? 'text-gray-300' : 'text-gray-700'} mb-4`}>
+                                  Click the button below to generate a shareable Electronics (PCB) round link. Share it with candidates to let them complete the PCB round.
+                                </p>
+                                <div className="flex items-center gap-3">
+                                  <button onClick={createPcbRoundLink} className={`px-4 py-2 rounded-lg ${isDarkMode ? 'bg-blue-600 hover:bg-blue-500 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}>Generate PCB Link</button>
+                                  {pcbLink && (
+                                    <>
+                                      <a href={pcbLink} target="_blank" rel="noreferrer" className={`${isDarkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-100 hover:bg-gray-200'} px-3 py-2 rounded-lg text-sm`}>Open</a>
+                                      <button onClick={copyPcbLink} className={`${isDarkMode ? 'bg-blue-600 hover:bg-blue-500 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white'} px-3 py-2 rounded-lg text-sm`}>{pcbCopied ? 'Copied' : 'Copy Link'}</button>
+                                    </>
+                                  )}
+                                </div>
+                                {pcbLink && (
+                                  <div className={`mt-3 text-sm ${isDarkMode ? 'text-blue-300' : 'text-blue-700'}`}>{pcbLink}</div>
+                                )}
+                              </div>
+                            )}
                           </div>
 
                           {/* Enhanced Action Buttons */}

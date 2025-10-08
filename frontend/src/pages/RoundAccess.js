@@ -30,9 +30,9 @@ const RoundAccess = () => {
   const fetchRoundData = useCallback(async () => {
     try {
       setLoading(true);
-      const apiBaseUrl = process.env.NODE_ENV === 'production' 
-        ? 'https://aihire.eval8.xyz/api' 
-        : 'http://localhost:5000/api';
+      const apiBaseUrl = process.env.REACT_APP_API_URL || (process.env.NODE_ENV === 'production' 
+        ? `${window.location.origin.replace(/\/$/, '')}/api` 
+        : 'http://localhost:5000/api');
       
       const response = await fetch(`${apiBaseUrl}/interviews/round/${accessLink}`);
       const result = await response.json();
@@ -109,9 +109,9 @@ const RoundAccess = () => {
 
     try {
       setIsStarting(true);
-      const apiBaseUrl = process.env.NODE_ENV === 'production' 
-        ? 'https://aihire.eval8.xyz/api' 
-        : 'http://localhost:5000/api';
+      const apiBaseUrl = process.env.REACT_APP_API_URL || (process.env.NODE_ENV === 'production' 
+        ? `${window.location.origin.replace(/\/$/, '')}/api` 
+        : 'http://localhost:5000/api');
       
       const response = await fetch(`${apiBaseUrl}/interviews/round/${accessLink}/start`, {
         method: 'POST',

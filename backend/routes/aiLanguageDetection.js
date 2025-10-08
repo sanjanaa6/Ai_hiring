@@ -94,7 +94,7 @@ Be precise and consider the specific requirements mentioned in the job descripti
         headers: {
           'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
           'Content-Type': 'application/json',
-          'HTTP-Referer': process.env.OPENROUTER_REFERER || 'http://localhost:3000',
+          'HTTP-Referer': process.env.OPENROUTER_REFERER || process.env.FRONTEND_URL || `${req.protocol}://${req.get('host')}`,
           'X-Title': 'AI Hiring Platform'
         }
       });

@@ -27,7 +27,7 @@ app.use(cors({
 
     // List of allowed origins (production safelist)
     const allowedOrigins = [
-      'http://localhost:3000',
+      process.env.FRONTEND_URL || 'http://localhost:3000',
       'http://localhost:3001',
       'http://localhost:5000',
       'https://aihiring.eval8.xyz',

@@ -24,6 +24,7 @@ import Applications from './pages/Applications';
 import Profile from './pages/Profile';
 import Interview from './pages/Interview';
 import RoundAccess from './pages/RoundAccess';
+import ElectronicInterview from './pages/ElectronicInterview';
 import UserDashboard from './user/pages/UserDashboard';
 import StyleTest from './components/StyleTest';
 import OpenRouterTest from './components/OpenRouterTest';
@@ -42,6 +43,7 @@ import TestCaseDemo from './components/TestCaseDemo';
 import LanguageDetectionDemo from './components/LanguageDetectionDemo';
 import NotFound from './pages/NotFound';
 import AdminLoginPage from './pages/AdminLoginPage';
+import RecruiterPCB from './recruiter/pages/RecruiterPCB';
 
 // Recruiter components
 import { InterviewReviewer } from './recruiter/components/InterviewReviewer';
@@ -85,13 +87,21 @@ function AppShell() {
     path.startsWith('/privacy') ||
     path.startsWith('/refund') ||
     path.startsWith('/cookies') ||
-    path.startsWith('/pricing')
+    path.startsWith('/pricing') 
+    // path.startsWith('/pcb-round') ||
+    // path.startsWith('/pcb')
   );
+
+  // Compute top padding so content doesn't slide under fixed header.
+  // Recruiter pages have their own internal spacing, so use smaller padding there.
+  const mainTopPaddingClass = hideGlobalNavbar
+    ? ''
+    : (path.startsWith('/recruiter') ? 'pt-0' : 'pt-20');
 
   return (
     <div className="App min-h-screen flex flex-col">
       {!hideGlobalNavbar && <Header />}
-      <main className="flex-1">
+      <main className={`flex-1 ${mainTopPaddingClass}`}>
         <Routes>
           {/* Landing Page - Only shows when not logged in */}
           <Route path="/" element={<ConditionalLanding />} />
@@ -112,6 +122,7 @@ function AppShell() {
           <Route path="/jobs/:id" element={<JobDetails />} />
           <Route path="/interview/:interviewId" element={<Interview />} />
           <Route path="/round/:accessLink" element={<RoundAccess />} />
+          <Route path="/pcb-round/:accessLink" element={<ElectronicInterview />} />
           <Route path="/style-test" element={<StyleTest />} />
           <Route path="/openrouter-test" element={<OpenRouterTest />} />
           <Route path="/coding-tutor" element={<InteractiveCodingTutor />} />
@@ -144,6 +155,11 @@ function AppShell() {
           <Route path="/recruiter" element={
             <ProtectedRoute allowedRoles={["recruiter", "admin"]}>
               <RecruiterDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/recruiter/pcb" element={
+            <ProtectedRoute allowedRoles={["recruiter", "admin"]}>
+              <RecruiterPCB />
             </ProtectedRoute>
           } />
           <Route path="/recruiter/jobs" element={

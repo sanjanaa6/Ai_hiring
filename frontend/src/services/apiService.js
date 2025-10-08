@@ -26,7 +26,7 @@ const getApiBaseUrl = () => {
   }
   
   // For development, use localhost
-  return 'http://localhost:5000/api';
+  return `${window.location.origin.replace(/\/$/, '')}/api`;
 };
 
 const API_BASE_URL = getApiBaseUrl();

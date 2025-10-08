@@ -238,7 +238,7 @@ Make sure each question is directly relevant to the specific role and requiremen
           headers: {
             'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
             'Content-Type': 'application/json',
-            'HTTP-Referer': process.env.OPENROUTER_REFERER_URL || 'http://localhost:3000',
+            'HTTP-Referer': process.env.OPENROUTER_REFERER_URL || process.env.FRONTEND_URL || `${req.protocol}://${req.get('host')}`,
             'X-Title': 'AI Hiring System'
           }
         });

@@ -35,9 +35,9 @@ const CandidateManager = ({ interviewId, onClose }) => {
       setLoading(true);
       // Use direct fetch for now since we don't have this method in apiService
       const token = localStorage.getItem('token');
-      const apiBaseUrl = process.env.NODE_ENV === 'production' 
-        ? 'https://aihire.eval8.xyz/api' 
-        : 'http://localhost:5000/api';
+      const apiBaseUrl = process.env.REACT_APP_API_URL || (process.env.NODE_ENV === 'production' 
+        ? `${window.location.origin.replace(/\/$/, '')}/api`
+        : 'http://localhost:5000/api');
       const response = await fetch(`${apiBaseUrl}/interviews/${interviewId}/candidates`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -71,9 +71,9 @@ const CandidateManager = ({ interviewId, onClose }) => {
       // Fetch schedules - use direct fetch for now
       try {
         const token = localStorage.getItem('token');
-        const apiBaseUrl = process.env.NODE_ENV === 'production' 
-          ? 'https://aihire.eval8.xyz/api' 
-          : 'http://localhost:5000/api';
+        const apiBaseUrl = process.env.REACT_APP_API_URL || (process.env.NODE_ENV === 'production' 
+          ? `${window.location.origin.replace(/\/$/, '')}/api`
+          : 'http://localhost:5000/api');
         const response = await fetch(`${apiBaseUrl}/interviews/${interviewId}/schedules`, {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -108,9 +108,9 @@ const CandidateManager = ({ interviewId, onClose }) => {
       setLoading(true);
       // Use direct fetch for now since we don't have this method in apiService
       const token = localStorage.getItem('token');
-      const apiBaseUrl = process.env.NODE_ENV === 'production' 
-        ? 'https://aihire.eval8.xyz/api' 
-        : 'http://localhost:5000/api';
+      const apiBaseUrl = process.env.REACT_APP_API_URL || (process.env.NODE_ENV === 'production' 
+        ? `${window.location.origin.replace(/\/$/, '')}/api`
+        : 'http://localhost:5000/api');
       const response = await fetch(`${apiBaseUrl}/interviews/${interviewId}/candidates/${candidateId}/status`, {
         method: 'PUT',
         headers: {
@@ -144,9 +144,9 @@ const CandidateManager = ({ interviewId, onClose }) => {
       setLoading(true);
       // Use direct fetch for now since we don't have this method in apiService
       const token = localStorage.getItem('token');
-      const apiBaseUrl = process.env.NODE_ENV === 'production' 
-        ? 'https://aihire.eval8.xyz/api' 
-        : 'http://localhost:5000/api';
+      const apiBaseUrl = process.env.REACT_APP_API_URL || (process.env.NODE_ENV === 'production' 
+        ? `${window.location.origin.replace(/\/$/, '')}/api`
+        : 'http://localhost:5000/api');
       const response = await fetch(`${apiBaseUrl}/interviews/${interviewId}/candidates/bulk-status`, {
         method: 'PUT',
         headers: {

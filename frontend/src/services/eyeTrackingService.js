@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { axiosConfig } from '../utils/axiosConfig';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = process.env.REACT_APP_API_URL || `${window.location.origin.replace(/\/$/, '')}/api`;
 
 class EyeTrackingService {
   // Track a violation

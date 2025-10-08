@@ -425,7 +425,7 @@ If any information is missing, make reasonable assumptions based on the context.
       headers: {
         'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
         'Content-Type': 'application/json',
-        'HTTP-Referer': process.env.FRONTEND_URL || 'http://localhost:3000',
+        'HTTP-Referer': process.env.FRONTEND_URL || `${req.protocol}://${req.get('host')}`,
         'X-Title': 'AI Hiring Platform'
       }
     });
@@ -622,7 +622,7 @@ async function callOpenRouterAPI(prompt) {
         headers: {
           'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
           'Content-Type': 'application/json',
-          'HTTP-Referer': process.env.FRONTEND_URL || 'http://localhost:3000',
+          'HTTP-Referer': process.env.FRONTEND_URL || `${req.protocol}://${req.get('host')}`,
           'X-Title': 'AI Hiring Platform'
         },
         timeout: 30000 // 30 second timeout
@@ -760,7 +760,7 @@ router.post('/generate-ai', auth, async (req, res) => {
         title: savedInterview.title,
         totalDuration: savedInterview.totalDuration,
         rounds: savedInterview.rounds,
-        link: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/interview/${savedInterview.interviewId}`
+        link: `${process.env.FRONTEND_URL || `${req.protocol}://${req.get('host')}`}/interview/${savedInterview.interviewId}`
       }
     });
 
@@ -898,7 +898,7 @@ router.get('/', auth, async (req, res) => {
         company: interview.company,
         approvalStatus: interview.approvalStatus,
         createdAt: interview.createdAt,
-        link: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/interview/${interview.interviewId}`
+        link: `${process.env.FRONTEND_URL || `${req.protocol}://${req.get('host')}`}/interview/${interview.interviewId}`
       }))
     });
   } catch (error) {

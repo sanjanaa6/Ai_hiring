@@ -75,12 +75,19 @@ const UserDashboard = () => {
 
     try {
       const url = new URL(interviewLink);
-      const pathParts = url.pathname.split('/');
-      const idWithMaybeQuery = pathParts[pathParts.length - 1];
-      const id = idWithMaybeQuery.split('?')[0];
-      
-      if (id && id.startsWith('interview_')) {
-        navigate(`/interview/${id}`);
+      const pathname = url.pathname;
+      const pathParts = pathname.split('/');
+      const last = pathParts[pathParts.length - 1];
+
+      // Support multiple link types
+      if (pathname.startsWith('/interview/')) {
+        navigate(`${pathname}${url.search}`);
+      } else if (pathname.startsWith('/round/')) {
+        navigate(`${pathname}${url.search}`);
+      } else if (pathname.startsWith('/pcb-round/')) {
+        navigate(`${pathname}${url.search}`);
+      } else if (last && last.startsWith('interview_')) {
+        navigate(`/interview/${last}`);
       } else {
         setError('Invalid interview link format');
       }
@@ -428,7 +435,7 @@ const UserDashboard = () => {
         <div className="grid gap-6">
           {progress?.interviewProgress?.map((interview, index) => (
             <motion.div
-              key={interview.interviewId}
+              key={`${interview.interviewId}-${interview.startedAt || index}`}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}

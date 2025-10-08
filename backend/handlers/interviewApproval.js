@@ -53,7 +53,7 @@ const approveInterview = async (req, res) => {
     console.log('📊 [APPROVE INTERVIEW] Approved at:', interview.approvedAt);
 
     // Generate shareable link
-    const frontendBase = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const frontendBase = process.env.FRONTEND_URL || `${req.protocol}://${req.get('host')}`;
     const shareableLink = `${frontendBase}/interviews/${interview.interviewId}`;
 
     res.json({

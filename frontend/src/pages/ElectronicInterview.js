@@ -2,8 +2,10 @@ import React from 'react';
 import { useParams } from 'react-router-dom';
 
 const ElectronicInterview = () => {
-  const { interviewId } = useParams();
-  const pcbUrl = `${window.location.origin.replace(/\/$/, '')}/pcb/`;
+  const { accessLink } = useParams();
+  const base = window.location.origin.replace(/\/$/, '');
+  const query = accessLink ? `?accessLink=${encodeURIComponent(accessLink)}` : '';
+  const pcbUrl = `${base}/pcb/${query}`;
 
   return (
     <div className="w-screen h-screen">
