@@ -47,7 +47,9 @@ router.post('/generate-speech', auth, async (req, res) => {
       language = 'en', 
       speed = 1.0, 
       pitch = 1.0,
-      emotion = 'neutral'
+      emotion = 'neutral',
+      voice,
+      ssmlGender
     } = req.body;
 
     if (!text || typeof text !== 'string') {
@@ -68,15 +70,19 @@ router.post('/generate-speech', auth, async (req, res) => {
       language,
       speed,
       pitch,
-      emotion
+      emotion,
+      voice,
+      ssmlGender
     });
 
     if (result.success) {
       // Set appropriate headers for audio response
+      const contentType = result.contentType || 'audio/wav';
+      const extension = contentType === 'audio/mpeg' ? 'mp3' : (contentType === 'audio/ogg' ? 'ogg' : 'wav');
       res.set({
-        'Content-Type': 'audio/wav',
+        'Content-Type': contentType,
         'Content-Length': result.audioData.length,
-        'Content-Disposition': `attachment; filename="tts_${Date.now()}.wav"`
+        'Content-Disposition': `attachment; filename="tts_${Date.now()}.${extension}"`
       });
 
       // Send the audio data

@@ -20,6 +20,8 @@ class TTSService {
       speed = 1.0,
       pitch = 1.0,
       emotion = 'neutral',
+      voice,
+      ssmlGender,
       useCache = true
     } = options;
 
@@ -41,7 +43,7 @@ class TTSService {
     try {
       console.log('🎤 [TTS] Generating speech for:', text.substring(0, 50) + '...');
       console.log('🎤 [TTS] API URL:', `${API_BASE_URL}/tts/generate-speech`);
-      console.log('🎤 [TTS] Request payload:', { text, language, speed, pitch, emotion });
+      console.log('🎤 [TTS] Request payload:', { text, language, speed, pitch, emotion, voice, ssmlGender });
 
       const response = await axios.post(
         `${API_BASE_URL}/tts/generate-speech`,
@@ -50,7 +52,9 @@ class TTSService {
           language,
           speed,
           pitch,
-          emotion
+          emotion,
+          voice,
+          ssmlGender
         },
         {
           headers: {
@@ -62,7 +66,9 @@ class TTSService {
         }
       );
 
-      const audioBlob = new Blob([response.data], { type: 'audio/wav' });
+      const contentType = response.headers?.['content-type'] || 'audio/wav';
+      console.log('🎤 [TTS] Response Content-Type:', contentType);
+      const audioBlob = new Blob([response.data], { type: contentType });
       
       console.log('🎵 [TTS] Audio blob created:', {
         size: audioBlob.size,
@@ -270,15 +276,9 @@ class TTSService {
    * @returns {Promise<void>}
    */
   async _useRealTTSService(text, options = {}) {
-    // For now, we'll use browser TTS but with better voice selection
-    // In a real implementation, you would call an external TTS API like:
-    // - Google Cloud Text-to-Speech
-    // - Amazon Polly
-    // - Azure Cognitive Services
-    // - ElevenLabs
-    
-    console.log('🎤 [TTS] Using enhanced browser TTS with better voice selection...');
-    await this._enhancedBrowserTTS(text, options);
+    // Call backend TTS endpoint (Google Cloud TTS behind the scenes)
+    const audioBlob = await this.generateSpeech(text, options);
+    await this.playAudio(audioBlob);
   }
 
   /**

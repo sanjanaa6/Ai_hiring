@@ -5,8 +5,8 @@ const path = require('path');
 class TTSService {
   constructor() {
     this.isInitialized = false;
-    this.apiKey = process.env.OPENROUTER_API_KEY;
-    this.apiUrl = 'https://openrouter.ai/api/v1/chat/completions';
+    this.googleApiKey = process.env.GOOGLE_TTS_API_KEY || process.env.GOOGLE_CLOUD_TTS_API_KEY || process.env.GOOGLE_API_KEY;
+    this.googleApiUrl = 'https://texttospeech.googleapis.com/v1/text:synthesize';
   }
 
   async initialize() {
@@ -16,9 +16,9 @@ class TTSService {
 
     try {
       console.log('🎤 [TTS] Initializing TTS service...');
-      
-      // For now, we'll use a web-based TTS service
-      // In production, you might want to use a dedicated TTS API
+      if (!this.googleApiKey) {
+        console.warn('⚠️  [TTS] GOOGLE_TTS_API_KEY not set. Google Cloud TTS will not work.');
+      }
       this.isInitialized = true;
       console.log('✅ [TTS] TTS service initialized successfully');
     } catch (error) {
@@ -40,18 +40,16 @@ class TTSService {
 
       console.log(`🎤 [TTS] Generating speech for text: "${text.substring(0, 50)}..."`);
 
-      // For now, we'll create a simple audio file using Web Speech API simulation
-      // In production, you would integrate with a real TTS service like:
-      // - Google Cloud Text-to-Speech
-      // - Amazon Polly
-      // - Azure Cognitive Services
-      // - ElevenLabs
-      
-      const audioData = await this._generateAudioData(text, options);
-      
+      if (!this.googleApiKey) {
+        throw new Error('Google Cloud TTS API key not configured. Set GOOGLE_TTS_API_KEY.');
+      }
+
+      const { audioBuffer, contentType } = await this._generateWithGoogle(text, options);
+
       return {
         success: true,
-        audioData: audioData,
+        audioData: audioBuffer,
+        contentType,
         duration: this._estimateDuration(text),
         language: language
       };
@@ -63,6 +61,106 @@ class TTSService {
         error: error.message
       };
     }
+  }
+
+  /**
+   * Generate audio using Google Cloud Text-to-Speech
+   * @param {string} text
+   * @param {{language?: string, speed?: number, pitch?: number, voice?: string}} options
+   * @returns {Promise<{audioBuffer: Buffer, contentType: string}>}
+   */
+  async _generateWithGoogle(text, options) {
+    const languageCode = this._mapLanguage(options.language || 'en');
+    const speakingRate = Math.max(0.25, Math.min(4.0, Number(options.speed || 1.0)));
+    const pitch = Math.max(-20.0, Math.min(20.0, Number(options.pitch || 0.0)));
+    const voiceName = options.voice || this._defaultVoiceForLanguage(languageCode);
+    const ssmlGender = options.ssmlGender || undefined; // 'MALE' | 'FEMALE' | 'NEUTRAL'
+
+    const requestBody = {
+      input: { text },
+      voice: {
+        languageCode,
+        name: voiceName,
+        ...(ssmlGender ? { ssmlGender } : {})
+      },
+      audioConfig: {
+        audioEncoding: 'MP3',
+        speakingRate,
+        pitch
+      }
+    };
+
+    const url = `${this.googleApiUrl}?key=${encodeURIComponent(this.googleApiKey)}`;
+
+    try {
+      const response = await axios.post(url, requestBody, { timeout: 30000 });
+      const base64Audio = response.data && response.data.audioContent;
+      if (!base64Audio) {
+        throw new Error('No audioContent in Google TTS response');
+      }
+      const audioBuffer = Buffer.from(base64Audio, 'base64');
+      return { audioBuffer, contentType: 'audio/mpeg' };
+    } catch (error) {
+      // Surface Google error details when possible
+      const details = error.response?.data || error.message;
+      console.error('❌ [TTS] Google TTS request failed:', details);
+      throw new Error(
+        typeof details === 'string' ? details : (details.error?.message || 'Google TTS request failed')
+      );
+    }
+  }
+
+  _mapLanguage(lang) {
+    // Map short language to a Google languageCode
+    const lower = (lang || 'en').toLowerCase();
+    const map = {
+      'en': 'en-US',
+      'en-us': 'en-US',
+      'en-gb': 'en-GB',
+      'es': 'es-ES',
+      'fr': 'fr-FR',
+      'de': 'de-DE',
+      'it': 'it-IT',
+      'pt': 'pt-PT',
+      'pt-br': 'pt-BR',
+      'pl': 'pl-PL',
+      'tr': 'tr-TR',
+      'ru': 'ru-RU',
+      'nl': 'nl-NL',
+      'cs': 'cs-CZ',
+      'ar': 'ar-XA',
+      'zh': 'cmn-CN',
+      'zh-cn': 'cmn-CN',
+      'ja': 'ja-JP',
+      'hu': 'hu-HU',
+      'ko': 'ko-KR'
+    };
+    return map[lower] || 'en-US';
+  }
+
+  _defaultVoiceForLanguage(languageCode) {
+    // Prefer Neural2 voices where available
+    const defaults = {
+      'en-US': 'en-US-Neural2-F',
+      'en-GB': 'en-GB-Neural2-A',
+      'es-ES': 'es-ES-Neural2-A',
+      'fr-FR': 'fr-FR-Neural2-A',
+      'de-DE': 'de-DE-Neural2-A',
+      'it-IT': 'it-IT-Neural2-A',
+      'pt-PT': 'pt-PT-Neural2-A',
+      'pt-BR': 'pt-BR-Neural2-A',
+      'pl-PL': 'pl-PL-Neural2-A',
+      'tr-TR': 'tr-TR-Neural2-A',
+      'ru-RU': 'ru-RU-Neural2-A',
+      'nl-NL': 'nl-NL-Neural2-A',
+      'cs-CZ': 'cs-CZ-Neural2-A',
+      'ar-XA': 'ar-XA-Wavenet-A',
+      'cmn-CN': 'cmn-CN-Wavenet-A',
+      'ja-JP': 'ja-JP-Wavenet-A',
+      'hu-HU': 'hu-HU-Wavenet-A',
+      'ko-KR': 'ko-KR-Wavenet-A'
+    };
+    return defaults[languageCode] || 'en-US-Neural2-F';
   }
 
   async _generateAudioData(text, options) {
