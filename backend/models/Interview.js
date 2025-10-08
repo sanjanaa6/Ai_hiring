@@ -62,6 +62,7 @@ const roundSchema = new mongoose.Schema({
   description: { type: String, required: true },
   duration: { type: Number, required: true },
   type: { type: String, enum: ['interview', 'file_upload', 'form_submission'], default: 'interview' },
+  allowRetake: { type: Boolean, default: false }, // Allow candidates to retake this round
   questions: [questionSchema],
   fileUploadRequirements: [fileUploadRequirementSchema], // For file upload rounds
   formFields: [formFieldSchema], // For form submission rounds

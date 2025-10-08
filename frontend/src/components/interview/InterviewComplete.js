@@ -7,7 +7,8 @@ const InterviewComplete = ({
   userProgress, 
   completedRounds, 
   allRounds,
-  onRestartInterview 
+  onRestartInterview,
+  onRetakeRound
 }) => {
   const { isDarkMode } = useTheme();
 
@@ -247,19 +248,58 @@ const InterviewComplete = ({
             </div>
           </div>
 
+          {/* Retake Options */}
+          {allRounds.some(round => round.allowRetake) && (
+            <div className={`mt-8 p-6 rounded-2xl ${
+              isDarkMode 
+                ? 'bg-gray-800/50 border border-gray-700' 
+                : 'bg-gray-50 border border-gray-200'
+            }`}>
+              <h3 className={`text-xl font-semibold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                🔄 Retake Options
+              </h3>
+              <p className={`text-sm mb-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                You can retake the following rounds:
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {allRounds
+                  .filter(round => round.allowRetake)
+                  .map((round, index) => (
+                    <button
+                      key={round.roundId}
+                      onClick={() => onRetakeRound && onRetakeRound(round)}
+                      className={`p-4 rounded-lg text-left transition-all transform hover:scale-105 ${
+                        isDarkMode
+                          ? 'bg-gray-700 hover:bg-gray-600 border border-gray-600'
+                          : 'bg-white hover:bg-gray-50 border border-gray-300'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h4 className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                            {round.title}
+                          </h4>
+                          <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                            {round.type === 'form_submission' ? '📝 Form Submission' : 
+                             round.type === 'file_upload' ? '📁 File Upload' : '💬 Interview'}
+                          </p>
+                        </div>
+                        <div className={`px-3 py-1 rounded-full text-xs font-medium ${
+                          isDarkMode 
+                            ? 'bg-green-600 text-white' 
+                            : 'bg-green-100 text-green-800'
+                        }`}>
+                          Retake
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+              </div>
+            </div>
+          )}
+
           {/* Action Buttons */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button
-              onClick={onRestartInterview}
-              className={`px-8 py-4 rounded-2xl font-semibold text-lg transition-all transform ${
-                isDarkMode
-                  ? 'bg-blue-500 hover:bg-blue-600 text-white shadow-lg hover:shadow-xl hover:scale-105'
-                  : 'bg-blue-500 hover:bg-blue-600 text-white shadow-lg hover:shadow-xl hover:scale-105'
-              }`}
-            >
-              Restart Interview
-            </button>
-            
+          <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
             <button
               onClick={() => window.close()}
               className={`px-8 py-4 rounded-2xl font-semibold text-lg transition-all transform ${

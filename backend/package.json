@@ -9,7 +9,8 @@
     "dev:watch": "nodemon server.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "install-tts": "node scripts/install-tts.js",
-    "setup-tts": "node scripts/install-tts.js"
+    "setup-tts": "node scripts/install-tts.js",
+    "migrate-allow-retake": "node scripts/migrateAllowRetake.js"
   },
   "keywords": [
     "mern",

@@ -180,6 +180,14 @@ const getInterviewById = async (req, res) => {
     console.log('📊 [GET INTERVIEW] Title:', interview.title);
     console.log('📊 [GET INTERVIEW] Rounds:', interview.rounds?.length || 0);
     console.log('📊 [GET INTERVIEW] Status:', interview.approvalStatus);
+    
+    // Debug allowRetake fields in database
+    if (interview.rounds) {
+      console.log('🔍 [GET INTERVIEW] Round allowRetake values from database:');
+      interview.rounds.forEach((round, index) => {
+        console.log(`🔍 [GET INTERVIEW] Round ${index + 1} (${round.title}): allowRetake = ${round.allowRetake} (${typeof round.allowRetake})`);
+      });
+    }
 
     res.json({
       success: true,
@@ -355,6 +363,9 @@ const updateInterview = async (req, res) => {
           console.log(`🔧 [UPDATE INTERVIEW] Added default question to empty interview round ${index + 1}`);
         }
         
+        // Log the original round data to debug allowRetake
+        console.log(`🔍 [UPDATE INTERVIEW] Original round ${index + 1} allowRetake value:`, round.allowRetake, typeof round.allowRetake);
+        
         // Ensure required fields have default values
         const cleanedRound = {
           roundId: round.roundId || `round_${index + 1}`,
@@ -363,6 +374,7 @@ const updateInterview = async (req, res) => {
           description: round.description || `Round ${index + 1} description`,
           duration: round.duration || 10, // Default to 10 minutes if missing
           type: round.type || 'interview', // Preserve round type
+          allowRetake: Boolean(round.allowRetake), // Ensure allowRetake is always a boolean
           evaluationCriteria: round.evaluationCriteria || {
             technical: '',
             communication: '',
@@ -372,6 +384,8 @@ const updateInterview = async (req, res) => {
             motivation: ''
           }
         };
+        
+        console.log(`🔍 [UPDATE INTERVIEW] Cleaned round ${index + 1} allowRetake value:`, cleanedRound.allowRetake, typeof cleanedRound.allowRetake);
 
         // Handle different round types
         if (round.type === 'file_upload') {
@@ -379,19 +393,19 @@ const updateInterview = async (req, res) => {
           cleanedRound.fileUploadRequirements = round.fileUploadRequirements || [];
           delete cleanedRound.questions; // Remove questions field for file upload rounds
           delete cleanedRound.formFields; // Remove formFields for file upload rounds
-          console.log(`📁 [UPDATE INTERVIEW] Preserving file upload round ${index + 1} with ${cleanedRound.fileUploadRequirements.length} requirements`);
+          console.log(`📁 [UPDATE INTERVIEW] Preserving file upload round ${index + 1} with ${cleanedRound.fileUploadRequirements.length} requirements, allowRetake: ${cleanedRound.allowRetake}`);
         } else if (round.type === 'form_submission') {
           // For form submission rounds, preserve formFields and remove questions/fileUploadRequirements
           cleanedRound.formFields = round.formFields || [];
           delete cleanedRound.questions; // Remove questions field for form submission rounds
           delete cleanedRound.fileUploadRequirements; // Remove fileUploadRequirements for form submission rounds
-          console.log(`📝 [UPDATE INTERVIEW] Preserving form submission round ${index + 1} with ${cleanedRound.formFields.length} form fields`);
+          console.log(`📝 [UPDATE INTERVIEW] Preserving form submission round ${index + 1} with ${cleanedRound.formFields.length} form fields, allowRetake: ${cleanedRound.allowRetake}`);
         } else {
           // For interview rounds, use questions and remove fileUploadRequirements/formFields
           cleanedRound.questions = cleanQuestions;
           delete cleanedRound.fileUploadRequirements; // Remove fileUploadRequirements field for interview rounds
           delete cleanedRound.formFields; // Remove formFields for interview rounds
-          console.log(`💬 [UPDATE INTERVIEW] Preserving interview round ${index + 1} with ${cleanQuestions.length} questions`);
+          console.log(`💬 [UPDATE INTERVIEW] Preserving interview round ${index + 1} with ${cleanQuestions.length} questions, allowRetake: ${cleanedRound.allowRetake}`);
         }
         
         // Log if we're fixing a null duration

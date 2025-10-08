@@ -281,13 +281,23 @@ const RoundSelection = ({
                           }`}>
                             ✅ Completed
                           </div>
-                          <button
-                            onClick={() => startSpecificRound(roundId)}
-                            disabled={loading}
-                            className="w-full py-4 px-6 bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 hover:from-emerald-700 hover:via-green-700 hover:to-teal-700 text-white rounded-2xl font-bold text-sm transition-all duration-300 transform hover:scale-105 shadow-2xl shadow-emerald-500/30 hover:shadow-emerald-500/50"
-                          >
-                            Retake Round
-                          </button>
+                          {round.allowRetake ? (
+                            <button
+                              onClick={() => startSpecificRound(roundId)}
+                              disabled={loading}
+                              className="w-full py-4 px-6 bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 hover:from-emerald-700 hover:via-green-700 hover:to-teal-700 text-white rounded-2xl font-bold text-sm transition-all duration-300 transform hover:scale-105 shadow-2xl shadow-emerald-500/30 hover:shadow-emerald-500/50"
+                            >
+                              Retake Round
+                            </button>
+                          ) : (
+                            <div className={`w-full py-4 px-6 rounded-2xl font-bold text-sm transition-all duration-300 ${
+                              isDarkMode 
+                                ? 'bg-gray-700/50 text-gray-400 border-2 border-gray-600/40' 
+                                : 'bg-gray-100 text-gray-500 border-2 border-gray-300'
+                            }`}>
+                              🔒 Retake Not Allowed
+                            </div>
+                          )}
                         </div>
                       ) : isScheduled && !isScheduledAndActive ? (
                         <div className={`w-full py-5 px-8 rounded-2xl font-bold text-sm transition-all duration-300 ${

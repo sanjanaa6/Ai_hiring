@@ -451,6 +451,46 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
     setStep('setup');
   }, [resetInterviewState, setStep, eyeTracking]);
 
+  // Handle retake specific round
+  const handleRetakeRound = useCallback((round) => {
+    // Remove the specific round from completed rounds
+    const roundId = round._id || round.id || round.roundId;
+    setCompletedRounds(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(roundId);
+      return newSet;
+    });
+    
+    // Update user progress to mark this round as not completed
+    setUserProgress(prev => {
+      if (!prev) return prev;
+      
+      const updatedRounds = prev.rounds.map(r => 
+        r.roundId === roundId 
+          ? { ...r, status: 'pending', completedAt: null }
+          : r
+      );
+      
+      return {
+        ...prev,
+        rounds: updatedRounds,
+        progress: {
+          ...prev.progress,
+          completedRounds: Math.max(0, prev.progress.completedRounds - 1)
+        }
+      };
+    });
+    
+    // Clear localStorage for this specific round
+    const storageKey = `completedRounds_${interviewId}`;
+    const storedRounds = JSON.parse(localStorage.getItem(storageKey) || '[]');
+    const updatedStoredRounds = storedRounds.filter(id => id !== roundId);
+    localStorage.setItem(storageKey, JSON.stringify(updatedStoredRounds));
+    
+    // Go back to round selection
+    setStep('round-selection');
+  }, [interviewId]);
+
   // Handle user removal due to violations
   const handleRemoveUser = useCallback(() => {
     console.log('🚨 Removing user from interview due to violations');
@@ -793,6 +833,7 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
           completedRounds={completedRounds}
           allRounds={allRounds}
           onRestartInterview={handleRestartInterview}
+          onRetakeRound={handleRetakeRound}
         />
       );
 

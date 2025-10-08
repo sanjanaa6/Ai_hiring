@@ -88,9 +88,15 @@ const InterviewReviewer = () => {
       console.log('Processed interview data:', interviewData);
       console.log('Interview rounds:', interviewData.rounds);
       if (interviewData.rounds) {
+        // Ensure allowRetake is always a boolean for all rounds
         interviewData.rounds.forEach((round, index) => {
+          if (round.allowRetake === undefined) {
+            round.allowRetake = false;
+            console.log(`🔧 Fixed undefined allowRetake for round ${index + 1}, set to false`);
+          }
           console.log(`Round ${index}:`, round);
           console.log(`Round ${index} type:`, round.type);
+          console.log(`Round ${index} allowRetake:`, round.allowRetake, typeof round.allowRetake);
           console.log(`Round ${index} fileUploadRequirements:`, round.fileUploadRequirements);
           console.log(`Round ${index} formFields:`, round.formFields);
         });
@@ -187,6 +193,7 @@ const InterviewReviewer = () => {
       description: newRoundData.description,
       duration: newRoundData.duration,
       type: newRoundData.type,
+      allowRetake: false, // Default to false for new rounds
       questions: newRoundData.type === 'interview' ? [] : undefined,
       fileUploadRequirements: newRoundData.type === 'file_upload' ? [] : undefined,
       formFields: newRoundData.type === 'form_submission' ? [] : undefined,
@@ -308,6 +315,7 @@ const InterviewReviewer = () => {
       console.log('InterviewReviewer: Rounds being saved:', saveData.rounds);
       saveData.rounds.forEach((round, index) => {
         console.log(`InterviewReviewer: Round ${index + 1} type:`, round.type);
+        console.log(`InterviewReviewer: Round ${index + 1} allowRetake:`, round.allowRetake);
         console.log(`InterviewReviewer: Round ${index + 1} formFields:`, round.formFields?.length || 0);
       });
       
@@ -915,6 +923,47 @@ const InterviewReviewer = () => {
                         {round.type === 'file_upload' ? '📁 File Upload' : 
                          round.type === 'form_submission' ? '📝 Form Submission' : '💬 Interview'}
                       </div>
+                    </div>
+                    
+                    {/* Retake Toggle */}
+                    <div className="flex items-center justify-between mt-4 p-3 rounded-lg border border-gray-200">
+                      <div className="flex items-center gap-3">
+                        <div className={`p-2 rounded-full ${
+                          Boolean(round.allowRetake)
+                            ? 'bg-green-100 text-green-600' 
+                            : 'bg-gray-100 text-gray-500'
+                        }`}>
+                          <RefreshCw className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <h4 className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                            Allow Retake
+                          </h4>
+                          <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                            {Boolean(round.allowRetake)
+                              ? 'Candidates can retake this round' 
+                              : 'Candidates cannot retake this round'
+                            }
+                          </p>
+                        </div>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={Boolean(round.allowRetake)}
+                          onChange={(e) => {
+                            console.log(`🔄 Toggle changed for round ${roundIndex + 1}:`, e.target.checked);
+                            console.log(`🔄 Current round allowRetake:`, round.allowRetake, typeof round.allowRetake);
+                            const updatedInterview = { ...interview };
+                            updatedInterview.rounds[roundIndex].allowRetake = Boolean(e.target.checked);
+                            console.log(`🔄 Updated round allowRetake:`, updatedInterview.rounds[roundIndex].allowRetake, typeof updatedInterview.rounds[roundIndex].allowRetake);
+                            setInterview(updatedInterview);
+                            markAsChanged();
+                          }}
+                          className="sr-only peer"
+                        />
+                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                      </label>
                     </div>
                   </div>
                   <div className="flex gap-2">
