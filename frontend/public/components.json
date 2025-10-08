@@ -1,0 +1,9 @@
+{
+  "components": [
+    { "id": "resistor", "name": "Resistor 1kΩ", "type": "Passive", "footprint": "0805", "icon": "Layers" },
+    { "id": "capacitor", "name": "Capacitor 100nF", "type": "Passive", "footprint": "0603", "icon": "Layers" },
+    { "id": "led", "name": "LED", "type": "Active", "footprint": "0805", "icon": "Zap" }
+  ]
+}
+
+

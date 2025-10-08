@@ -1,0 +1,59 @@
+{
+  "components": [
+    {
+      "id": "arduino_nano",
+      "name": "Arduino Nano",
+      "type": "Microcontroller",
+      "footprint": "DIP-30",
+      "dimensions": { "width_mm": 18, "height_mm": 45 },
+      "canvas": { "width_px": 180, "height_px": 450 },
+      "icon": "Cpu",
+      "tags": ["microcontroller", "arduino", "development"],
+      "pins": [
+        { "id": "D0",  "type": "Digital IO", "designation": "RX0",  "x_px": 0,   "y_px": 25.4 },
+        { "id": "D1",  "type": "Digital IO", "designation": "TX1",  "x_px": 0,   "y_px": 50.8 },
+        { "id": "D2",  "type": "Digital IO", "designation": "INT",  "x_px": 0,   "y_px": 76.2 },
+        { "id": "D3",  "type": "Digital IO", "designation": "PWM",  "x_px": 0,   "y_px": 101.6 },
+        { "id": "D4",  "type": "Digital IO",                          "x_px": 0,   "y_px": 127.0 },
+        { "id": "D5",  "type": "Digital IO", "designation": "PWM",  "x_px": 0,   "y_px": 152.4 },
+        { "id": "D6",  "type": "Digital IO", "designation": "PWM",  "x_px": 0,   "y_px": 177.8 },
+        { "id": "D7",  "type": "Digital IO",                          "x_px": 0,   "y_px": 203.2 },
+        { "id": "VIN", "type": "Power",                               "x_px": 180, "y_px": 25.4 },
+        { "id": "GND", "type": "Ground",                              "x_px": 180, "y_px": 50.8 },
+        { "id": "5V",  "type": "Power",                               "x_px": 180, "y_px": 101.6 },
+        { "id": "A0",  "type": "Analog",                              "x_px": 180, "y_px": 127.0 },
+        { "id": "A1",  "type": "Analog",                              "x_px": 180, "y_px": 152.4 }
+      ]
+    },
+    {
+      "id": "resistor_220",
+      "name": "Resistor 220Ω",
+      "type": "Passive",
+      "footprint": "0805",
+      "dimensions": { "width_mm": 8, "height_mm": 3 },
+      "canvas": { "width_px": 80, "height_px": 30 },
+      "icon": "Layers",
+      "tags": ["passive", "resistor"],
+      "pins": [
+        { "id": "1", "type": "Passive", "x_px": 0,  "y_px": 15 },
+        { "id": "2", "type": "Passive", "x_px": 80, "y_px": 15 }
+      ]
+    },
+    {
+      "id": "led_red",
+      "name": "LED Red",
+      "type": "Active",
+      "footprint": "5mm",
+      "dimensions": { "width_mm": 5, "height_mm": 5 },
+      "canvas": { "width_px": 50, "height_px": 50 },
+      "icon": "Zap",
+      "tags": ["active", "led", "indicator"],
+      "pins": [
+        { "id": "A", "type": "Input",  "designation": "Anode (+)",  "x_px": 12.5, "y_px": 50 },
+        { "id": "K", "type": "Output", "designation": "Cathode (-)", "x_px": 37.5, "y_px": 50 }
+      ]
+    }
+  ]
+}
+
+

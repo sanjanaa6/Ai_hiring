@@ -90,14 +90,14 @@ const Canvas = ({
     const fetchComponentTemplates = async () => {
       try {
         const pathname = window.location.pathname || '/';
+        const pcbBase = '/pcb/';
         const base = pathname.startsWith('/pcb') ? '/pcb/' : '/';
 
         const candidateUrls = [
+          `${pcbBase}enriched_components.json`,
+          `${pcbBase}components.json`,
           `${base}enriched_components.json`,
           `${base}components.json`,
-          // extra fallbacks just in case
-          '/pcb/enriched_components.json',
-          '/pcb/components.json',
           '/enriched_components.json',
           '/components.json'
         ];
@@ -127,7 +127,7 @@ const Canvas = ({
         setComponentTemplates([]);
       }
     };
-
+    
     fetchComponentTemplates();
   }, []);
   

@@ -120,33 +120,44 @@ const Sidebar = ({ isDarkMode, toggleTheme }) => {
     return ["all", ...types]; // Add "all" as first option
   }, [components]);
 
-  // Fetch components from JSON file
+  // Fetch components from JSON file (supports /pcb/ base path)
   useEffect(() => {
     const fetchComponents = async () => {
       try {
         setIsLoading(true);
-        
-        // First try to fetch enriched components
-        try {
-          const enrichedResponse = await fetch('/enriched_components.json');
-          if (enrichedResponse.ok) {
-            const data = await enrichedResponse.json();
-            setComponents(data.components || []);
-            setError(null);
-            return;
+
+        const pathname = window.location.pathname || '/';
+        const pcbBase = '/pcb/';
+        const base = pathname.startsWith('/pcb') ? '/pcb/' : '/';
+        const candidateUrls = [
+          `${pcbBase}enriched_components.json`,
+          `${pcbBase}components.json`,
+          `${base}enriched_components.json`,
+          `${base}components.json`,
+          '/enriched_components.json',
+          '/components.json'
+        ];
+
+        let loaded = false;
+        for (const url of candidateUrls) {
+          try {
+            const resp = await fetch(url, { cache: 'no-store' });
+            if (!resp.ok) continue;
+            const data = await resp.json();
+            if (data && Array.isArray(data.components)) {
+              setComponents(data.components);
+              setError(null);
+              loaded = true;
+              break;
+            }
+          } catch (_) {
+            // try next
           }
-        } catch (enrichedError) {
-          console.warn('Could not load enriched components, falling back to regular components');
         }
-        
-        // Fall back to regular components if enriched ones aren't available
-        const response = await fetch('/components.json');
-        if (!response.ok) {
-          throw new Error(`HTTP error! Status: ${response.status}`);
+
+        if (!loaded) {
+          throw new Error('No component definition file found');
         }
-        const data = await response.json();
-        setComponents(data.components || []);
-        setError(null);
       } catch (err) {
         console.error('Error fetching components:', err);
         setError('Failed to load components. Please try again later.');
