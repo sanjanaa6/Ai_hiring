@@ -81,6 +81,7 @@ app.use('/api/applications', require('./routes/applications'));
 app.use('/api/users', require('./routes/users'));
 // Interview scheduling routes must come BEFORE main interviews routes to avoid conflicts
 app.use('/api/interviews', require('./routes/interviewScheduling'));
+app.use('/api/interviews', require('./routes/formSubmission'));
 app.use('/api/interviews', require('./routes/interviews'));
 app.use('/api/ai', require('./routes/ai'));
 app.use('/api/ai', require('./routes/aiEvaluation'));
@@ -91,6 +92,8 @@ app.use('/api/admin', require('./routes/adminAuth'));
 app.use('/api/tts', require('./routes/tts'));
 // Serve recruiter documents statically for admin review
 app.use('/uploads/recruiter-docs', express.static(path.join(__dirname, 'uploads', 'recruiter-docs')));
+// Serve form submission files statically
+app.use('/uploads/form-submissions', express.static(path.join(__dirname, 'uploads', 'form-submissions')));
 // Add specific CORS handling for file upload routes
 app.use('/api/files', (req, res, next) => {
   // Set CORS headers for file upload routes

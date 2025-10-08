@@ -19,15 +19,52 @@ const fileUploadRequirementSchema = new mongoose.Schema({
   required: { type: Boolean, default: true }
 });
 
+const formFieldSchema = new mongoose.Schema({
+  id: { type: String, required: true },
+  type: { 
+    type: String, 
+    enum: ['text', 'textarea', 'select', 'radio', 'checkbox', 'email', 'number', 'date', 'file'], 
+    required: true 
+  },
+  label: { type: String, required: true },
+  placeholder: { type: String },
+  required: { type: Boolean, default: false },
+  options: [{ type: String }], // For select, radio, checkbox
+  validation: {
+    minLength: { type: Number },
+    maxLength: { type: Number },
+    min: { type: Number },
+    max: { type: Number },
+    pattern: { type: String } // Regex pattern
+  },
+  order: { type: Number, required: true }
+});
+
+const formSubmissionSchema = new mongoose.Schema({
+  candidateId: { type: String, required: true },
+  candidateName: { type: String, required: true },
+  candidateEmail: { type: String, required: true },
+  roundId: { type: String, required: true },
+  responses: [{
+    fieldId: { type: String, required: true },
+    fieldType: { type: String, required: true },
+    value: { type: mongoose.Schema.Types.Mixed, required: true }, // Can be string, array, etc.
+    submittedAt: { type: Date, default: Date.now }
+  }],
+  submittedAt: { type: Date, default: Date.now },
+  isComplete: { type: Boolean, default: false }
+});
+
 const roundSchema = new mongoose.Schema({
   roundId: { type: String, required: true },
   roundNumber: { type: Number, required: true },
   title: { type: String, required: true },
   description: { type: String, required: true },
   duration: { type: Number, required: true },
-  type: { type: String, enum: ['interview', 'file_upload'], default: 'interview' },
+  type: { type: String, enum: ['interview', 'file_upload', 'form_submission'], default: 'interview' },
   questions: [questionSchema],
   fileUploadRequirements: [fileUploadRequirementSchema], // For file upload rounds
+  formFields: [formFieldSchema], // For form submission rounds
   evaluationCriteria: {
     technical: { type: String },
     communication: { type: String },
@@ -117,6 +154,7 @@ const interviewSchema = new mongoose.Schema({
   }],
   candidateAnswers: [candidateAnswerSchema],
   fileUploads: [fileUploadSchema],
+  formSubmissions: [formSubmissionSchema],
   statistics: {
     totalCandidates: { type: Number, default: 0 },
     completedInterviews: { type: Number, default: 0 },

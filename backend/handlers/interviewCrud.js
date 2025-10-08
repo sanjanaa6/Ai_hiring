@@ -342,7 +342,7 @@ const updateInterview = async (req, res) => {
         }));
         
         // If no questions exist and it's an interview round, add a default question
-        if (cleanQuestions.length === 0 && round.type !== 'file_upload') {
+        if (cleanQuestions.length === 0 && round.type !== 'file_upload' && round.type !== 'form_submission') {
           cleanQuestions = [{
             id: `q${index + 1}_1`,
             type: 'technical',
@@ -378,11 +378,19 @@ const updateInterview = async (req, res) => {
           // For file upload rounds, preserve fileUploadRequirements and remove questions
           cleanedRound.fileUploadRequirements = round.fileUploadRequirements || [];
           delete cleanedRound.questions; // Remove questions field for file upload rounds
+          delete cleanedRound.formFields; // Remove formFields for file upload rounds
           console.log(`📁 [UPDATE INTERVIEW] Preserving file upload round ${index + 1} with ${cleanedRound.fileUploadRequirements.length} requirements`);
+        } else if (round.type === 'form_submission') {
+          // For form submission rounds, preserve formFields and remove questions/fileUploadRequirements
+          cleanedRound.formFields = round.formFields || [];
+          delete cleanedRound.questions; // Remove questions field for form submission rounds
+          delete cleanedRound.fileUploadRequirements; // Remove fileUploadRequirements for form submission rounds
+          console.log(`📝 [UPDATE INTERVIEW] Preserving form submission round ${index + 1} with ${cleanedRound.formFields.length} form fields`);
         } else {
-          // For interview rounds, use questions and remove fileUploadRequirements
+          // For interview rounds, use questions and remove fileUploadRequirements/formFields
           cleanedRound.questions = cleanQuestions;
           delete cleanedRound.fileUploadRequirements; // Remove fileUploadRequirements field for interview rounds
+          delete cleanedRound.formFields; // Remove formFields for interview rounds
           console.log(`💬 [UPDATE INTERVIEW] Preserving interview round ${index + 1} with ${cleanQuestions.length} questions`);
         }
         

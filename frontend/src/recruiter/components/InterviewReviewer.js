@@ -20,11 +20,14 @@ import {
   Share2,
   Upload,
   Eye,
-  EyeOff
+  EyeOff,
+  X
 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import ThemeSwitcher from '../../components/common/ThemeSwitcher';
 import FileUploadRoundManager from './FileUploadRoundManager';
+import FormFieldManager from './FormFieldManager';
+import FormSubmissionViewer from './FormSubmissionViewer';
 
 // Use apiService instead of custom axios instance
 
@@ -47,6 +50,7 @@ const InterviewReviewer = () => {
   const [showAddRoundModal, setShowAddRoundModal] = useState(false);
   const [showAddFileRequirementModal, setShowAddFileRequirementModal] = useState(false);
   const [selectedRoundIndex, setSelectedRoundIndex] = useState(null);
+  const [selectedFormRound, setSelectedFormRound] = useState(null);
   const [newRoundData, setNewRoundData] = useState({
     type: 'interview',
     title: '',
@@ -88,6 +92,7 @@ const InterviewReviewer = () => {
           console.log(`Round ${index}:`, round);
           console.log(`Round ${index} type:`, round.type);
           console.log(`Round ${index} fileUploadRequirements:`, round.fileUploadRequirements);
+          console.log(`Round ${index} formFields:`, round.formFields);
         });
       }
       setInterview(interviewData);
@@ -184,6 +189,7 @@ const InterviewReviewer = () => {
       type: newRoundData.type,
       questions: newRoundData.type === 'interview' ? [] : undefined,
       fileUploadRequirements: newRoundData.type === 'file_upload' ? [] : undefined,
+      formFields: newRoundData.type === 'form_submission' ? [] : undefined,
       evaluationCriteria: {
         technical: '',
         communication: '',
@@ -291,12 +297,21 @@ const InterviewReviewer = () => {
       setError(null);
       setSaveSuccess(false);
       
-      const result = await apiService.updateInterview(interviewId, {
+      const saveData = {
         rounds: interview?.rounds || [],
         title: interview?.title || '',
         totalDuration: interview?.totalDuration || 0,
         description: interview?.description || ''
+      };
+      
+      console.log('InterviewReviewer: Saving interview data:', saveData);
+      console.log('InterviewReviewer: Rounds being saved:', saveData.rounds);
+      saveData.rounds.forEach((round, index) => {
+        console.log(`InterviewReviewer: Round ${index + 1} type:`, round.type);
+        console.log(`InterviewReviewer: Round ${index + 1} formFields:`, round.formFields?.length || 0);
       });
+      
+      const result = await apiService.updateInterview(interviewId, saveData);
       
       if (result.success) {
         setEditingRound(null);
@@ -779,6 +794,20 @@ const InterviewReviewer = () => {
             >
               File Upload Rounds
             </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => setActiveTab('form-submissions')}
+              className={`flex-1 py-2 px-4 rounded-md font-medium transition-colors duration-200 ${
+                activeTab === 'form-submissions'
+                  ? 'bg-white text-green-600 shadow-sm'
+                  : isDarkMode 
+                    ? 'text-gray-400 hover:text-white' 
+                    : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              Form Submissions
+            </motion.button>
           </div>
 
           {/* Tab Content */}
@@ -871,15 +900,20 @@ const InterviewReviewer = () => {
                         <Target className="w-4 h-4" />
                         {round.type === 'file_upload' 
                           ? `${(round.fileUploadRequirements || []).length} file requirements`
+                          : round.type === 'form_submission'
+                          ? `${(round.formFields || []).length} form fields`
                           : `${(round.questions || []).length} questions`
                         }
                       </div>
                       <div className={`px-2 py-1 rounded-full text-xs font-medium ${
                         round.type === 'file_upload'
                           ? 'bg-purple-100 text-purple-700' 
+                          : round.type === 'form_submission'
+                          ? 'bg-green-100 text-green-700'
                           : 'bg-blue-100 text-blue-700'
                       }`}>
-                        {round.type === 'file_upload' ? '📁 File Upload' : '💬 Interview'}
+                        {round.type === 'file_upload' ? '📁 File Upload' : 
+                         round.type === 'form_submission' ? '📝 Form Submission' : '💬 Interview'}
                       </div>
                     </div>
                   </div>
@@ -909,7 +943,7 @@ const InterviewReviewer = () => {
 
                 {/* Questions or File Requirements */}
                 <div className="space-y-4">
-                  {editingRound === roundIndex && (
+                  {editingRound === roundIndex && round.type !== 'form_submission' && (
                     <motion.button
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
@@ -988,6 +1022,29 @@ const InterviewReviewer = () => {
                     </motion.div>
                   ))}
                   
+                  {/* Form Fields for Form Submission Rounds */}
+                  {round.type === 'form_submission' && (
+                    <div className="mb-4">
+                      <FormFieldManager 
+                        round={round}
+                        onUpdate={(updatedRound) => {
+                          console.log('InterviewReviewer: Received updated round from FormFieldManager:', updatedRound);
+                          console.log('InterviewReviewer: Round type:', updatedRound.type);
+                          console.log('InterviewReviewer: Form fields count:', updatedRound.formFields?.length || 0);
+                          const updatedInterview = { ...interview };
+                          const roundIndex = updatedInterview.rounds.findIndex(r => r.roundId === round.roundId);
+                          if (roundIndex !== -1) {
+                            updatedInterview.rounds[roundIndex] = updatedRound;
+                            console.log('InterviewReviewer: Updated interview with new round data:', updatedInterview);
+                            setInterview(updatedInterview);
+                            markAsChanged();
+                          }
+                        }}
+                        isDarkMode={isDarkMode}
+                      />
+                    </div>
+                  )}
+
                   {/* File Upload Requirements */}
                   {round.type === 'file_upload' && (
                     <div className="mb-4">
@@ -1104,6 +1161,159 @@ const InterviewReviewer = () => {
               }} 
             />
           )}
+
+          {activeTab === 'form-submissions' && (
+            <div className="space-y-6">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h2 className={`text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                    Form Submissions
+                  </h2>
+                  <p className={`text-sm mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                    View and manage candidate form submissions
+                  </p>
+                </div>
+              </div>
+
+              {/* Form Submission Rounds */}
+              {interview?.rounds?.filter(round => round.type === 'form_submission').length === 0 ? (
+                <div className={`p-6 rounded-lg border-2 border-dashed ${
+                  isDarkMode 
+                    ? 'border-gray-600 bg-gray-700/30' 
+                    : 'border-gray-300 bg-gray-50'
+                }`}>
+                  <div className="text-center">
+                    <div className={`w-12 h-12 mx-auto mb-4 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                      📝
+                    </div>
+                    <h3 className={`text-lg font-medium mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                      No Form Submission Rounds Yet
+                    </h3>
+                    <p className={`text-sm mb-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                      Create form submission rounds to collect structured information from candidates.
+                    </p>
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => setActiveTab('rounds')}
+                      className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 flex items-center gap-2 mx-auto"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Create Form Round
+                    </motion.button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {interview?.rounds
+                    ?.filter(round => round.type === 'form_submission')
+                    .map((round, index) => (
+                      <motion.div
+                        key={round.roundId}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.1 }}
+                        className={`p-6 rounded-2xl shadow-xl ${
+                          isDarkMode 
+                            ? 'bg-gray-800 border border-gray-700' 
+                            : 'bg-white border border-gray-200'
+                        }`}
+                      >
+                        <div className="flex justify-between items-start mb-6">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <div className="p-2 bg-green-100 rounded-full">
+                                <span className="text-green-600 text-lg">📝</span>
+                              </div>
+                              <h3 className={`text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                                {round.title}
+                              </h3>
+                            </div>
+                            <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                              {round.description}
+                            </p>
+                            <div className="flex items-center gap-4 mt-3">
+                              <div className={`flex items-center gap-2 text-sm ${
+                                isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                              }`}>
+                                <Clock className="w-4 h-4" />
+                                {round.duration} minutes
+                              </div>
+                              <div className={`flex items-center gap-2 text-sm ${
+                                isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                              }`}>
+                                <span className="text-lg">📝</span>
+                                {round.formFields?.length || 0} form fields
+                              </div>
+                            </div>
+                          </div>
+                          <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => {
+                              setSelectedFormRound(round);
+                            }}
+                            className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 flex items-center gap-2"
+                          >
+                            <Eye className="w-4 h-4" />
+                            View Submissions
+                          </motion.button>
+                        </div>
+                      </motion.div>
+                    ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Form Submission Viewer Modal */}
+          {selectedFormRound && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+              onClick={() => setSelectedFormRound(null)}
+            >
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                className={`w-full max-w-6xl max-h-[90vh] overflow-hidden rounded-2xl shadow-2xl ${
+                  isDarkMode ? 'bg-gray-800' : 'bg-white'
+                }`}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex items-center justify-between p-6 border-b border-gray-200">
+                  <div>
+                    <h2 className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                      Form Submissions - {selectedFormRound.title}
+                    </h2>
+                    <p className={`text-sm mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                      View candidate responses for this form round
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setSelectedFormRound(null)}
+                    className={`p-2 rounded-lg transition-colors ${
+                      isDarkMode 
+                        ? 'hover:bg-gray-700 text-gray-400 hover:text-white' 
+                        : 'hover:bg-gray-100 text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    <X className="w-6 h-6" />
+                  </button>
+                </div>
+                <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+                  <FormSubmissionViewer
+                    round={selectedFormRound}
+                    interviewId={interviewId}
+                    isDarkMode={isDarkMode}
+                  />
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
         </motion.div>
 
         {/* Action Buttons */}
@@ -1213,6 +1423,7 @@ const InterviewReviewer = () => {
                   >
                     <option value="interview">Interview Round (Questions)</option>
                     <option value="file_upload">File Upload Round (Documents)</option>
+                    <option value="form_submission">Form Submission Round (Custom Forms)</option>
                   </select>
                 </div>
                 <div>

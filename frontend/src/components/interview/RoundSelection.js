@@ -182,7 +182,7 @@ const RoundSelection = ({
 
                       {/* Round Title with Better Typography */}
                       <h3
-                        className={`text-2xl font-black mb-4 leading-tight transition-all duration-300 group-hover:scale-105 ${
+                        className={`text-2xl font-black mb-2 leading-tight transition-all duration-300 group-hover:scale-105 ${
                           isCompleted
                             ? isDarkMode ? 'text-emerald-200' : 'text-emerald-800'
                             : isScheduled
@@ -194,6 +194,20 @@ const RoundSelection = ({
                       >
                         {round.title}
                       </h3>
+
+                      {/* Round Type Badge */}
+                      <div className="mb-4">
+                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+                          round.type === 'form_submission'
+                            ? 'bg-green-100 text-green-800'
+                            : round.type === 'file_upload'
+                            ? 'bg-purple-100 text-purple-800'
+                            : 'bg-blue-100 text-blue-800'
+                        }`}>
+                          {round.type === 'form_submission' ? '📝 Form Submission' : 
+                           round.type === 'file_upload' ? '📁 File Upload' : '💬 Interview'}
+                        </span>
+                      </div>
 
                       {/* Round Description with Better Spacing */}
                       <p
@@ -246,7 +260,14 @@ const RoundSelection = ({
                             ? 'bg-slate-800/60 border border-cyan-400/30' 
                             : 'bg-cyan-100/80 border border-cyan-200'
                         }`}>
-                          <span className="text-xs font-bold">{round.questions?.length || 0} Q</span>
+                          <span className="text-xs font-bold">
+                            {round.type === 'form_submission' 
+                              ? `${round.formFields?.length || 0} Fields`
+                              : round.type === 'file_upload'
+                              ? `${round.fileUploadRequirements?.length || 0} Files`
+                              : `${round.questions?.length || 0} Q`
+                            }
+                          </span>
                         </div>
                       </div>
 

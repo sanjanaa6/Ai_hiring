@@ -9,6 +9,7 @@ import RoundSelection from './interview/RoundSelection';
 import InterviewMain from './interview/InterviewMain';
 import InterviewComplete from './interview/InterviewComplete';
 import FileUploadRound from './FileUploadRound';
+import FormSubmissionRound from './FormSubmissionRound';
 import EyeTrackingMonitor from './EyeTrackingMonitor';
 import aiLanguageDetectionService from '../services/aiLanguageDetectionService';
 import apiService from '../services/apiService';
@@ -373,6 +374,7 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
       const isCoding = isCodingRound(round.title);
       const isSales = round.title?.toLowerCase().includes('sales');
       const isFileUpload = round.type === 'file_upload';
+      const isFormSubmission = round.type === 'form_submission';
       
       setIsLiveCodingRound(isCoding);
       setIsSalesRound(isSales);
@@ -405,6 +407,8 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
       // Handle different round types
       if (isFileUpload) {
         setStep('file-upload');
+      } else if (isFormSubmission) {
+        setStep('form-submission');
       } else {
         // Set first question for interview rounds
         if (round.questions && round.questions.length > 0) {
@@ -732,6 +736,52 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
               setStep('round-selection');
             }
           }}
+        />
+      );
+
+    case 'form-submission':
+      return (
+        <FormSubmissionRound
+          round={currentRound}
+          onComplete={(submissionData) => {
+            console.log('Form submission completed:', submissionData);
+            
+            // Mark round as completed
+            const roundId = currentRound._id || currentRound.id || currentRound.roundId;
+            setCompletedRounds(prev => new Set([...prev, roundId]));
+            
+            // Update user progress
+            setUserProgress(prev => {
+              if (!prev) return prev;
+              
+              const updatedRounds = prev.rounds.map(r => 
+                r.roundId === roundId 
+                  ? { ...r, status: 'completed', completedAt: new Date() }
+                  : r
+              );
+              
+              return {
+                ...prev,
+                rounds: updatedRounds,
+                progress: {
+                  ...prev.progress,
+                  completedRounds: prev.progress.completedRounds + 1
+                }
+              };
+            });
+            
+            // Go back to round selection or complete if all rounds done
+            const totalRounds = allRounds.length;
+            const completedCount = completedRounds.size + 1; // +1 for the round we just completed
+            
+            if (completedCount >= totalRounds) {
+              setStep('complete');
+            } else {
+              setStep('round-selection');
+            }
+          }}
+          candidateInfo={candidateInfo}
+          isDarkMode={isDarkMode}
         />
       );
 

@@ -27,7 +27,9 @@ const Interview = () => {
       // Get candidate info from localStorage or show form
     const storedInfo = localStorage.getItem('candidateInfo');
     if (storedInfo) {
-      setCandidateInfo(JSON.parse(storedInfo));
+      const parsedInfo = JSON.parse(storedInfo);
+      console.log('Loaded candidate info from localStorage:', parsedInfo);
+      setCandidateInfo(parsedInfo);
     } else {
         setShowCandidateForm(true);
       }
@@ -47,11 +49,14 @@ const Interview = () => {
     e.preventDefault();
     const formData = new FormData(e.target);
     const info = {
+      id: `candidate_${Date.now()}`, // Generate a unique ID
       name: formData.get('name'),
+      email: formData.get('email'),
       phone: formData.get('phone')
     };
-      setCandidateInfo(info);
-      localStorage.setItem('candidateInfo', JSON.stringify(info));
+    console.log('Candidate info set:', info);
+    setCandidateInfo(info);
+    localStorage.setItem('candidateInfo', JSON.stringify(info));
     setShowCandidateForm(false);
   };
 
