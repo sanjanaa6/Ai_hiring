@@ -448,7 +448,7 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
       console.error('❌ Failed to select round:', error);
       setError(`Failed to start round: ${error.message}`);
     }
-  }, [setCurrentRound, setQuestionIndex, setIsLiveCodingRound, setIsSalesRound, setCurrentQuestion, setStep, setError, speakQuestion, setSelectedLanguage, setIsLanguageLocked, setAiDeterminedLanguage]);
+  }, [setCurrentRound, setQuestionIndex, setIsLiveCodingRound, setIsSalesRound, setCurrentQuestion, setStep, setError, speakQuestion, setSelectedLanguage, setIsLanguageLocked, setAiDeterminedLanguage, allRounds, completedRounds]);
 
   // Handle start interview
   const handleStartInterview = useCallback(async () => {
@@ -510,7 +510,7 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
     
     // Go back to round selection
     setStep('round-selection');
-  }, [interviewId]);
+  }, [interviewId, setCompletedRounds, setStep, setUserProgress]);
 
   // Handle user removal due to violations
   const handleRemoveUser = useCallback(() => {
@@ -520,11 +520,6 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
     eyeTracking.resetViolations(); // Reset violations when removing user
   }, [setError, eyeTracking]);
 
-  // Handle violation threshold
-  const handleViolationThreshold = useCallback((count, max) => {
-    console.log(`⚠️ Violation threshold reached: ${count}/${max}`);
-    // Could send notification to backend here
-  }, []);
 
   // Initialize camera on mount
   useEffect(() => {
@@ -803,7 +798,7 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
             // Persist completion in localStorage
             try {
               const storageKey = `completedRounds_${interviewId}`;
-              const stored = JSON.parse(localStorage.getItem(storageKey) |g| '[]');
+              const stored = JSON.parse(localStorage.getItem(storageKey) || '[]');
               if (!stored.includes(roundId)) {
                 stored.push(roundId);
                 localStorage.setItem(storageKey, JSON.stringify(stored));

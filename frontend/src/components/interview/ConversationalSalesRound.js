@@ -1,19 +1,15 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   Mic, 
   MicOff, 
-  Volume2, 
   VolumeX, 
   MessageSquare, 
   Users, 
   Target,
   TrendingUp,
   CheckCircle,
-  Clock,
-  Play,
-  Pause
+  Clock
 } from 'lucide-react';
-import { useTheme } from '../../context/ThemeContext';
 
 const ConversationalSalesRound = ({
   round,
@@ -34,69 +30,23 @@ const ConversationalSalesRound = ({
 }) => {
   const [conversationHistory, setConversationHistory] = useState([]);
   const [currentScenario, setCurrentScenario] = useState(null);
-  const [isRolePlayActive, setIsRolePlayActive] = useState(false);
-  const [aiResponse, setAiResponse] = useState('');
   const [isGeneratingResponse, setIsGeneratingResponse] = useState(false);
   const [conversationStep, setConversationStep] = useState(0); // 0, 1, 2 (3 steps total)
   const [userResponse, setUserResponse] = useState('');
-  const [isWaitingForResponse, setIsWaitingForResponse] = useState(false);
   const [isConversationComplete, setIsConversationComplete] = useState(false);
   
   const conversationEndRef = useRef(null);
-  const speechSynthesis = useRef(null);
 
-  useEffect(() => {
-    if (currentQuestion) {
-      initializeSalesScenario();
-    }
-  }, [currentQuestion]);
-
-  // Cleanup speech synthesis on unmount
-  useEffect(() => {
-    return () => {
-      stopSpeaking();
-    };
+  const scrollToBottom = useCallback(() => {
+    conversationEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, []);
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [conversationHistory]);
+  const stopSpeaking = useCallback(() => {
+    window.speechSynthesis.cancel();
+    onToggleAISpeaking(false);
+  }, [onToggleAISpeaking]);
 
-  const scrollToBottom = () => {
-    conversationEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  const initializeSalesScenario = async () => {
-    if (!currentQuestion) return;
-
-    const scenario = {
-      id: currentQuestion.id,
-      title: currentQuestion.question,
-      type: currentQuestion.type || 'role-play',
-      context: generateSalesContext(currentQuestion),
-      objectives: generateSalesObjectives(currentQuestion),
-      customerProfile: generateCustomerProfile(currentQuestion)
-    };
-
-    setCurrentScenario(scenario);
-    setConversationStep(0);
-    setIsRolePlayActive(true);
-    setIsConversationComplete(false);
-
-    // Start the conversation with the first question
-    const firstQuestion = await generateStepQuestion(0, scenario);
-    const welcomeMessage = {
-      id: Date.now(),
-      type: 'ai',
-      content: firstQuestion,
-      timestamp: new Date(),
-      step: 0
-    };
-
-    setConversationHistory([welcomeMessage]);
-  };
-
-  const generateSalesContext = (question) => {
+  const generateSalesContext = useCallback((question) => {
     const questionText = question.question.toLowerCase();
     
     if (questionText.includes('software') || questionText.includes('saas')) {
@@ -108,18 +58,18 @@ const ConversationalSalesRound = ({
     } else {
       return "You're in a sales meeting with a potential client. They're interested in your product but have some concerns to address.";
     }
-  };
+  }, []);
 
-  const generateSalesObjectives = (question) => {
+  const generateSalesObjectives = useCallback((question) => {
     return [
       "Build rapport and understand customer needs",
       "Present value proposition effectively",
       "Handle objections professionally",
       "Close the deal or secure next steps"
     ];
-  };
+  }, []);
 
-  const generateCustomerProfile = (question) => {
+  const generateCustomerProfile = useCallback((question) => {
     return {
       name: "Alex Johnson",
       title: "VP of Operations",
@@ -129,9 +79,22 @@ const ConversationalSalesRound = ({
       timeline: "3-6 months",
       decisionMakingStyle: "Analytical and data-driven"
     };
-  };
+  }, []);
 
-  const generateStepQuestion = async (step, scenario) => {
+  const getFallbackQuestion = useCallback((step) => {
+    switch (step) {
+      case 0:
+        return "I'm interested in learning more about your solution. Can you tell me how it would help our business?";
+      case 1:
+        return "That sounds interesting, but I'm concerned about the cost and implementation time. How do you handle pricing and what's the typical timeline for getting started?";
+      case 2:
+        return "I need to think about this and discuss with my team. What would be the next steps if we decide to move forward?";
+      default:
+        return "Thank you for your time. I'll be in touch soon.";
+    }
+  }, []);
+
+  const generateStepQuestion = useCallback(async (step, scenario) => {
     try {
       const response = await fetch('/api/ai/generate-sales-response', {
         method: 'POST',
@@ -159,52 +122,53 @@ const ConversationalSalesRound = ({
       // Fallback to hardcoded questions if API fails
       return getFallbackQuestion(step);
     }
-  };
+  }, [getFallbackQuestion]);
 
-  const getFallbackQuestion = (step) => {
-    switch (step) {
-      case 0:
-        return "I'm interested in learning more about your solution. Can you tell me how it would help our business?";
-      case 1:
-        return "That sounds interesting, but I'm concerned about the cost and implementation time. How do you handle pricing and what's the typical timeline for getting started?";
-      case 2:
-        return "I need to think about this and discuss with my team. What would be the next steps if we decide to move forward?";
-      default:
-        return "Thank you for your time. I'll be in touch soon.";
+  const initializeSalesScenario = useCallback(async () => {
+    if (!currentQuestion) return;
+
+    const scenario = {
+      id: currentQuestion.id,
+      title: currentQuestion.question,
+      type: currentQuestion.type || 'role-play',
+      context: generateSalesContext(currentQuestion),
+      objectives: generateSalesObjectives(currentQuestion),
+      customerProfile: generateCustomerProfile(currentQuestion)
+    };
+
+    setCurrentScenario(scenario);
+    setConversationStep(0);
+    setIsConversationComplete(false);
+
+    // Start the conversation with the first question
+    const firstQuestion = await generateStepQuestion(0, scenario);
+    const welcomeMessage = {
+      id: Date.now(),
+      type: 'ai',
+      content: firstQuestion,
+      timestamp: new Date(),
+      step: 0
+    };
+
+    setConversationHistory([welcomeMessage]);
+  }, [currentQuestion, generateSalesContext, generateSalesObjectives, generateCustomerProfile, generateStepQuestion]);
+
+  useEffect(() => {
+    if (currentQuestion) {
+      initializeSalesScenario();
     }
-  };
+  }, [currentQuestion, initializeSalesScenario]);
 
-  const stopSpeaking = () => {
-    window.speechSynthesis.cancel();
-    onToggleAISpeaking(false);
-  };
-
-  const speakText = (text) => {
-    // Cancel any ongoing speech
-    stopSpeaking();
-
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = 0.9;
-    utterance.pitch = 1;
-    utterance.volume = 0.8;
-
-    utterance.onstart = () => {
-      onToggleAISpeaking(true);
+  // Cleanup speech synthesis on unmount
+  useEffect(() => {
+    return () => {
+      stopSpeaking();
     };
+  }, [stopSpeaking]);
 
-    utterance.onend = () => {
-      onToggleAISpeaking(false);
-    };
-
-    utterance.onerror = (event) => {
-      console.error('Speech synthesis error:', event.error);
-      onToggleAISpeaking(false);
-    };
-
-    speechSynthesis.current = utterance;
-    window.speechSynthesis.speak(utterance);
-  };
-
+  useEffect(() => {
+    scrollToBottom();
+  }, [conversationHistory, scrollToBottom]);
   const handleUserResponse = async () => {
     if (!userResponse.trim() || isGeneratingResponse || isConversationComplete) return;
 
@@ -219,7 +183,6 @@ const ConversationalSalesRound = ({
 
     setConversationHistory(prev => [...prev, userMessage]);
     setIsGeneratingResponse(true);
-    setIsWaitingForResponse(false);
 
     try {
       // Check if this is the last step (step 2)
