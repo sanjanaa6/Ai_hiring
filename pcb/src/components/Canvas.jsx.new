@@ -1,0 +1,15 @@
+import React, { useEffect } from 'react';
+
+// Use effect to update wire endpoints when scale or pan changes
+useEffect(() => {
+  if (components.length > 0 && wires.length > 0) {
+    // Use a timeout to prevent excessive updates
+    const timer = setTimeout(() => {
+      updateWireEndpoints();
+    }, 0);
+    return () => clearTimeout(timer);
+  }
+}, [scale, pan]);
+
+// Now improve the renderWires function to always use the direct component pin locations
+// This ensures that the visual rendering exactly matches the component positions 

@@ -10,6 +10,7 @@ import InterviewMain from './interview/InterviewMain';
 import InterviewComplete from './interview/InterviewComplete';
 import FileUploadRound from './FileUploadRound';
 import FormSubmissionRound from './FormSubmissionRound';
+import ConversationalSalesRound from './interview/ConversationalSalesRound';
 import EyeTrackingMonitor from './EyeTrackingMonitor';
 import aiLanguageDetectionService from '../services/aiLanguageDetectionService';
 import apiService from '../services/apiService';
@@ -372,7 +373,10 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
       
       // Determine round type
       const isCoding = isCodingRound(round.title);
-      const isSales = round.title?.toLowerCase().includes('sales');
+      const isSales = round.title?.toLowerCase().includes('sales') && 
+                     (round.title?.toLowerCase().includes('role-play') || 
+                      round.title?.toLowerCase().includes('roleplay') ||
+                      round.roundNumber === 3); // Specifically Round 3 for sales role-play
       const isFileUpload = round.type === 'file_upload';
       const isFormSubmission = round.type === 'form_submission';
       
@@ -684,6 +688,40 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
       );
 
     case 'interview':
+      // Check if this is a sales round and render accordingly
+      if (isSalesRound) {
+        return (
+          <>
+            <ConversationalSalesRound
+              round={currentRound}
+              currentQuestion={currentQuestion}
+              questionIndex={questionIndex}
+              timeRemaining={timeRemaining}
+              isAISpeaking={isAISpeaking}
+              isRecording={voiceRecording.isRecording}
+              transcription={voiceRecording.transcription}
+              interimTranscription={voiceRecording.interimTranscription}
+              onStartRecording={voiceRecording.startRecording}
+              onStopRecording={voiceRecording.stopRecording}
+              onNextQuestion={moveToNextQuestion}
+              onSubmitAnswer={submitCurrentAnswer}
+              onToggleAISpeaking={() => setIsAISpeaking(!isAISpeaking)}
+              candidateInfo={candidateInfo}
+              isDarkMode={isDarkMode}
+            />
+            
+            {/* Eye Tracking Monitor */}
+            <EyeTrackingMonitor
+              gazeDirection={eyeTracking.gazeDirection}
+              violationCount={eyeTracking.violationCount}
+              maxViolations={eyeTracking.MAX_VIOLATIONS}
+              isLookingAway={eyeTracking.isLookingAway}
+              onRemoveUser={handleRemoveUser}
+            />
+          </>
+        );
+      }
+      
       return (
         <>
           <InterviewMain
