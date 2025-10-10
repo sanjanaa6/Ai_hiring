@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 const EyeTrackingMonitor = ({
   gazeDirection,
   violationCount,
-  maxViolations = 3,
+  maxViolations = 10,
   isLookingAway,
   onRemoveUser
 }) => {
@@ -18,7 +18,7 @@ const EyeTrackingMonitor = ({
       
       setTimeout(() => {
         setShowWarning(false);
-      }, 3000);
+      }, 8000);
     }
   }, [isLookingAway, gazeDirection]);
 
