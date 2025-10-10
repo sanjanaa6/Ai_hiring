@@ -4,9 +4,10 @@ const { OPENROUTER_API_URL, FALLBACK_MODELS, parseAIResponse } = require('../uti
 const { createFallbackInterview } = require('../utils/fallbackInterview');
 
 // Helper function to create role-specific interview from structured prompt
-async function createRoleSpecificInterview(prompt, jobDetails) {
+async function createRoleSpecificInterview(prompt, jobDetails, req = null) {
+  const interviewId = `interview_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  
   try {
-    const interviewId = `interview_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     
     console.log('🤖 [AI INTERVIEW] Generating complete AI interview for:', jobDetails.title);
     console.log('🔍 [AI INTERVIEW] Job details:', {
@@ -238,7 +239,7 @@ Make sure each question is directly relevant to the specific role and requiremen
           headers: {
             'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
             'Content-Type': 'application/json',
-            'HTTP-Referer': process.env.OPENROUTER_REFERER_URL || process.env.FRONTEND_URL || `${req.protocol}://${req.get('host')}`,
+            'HTTP-Referer': process.env.OPENROUTER_REFERER_URL || process.env.FRONTEND_URL || (req ? `${req.protocol}://${req.get('host')}` : 'http://localhost:3000'),
             'X-Title': 'AI Hiring System'
           }
         });
@@ -297,7 +298,7 @@ Make sure each question is directly relevant to the specific role and requiremen
 }
 
 // Helper function to create structured interview from text
-async function createStructuredInterview(textResponse, jobDetails) {
+async function createStructuredInterview(textResponse, jobDetails, req = null) {
   const interviewId = `interview_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   
   // Validate textResponse input
@@ -314,7 +315,7 @@ async function createStructuredInterview(textResponse, jobDetails) {
   
   if (isRoleSpecificPrompt) {
     console.log('🎯 [INTERVIEW GENERATE] Using role-specific prompt structure');
-    return await createRoleSpecificInterview(textResponse, jobDetails);
+    return await createRoleSpecificInterview(textResponse, jobDetails, req);
   }
   
   // For all cases, use AI to generate completely dynamic questions
@@ -322,7 +323,7 @@ async function createStructuredInterview(textResponse, jobDetails) {
   
   try {
     // Use the AI interview generation function
-    return await createRoleSpecificInterview(textResponse, jobDetails);
+    return await createRoleSpecificInterview(textResponse, jobDetails, req);
   } catch (error) {
     console.error('❌ [STRUCTURED INTERVIEW] Error generating AI questions:', error);
     

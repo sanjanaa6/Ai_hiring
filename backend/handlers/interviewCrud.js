@@ -519,7 +519,7 @@ const generateInterview = async (req, res) => {
     });
 
     // Generate interview using AI
-    const interviewData = await createStructuredInterview(prompt, extractedJobDetails);
+    const interviewData = await createStructuredInterview(prompt, extractedJobDetails, req);
     
     if (!interviewData) {
       console.log('❌ [INTERVIEW GENERATE] Failed to generate interview data');
