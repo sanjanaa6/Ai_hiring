@@ -18,43 +18,69 @@ router.post('/generate-sales-response', auth, async (req, res) => {
   console.log('🎭 [SALES ROLE-PLAY] Generating AI response for sales scenario...');
   
   try {
-    const { prompt, scenario, userInput, step } = req.body;
+    const { prompt, scenario, userInput, step, isQuestionGeneration } = req.body;
     
-    if (!prompt || !scenario || !userInput) {
+    if (!scenario) {
       return res.status(400).json({
         success: false,
-        error: 'Missing required parameters: prompt, scenario, and userInput are required'
+        error: 'Missing required parameters: scenario is required'
       });
     }
 
     console.log('📝 [SALES ROLE-PLAY] Request details:', {
       step,
       scenarioTitle: scenario.title,
-      userInputLength: userInput.length
+      userInputLength: userInput?.length || 0,
+      isQuestionGeneration
     });
 
-    // Call OpenRouter API to generate sales response
-    const aiResponse = await callOpenRouterAPI(prompt, req);
+    let aiResponse;
+    
+    if (isQuestionGeneration) {
+      // Generate question for the specific step
+      const questionPrompt = generateQuestionPrompt(step, scenario);
+      aiResponse = await callOpenRouterAPI(questionPrompt, req);
+    } else {
+      // Generate response based on user input
+      if (!prompt || !userInput) {
+        return res.status(400).json({
+          success: false,
+          error: 'Missing required parameters: prompt and userInput are required for response generation'
+        });
+      }
+      aiResponse = await callOpenRouterAPI(prompt, req);
+    }
     const aiContent = aiResponse.data.choices[0].message.content;
     
     console.log('📋 [SALES ROLE-PLAY] Raw AI response received, parsing...');
     
     // Parse AI response
     let responseData = null;
-    try {
-      // Try to parse as JSON first
-      responseData = JSON.parse(aiContent);
-    } catch (parseError) {
-      console.log('⚠️ [SALES ROLE-PLAY] Failed to parse as JSON, creating fallback response...');
-      
-      // Create fallback response based on step
-      responseData = createFallbackSalesResponse(userInput, step, scenario);
-    }
+    
+    if (isQuestionGeneration) {
+      // For question generation, the response should be plain text
+      responseData = {
+        content: aiContent.trim(),
+        nextStep: step,
+        feedback: null,
+        metrics: null
+      };
+    } else {
+      // For response generation, try to parse as JSON
+      try {
+        responseData = JSON.parse(aiContent);
+      } catch (parseError) {
+        console.log('⚠️ [SALES ROLE-PLAY] Failed to parse as JSON, creating fallback response...');
+        
+        // Create fallback response based on step
+        responseData = createFallbackSalesResponse(userInput, step, scenario);
+      }
 
-    // Validate response structure
-    if (!responseData.content) {
-      console.log('⚠️ [SALES ROLE-PLAY] Invalid response structure, creating fallback...');
-      responseData = createFallbackSalesResponse(userInput, step, scenario);
+      // Validate response structure
+      if (!responseData.content) {
+        console.log('⚠️ [SALES ROLE-PLAY] Invalid response structure, creating fallback...');
+        responseData = createFallbackSalesResponse(userInput, step, scenario);
+      }
     }
 
     console.log('✅ [SALES ROLE-PLAY] Sales response generated successfully');
@@ -125,6 +151,38 @@ router.post('/generate-sales-questions', auth, async (req, res) => {
     });
   }
 });
+
+// Generate question prompt for specific step
+function generateQuestionPrompt(step, scenario) {
+  const customerName = scenario.customerProfile.name;
+  const companyName = scenario.customerProfile.company;
+  
+  return `You are a potential customer in a sales role-play interview scenario. Generate exactly one question for step ${step} of a 3-step sales conversation.
+
+SCENARIO CONTEXT:
+${scenario.context}
+
+CUSTOMER PROFILE:
+- Name: ${customerName}
+- Company: ${companyName}
+- Pain Points: ${scenario.customerProfile.painPoints.join(', ')}
+- Budget: ${scenario.customerProfile.budget}
+- Timeline: ${scenario.customerProfile.timeline}
+- Decision Style: ${scenario.customerProfile.decisionMakingStyle}
+
+CONVERSATION FLOW:
+- Step 0: Initial interest and needs discovery
+- Step 1: Objections and concerns about cost/timeline
+- Step 2: Decision process and next steps
+
+Generate a realistic customer question for step ${step} that:
+1. Stays in character as the customer
+2. Tests the candidate's sales skills appropriately
+3. Moves the conversation forward naturally
+4. Is relevant to the scenario and customer profile
+
+Respond with ONLY the question text - no explanations, no JSON, just the question itself.`;
+}
 
 // Helper function to call OpenRouter API
 async function callOpenRouterAPI(prompt, req = null) {

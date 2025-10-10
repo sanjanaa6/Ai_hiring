@@ -84,7 +84,7 @@ const ConversationalSalesRound = ({
     setIsConversationComplete(false);
 
     // Start the conversation with the first question
-    const firstQuestion = generateStepQuestion(0, scenario);
+    const firstQuestion = await generateStepQuestion(0, scenario);
     const welcomeMessage = {
       id: Date.now(),
       type: 'ai',
@@ -131,7 +131,37 @@ const ConversationalSalesRound = ({
     };
   };
 
-  const generateStepQuestion = (step, scenario) => {
+  const generateStepQuestion = async (step, scenario) => {
+    try {
+      const response = await fetch('/api/ai/generate-sales-response', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          step: step,
+          scenario: scenario,
+          userInput: step === 0 ? 'initial_question' : 'user_response',
+          isQuestionGeneration: true
+        })
+      });
+
+      const result = await response.json();
+      
+      if (result.success && result.data.content) {
+        return result.data.content;
+      } else {
+        // Fallback to hardcoded questions if AI fails
+        return getFallbackQuestion(step);
+      }
+    } catch (error) {
+      console.error('Error generating AI question:', error);
+      // Fallback to hardcoded questions if API fails
+      return getFallbackQuestion(step);
+    }
+  };
+
+  const getFallbackQuestion = (step) => {
     switch (step) {
       case 0:
         return "I'm interested in learning more about your solution. Can you tell me how it would help our business?";
@@ -208,7 +238,7 @@ const ConversationalSalesRound = ({
       } else {
         // Generate next question for the conversation
         const nextStep = conversationStep + 1;
-        const nextQuestion = generateStepQuestion(nextStep, currentScenario);
+        const nextQuestion = await generateStepQuestion(nextStep, currentScenario);
         
         const aiMessage = {
           id: Date.now() + 1,
