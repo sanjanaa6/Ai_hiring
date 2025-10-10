@@ -253,6 +253,21 @@ const FormSubmissionRound = ({ round, onComplete, candidateInfo, isDarkMode }) =
       } else {
         const errorData = await response.json();
         console.error('FormSubmissionRound: Error response:', errorData);
+        // If backend reports already submitted, treat as completed and advance
+        const alreadySubmitted =
+          response.status === 400 &&
+          typeof errorData?.error === 'string' &&
+          /already submitted/i.test(errorData.error);
+
+        if (alreadySubmitted) {
+          console.log('FormSubmissionRound: Detected already-submitted round; advancing.');
+          setSubmitSuccess(true);
+          setTimeout(() => {
+            onComplete({ ...submissionData, alreadySubmitted: true });
+          }, 800);
+          return;
+        }
+
         throw new Error(errorData.error || 'Form submission failed');
       }
     } catch (error) {

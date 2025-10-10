@@ -408,6 +408,23 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
         }
       }
       
+      // If this round is already completed and retake not allowed, auto-advance to next available round
+      const roundId = round._id || round.id || round.roundId;
+      const isAlreadyCompleted = completedRounds.has(roundId);
+      const allowRetake = !!round.allowRetake;
+      if (isAlreadyCompleted && !allowRetake) {
+        const currentIndex = allRounds.findIndex(r => (r._id || r.id || r.roundId) === roundId);
+        const nextRound = currentIndex >= 0 ? allRounds[currentIndex + 1] : null;
+        if (nextRound) {
+          console.log('⏭️ Current round already completed; moving to next round.');
+          // Recurse to select the next round
+          return handleSelectRound(nextRound);
+        }
+        // No next round available; mark complete
+        setStep('complete');
+        return;
+      }
+
       // Handle different round types
       if (isFileUpload) {
         setStep('file-upload');
@@ -782,17 +799,27 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
             // Mark round as completed
             const roundId = currentRound._id || currentRound.id || currentRound.roundId;
             setCompletedRounds(prev => new Set([...prev, roundId]));
-            
+
+            // Persist completion in localStorage
+            try {
+              const storageKey = `completedRounds_${interviewId}`;
+              const stored = JSON.parse(localStorage.getItem(storageKey) |g| '[]');
+              if (!stored.includes(roundId)) {
+                stored.push(roundId);
+                localStorage.setItem(storageKey, JSON.stringify(stored));
+              }
+            } catch (_) {}
+
             // Update user progress
             setUserProgress(prev => {
               if (!prev) return prev;
-              
-              const updatedRounds = prev.rounds.map(r => 
-                r.roundId === roundId 
+
+              const updatedRounds = prev.rounds.map(r =>
+                r.roundId === roundId
                   ? { ...r, status: 'completed', completedAt: new Date() }
                   : r
               );
-              
+
               return {
                 ...prev,
                 rounds: updatedRounds,
@@ -802,16 +829,15 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
                 }
               };
             });
-          }}
-          onNext={() => {
-            // Go back to round selection or complete if all rounds done
-            const totalRounds = allRounds.length;
-            const completedCount = completedRounds.size + 1; // +1 for the round we just completed
-            
-            if (completedCount >= totalRounds) {
-              setStep('complete');
+
+            // Auto-advance to next round if available, else complete
+            const currentIndex = allRounds.findIndex(r => (r._id || r.id || r.roundId) === roundId);
+            const nextRound = currentIndex >= 0 ? allRounds[currentIndex + 1] : null;
+            if (nextRound) {
+              console.log('⏭️ Auto-advancing to next round after file upload');
+              handleSelectRound(nextRound);
             } else {
-              setStep('round-selection');
+              setStep('complete');
             }
           }}
         />
@@ -827,6 +853,16 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
             // Mark round as completed
             const roundId = currentRound._id || currentRound.id || currentRound.roundId;
             setCompletedRounds(prev => new Set([...prev, roundId]));
+
+            // Persist completion in localStorage
+            try {
+              const storageKey = `completedRounds_${interviewId}`;
+              const stored = JSON.parse(localStorage.getItem(storageKey) || '[]');
+              if (!stored.includes(roundId)) {
+                stored.push(roundId);
+                localStorage.setItem(storageKey, JSON.stringify(stored));
+              }
+            } catch (_) {}
             
             // Update user progress
             setUserProgress(prev => {
@@ -848,14 +884,14 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
               };
             });
             
-            // Go back to round selection or complete if all rounds done
-            const totalRounds = allRounds.length;
-            const completedCount = completedRounds.size + 1; // +1 for the round we just completed
-            
-            if (completedCount >= totalRounds) {
-              setStep('complete');
+            // Auto-advance to next round if available, else complete
+            const currentIndex = allRounds.findIndex(r => (r._id || r.id || r.roundId) === roundId);
+            const nextRound = currentIndex >= 0 ? allRounds[currentIndex + 1] : null;
+            if (nextRound) {
+              console.log('⏭️ Auto-advancing to next round after form submission');
+              handleSelectRound(nextRound);
             } else {
-              setStep('round-selection');
+              setStep('complete');
             }
           }}
           candidateInfo={candidateInfo}

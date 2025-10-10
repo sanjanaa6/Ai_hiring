@@ -74,7 +74,6 @@ mongoose.connect(MONGODB_URI, {
 });
 
 // Routes
-app.use('/api/auth', require('./routes/auth'));
 app.use('/api/dashboard', require('./routes/dashboard'));
 app.use('/api/jobs', require('./routes/jobs'));
 app.use('/api/applications', require('./routes/applications'));
@@ -95,6 +94,20 @@ app.use('/api/tts', require('./routes/tts'));
 app.use('/uploads/recruiter-docs', express.static(path.join(__dirname, 'uploads', 'recruiter-docs')));
 // Serve form submission files statically
 app.use('/uploads/form-submissions', express.static(path.join(__dirname, 'uploads', 'form-submissions')));
+// Add specific CORS handling for auth routes to ensure headers on all responses
+app.use('/api/auth', (req, res, next) => {
+  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Expose-Headers', 'Content-Disposition');
+
+  if (req.method === 'OPTIONS') {
+    res.sendStatus(200);
+    return;
+  }
+  next();
+}, require('./routes/auth'));
 // Add specific CORS handling for file upload routes
 app.use('/api/files', (req, res, next) => {
   // Set CORS headers for file upload routes
@@ -114,6 +127,16 @@ app.use('/api/files', (req, res, next) => {
 }, require('./routes/fileUpload'));
 app.use('/api/eye-tracking', require('./routes/eyeTracking'));
 
+// Global OPTIONS handler to guarantee preflight success across all routes
+app.options('*', (req, res) => {
+  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Expose-Headers', 'Content-Disposition');
+  res.sendStatus(200);
+});
+
 
 
 // Basic route
@@ -130,6 +153,16 @@ app.get('/api/cors-test', (req, res) => {
     origin: req.headers.origin,
     timestamp: new Date().toISOString()
   });
+});
+
+// 404 handler with CORS headers to cover unmatched routes
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
+  res.header('Access-Control-Expose-Headers', 'Content-Disposition');
+  res.status(404).json({ message: 'Not Found' });
 });
 
 // Request logging middleware
@@ -151,7 +184,13 @@ app.use((err, req, res, next) => {
     query: req.query,
     params: req.params
   });
-  
+  // Ensure CORS headers are present even on error responses
+  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
+  res.header('Access-Control-Expose-Headers', 'Content-Disposition');
+
   res.status(500).json({ 
     message: 'Something went wrong!',
     error: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error'

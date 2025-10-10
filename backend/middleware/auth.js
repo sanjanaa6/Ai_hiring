@@ -11,6 +11,10 @@ const auth = async (req, res, next) => {
     
     if (!token) {
       console.log('❌ [AUTH] No token provided');
+      // Ensure CORS headers are present even on error responses
+      res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+      res.header('Access-Control-Allow-Credentials', 'true');
+      res.header('Access-Control-Expose-Headers', 'Content-Disposition');
       return res.status(401).json({ message: 'No token, authorization denied' });
     }
 
@@ -22,6 +26,10 @@ const auth = async (req, res, next) => {
     
     if (!user) {
       console.log('❌ [AUTH] User not found for ID:', decoded.userId);
+      // Ensure CORS headers are present even on error responses
+      res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+      res.header('Access-Control-Allow-Credentials', 'true');
+      res.header('Access-Control-Expose-Headers', 'Content-Disposition');
       return res.status(401).json({ message: 'Token is not valid' });
     }
 
@@ -44,7 +52,10 @@ const auth = async (req, res, next) => {
       message: error.message,
       expiredAt: error.expiredAt
     });
-    
+    // Ensure CORS headers are present even on error responses
+    res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Expose-Headers', 'Content-Disposition');
     res.status(401).json({ message: 'Token is not valid' });
   }
 };
