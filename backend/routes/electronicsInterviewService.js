@@ -1529,17 +1529,28 @@ function enhanceElectronicsInterviewWithPCB(interviewData, roleConfig) {
   return interviewData;
 }
 
-// Get electronics interview by ID
-router.get('/:interviewId', auth, async (req, res) => {
+// Get electronics interview by ID (public access for candidates)
+router.get('/public/:interviewId', async (req, res) => {
   console.log('🔍 [GET ELECTRONICS INTERVIEW] Fetching electronics interview:', req.params.interviewId);
+  console.log('🔍 [GET ELECTRONICS INTERVIEW] Query params:', req.params);
   
   try {
+    // First, let's check if any interview exists with this ID
+    const anyInterview = await Interview.findOne({
+      interviewId: req.params.interviewId
+    });
+    console.log('🔍 [GET ELECTRONICS INTERVIEW] Any interview found:', !!anyInterview);
+    if (anyInterview) {
+      console.log('🔍 [GET ELECTRONICS INTERVIEW] Interview details:', {
+        id: anyInterview.interviewId,
+        type: anyInterview.interviewType,
+        title: anyInterview.title
+      });
+    }
+    
     const interview = await Interview.findOne({
       interviewId: req.params.interviewId,
-      $or: [
-        { createdBy: req.user.id },
-        { interviewType: 'electronics' }
-      ]
+      interviewType: 'electronics'
     });
 
     if (!interview) {
@@ -1563,6 +1574,88 @@ router.get('/:interviewId', auth, async (req, res) => {
     });
   } catch (error) {
     console.error('❌ [GET ELECTRONICS INTERVIEW] Error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch electronics interview'
+    });
+  }
+});
+
+// Get electronics interview by ID (authenticated access)
+router.get('/:interviewId', auth, async (req, res) => {
+  console.log('🔍 [GET ELECTRONICS INTERVIEW AUTH] Fetching electronics interview:', req.params.interviewId);
+  
+  try {
+    const interview = await Interview.findOne({
+      interviewId: req.params.interviewId,
+      $or: [
+        { createdBy: req.user.id },
+        { interviewType: 'electronics' }
+      ]
+    });
+
+    if (!interview) {
+      console.log('❌ [GET ELECTRONICS INTERVIEW AUTH] Interview not found:', req.params.interviewId);
+      return res.status(404).json({
+        success: false,
+        error: 'Electronics interview not found'
+      });
+    }
+
+    console.log('✅ [GET ELECTRONICS INTERVIEW AUTH] Electronics interview found:', {
+      id: interview.interviewId,
+      title: interview.title,
+      rounds: interview.rounds.length,
+      interviewType: interview.interviewType
+    });
+
+    res.json({
+      success: true,
+      data: interview
+    });
+  } catch (error) {
+    console.error('❌ [GET ELECTRONICS INTERVIEW AUTH] Error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch electronics interview'
+    });
+  }
+});
+
+// Get electronics interview by ID (protected access for recruiters)
+router.get('/protected/:interviewId', auth, async (req, res) => {
+  console.log('🔍 [GET ELECTRONICS INTERVIEW PROTECTED] Fetching electronics interview:', req.params.interviewId);
+  
+  try {
+    const interview = await Interview.findOne({
+      interviewId: req.params.interviewId,
+      $or: [
+        { createdBy: req.user.id },
+        { interviewType: 'electronics' }
+      ]
+    });
+
+    if (!interview) {
+      console.log('❌ [GET ELECTRONICS INTERVIEW PROTECTED] Interview not found:', req.params.interviewId);
+      return res.status(404).json({
+        success: false,
+        error: 'Electronics interview not found'
+      });
+    }
+
+    console.log('✅ [GET ELECTRONICS INTERVIEW PROTECTED] Electronics interview found:', {
+      id: interview.interviewId,
+      title: interview.title,
+      rounds: interview.rounds.length,
+      interviewType: interview.interviewType
+    });
+
+    res.json({
+      success: true,
+      data: interview
+    });
+  } catch (error) {
+    console.error('❌ [GET ELECTRONICS INTERVIEW PROTECTED] Error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch electronics interview'

@@ -31,7 +31,7 @@ class ElectronicsInterviewService {
     try {
       console.log('🔍 [ELECTRONICS INTERVIEW] Fetching electronics interview:', interviewId);
       
-      const response = await apiService.client.get(`/electronics/${interviewId}`);
+      const response = await apiService.client.get(`/electronics/public/${interviewId}`);
 
       if (response.data.success) {
         console.log('✅ [ELECTRONICS INTERVIEW] Interview fetched successfully');

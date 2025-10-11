@@ -128,6 +128,7 @@ const interviewSchema = new mongoose.Schema({
   jobRequirements: { type: String, required: true },
   jobLevel: { type: String, required: true },
   totalDuration: { type: Number, required: true },
+  interviewType: { type: String, enum: ['regular', 'electronics', 'sales', 'coding'], default: 'regular' },
   rounds: [roundSchema],
   overallEvaluationCriteria: {
     technical: { type: String },
