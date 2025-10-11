@@ -55,8 +55,8 @@ const trackViolation = async (req, res) => {
     interview.eyeTrackingData.totalViolations += 1;
     interview.eyeTrackingData.lastViolationAt = new Date();
 
-    // Check if user should be removed
-    const maxViolations = interview.eyeTrackingData.maxViolations || 3;
+    // Check if user should be removed - balanced threshold
+    const maxViolations = interview.eyeTrackingData.maxViolations || 6; // Balanced - reduced from 8 to 6
     const shouldRemoveUser = interview.eyeTrackingData.totalViolations >= maxViolations;
 
     if (shouldRemoveUser) {

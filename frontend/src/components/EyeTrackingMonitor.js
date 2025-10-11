@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 const EyeTrackingMonitor = ({
   gazeDirection,
   violationCount,
-  maxViolations = 10,
+  maxViolations = 6, // Balanced - reduced from 8 to 6
   isLookingAway,
   onRemoveUser
 }) => {
@@ -18,7 +18,7 @@ const EyeTrackingMonitor = ({
       
       setTimeout(() => {
         setShowWarning(false);
-      }, 8000);
+      }, 8000); // Balanced warning display time - 8 seconds
     }
   }, [isLookingAway, gazeDirection]);
 
@@ -32,6 +32,7 @@ const EyeTrackingMonitor = ({
 
   const getSeverity = () => {
     if (violationCount === 0) return 'none';
+    if (violationCount < 2) return 'grace'; // Grace period - reduced to 2 violations
     if (violationCount < maxViolations - 1) return 'warning';
     if (violationCount === maxViolations - 1) return 'critical';
     return 'max';
@@ -65,14 +66,16 @@ const EyeTrackingMonitor = ({
         {/* Violation Counter */}
         <div className={`rounded-lg shadow-lg p-3 ${
           severity === 'none' ? 'bg-green-500' :
+          severity === 'grace' ? 'bg-blue-500' :
           severity === 'warning' ? 'bg-yellow-500' :
           severity === 'critical' ? 'bg-orange-500' : 'bg-red-500'
         } text-white`}>
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center space-x-2">
-              <span className="text-lg">⚠️</span>
+              <span className="text-lg">{severity === 'grace' ? '👀' : '⚠️'}</span>
               <span className="font-bold text-sm">
                 {severity === 'none' ? 'NO VIOLATIONS' : 
+                 severity === 'grace' ? `GRACE PERIOD: ${violationCount}/${maxViolations}` :
                  severity === 'warning' ? `WARNING: ${violationCount}/${maxViolations}` :
                  severity === 'critical' ? `CRITICAL: ${violationCount}/${maxViolations}` :
                  `TERMINATED: ${violationCount}/${maxViolations}`}
@@ -83,6 +86,7 @@ const EyeTrackingMonitor = ({
             <div 
               className={`h-2 rounded-full ${
                 severity === 'none' ? 'bg-green-200' :
+                severity === 'grace' ? 'bg-blue-200' :
                 severity === 'warning' ? 'bg-yellow-200' :
                 severity === 'critical' ? 'bg-orange-200' : 'bg-red-200'
               }`}
@@ -90,6 +94,19 @@ const EyeTrackingMonitor = ({
             />
           </div>
         </div>
+
+        {/* Grace Period Message */}
+        {severity === 'grace' && (
+          <div className="mt-2 bg-blue-500 text-white rounded-lg shadow-lg p-3">
+            <div className="flex items-center space-x-2">
+              <span className="text-lg">👀</span>
+              <span className="font-bold text-sm">Grace Period Active</span>
+            </div>
+            <div className="mt-2 text-xs">
+              You have {2 - violationCount} more violations before warnings start. Keep looking at the screen!
+            </div>
+          </div>
+        )}
 
         {/* Warning Message */}
         {showWarning && (
@@ -99,7 +116,10 @@ const EyeTrackingMonitor = ({
               <span className="font-bold text-sm">{warningMessage}</span>
             </div>
             <div className="mt-2 text-xs">
-              ⚠️ {maxViolations - violationCount} warnings remaining!
+              {violationCount < 2 ? 
+                `👀 Grace period: ${2 - violationCount} more allowed before warnings` :
+                `⚠️ ${maxViolations - violationCount} warnings remaining!`
+              }
             </div>
           </div>
         )}

@@ -9,8 +9,9 @@ export const useEyeTracking = (interviewId = null) => {
   const violationTimerRef = useRef(null);
   const cycleTimerRef = useRef(null);
   
-  const MAX_VIOLATIONS = 3;
-  const LOOK_AWAY_TIME = 2000; // 2 seconds
+  const MAX_VIOLATIONS = 4; // Reduced from 8 to 6 - balanced
+  const LOOK_AWAY_TIME = 3000; // Reduced from 5000ms to 3000ms - 3 seconds
+  const GRACE_PERIOD_VIOLATIONS = 2; // Reduced grace period from 3 to 2
 
   // Start tracking
   const startTracking = useCallback(() => {
@@ -34,8 +35,8 @@ export const useEyeTracking = (interviewId = null) => {
       // Simulate random user behavior
       const behavior = Math.random();
       
-      if (behavior < 0.1) {
-        // 10% chance of quick glance (no violation)
+      if (behavior < 0.15) {
+        // 15% chance of quick glance (no violation)
         const directions = ['left', 'right', 'up', 'down'];
         const quickDirection = directions[Math.floor(Math.random() * directions.length)];
         console.log(`👀 Quick glance ${quickDirection} (no violation)`);
@@ -46,8 +47,8 @@ export const useEyeTracking = (interviewId = null) => {
         setTimeout(() => {
           setGazeDirection('center');
         }, 500);
-      } else if (behavior < 0.4) {
-        // 30% chance of looking away (potential violation)
+      } else if (behavior < 0.35) {
+        // 20% chance of looking away (potential violation) - balanced
         // Randomly choose direction when looking away
         const directions = ['left', 'right', 'up', 'down'];
         const randomDirection = directions[Math.floor(Math.random() * directions.length)];
@@ -70,13 +71,13 @@ export const useEyeTracking = (interviewId = null) => {
           console.log('✅ User returned to screen');
         }, LOOK_AWAY_TIME);
       } else {
-        // 60% chance of staying focused
+        // 65% chance of staying focused - balanced
         console.log('✅ User focused on screen');
         setGazeDirection('center');
         setIsLookingAway(false);
       }
       
-    }, 5000); // Check every 5 seconds
+    }, 6000); // Check every 6 seconds - balanced
   }, [LOOK_AWAY_TIME]);
 
   // Stop tracking
