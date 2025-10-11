@@ -65,7 +65,7 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
     // questionStartCountdown, setQuestionStartCountdown,
     isLiveCodingRound, setIsLiveCodingRound,
     isSalesRound, setIsSalesRound,
-    isPCBRound, setIsPCBRound,
+    setIsPCBRound,
     codeAnswer, setCodeAnswer,
     selectedLanguage, setSelectedLanguage,
     isLanguageLocked, setIsLanguageLocked,
