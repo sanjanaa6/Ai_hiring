@@ -20,30 +20,10 @@ const TTSTestPage = () => {
     const token = localStorage.getItem('token');
     setAuthToken(token);
     
-    // Load available voices
-    loadVoices();
-    
     // Test health endpoint
     testHealth();
   }, []);
 
-  const loadVoices = () => {
-    if ('speechSynthesis' in window) {
-      // Load voices (may need to wait for them to load)
-      const loadVoicesList = () => {
-        const voices = window.speechSynthesis.getVoices();
-        setAvailableVoices(voices);
-        console.log('🎤 [TTS TEST] Available voices:', voices.map(v => v.name));
-      };
-      
-      loadVoicesList();
-      
-      // Some browsers need this event to load voices
-      if (window.speechSynthesis.onvoiceschanged !== undefined) {
-        window.speechSynthesis.onvoiceschanged = loadVoicesList;
-      }
-    }
-  };
 
   const testHealth = async () => {
     try {
@@ -99,25 +79,6 @@ const TTSTestPage = () => {
     }
   };
 
-  const handleTestBrowserTTS = () => {
-    if ('speechSynthesis' in window) {
-      const utterance = new SpeechSynthesisUtterance(testText);
-      utterance.rate = 0.9;
-      utterance.pitch = 1.0;
-      utterance.volume = 0.8;
-      
-      utterance.onstart = () => setIsPlaying(true);
-      utterance.onend = () => setIsPlaying(false);
-      utterance.onerror = () => {
-        setIsPlaying(false);
-        setError('Browser TTS failed');
-      };
-      
-      window.speechSynthesis.speak(utterance);
-    } else {
-      setError('Browser speech synthesis not supported');
-    }
-  };
 
   const getHealthStatusColor = () => {
     switch (healthStatus) {
@@ -238,23 +199,11 @@ const TTSTestPage = () => {
                 ) : (
                   <>
                     <Play className="w-4 h-4" />
-                    Test XTTS-v2
+                    Test Google TTS
                   </>
                 )}
               </button>
 
-              <button
-                onClick={handleTestBrowserTTS}
-                disabled={isPlaying}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors ${
-                  isDarkMode 
-                    ? 'bg-gray-700 border-gray-600 hover:bg-gray-600 text-white' 
-                    : 'bg-white border-gray-300 hover:bg-gray-50 text-gray-700'
-                } ${isPlaying ? 'opacity-50 cursor-not-allowed' : ''}`}
-              >
-                <Volume2 className="w-4 h-4" />
-                Test Browser TTS
-              </button>
             </div>
 
             {/* Status Messages */}
@@ -279,7 +228,7 @@ const TTSTestPage = () => {
                 <p><strong>API URL:</strong> {process.env.REACT_APP_API_URL || 'http://localhost:5000/api'}</p>
                 <p><strong>Auth Token:</strong> {authToken ? 'Present' : 'Missing'}</p>
                 <p><strong>Health Status:</strong> {healthStatus || 'Unknown'}</p>
-                <p><strong>Browser TTS:</strong> {'speechSynthesis' in window ? 'Supported' : 'Not Supported'}</p>
+                <p><strong>Google TTS:</strong> Available via backend service</p>
               </div>
             </div>
 
@@ -287,11 +236,10 @@ const TTSTestPage = () => {
             <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
               <h4 className="font-medium text-blue-900 mb-2">Instructions:</h4>
               <ul className="text-sm text-blue-800 space-y-1">
-                <li>• Make sure you are logged in to test the XTTS-v2 service</li>
+                <li>• Make sure you are logged in to test the Google TTS service</li>
                 <li>• Check that the backend server is running on port 5000</li>
-                <li>• Use "Test Browser TTS" to compare with the old voice</li>
                 <li>• Check the browser console for detailed logs</li>
-                <li>• If XTTS-v2 fails, it should fallback to browser TTS in interviews</li>
+                <li>• Google TTS provides high-quality speech synthesis</li>
               </ul>
             </div>
           </div>

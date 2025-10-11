@@ -790,6 +790,7 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
               onNextQuestion={moveToNextQuestion}
               onSubmitAnswer={submitCurrentAnswer}
               onToggleAISpeaking={() => setIsAISpeaking(!isAISpeaking)}
+              onSpeakText={speakQuestion}
               candidateInfo={candidateInfo}
               isDarkMode={isDarkMode}
             />

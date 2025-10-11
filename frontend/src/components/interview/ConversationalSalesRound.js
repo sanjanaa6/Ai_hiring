@@ -47,7 +47,7 @@ const ConversationalSalesRound = ({
   }, []);
 
   const stopSpeaking = useCallback(() => {
-    window.speechSynthesis.cancel();
+    // Stop any ongoing TTS (handled by the TTS service)
     onToggleAISpeaking(false);
   }, [onToggleAISpeaking]);
 
@@ -193,15 +193,9 @@ const ConversationalSalesRound = ({
         if (typeof onSpeakText === 'function') {
           onSpeakText(thankYouMessage.content);
         } else {
-          // Fallback to browser TTS
-          const utterance = new SpeechSynthesisUtterance(thankYouMessage.content);
-          utterance.rate = 0.9;
-          utterance.pitch = 1;
-          utterance.volume = 0.8;
-          utterance.onend = () => onToggleAISpeaking(false);
-          utterance.onerror = () => onToggleAISpeaking(false);
-          onToggleAISpeaking(true);
-          window.speechSynthesis.speak(utterance);
+          // If no TTS service available, just log and continue
+          console.log('⚠️ [TTS] No TTS service available, skipping speech for completion message');
+          onToggleAISpeaking(false);
         }
       } else {
         // Generate next question
@@ -223,15 +217,9 @@ const ConversationalSalesRound = ({
         if (typeof onSpeakText === 'function') {
           onSpeakText(nextQuestion);
         } else {
-          // Fallback to browser TTS
-          const utterance = new SpeechSynthesisUtterance(nextQuestion);
-          utterance.rate = 0.9;
-          utterance.pitch = 1;
-          utterance.volume = 0.8;
-          utterance.onend = () => onToggleAISpeaking(false);
-          utterance.onerror = () => onToggleAISpeaking(false);
-          onToggleAISpeaking(true);
-          window.speechSynthesis.speak(utterance);
+          // If no TTS service available, just log and continue
+          console.log('⚠️ [TTS] No TTS service available, skipping speech for AI response');
+          onToggleAISpeaking(false);
         }
       }
     } catch (error) {

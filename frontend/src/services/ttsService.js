@@ -250,226 +250,34 @@ class TTSService {
   }
 
   /**
-   * Generate and play speech
+   * Generate and play speech using Google TTS only
    * @param {string} text - Text to convert to speech
    * @param {Object} options - TTS options
    * @returns {Promise<void>}
    */
   async speak(text, options = {}) {
     try {
-      // Try to use a real TTS service first
-      console.log('🎤 [TTS] Attempting to use real TTS service...');
-      await this._useRealTTSService(text, options);
+      // Use Google TTS service only
+      console.log('🎤 [TTS] Using Google TTS service...');
+      await this._useGoogleTTSService(text, options);
     } catch (error) {
-      console.error('❌ [TTS] Real TTS service failed:', error);
-      
-      // Fallback to browser speechSynthesis (which works well)
-      console.log('🔄 [TTS] Falling back to browser speechSynthesis...');
-      await this._fallbackToBrowserTTS(text, options);
+      console.error('❌ [TTS] Google TTS service failed:', error);
+      throw error; // Don't fallback to browser TTS, just throw the error
     }
   }
 
   /**
-   * Use a real TTS service (placeholder for now)
+   * Use Google TTS service
    * @param {string} text - Text to speak
    * @param {Object} options - TTS options
    * @returns {Promise<void>}
    */
-  async _useRealTTSService(text, options = {}) {
+  async _useGoogleTTSService(text, options = {}) {
     // Call backend TTS endpoint (Google Cloud TTS behind the scenes)
     const audioBlob = await this.generateSpeech(text, options);
     await this.playAudio(audioBlob);
   }
 
-  /**
-   * Enhanced browser TTS with better voice selection
-   * @param {string} text - Text to speak
-   * @param {Object} options - TTS options
-   * @returns {Promise<void>}
-   */
-  async _enhancedBrowserTTS(text, options = {}) {
-    return new Promise((resolve, reject) => {
-      if (!('speechSynthesis' in window)) {
-        reject(new Error('Speech synthesis not supported'));
-        return;
-      }
-
-      try {
-        window.speechSynthesis.cancel();
-        
-        // Clean and validate text
-        const cleanText = this._cleanTextForTTS(text);
-        if (!cleanText || cleanText.length === 0) {
-          reject(new Error('No valid text to speak'));
-          return;
-        }
-        
-        // Check text length (some browsers have limits)
-        if (cleanText.length > 1000) {
-          console.warn('⚠️ [TTS] Text is very long, truncating...');
-          const truncatedText = cleanText.substring(0, 1000) + '...';
-          console.log('⚠️ [TTS] Truncated text:', truncatedText);
-        }
-        
-        const utterance = new SpeechSynthesisUtterance(cleanText);
-        utterance.rate = options.speed || 0.9;
-        utterance.pitch = options.pitch || 1.0;
-        utterance.volume = 0.8;
-        
-        // Get all available voices
-        let voices = window.speechSynthesis.getVoices();
-        console.log('🎤 [TTS] Available voices:', voices.length);
-        
-        // If no voices loaded, wait a bit and try again
-        if (voices.length === 0) {
-          console.log('🎤 [TTS] No voices loaded, waiting...');
-          setTimeout(() => {
-            voices = window.speechSynthesis.getVoices();
-            console.log('🎤 [TTS] Voices after wait:', voices.length);
-            this._selectAndSpeak(utterance, voices, resolve, reject);
-          }, 100);
-          return;
-        }
-        
-        this._selectAndSpeak(utterance, voices, resolve, reject);
-        
-      } catch (error) {
-        reject(error);
-      }
-    });
-  }
-
-  /**
-   * Select voice and speak
-   * @param {SpeechSynthesisUtterance} utterance - The utterance to speak
-   * @param {Array} voices - Available voices
-   * @param {Function} resolve - Resolve function
-   * @param {Function} reject - Reject function
-   */
-  _selectAndSpeak(utterance, voices, resolve, reject) {
-    try {
-      // Try to find the best voice for AI
-      let selectedVoice = null;
-      
-      // Priority order for voice selection
-      const voicePreferences = [
-        'Microsoft Zira Desktop', // Windows
-        'Microsoft Hazel Desktop', // Windows
-        'Google UK English Female', // Chrome
-        'Google US English Female', // Chrome
-        'Samantha', // macOS
-        'Karen', // macOS
-        'female', // Generic
-        'zira', // Partial match
-        'hazel', // Partial match
-        'susan' // Partial match
-      ];
-      
-      // Try to find a preferred voice
-      for (const preference of voicePreferences) {
-        selectedVoice = voices.find(voice => 
-          voice.name.toLowerCase().includes(preference.toLowerCase())
-        );
-        if (selectedVoice) {
-          console.log('🎤 [TTS] Selected voice:', selectedVoice.name);
-          break;
-        }
-      }
-      
-      // If no preferred voice found, use the first available voice
-      if (!selectedVoice && voices.length > 0) {
-        selectedVoice = voices[0];
-        console.log('🎤 [TTS] Using default voice:', selectedVoice.name);
-      }
-      
-      if (selectedVoice) {
-        utterance.voice = selectedVoice;
-      }
-      
-      utterance.onstart = () => {
-        console.log('🎤 [TTS] Enhanced browser TTS started');
-      };
-      
-      utterance.onend = () => {
-        console.log('✅ [TTS] Enhanced browser TTS finished');
-        resolve();
-      };
-      
-      utterance.onerror = (error) => {
-        console.error('❌ [TTS] Enhanced browser TTS error:', error);
-        console.error('❌ [TTS] Error details:', {
-          type: error.type,
-          error: error.error,
-          charIndex: error.charIndex,
-          utterance: error.utterance
-        });
-        reject(new Error(`Enhanced browser TTS failed: ${error.error || 'Unknown error'}`));
-      };
-      
-      console.log('🗣️ [TTS] Using enhanced browser TTS');
-      window.speechSynthesis.speak(utterance);
-      
-    } catch (error) {
-      reject(error);
-    }
-  }
-
-  /**
-   * Fallback to browser speechSynthesis
-   * @param {string} text - Text to speak
-   * @param {Object} options - TTS options
-   * @returns {Promise<void>}
-   */
-  async _fallbackToBrowserTTS(text, options = {}) {
-    return new Promise((resolve, reject) => {
-      if (!('speechSynthesis' in window)) {
-        reject(new Error('Speech synthesis not supported'));
-        return;
-      }
-
-      try {
-        window.speechSynthesis.cancel();
-        
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.rate = options.speed || 0.9;
-        utterance.pitch = options.pitch || 1.0;
-        utterance.volume = 0.8;
-        
-        // Try to use a female voice for AI
-        const voices = window.speechSynthesis.getVoices();
-        const femaleVoice = voices.find(voice => 
-          voice.name.toLowerCase().includes('female') || 
-          voice.name.toLowerCase().includes('zira') ||
-          voice.name.toLowerCase().includes('susan')
-        );
-        if (femaleVoice) {
-          utterance.voice = femaleVoice;
-        }
-        
-        utterance.onend = () => {
-          console.log('✅ [TTS] Browser TTS fallback finished');
-          resolve();
-        };
-        
-        utterance.onerror = (error) => {
-          console.error('❌ [TTS] Browser TTS fallback error:', error);
-          console.error('❌ [TTS] Fallback error details:', {
-            type: error.type,
-            error: error.error,
-            charIndex: error.charIndex,
-            utterance: error.utterance
-          });
-          reject(new Error(`Browser TTS failed: ${error.error || 'Unknown error'}`));
-        };
-        
-        console.log('🗣️ [TTS] Using browser TTS fallback');
-        window.speechSynthesis.speak(utterance);
-        
-      } catch (error) {
-        reject(error);
-      }
-    });
-  }
 
   /**
    * Generate and play audio directly using Web Audio API

@@ -736,11 +736,11 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
       }
       
       try {
-        console.log('🗣️ AI speaking question using XTTS-v2:', questionText && questionText.length > 50 ? questionText.substring(0, 50) + '...' : questionText || 'No question text');
+        console.log('🗣️ AI speaking question using Google TTS:', questionText && questionText.length > 50 ? questionText.substring(0, 50) + '...' : questionText || 'No question text');
         console.log('🔑 [TTS] Auth token available:', !!localStorage.getItem('token'));
         console.log('🌐 [TTS] API URL:', process.env.REACT_APP_API_URL || 'http://localhost:5000/api');
         
-        // Use XTTS-v2 service for high-quality speech generation
+        // Use Google TTS service for high-quality speech generation
         await ttsService.speak(questionText, {
           language: 'en',
           speed: 0.9,
@@ -748,55 +748,16 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
           emotion: 'neutral'
         });
         
-        console.log('✅ AI finished speaking question with XTTS-v2');
+        console.log('✅ AI finished speaking question with Google TTS');
         handleSpeechEnd();
         
       } catch (error) {
-        console.error('❌ Error with XTTS-v2, falling back to browser speechSynthesis:', error);
+        console.error('❌ Error with Google TTS:', error);
         console.error('❌ [TTS] Full error details:', error);
         
-        // Check if it's an audio playback error vs API error
-        if (error.message.includes('Failed to play audio')) {
-          console.log('🔄 [TTS] Audio playback failed, trying browser TTS instead');
-        } else {
-          console.log('🔄 [TTS] TTS API failed, trying browser TTS instead');
-        }
-        
-        // Fallback to browser speechSynthesis if XTTS-v2 fails
-        if ('speechSynthesis' in window) {
-          window.speechSynthesis.cancel();
-          
-          const utterance = new SpeechSynthesisUtterance(questionText);
-          utterance.rate = 0.9;
-          utterance.pitch = 1.0;
-          utterance.volume = 0.8;
-          
-          // Try to use a female voice for AI
-          const voices = window.speechSynthesis.getVoices();
-          const femaleVoice = voices.find(voice => 
-            voice.name.toLowerCase().includes('female') || 
-            voice.name.toLowerCase().includes('zira') ||
-            voice.name.toLowerCase().includes('susan')
-          );
-          if (femaleVoice) {
-            utterance.voice = femaleVoice;
-          }
-          
-          utterance.onend = () => {
-            console.log('✅ Fallback speech finished');
-            handleSpeechEnd();
-          };
-          
-          utterance.onerror = () => {
-            console.log('⚠️ Fallback speech error');
-            handleSpeechEnd();
-          };
-          
-          window.speechSynthesis.speak(utterance);
-        } else {
-          console.warn('⚠️ Speech synthesis not supported');
-          handleSpeechEnd();
-        }
+        // If Google TTS fails, just log the error and continue
+        console.log('⚠️ [TTS] Google TTS failed, continuing without speech');
+        handleSpeechEnd();
       }
     });
   }, [currentQuestion, autoProgressEnabled]);
