@@ -10,6 +10,7 @@ import {
   CheckCircle,
   Clock
 } from 'lucide-react';
+import apiService from '../../services/apiService';
 
 const ConversationalSalesRound = ({
   round,
@@ -22,18 +23,22 @@ const ConversationalSalesRound = ({
   interimTranscription,
   onStartRecording,
   onStopRecording,
+  onClearTranscription,
   onNextQuestion,
   onSubmitAnswer,
   onToggleAISpeaking,
+  onSpeakText,
   candidateInfo,
   isDarkMode
 }) => {
   const [conversationHistory, setConversationHistory] = useState([]);
   const [currentScenario, setCurrentScenario] = useState(null);
   const [isGeneratingResponse, setIsGeneratingResponse] = useState(false);
-  const [conversationStep, setConversationStep] = useState(0); // 0, 1, 2 (3 steps total)
-  const [userResponse, setUserResponse] = useState('');
+  const [conversationStep, setConversationStep] = useState(0);
   const [isConversationComplete, setIsConversationComplete] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [lastTranscription, setLastTranscription] = useState('');
+  const [isProcessingResponse, setIsProcessingResponse] = useState(false);
   
   const conversationEndRef = useRef(null);
 
@@ -46,137 +51,122 @@ const ConversationalSalesRound = ({
     onToggleAISpeaking(false);
   }, [onToggleAISpeaking]);
 
-  const generateSalesContext = useCallback((question) => {
-    const questionText = question.question.toLowerCase();
-    
-    if (questionText.includes('software') || questionText.includes('saas')) {
-      return "You're selling our new CRM software to a mid-size company. The prospect is interested but has concerns about implementation and cost.";
-    } else if (questionText.includes('product') || questionText.includes('service')) {
-      return "You're presenting our premium consulting service to a potential client. They need to see clear ROI and value proposition.";
-    } else if (questionText.includes('partnership') || questionText.includes('deal')) {
-      return "You're negotiating a strategic partnership deal. The client is interested but wants better terms and conditions.";
-    } else {
-      return "You're in a sales meeting with a potential client. They're interested in your product but have some concerns to address.";
-    }
-  }, []);
-
-  const generateSalesObjectives = useCallback((question) => {
-    return [
-      "Build rapport and understand customer needs",
-      "Present value proposition effectively",
-      "Handle objections professionally",
-      "Close the deal or secure next steps"
-    ];
-  }, []);
-
-  const generateCustomerProfile = useCallback((question) => {
-    return {
-      name: "Alex Johnson",
-      title: "VP of Operations",
-      company: "TechCorp Solutions",
-      painPoints: ["Inefficient processes", "High operational costs", "Need for better analytics"],
-      budget: "Mid-range",
-      timeline: "3-6 months",
-      decisionMakingStyle: "Analytical and data-driven"
-    };
-  }, []);
-
-  const getFallbackQuestion = useCallback((step) => {
-    switch (step) {
-      case 0:
-        return "I'm interested in learning more about your solution. Can you tell me how it would help our business?";
-      case 1:
-        return "That sounds interesting, but I'm concerned about the cost and implementation time. How do you handle pricing and what's the typical timeline for getting started?";
-      case 2:
-        return "I need to think about this and discuss with my team. What would be the next steps if we decide to move forward?";
-      default:
-        return "Thank you for your time. I'll be in touch soon.";
-    }
-  }, []);
-
-  const generateStepQuestion = useCallback(async (step, scenario) => {
-    try {
-      const response = await fetch('/api/ai/generate-sales-response', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          step: step,
-          scenario: scenario,
-          userInput: step === 0 ? 'initial_question' : 'user_response',
-          isQuestionGeneration: true
-        })
-      });
-
-      const result = await response.json();
-      
-      if (result.success && result.data.content) {
-        return result.data.content;
-      } else {
-        // Fallback to hardcoded questions if AI fails
-        return getFallbackQuestion(step);
-      }
-    } catch (error) {
-      console.error('Error generating AI question:', error);
-      // Fallback to hardcoded questions if API fails
-      return getFallbackQuestion(step);
-    }
-  }, [getFallbackQuestion]);
-
-  const initializeSalesScenario = useCallback(async () => {
+  // Initialize the sales scenario
+  const initializeSalesScenario = useCallback(() => {
     if (!currentQuestion) return;
 
     const scenario = {
       id: currentQuestion.id,
       title: currentQuestion.question,
       type: currentQuestion.type || 'role-play',
-      context: generateSalesContext(currentQuestion),
-      objectives: generateSalesObjectives(currentQuestion),
-      customerProfile: generateCustomerProfile(currentQuestion)
+      context: "You're in a sales meeting with a potential client. They're interested in your product but have some concerns to address.",
+      objectives: [
+        "Build rapport and understand customer needs",
+        "Present value proposition effectively", 
+        "Handle objections professionally",
+        "Close the deal or secure next steps"
+      ],
+      customerProfile: {
+        name: "Alex Johnson",
+        title: "VP of Operations", 
+        company: "TechCorp Solutions",
+        painPoints: ["Inefficient processes", "High operational costs", "Need for better analytics"],
+        budget: "Mid-range",
+        timeline: "3-6 months",
+        decisionMakingStyle: "Analytical and data-driven"
+      }
     };
 
     setCurrentScenario(scenario);
     setConversationStep(0);
     setIsConversationComplete(false);
 
-    // Start the conversation with the first question
-    const firstQuestion = await generateStepQuestion(0, scenario);
+    // Add initial question to conversation
+    const initialQuestion = currentQuestion.question || "Let's start our sales conversation. How would you approach this situation?";
     const welcomeMessage = {
       id: Date.now(),
       type: 'ai',
-      content: firstQuestion,
+      content: initialQuestion,
       timestamp: new Date(),
       step: 0
     };
 
     setConversationHistory([welcomeMessage]);
-  }, [currentQuestion, generateSalesContext, generateSalesObjectives, generateCustomerProfile, generateStepQuestion]);
+  }, [currentQuestion]);
 
-  useEffect(() => {
-    if (currentQuestion) {
-      initializeSalesScenario();
+  // Generate AI conversational question based on conversation context
+  const generateStepQuestion = useCallback(async (step, scenario) => {
+    try {
+      // Get the conversation context for AI
+      const conversationContext = conversationHistory.map(msg => ({
+        type: msg.type,
+        content: msg.content,
+        step: msg.step
+      }));
+
+      const response = await apiService.client.post('/ai/generate-sales-response', {
+        step: step,
+        scenario: scenario,
+        userInput: 'user_response',
+        conversationContext: conversationContext,
+        isQuestionGeneration: true
+      });
+
+      if (response.data.success && response.data.data.content) {
+        return response.data.data.content;
+      } else {
+        // Context-aware fallback questions based on conversation
+        const lastUserMessage = conversationHistory.filter(msg => msg.type === 'user').pop();
+        const userResponse = lastUserMessage?.content || '';
+        
+        if (userResponse.toLowerCase().includes('no idea') || userResponse.toLowerCase().includes('don\'t know')) {
+          return "I understand you might be unsure. Let's try a different approach - can you tell me about any products or services you've worked with before?";
+        } else if (userResponse.toLowerCase().includes('cost') || userResponse.toLowerCase().includes('price')) {
+          return "That's a great point about cost. How would you demonstrate the value and ROI of your solution to justify the investment?";
+        } else if (userResponse.toLowerCase().includes('time') || userResponse.toLowerCase().includes('timeline')) {
+          return "Timeline is important. How would you handle objections about implementation time and ensure a smooth transition?";
+        } else {
+          return "That's interesting. Can you elaborate on how you would handle potential objections from customers?";
+        }
+      }
+    } catch (error) {
+      console.error('Error generating AI question:', error);
+      // Context-aware fallback
+      const lastUserMessage = conversationHistory.filter(msg => msg.type === 'user').pop();
+      const userResponse = lastUserMessage?.content || '';
+      
+      if (userResponse.toLowerCase().includes('no idea') || userResponse.toLowerCase().includes('don\'t know')) {
+        return "I understand you might be unsure. Let's try a different approach - can you tell me about any products or services you've worked with before?";
+      } else {
+        return "That's interesting. Can you elaborate on how you would handle potential objections from customers?";
+      }
     }
-  }, [currentQuestion, initializeSalesScenario]);
+  }, [conversationHistory]);
 
-  // Cleanup speech synthesis on unmount
-  useEffect(() => {
-    return () => {
-      stopSpeaking();
-    };
-  }, [stopSpeaking]);
+  // Handle user voice response
+  const handleVoiceResponse = useCallback(async (voiceTranscription) => {
+    if (!voiceTranscription.trim() || isGeneratingResponse || isConversationComplete || isProcessingResponse) {
+      console.log('Skipping voice response - conditions not met');
+      return;
+    }
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [conversationHistory, scrollToBottom]);
-  const handleUserResponse = async () => {
-    if (!userResponse.trim() || isGeneratingResponse || isConversationComplete) return;
+    console.log('Processing voice response for step:', conversationStep);
+    console.log('Transcription:', voiceTranscription);
 
-    // Add user response to conversation
+    // Set processing flag to prevent duplicate processing
+    setIsProcessingResponse(true);
+
+    // Clear previous transcription immediately to prevent re-processing
+    setLastTranscription(voiceTranscription);
+    
+    // Add a small delay to ensure transcription is cleared
+    await new Promise(resolve => setTimeout(resolve, 200));
+
+    // Add user response to conversation with unique ID
     const userMessage = {
-      id: Date.now(),
+      id: Date.now() + Math.random(), // More unique ID
       type: 'user',
-      content: userResponse,
+      content: voiceTranscription,
       timestamp: new Date(),
       step: conversationStep
     };
@@ -185,7 +175,7 @@ const ConversationalSalesRound = ({
     setIsGeneratingResponse(true);
 
     try {
-      // Check if this is the last step (step 2)
+      // Check if this is the last step
       if (conversationStep >= 2) {
         // Complete the conversation
         const thankYouMessage = {
@@ -198,8 +188,23 @@ const ConversationalSalesRound = ({
 
         setConversationHistory(prev => [...prev, thankYouMessage]);
         setIsConversationComplete(true);
+        
+        // Speak completion message
+        if (typeof onSpeakText === 'function') {
+          onSpeakText(thankYouMessage.content);
+        } else {
+          // Fallback to browser TTS
+          const utterance = new SpeechSynthesisUtterance(thankYouMessage.content);
+          utterance.rate = 0.9;
+          utterance.pitch = 1;
+          utterance.volume = 0.8;
+          utterance.onend = () => onToggleAISpeaking(false);
+          utterance.onerror = () => onToggleAISpeaking(false);
+          onToggleAISpeaking(true);
+          window.speechSynthesis.speak(utterance);
+        }
       } else {
-        // Generate next question for the conversation
+        // Generate next question
         const nextStep = conversationStep + 1;
         const nextQuestion = await generateStepQuestion(nextStep, currentScenario);
         
@@ -213,8 +218,22 @@ const ConversationalSalesRound = ({
 
         setConversationHistory(prev => [...prev, aiMessage]);
         setConversationStep(nextStep);
+        
+        // Speak AI response
+        if (typeof onSpeakText === 'function') {
+          onSpeakText(nextQuestion);
+        } else {
+          // Fallback to browser TTS
+          const utterance = new SpeechSynthesisUtterance(nextQuestion);
+          utterance.rate = 0.9;
+          utterance.pitch = 1;
+          utterance.volume = 0.8;
+          utterance.onend = () => onToggleAISpeaking(false);
+          utterance.onerror = () => onToggleAISpeaking(false);
+          onToggleAISpeaking(true);
+          window.speechSynthesis.speak(utterance);
+        }
       }
-
     } catch (error) {
       console.error('Error generating AI response:', error);
       const errorMessage = {
@@ -227,12 +246,57 @@ const ConversationalSalesRound = ({
       setConversationHistory(prev => [...prev, errorMessage]);
     } finally {
       setIsGeneratingResponse(false);
-      setUserResponse('');
+      setIsProcessingResponse(false);
     }
-  };
+  }, [isGeneratingResponse, isConversationComplete, isRecording, onStopRecording, conversationStep, currentScenario, generateStepQuestion, onSpeakText]);
 
+  // Initialize scenario when question changes
+  useEffect(() => {
+    if (currentQuestion) {
+      initializeSalesScenario();
+    }
+  }, [currentQuestion, initializeSalesScenario]);
 
+  // Handle voice transcription - DISABLED AUTOMATIC PROCESSING
+  // Now only manual processing via "Process Response" button
+  useEffect(() => {
+    // Just update lastTranscription when new transcription comes in
+    if (transcription && transcription !== lastTranscription && transcription.length > 10) {
+      console.log('New transcription received:', transcription);
+      setLastTranscription(transcription);
+    }
+  }, [transcription, lastTranscription]);
 
+  // Auto-start listening when AI finishes speaking - ONLY for next question
+  useEffect(() => {
+    if (!isAISpeaking && 
+        !isGeneratingResponse && 
+        !isConversationComplete && 
+        !isRecording && 
+        !isProcessingResponse &&
+        conversationHistory.length > 0 &&
+        conversationStep < 3) { // Only auto-start for steps 0, 1, 2
+      const timer = setTimeout(() => {
+        if (!isRecording && !isGeneratingResponse && !isProcessingResponse && !isConversationComplete) {
+          console.log('Auto-starting recording for next question');
+          // Clear previous transcription completely
+          setLastTranscription('');
+          if (onClearTranscription) {
+            onClearTranscription();
+          }
+          // Start recording
+          onStartRecording();
+          setIsListening(true);
+        }
+      }, 2000); // Wait for AI to finish speaking
+      return () => clearTimeout(timer);
+    }
+  }, [isAISpeaking, isGeneratingResponse, isConversationComplete, isRecording, isProcessingResponse, onStartRecording, onClearTranscription, conversationHistory.length, conversationStep]);
+
+  // Scroll to bottom when conversation updates
+  useEffect(() => {
+    scrollToBottom();
+  }, [conversationHistory, scrollToBottom]);
 
   const handleSkipQuestion = () => {
     onNextQuestion();
@@ -341,11 +405,6 @@ const ConversationalSalesRound = ({
                 </span>
               </div>
               <p className="text-sm">{message.content}</p>
-              {message.feedback && (
-                <div className="mt-2 p-2 bg-yellow-50 dark:bg-yellow-900/20 rounded text-xs">
-                  <strong>Feedback:</strong> {message.feedback}
-                </div>
-              )}
             </div>
           </div>
         ))}
@@ -366,7 +425,7 @@ const ConversationalSalesRound = ({
         <div ref={conversationEndRef} />
       </div>
 
-      {/* Input Area */}
+      {/* Voice Recording Area */}
       <div className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-4">
         {isConversationComplete ? (
           <div className="text-center py-4">
@@ -377,59 +436,153 @@ const ConversationalSalesRound = ({
             <p className="text-sm text-gray-600 dark:text-gray-400">
               Thank you for participating in the sales role-play. Click "Next Question" to continue.
             </p>
+            <div className="mt-4">
+              <button
+                onClick={onNextQuestion}
+                className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 font-medium"
+              >
+                Next Question
+              </button>
+            </div>
           </div>
         ) : (
-          <div className="flex items-center space-x-4">
-            <div className="flex-1">
-              <textarea
-                value={userResponse}
-                onChange={(e) => setUserResponse(e.target.value)}
-                placeholder={`Respond to ${currentScenario?.customerProfile?.name || 'the customer'}...`}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
-                rows={2}
-                disabled={isGeneratingResponse}
-              />
+          <div className="text-center py-6">
+            <div className="flex flex-col items-center space-y-4">
+              {isGeneratingResponse ? (
+                <div className="flex items-center space-x-3">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                  <span className="text-lg text-gray-600 dark:text-gray-400">
+                    Processing your response and generating next question...
+                  </span>
+                </div>
+              ) : isRecording ? (
+                <div className="flex flex-col items-center space-y-3">
+                  <div className="relative">
+                    <div className="w-16 h-16 bg-red-500 rounded-full flex items-center justify-center animate-pulse">
+                      <Mic className="h-8 w-8 text-white" />
+                    </div>
+                    <div className="absolute inset-0 w-16 h-16 bg-red-500 rounded-full animate-ping opacity-20"></div>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-lg font-medium text-gray-900 dark:text-white">
+                      Listening to your response...
+                    </p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Speak clearly and naturally
+                    </p>
+                  </div>
+                  {transcription && transcription.length > 10 && (
+                    <div className="max-w-2xl w-full">
+                      <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-3">
+                        <p className="text-sm text-gray-700 dark:text-gray-300">
+                          <span className="font-medium">You said:</span> {transcription}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : isAISpeaking ? (
+                <div className="flex items-center space-x-3">
+                  <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center">
+                    <VolumeX className="h-6 w-6 text-white" />
+                  </div>
+                  <span className="text-lg text-gray-600 dark:text-gray-400">
+                    {currentScenario?.customerProfile?.name || 'Customer'} is speaking...
+                  </span>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center space-y-3">
+                  <div className="w-16 h-16 bg-gray-300 dark:bg-gray-600 rounded-full flex items-center justify-center">
+                    <Mic className="h-8 w-8 text-gray-600 dark:text-gray-400" />
+                  </div>
+                  <div className="text-center">
+                    <p className="text-lg font-medium text-gray-900 dark:text-white">
+                      Ready to listen
+                    </p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      The system will automatically start recording when ready
+                    </p>
+                    {conversationHistory.length > 1 && (
+                      <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                        Previous answer cleared - ready for new response
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={handleUserResponse}
-              disabled={!userResponse.trim() || isGeneratingResponse}
-              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Send
-            </button>
-            <button
-              onClick={isRecording ? onStopRecording : onStartRecording}
-              className={`p-2 rounded-lg ${
-                isRecording 
-                  ? 'bg-red-500 text-white' 
-                  : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
-              }`}
-            >
-              {isRecording ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
-            </button>
-            {isAISpeaking && (
-              <button
-                onClick={stopSpeaking}
-                className="p-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
-                title="Stop AI speaking"
-              >
-                <VolumeX className="h-5 w-5" />
-              </button>
-            )}
-          </div>
-          </div>
-        )}
-        
-        {/* Next Question Button - Only show when conversation is complete */}
-        {isConversationComplete && (
-          <div className="mt-4 text-center">
-            <button
-              onClick={onNextQuestion}
-              className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 font-medium"
-            >
-              Next Question
-            </button>
+
+            {/* Manual Controls */}
+            <div className="flex items-center justify-center space-x-4 mt-6">
+              {!isGeneratingResponse && !isConversationComplete && (
+                <button
+                  onClick={() => {
+                    if (isRecording) {
+                      onStopRecording();
+                    } else {
+                      // Clear previous transcription before starting new recording
+                      if (onClearTranscription) {
+                        onClearTranscription();
+                      }
+                      setLastTranscription('');
+                      onStartRecording();
+                    }
+                  }}
+                  className={`px-6 py-3 rounded-lg font-medium transition-colors ${
+                    isRecording 
+                      ? 'bg-red-500 text-white hover:bg-red-600' 
+                      : 'bg-blue-500 text-white hover:bg-blue-600'
+                  }`}
+                >
+                  {isRecording ? (
+                    <>
+                      <MicOff className="h-5 w-5 inline mr-2" />
+                      Stop Recording
+                    </>
+                  ) : (
+                    <>
+                      <Mic className="h-5 w-5 inline mr-2" />
+                      Start Recording
+                    </>
+                  )}
+                </button>
+              )}
+
+              {/* Manual Process Response Button */}
+              {transcription && transcription.length > 10 && !isRecording && !isGeneratingResponse && !isConversationComplete && (
+                <button
+                  onClick={() => handleVoiceResponse(transcription)}
+                  className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 font-medium"
+                >
+                  <MessageSquare className="h-5 w-5 inline mr-2" />
+                  Process Response
+                </button>
+              )}
+              
+              {isAISpeaking && (
+                <button
+                  onClick={stopSpeaking}
+                  className="px-6 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 font-medium"
+                >
+                  <VolumeX className="h-5 w-5 inline mr-2" />
+                  Stop AI Speaking
+                </button>
+              )}
+            </div>
+
+            {/* Debug Panel */}
+            <div className="mt-4 p-3 bg-gray-100 dark:bg-gray-700 rounded-lg text-xs">
+              <div className="grid grid-cols-2 gap-2">
+                <div>Step: {conversationStep}</div>
+                <div>History: {conversationHistory.length}</div>
+                <div>Generating: {isGeneratingResponse ? 'Yes' : 'No'}</div>
+                <div>Complete: {isConversationComplete ? 'Yes' : 'No'}</div>
+                <div>Recording: {isRecording ? 'Yes' : 'No'}</div>
+                <div>AI Speaking: {isAISpeaking ? 'Yes' : 'No'}</div>
+                <div>Processing: {isProcessingResponse ? 'Yes' : 'No'}</div>
+                <div>Transcription: {transcription ? transcription.substring(0, 20) + '...' : 'None'}</div>
+              </div>
+            </div>
           </div>
         )}
       </div>

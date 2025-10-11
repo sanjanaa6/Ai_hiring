@@ -786,6 +786,7 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
               interimTranscription={voiceRecording.interimTranscription}
               onStartRecording={voiceRecording.startRecording}
               onStopRecording={voiceRecording.stopRecording}
+              onClearTranscription={voiceRecording.clearTranscription}
               onNextQuestion={moveToNextQuestion}
               onSubmitAnswer={submitCurrentAnswer}
               onToggleAISpeaking={() => setIsAISpeaking(!isAISpeaking)}
