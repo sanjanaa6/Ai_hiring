@@ -86,7 +86,7 @@ const UserDashboard = () => {
         navigate(`${pathname}${url.search}`);
       } else if (pathname.startsWith('/pcb-round/')) {
         navigate(`${pathname}${url.search}`);
-      } else if (last && last.startsWith('interview_')) {
+      } else if (last && (last.startsWith('interview_') || last.startsWith('electronics_interview_'))) {
         navigate(`/interview/${last}`);
       } else {
         setError('Invalid interview link format');

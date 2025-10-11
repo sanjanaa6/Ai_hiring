@@ -15,7 +15,18 @@ const Interview = () => {
 
   const loadInterviewData = useCallback(async () => {
     try {
-      const result = await apiService.getInterview(interviewId);
+      let result;
+      
+      // Check if this is an Electronics interview by ID pattern
+      if (interviewId.startsWith('electronics_interview_')) {
+        console.log('Detected Electronics interview, using Electronics service...');
+        const { default: electronicsInterviewService } = await import('../services/electronicsInterviewService');
+        result = await electronicsInterviewService.getElectronicsInterview(interviewId);
+        result = { success: true, data: result };
+      } else {
+        console.log('Using regular interview API...');
+        result = await apiService.getInterview(interviewId);
+      }
       
       if (result.success) {
         setInterviewData(result.data);

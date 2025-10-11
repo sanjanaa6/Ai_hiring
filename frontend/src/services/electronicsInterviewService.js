@@ -10,15 +10,15 @@ class ElectronicsInterviewService {
     try {
       console.log('🔧 [ELECTRONICS INTERVIEW] Generating electronics interview...');
       
-      const response = await apiService.post('/electronics/generate-electronics', {
+      const response = await apiService.client.post('/electronics/generate-electronics', {
         prompt: prompt
       });
 
-      if (response.success) {
+      if (response.data.success) {
         console.log('✅ [ELECTRONICS INTERVIEW] Interview generated successfully');
-        return response.data;
+        return response.data.data;
       } else {
-        throw new Error(response.error || 'Failed to generate electronics interview');
+        throw new Error(response.data.error || 'Failed to generate electronics interview');
       }
     } catch (error) {
       console.error('❌ [ELECTRONICS INTERVIEW] Error generating interview:', error);
@@ -31,13 +31,13 @@ class ElectronicsInterviewService {
     try {
       console.log('🔍 [ELECTRONICS INTERVIEW] Fetching electronics interview:', interviewId);
       
-      const response = await apiService.get(`/electronics/${interviewId}`);
+      const response = await apiService.client.get(`/electronics/${interviewId}`);
 
-      if (response.success) {
+      if (response.data.success) {
         console.log('✅ [ELECTRONICS INTERVIEW] Interview fetched successfully');
-        return response.data;
+        return response.data.data;
       } else {
-        throw new Error(response.error || 'Failed to fetch electronics interview');
+        throw new Error(response.data.error || 'Failed to fetch electronics interview');
       }
     } catch (error) {
       console.error('❌ [ELECTRONICS INTERVIEW] Error fetching interview:', error);
@@ -50,13 +50,13 @@ class ElectronicsInterviewService {
     try {
       console.log('📋 [ELECTRONICS INTERVIEW] Fetching electronics interviews...');
       
-      const response = await apiService.get('/electronics');
+      const response = await apiService.client.get('/electronics');
 
-      if (response.success) {
+      if (response.data.success) {
         console.log('✅ [ELECTRONICS INTERVIEW] Interviews fetched successfully');
-        return response.data;
+        return response.data.data;
       } else {
-        throw new Error(response.error || 'Failed to fetch electronics interviews');
+        throw new Error(response.data.error || 'Failed to fetch electronics interviews');
       }
     } catch (error) {
       console.error('❌ [ELECTRONICS INTERVIEW] Error fetching interviews:', error);
@@ -69,16 +69,16 @@ class ElectronicsInterviewService {
     try {
       console.log('🔧 [PCB DESIGN] Submitting PCB design answer...');
       
-      const response = await apiService.post(`/electronics/${interviewId}/rounds/${roundId}/questions/${questionId}/pcb-answer`, {
+      const response = await apiService.client.post(`/electronics/${interviewId}/rounds/${roundId}/questions/${questionId}/pcb-answer`, {
         pcbDesign: pcbDesignData,
         timestamp: new Date().toISOString()
       });
 
-      if (response.success) {
+      if (response.data.success) {
         console.log('✅ [PCB DESIGN] PCB design answer submitted successfully');
-        return response.data;
+        return response.data.data;
       } else {
-        throw new Error(response.error || 'Failed to submit PCB design answer');
+        throw new Error(response.data.error || 'Failed to submit PCB design answer');
       }
     } catch (error) {
       console.error('❌ [PCB DESIGN] Error submitting PCB design answer:', error);

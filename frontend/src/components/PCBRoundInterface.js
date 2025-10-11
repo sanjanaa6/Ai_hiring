@@ -126,7 +126,7 @@ const PCBRoundInterface = ({
   };
 
   const getAvailableComponents = () => {
-    if (!question.pcbDesign || !question.pcbDesign.components) {
+    if (!question || !question.pcbDesign || !question.pcbDesign.components) {
       return [
         'Resistor', 'Capacitor', 'Microcontroller', 'Connector', 'LED', 
         'Transistor', 'Diode', 'Inductor', 'Crystal', 'Switch'
@@ -136,18 +136,35 @@ const PCBRoundInterface = ({
   };
 
   const getDesignConstraints = () => {
-    if (!question.pcbDesign || !question.pcbDesign.constraints) {
+    if (!question || !question.pcbDesign || !question.pcbDesign.constraints) {
       return "Design a functional PCB layout with proper component placement and routing.";
     }
     return question.pcbDesign.constraints;
   };
 
   const getEvaluationCriteria = () => {
-    if (!question.pcbDesign || !question.pcbDesign.evaluationCriteria) {
+    if (!question || !question.pcbDesign || !question.pcbDesign.evaluationCriteria) {
       return "Component placement, routing quality, design for manufacturability";
     }
     return question.pcbDesign.evaluationCriteria;
   };
+
+  // Safety check for null question
+  if (!question) {
+    return (
+      <div className={`min-h-screen ${isDarkMode ? 'bg-zinc-950' : 'bg-gray-100'} flex items-center justify-center`}>
+        <div className="text-center">
+          <div className="text-4xl mb-4">⚠️</div>
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+            Loading PCB Design Question...
+          </h2>
+          <p className="text-gray-600 dark:text-gray-400">
+            Please wait while we prepare the PCB design interface.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <TooltipProvider delayDuration={300}>
@@ -229,10 +246,10 @@ const PCBRoundInterface = ({
             <div className="lg:col-span-2">
               <div className="bg-white dark:bg-zinc-800 rounded-lg shadow-lg p-6">
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                  {question.question}
+                  {question.question || 'PCB Design Challenge'}
                 </h2>
                 <div className="text-sm text-gray-600 dark:text-gray-400 mb-6">
-                  {question.expectedAnswer}
+                  {question.expectedAnswer || 'Design a functional PCB layout with proper component placement and routing.'}
                 </div>
 
                 {/* Simplified PCB Canvas */}

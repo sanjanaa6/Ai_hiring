@@ -72,7 +72,18 @@ const InterviewReviewer = () => {
     setError(null);
     
     try {
-      const response = await apiService.getInterview(interviewId);
+      let response;
+      
+      // Check if this is an Electronics interview by ID pattern
+      if (interviewId.startsWith('electronics_interview_')) {
+        console.log('Detected Electronics interview, using Electronics service...');
+        const { default: electronicsInterviewService } = await import('../../services/electronicsInterviewService');
+        response = await electronicsInterviewService.getElectronicsInterview(interviewId);
+        response = { success: true, data: response };
+      } else {
+        console.log('Using regular interview API...');
+        response = await apiService.getInterview(interviewId);
+      }
       
       console.log('API Response:', response);
       console.log('Interview data:', response);

@@ -47,7 +47,7 @@ const CandidateDashboard = () => {
       const idWithMaybeQuery = pathParts[pathParts.length - 1];
       const id = idWithMaybeQuery.split('?')[0];
       
-      if (id && id.startsWith('interview_')) {
+      if (id && (id.startsWith('interview_') || id.startsWith('electronics_interview_'))) {
         // Redirect to the canonical interview route so the page fetches full data
         navigate(`/interview/${id}`);
       } else {

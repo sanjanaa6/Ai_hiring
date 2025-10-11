@@ -25,8 +25,8 @@ const getApiBaseUrl = () => {
     return 'https://aihire.eval8.xyz/api';
   }
   
-  // For development, use localhost
-  return `${window.location.origin.replace(/\/$/, '')}/api`;
+  // For development, use localhost backend port
+  return 'http://localhost:5000/api';
 };
 
 const API_BASE_URL = getApiBaseUrl();

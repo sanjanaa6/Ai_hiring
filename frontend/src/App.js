@@ -44,6 +44,7 @@ import LanguageDetectionDemo from './components/LanguageDetectionDemo';
 import NotFound from './pages/NotFound';
 import AdminLoginPage from './pages/AdminLoginPage';
 import RecruiterPCB from './recruiter/pages/RecruiterPCB';
+import PCBApp from './pcb/src/App';
 
 // Recruiter components
 import { InterviewReviewer } from './recruiter/components/InterviewReviewer';
@@ -123,6 +124,7 @@ function AppShell() {
           <Route path="/interview/:interviewId" element={<Interview />} />
           <Route path="/round/:accessLink" element={<RoundAccess />} />
           <Route path="/pcb-round/:accessLink" element={<ElectronicInterview />} />
+          <Route path="/pcb" element={<PCBApp />} />
           <Route path="/style-test" element={<StyleTest />} />
           <Route path="/openrouter-test" element={<OpenRouterTest />} />
           <Route path="/coding-tutor" element={<InteractiveCodingTutor />} />

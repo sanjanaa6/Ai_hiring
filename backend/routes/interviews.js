@@ -25,6 +25,7 @@ const {
   submitAnswer,
   submitAnswers,
   getAnswers,
+  getCandidateDetails: getCandidateDetailsFromAnswers,
   completeInterview: completeInterviewAnswers
 } = require('../handlers/interviewAnswers');
 
@@ -72,8 +73,11 @@ router.post('/:interviewId/start-anonymous', startAnonymousInterview);
 router.post('/:interviewId/answer', submitAnswer);
 router.post('/:interviewId/answers', submitAnswers);
 
-// Get answers
-router.get('/:interviewId/answers', getAnswers);
+// Get answers (protected for recruiters)
+router.get('/:interviewId/answers', auth, getAnswers);
+
+// Get detailed candidate information with all answers and evaluations
+router.get('/:interviewId/candidates/:candidateId/details', auth, getCandidateDetailsFromAnswers);
 
 // Complete interview (anonymous)
 router.post('/:interviewId/complete', completeInterviewAnswers);

@@ -57,19 +57,21 @@ const RecruiterDashboard = () => {
   const [schedulerInterviewId, setSchedulerInterviewId] = useState(null);
   const [showCandidateManager, setShowCandidateManager] = useState(false);
   const [candidateManagerInterviewId, setCandidateManagerInterviewId] = useState(null);
-  // PCB inline link generation state
-  const [pcbLink, setPcbLink] = useState('');
-  const [pcbCopied, setPcbCopied] = useState(false);
 
   // Answers state
   const [answersLoading, setAnswersLoading] = useState(false);
   const [answers, setAnswers] = useState([]); // flat list from API
+  const [answersByCandidate, setAnswersByCandidate] = useState({}); // grouped by candidate from API
+  const [answersSummary, setAnswersSummary] = useState(null); // summary statistics from API
   const [selectedCandidateId, setSelectedCandidateId] = useState('');
   const [expandedCandidates, setExpandedCandidates] = useState({});
 
   // Candidates state
   const [candidates, setCandidates] = useState([]);
   const [candidatesLoading, setCandidatesLoading] = useState(false);
+  
+  // Interview answer candidates state (separate from job application candidates)
+  const [, setInterviewCandidates] = useState([]);
   // Remove unused state
   const [candidateFilters, setCandidateFilters] = useState({
     status: '',
@@ -145,9 +147,34 @@ const RecruiterDashboard = () => {
       setAnswersLoading(true);
       const result = await apiService.getInterviewAnswers(interviewId, candidateId || undefined);
       if (result.success) {
-        // The API returns { success: true, data: { answers: [...], ... } }
-        // So we need to access result.data.answers
-        setAnswers(result.data?.answers || []);
+        // The API now returns { success: true, data: { answers: [...], answersByCandidate: {...}, summary: {...} } }
+        const data = result.data;
+        setAnswers(data?.answers || []);
+        setAnswersByCandidate(data?.answersByCandidate || {});
+        setAnswersSummary(data?.summary || null);
+        
+        // Update candidates list with answer data
+        if (data?.answersByCandidate) {
+          const candidatesWithAnswers = Object.values(data.answersByCandidate).map(candidate => ({
+            _id: candidate.candidateId,
+            name: candidate.candidateName,
+            email: candidate.candidateEmail,
+            answerCount: candidate.answers.length,
+            averageScore: candidate.answers.length > 0 ? 
+              candidate.answers.reduce((sum, answer) => sum + (answer.aiEvaluation?.score || 0), 0) / candidate.answers.length : 0,
+            lastAnswerAt: candidate.answers.length > 0 ? 
+              new Date(Math.max(...candidate.answers.map(a => new Date(a.timestamp)))) : null
+          }));
+          
+          // Set interview candidates (these are different from job application candidates)
+          setInterviewCandidates(candidatesWithAnswers);
+        }
+        
+        console.log('✅ [LOAD ANSWERS] Loaded answers successfully:', {
+          totalAnswers: data?.answers?.length || 0,
+          totalCandidates: Object.keys(data?.answersByCandidate || {}).length,
+          summary: data?.summary
+        });
       } else {
         console.error('Failed to load answers:', result.error);
         setAnswers([]);
@@ -240,22 +267,6 @@ const RecruiterDashboard = () => {
     }
   };
 
-  // Inline PCB link generation
-  const createPcbRoundLink = () => {
-    // Match backend-like format: interviewId-roundNumber-accessCode
-    const accessCode = Array.from(crypto.getRandomValues(new Uint8Array(8)))
-      .map(b => b.toString(16).padStart(2, '0')).join('');
-    const token = `pcb-0-${accessCode}`;
-    const url = `${window.location.origin.replace(/\/$/, '')}/pcb-round/${token}`;
-    setPcbLink(url);
-  };
-
-  const copyPcbLink = () => {
-    if (!pcbLink) return;
-    navigator.clipboard.writeText(pcbLink);
-    setPcbCopied(true);
-    setTimeout(() => setPcbCopied(false), 1000);
-  };
 
   const groupAnswersByCandidate = () => {
     // Ensure answers is an array
@@ -287,7 +298,10 @@ const RecruiterDashboard = () => {
       return { ...c, averageScore: avg, lastAnswered };
     });
     // sort by averageScore desc
-    return list.sort((a, b) => (b.averageScore || 0) - (a.averageScore || 0));
+    const sortedList = list.sort((a, b) => (b.averageScore || 0) - (a.averageScore || 0));
+    
+    // Final safety check to ensure we return an array
+    return Array.isArray(sortedList) ? sortedList : [];
   };
 
   const toggleExpand = (candidateId) => {
@@ -439,6 +453,56 @@ Please structure the interview with these specific rounds:
 6. **Final Feedback & Decision** – Discuss their sales potential, areas for development, cultural fit, and next steps (offer or decline).
 
 Each round should have 3-5 relevant questions that progressively assess the candidate's sales skills, communication abilities, and cultural fit.`;
+    } else if (roleType === 'pcb') {
+      return `${basePrompt}
+
+Please structure the interview with these specific rounds for an Electronics/PCB Design Engineer:
+
+1. **Electronics Fundamentals** – Test theoretical knowledge of:
+   - Analog and digital circuit design principles
+   - Component selection and specifications
+   - Signal integrity and power management
+   - PCB manufacturing processes and constraints
+   - Testing and validation methodologies
+
+2. **Advanced Electronics Concepts** – Assess knowledge of:
+   - High-speed digital design
+   - RF and microwave circuit design
+   - Power electronics and motor control
+   - Embedded systems integration
+   - Design for manufacturability (DFM) and testability (DFT)
+
+3. **PCB Design Round** – This is Round 3 and should be completely hands-on PCB design. Create multiple PCB design challenges where the candidate must:
+   - Design circuit schematics for specific electronics applications
+   - Select appropriate components (resistors, capacitors, microcontrollers, etc.)
+   - Create PCB layouts with proper component placement
+   - Consider EMI/EMC, thermal management, and manufacturability
+   - Use PCB design tools (Altium Designer, KiCad, Eagle, etc.)
+   - This round should be entirely practical and hands-on, allowing the candidate to demonstrate real PCB design skills
+   - ALL questions in this round should be PCB design challenges
+
+4. **Circuit Analysis** – Test practical circuit analysis skills:
+   - Analyze given circuit schematics
+   - Calculate component values and circuit parameters
+   - Troubleshoot circuit problems
+   - Explain circuit behavior and performance
+   - This round should focus on theoretical analysis and problem-solving
+
+5. **Project Experience & Problem Solving** – Discuss:
+   - Previous PCB design projects and challenges
+   - Troubleshooting and debugging techniques
+   - Collaboration with firmware and mechanical engineers
+   - Quality assurance and testing procedures
+
+6. **Behavioral & Soft Skills** – Evaluate:
+   - Communication skills for technical discussions
+   - Project management and timeline adherence
+   - Learning new technologies and tools
+   - Working in cross-functional teams
+
+7. **Final Feedback & Decision** – Discuss technical fit, project experience, and next steps.
+
+IMPORTANT: Round 3 (PCB Design Round) should be completely hands-on with ALL questions being PCB design challenges. Round 4 (Circuit Analysis) should be theoretical analysis questions. The other rounds should complement these with knowledge assessment and experience evaluation.`;
     } else if (roleType === 'generic') {
       return `${basePrompt}
 
@@ -480,9 +544,18 @@ The interview should feel natural and relevant to someone applying for this spec
 
     setLoading(true);
     try {
-      // Create role-specific interview structure
-      const roleSpecificPrompt = createRoleSpecificPrompt(jobPrompt, jobType);
-      const result = await apiService.generateInterview({ prompt: roleSpecificPrompt });
+      let result;
+      
+      // Use Electronics service for PCB interviews
+      if (jobType === 'pcb') {
+        const { default: electronicsInterviewService } = await import('../../services/electronicsInterviewService');
+        result = await electronicsInterviewService.generateElectronicsInterview(jobPrompt);
+        result = { success: true, data: result };
+      } else {
+        // Create role-specific interview structure for other types
+        const roleSpecificPrompt = createRoleSpecificPrompt(jobPrompt, jobType);
+        result = await apiService.generateInterview({ prompt: roleSpecificPrompt });
+      }
       
       if (result.success) {
         setGeneratedInterview(result.data);
@@ -1223,13 +1296,12 @@ The interview should feel natural and relevant to someone applying for this spec
                                   : jobType === 'sales'
                                     ? 'Sales rounds: Self Intro, Basic Sales, Sales Pitch, Objection Handling, Communication, Final Feedback'
                                     : jobType === 'pcb'
-                                      ? 'Electronics round: generate a shareable link that opens the PCB interface. No AI rounds are created.'
+                                      ? 'Electronics interview: Round 3 - PCB Design (hands-on), Round 4 - Circuit Analysis, plus technical and behavioral rounds'
                                     : 'AI analyzes your job description and creates custom interview rounds tailored to the specific role, skills, and requirements'
                                 }
                               </p>
                             </motion.div>
                             
-                            {jobType !== 'pcb' ? (
                             <motion.div 
                               initial={{ opacity: 0, y: 20 }}
                               animate={{ opacity: 1, y: 0 }}
@@ -1249,6 +1321,8 @@ The interview should feel natural and relevant to someone applying for this spec
                                   ? "Example: I need to hire a Senior React Developer for our fintech startup. The role involves building modern web applications using React, TypeScript, and Node.js. Requirements include 5+ years of React experience, strong knowledge of JavaScript/TypeScript, experience with Redux, REST APIs, and Git. The person will work remotely, salary range $100k-$140k. They'll be responsible for developing new features, maintaining existing code, and mentoring junior developers..."
                                   : jobType === 'sales'
                                     ? "Example: I need to hire a Sales Manager for our SaaS company. The role involves managing a team of 5 sales representatives, developing sales strategies, meeting quarterly targets, and building relationships with enterprise clients. Requirements include 3+ years of sales management experience, proven track record of meeting/exceeding targets, experience with CRM systems, and strong leadership skills. The person will work in our downtown office, salary range $80k-$120k plus commission. They'll be responsible for team performance, client acquisition, and revenue growth..."
+                                    : jobType === 'pcb'
+                                      ? "Example: I need to hire an Electronics Engineer for our IoT company. The role involves designing PCB layouts, selecting components, creating schematics, and testing electronic circuits. Requirements include 3+ years of electronics design experience, proficiency in Altium Designer or KiCad, knowledge of analog/digital circuits, experience with microcontrollers, and understanding of EMI/EMC principles. The person will work in our lab, salary range $70k-$90k. They'll be responsible for designing PCBs for IoT devices, collaborating with firmware engineers, and ensuring designs meet manufacturing requirements..."
                                     : "Example: I need to hire a Marketing Manager for our e-commerce company. The role involves developing digital marketing strategies, managing social media campaigns, analyzing customer data, and driving brand awareness. Requirements include 4+ years of marketing experience, expertise in Google Analytics, Facebook Ads, email marketing, and content creation. The person will work in our office, salary range $60k-$80k. They'll be responsible for increasing online sales, managing marketing budgets, and collaborating with the design team..."
                                 }
                               />
@@ -1281,25 +1355,6 @@ The interview should feel natural and relevant to someone applying for this spec
                                 </motion.div>
                               )}
                             </motion.div>
-                            ) : (
-                              <div className={`${isDarkMode ? 'bg-black/30 border-gray-600' : 'bg-white/80 border-gray-300'} border-2 rounded-xl p-6`}>
-                                <p className={`${isDarkMode ? 'text-gray-300' : 'text-gray-700'} mb-4`}>
-                                  Click the button below to generate a shareable Electronics (PCB) round link. Share it with candidates to let them complete the PCB round.
-                                </p>
-                                <div className="flex items-center gap-3">
-                                  <button onClick={createPcbRoundLink} className={`px-4 py-2 rounded-lg ${isDarkMode ? 'bg-blue-600 hover:bg-blue-500 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}>Generate PCB Link</button>
-                                  {pcbLink && (
-                                    <>
-                                      <a href={pcbLink} target="_blank" rel="noreferrer" className={`${isDarkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-100 hover:bg-gray-200'} px-3 py-2 rounded-lg text-sm`}>Open</a>
-                                      <button onClick={copyPcbLink} className={`${isDarkMode ? 'bg-blue-600 hover:bg-blue-500 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white'} px-3 py-2 rounded-lg text-sm`}>{pcbCopied ? 'Copied' : 'Copy Link'}</button>
-                                    </>
-                                  )}
-                                </div>
-                                {pcbLink && (
-                                  <div className={`mt-3 text-sm ${isDarkMode ? 'text-blue-300' : 'text-blue-700'}`}>{pcbLink}</div>
-                                )}
-                              </div>
-                            )}
                           </div>
 
                           {/* Enhanced Action Buttons */}
@@ -2638,13 +2693,13 @@ The interview should feel natural and relevant to someone applying for this spec
                 <div className="flex items-center space-x-4">
                   <div className={`${isDarkMode ? 'bg-white/20' : 'bg-white/20'} rounded-xl p-4`}>
                     <div className="text-2xl font-bold text-white">
-                      {selectedInterviewId ? groupAnswersByCandidate().length : 0}
+                      {selectedInterviewId ? (answersSummary?.totalCandidates || Object.keys(answersByCandidate).length) : 0}
                     </div>
                     <div className="text-sm text-blue-100">Candidates</div>
                   </div>
                   <div className={`${isDarkMode ? 'bg-white/20' : 'bg-white/20'} rounded-xl p-4`}>
                     <div className="text-2xl font-bold text-white">
-                      {selectedInterviewId ? answers.length : 0}
+                      {selectedInterviewId ? (answersSummary?.totalAnswers || answers.length) : 0}
                     </div>
                     <div className="text-sm text-blue-100">Total Answers</div>
                   </div>
@@ -2745,7 +2800,7 @@ The interview should feel natural and relevant to someone applying for this spec
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
                     <p className={`text-lg ${isDarkMode ? 'text-white' : 'text-gray-600'}`}>Loading performance data...</p>
                   </div>
-                ) : groupAnswersByCandidate().length > 0 ? (
+                ) : (Object.keys(answersByCandidate).length > 0 || groupAnswersByCandidate().length > 0) ? (
                   <>
                     {/* Performance Overview Cards */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -2754,7 +2809,7 @@ The interview should feel natural and relevant to someone applying for this spec
                           <div>
                             <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>Total Candidates</p>
                             <p className={`text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                              {groupAnswersByCandidate().length}
+                              {answersSummary?.totalCandidates || Object.keys(answersByCandidate).length || groupAnswersByCandidate().length}
                             </p>
                           </div>
                           <div className="p-3 bg-blue-100 rounded-xl">
@@ -2768,7 +2823,7 @@ The interview should feel natural and relevant to someone applying for this spec
                           <div>
                             <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>Average Score</p>
                             <p className={`text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                              {(groupAnswersByCandidate().reduce((sum, c) => sum + (c.averageScore || 0), 0) / groupAnswersByCandidate().length).toFixed(1)}/4
+                              {(answersSummary?.averageScore || (groupAnswersByCandidate().reduce((sum, c) => sum + (c.averageScore || 0), 0) / Math.max(groupAnswersByCandidate().length, 1))).toFixed(1)}/4
                             </p>
                           </div>
                           <div className="p-3 bg-green-100 rounded-xl">
@@ -2782,7 +2837,7 @@ The interview should feel natural and relevant to someone applying for this spec
                           <div>
                             <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>Total Answers</p>
                             <p className={`text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                              {answers.length}
+                              {answersSummary?.totalAnswers || answers.length}
                             </p>
                           </div>
                           <div className="p-3 bg-blue-100 rounded-xl">
@@ -2796,7 +2851,7 @@ The interview should feel natural and relevant to someone applying for this spec
                           <div>
                             <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>Completion Rate</p>
                             <p className={`text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                              {Math.round((answers.length / (groupAnswersByCandidate().length * 5)) * 100)}%
+                              {Math.round(answersSummary?.completionRate || (answers.length / Math.max((Object.keys(answersByCandidate).length || groupAnswersByCandidate().length) * 5, 1)) * 100)}%
                             </p>
                           </div>
                           <div className="p-3 bg-orange-100 rounded-xl">
@@ -2813,7 +2868,7 @@ The interview should feel natural and relevant to someone applying for this spec
                       </h3>
                       
                       <div className="space-y-4">
-                        {groupAnswersByCandidate().map((candidate, index) => (
+                        {(groupAnswersByCandidate() || []).map((candidate, index) => (
                           <div key={candidate.candidateId} className={`${isDarkMode ? 'bg-black/30 border border-blue-500/20' : 'bg-gray-50 border border-gray-200'} rounded-xl p-6 transition-all duration-200 hover:shadow-lg`}>
                             <div className="flex items-center justify-between mb-4">
                               <div className="flex items-center space-x-4">

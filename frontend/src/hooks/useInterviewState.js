@@ -17,6 +17,7 @@ export const useInterviewState = () => {
   const [questionStartCountdown, setQuestionStartCountdown] = useState(0);
   const [isLiveCodingRound, setIsLiveCodingRound] = useState(false);
   const [isSalesRound, setIsSalesRound] = useState(false);
+  const [isPCBRound, setIsPCBRound] = useState(false);
   const [codeAnswer, setCodeAnswer] = useState('');
   const [selectedLanguage, setSelectedLanguage] = useState('javascript');
   const [isLanguageLocked, setIsLanguageLocked] = useState(false);
@@ -49,6 +50,7 @@ export const useInterviewState = () => {
     setQuestionStartCountdown(0);
     setIsLiveCodingRound(false);
     setIsSalesRound(false);
+    setIsPCBRound(false);
     setCodeAnswer('');
     setSelectedLanguage('javascript');
     setIsLanguageLocked(false);
@@ -83,6 +85,7 @@ export const useInterviewState = () => {
     questionStartCountdown,
     isLiveCodingRound,
     isSalesRound,
+    isPCBRound,
     codeAnswer,
     selectedLanguage,
     isLanguageLocked,
@@ -115,6 +118,7 @@ export const useInterviewState = () => {
     setQuestionStartCountdown,
     setIsLiveCodingRound,
     setIsSalesRound,
+    setIsPCBRound,
     setCodeAnswer,
     setSelectedLanguage,
     setIsLanguageLocked,
