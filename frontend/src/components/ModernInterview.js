@@ -88,12 +88,23 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
     try {
       console.log('🔄 Loading interview data for interviewId:', interviewId);
       
-      // Use apiService like the original component
-      const result = await apiService.getInterview(interviewId);
+      let result;
+      
+      // Check if this is an Electronics interview by ID pattern
+      if (interviewId.startsWith('electronics_interview_')) {
+        console.log('Detected Electronics interview, using Electronics service...');
+        const { default: electronicsInterviewService } = await import('../services/electronicsInterviewService');
+        result = await electronicsInterviewService.getElectronicsInterview(interviewId);
+        result = { success: true, data: result };
+      } else {
+        console.log('Using regular interview API...');
+        result = await apiService.getInterview(interviewId);
+      }
       
       if (result.success) {
         setInterviewData(result.data);
         console.log('✅ Interview data loaded:', result.data);
+        console.log('🔍 Interview type:', result.data.interviewType);
       } else {
         throw new Error(result.error || 'Failed to load interview data');
       }
@@ -274,11 +285,25 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
         const nextQuestion = currentRound.questions[nextIndex];
         setCurrentQuestion(nextQuestion);
         
-        // Check if this is a PCB round (Round 3 is completely PCB)
-        const isCurrentRoundPCB = currentRound.roundNumber === 3 || 
+        // Check if this is a PCB round (only for electronics interviews)
+        const isElectronicsInterview = interviewData?.interviewType === 'electronics';
+        console.log('🔍 PCB Detection Debug:', {
+          interviewType: interviewData?.interviewType,
+          isElectronicsInterview,
+          roundNumber: currentRound.roundNumber,
+          roundTitle: currentRound.title,
+          hasPCBQuestions: currentRound.questions?.some(q => q.type === 'pcb-design' || q.pcbDesign?.enabled)
+        });
+        
+        const isCurrentRoundPCB = isElectronicsInterview && (
+                                 currentRound.roundNumber === 3 || 
+                                 currentRound.roundNumber === 4 ||
                                  currentRound.title?.toLowerCase().includes('pcb') || 
                                  currentRound.title?.toLowerCase().includes('design') ||
-                                 currentRound.questions?.some(q => q.type === 'pcb-design' || q.pcbDesign?.enabled);
+                                 currentRound.questions?.some(q => q.type === 'pcb-design' || q.pcbDesign?.enabled)
+                                 );
+        
+        console.log('🔍 PCB Round Detection Result:', isCurrentRoundPCB);
         
         if (isCurrentRoundPCB) {
           setStep('pcb-round');
@@ -396,11 +421,25 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
       const isFileUpload = round.type === 'file_upload';
       const isFormSubmission = round.type === 'form_submission';
       
-      // Check if this is a PCB round (Round 3 for Electronics interviews)
-      const isPCB = round.roundNumber === 3 || 
+      // Check if this is a PCB round (only for electronics interviews)
+      const isElectronicsInterview = interviewData?.interviewType === 'electronics';
+      console.log('🔍 Round Selection PCB Detection Debug:', {
+        interviewType: interviewData?.interviewType,
+        isElectronicsInterview,
+        roundNumber: round.roundNumber,
+        roundTitle: round.title,
+        hasPCBQuestions: round.questions?.some(q => q.type === 'pcb-design' || q.pcbDesign?.enabled)
+      });
+      
+      const isPCB = isElectronicsInterview && (
+                   round.roundNumber === 3 || 
+                   round.roundNumber === 4 ||
                    round.title?.toLowerCase().includes('pcb') || 
                    round.title?.toLowerCase().includes('design') ||
-                   round.questions?.some(q => q.type === 'pcb-design' || q.pcbDesign?.enabled);
+                   round.questions?.some(q => q.type === 'pcb-design' || q.pcbDesign?.enabled)
+                   );
+      
+      console.log('🔍 Round Selection PCB Detection Result:', isPCB);
       
       setIsLiveCodingRound(isCoding);
       setIsSalesRound(isSales);

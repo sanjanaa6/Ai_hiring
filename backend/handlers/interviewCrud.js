@@ -85,6 +85,7 @@ const createInterview = async (req, res) => {
         totalDuration: interview.totalDuration,
         rounds: interview.rounds.length,
         approvalStatus: interview.approvalStatus,
+        interviewType: interview.interviewType,
         createdAt: interview.createdAt,
         link: `/recruiter/review/${interview.interviewId}`
       }
@@ -131,6 +132,7 @@ const getAllInterviews = async (req, res) => {
         approvalStatus: interview.approvalStatus,
         jobTitle: interview.jobTitle,
         company: interview.company,
+        interviewType: interview.interviewType,
         createdAt: interview.createdAt,
         approvedAt: interview.approvedAt,
         rejectedAt: interview.rejectedAt
@@ -202,6 +204,7 @@ const getInterviewById = async (req, res) => {
         jobRequirements: interview.jobRequirements,
         jobLevel: interview.jobLevel,
         company: interview.company,
+        interviewType: interview.interviewType,
         overallEvaluationCriteria: interview.overallEvaluationCriteria,
         scoringSystem: interview.scoringSystem,
         createdAt: interview.createdAt,
@@ -272,6 +275,7 @@ const getPublicInterview = async (req, res) => {
         jobRequirements: interview.jobRequirements,
         jobLevel: interview.jobLevel,
         company: interview.company,
+        interviewType: interview.interviewType,
         overallEvaluationCriteria: interview.overallEvaluationCriteria,
         scoringSystem: interview.scoringSystem,
         createdAt: interview.createdAt,
@@ -568,6 +572,7 @@ const generateInterview = async (req, res) => {
         rounds: interview.rounds.length,
         totalDuration: interview.totalDuration,
         approvalStatus: interview.approvalStatus,
+        interviewType: interview.interviewType,
         accessLinks: accessLinks.map(link => ({
           roundNumber: link.roundNumber,
           accessLink: link.accessLink,
