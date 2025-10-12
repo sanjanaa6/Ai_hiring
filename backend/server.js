@@ -168,21 +168,37 @@ if (process.env.NODE_ENV === 'production') {
   // Serve static files from the React app build directory
   app.use(express.static(path.join(__dirname, '../frontend/build')));
   
-  // Handle React routing, return all requests to React app
-  app.get('*', (req, res) => {
+  // Handle React routing, but ONLY for non-API routes
+  app.get('*', (req, res, next) => {
+    // Skip API routes - let them be handled by API middleware
+    if (req.path.startsWith('/api/')) {
+      return next();
+    }
+    
+    // For all other routes, serve the React app
     res.sendFile(path.join(__dirname, '../frontend/build', 'index.html'));
   });
+  
+  // 404 handler for API routes that don't exist
+  app.use('/api/*', (req, res) => {
+    res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
+    res.header('Access-Control-Expose-Headers', 'Content-Disposition');
+    res.status(404).json({ message: 'API endpoint not found' });
+  });
+} else {
+  // 404 handler for development (API routes only)
+  app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
+    res.header('Access-Control-Expose-Headers', 'Content-Disposition');
+    res.status(404).json({ message: 'Not Found' });
+  });
 }
-
-// 404 handler with CORS headers to cover unmatched routes
-app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
-  res.header('Access-Control-Expose-Headers', 'Content-Disposition');
-  res.status(404).json({ message: 'Not Found' });
-});
 
 // Request logging middleware
 app.use((req, res, next) => {
