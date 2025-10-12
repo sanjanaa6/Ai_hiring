@@ -7,6 +7,7 @@ export const useEyeTracking = (interviewId = null) => {
   const [isTracking, setIsTracking] = useState(false);
   const [faceDetected, setFaceDetected] = useState(false);
   const [facePosition, setFacePosition] = useState({ x: 0, y: 0, width: 0, height: 0 });
+  const [faceDetectionConfidence, setFaceDetectionConfidence] = useState(0);
   
   const violationTimerRef = useRef(null);
   const cycleTimerRef = useRef(null);
@@ -16,9 +17,9 @@ export const useEyeTracking = (interviewId = null) => {
   const LOOK_AWAY_TIME = 3000; // Reduced from 5000ms to 3000ms - 3 seconds
   const GRACE_PERIOD_VIOLATIONS = 2; // Reduced grace period from 3 to 2
 
-  // Enhanced face detection function with better debugging
+  // Cool and intelligent face detection with adaptive thresholds'
   const detectFace = useCallback(async (videoElement) => {
-    console.log('🔍 Starting face detection...');
+    console.log('🤖 Smart face detection starting...');
     
     // Basic validation
     if (!videoElement) {
@@ -40,66 +41,141 @@ export const useEyeTracking = (interviewId = null) => {
       canvas.width = videoElement.videoWidth;
       canvas.height = videoElement.videoHeight;
       
-      console.log(`🖼️ Canvas created: ${canvas.width}x${canvas.height}`);
-      
       ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       const data = imageData.data;
       
-      console.log(`📊 Image data length: ${data.length} bytes`);
+      // Multi-zone analysis for better detection
+      const zones = {
+        center: { start: 0.3, end: 0.7 }, // Center 40% of image
+        left: { start: 0, end: 0.4 },     // Left 40%
+        right: { start: 0.6, end: 1.0 }   // Right 40%
+      };
       
-      // Analyze image for face presence
-      let faceScore = 0;
+      let totalFaceScore = 0;
       let totalSamples = 0;
       let brightnessSum = 0;
       let minBrightness = 255;
       let maxBrightness = 0;
+      let skinToneVariations = 0;
+      let edgeDetections = 0;
       
-      // Sample pixels across the image
-      for (let i = 0; i < data.length; i += 20) { // Sample every 5th pixel
-        const r = data[i];
-        const g = data[i + 1];
-        const b = data[i + 2];
+      // Analyze different zones with different weights
+      Object.entries(zones).forEach(([zoneName, zone]) => {
+        const zoneStart = Math.floor(zone.start * canvas.width);
+        const zoneEnd = Math.floor(zone.end * canvas.width);
+        const zoneWeight = zoneName === 'center' ? 2.0 : 1.0; // Center zone gets double weight
         
-        totalSamples++;
-        
-        // Calculate pixel properties
-        const brightness = (r + g + b) / 3;
-        const saturation = Math.max(r, g, b) - Math.min(r, g, b);
-        
-        brightnessSum += brightness;
-        minBrightness = Math.min(minBrightness, brightness);
-        maxBrightness = Math.max(maxBrightness, brightness);
-        
-        // Face detection criteria
-        let pixelScore = 0;
-        
-        // Check if pixel could be skin
-        if (brightness > 50 && brightness < 200) { // Reasonable brightness
-          if (r > g && r > b) { // Red dominant (typical for skin)
-            if (Math.abs(r - g) > 10 && Math.abs(r - b) > 20) { // Good color separation
-              if (saturation > 20 && saturation < 150) { // Not too gray, not too saturated
-                pixelScore = 1;
+        for (let x = zoneStart; x < zoneEnd; x += 8) {
+          for (let y = 0; y < canvas.height; y += 8) {
+            const i = (y * canvas.width + x) * 4;
+            if (i >= data.length - 3) continue;
+            
+            const r = data[i];
+            const g = data[i + 1];
+            const b = data[i + 2];
+            
+            totalSamples++;
+            
+            // Calculate pixel properties
+            const brightness = (r + g + b) / 3;
+            const saturation = Math.max(r, g, b) - Math.min(r, g, b);
+            const hue = Math.atan2(Math.sqrt(3) * (g - b), 2 * r - g - b);
+            
+            brightnessSum += brightness;
+            minBrightness = Math.min(minBrightness, brightness);
+            maxBrightness = Math.max(maxBrightness, brightness);
+            
+            // Enhanced skin detection with multiple criteria
+            let pixelScore = 0;
+            
+            // Primary skin detection (more forgiving)
+            if (brightness > 40 && brightness < 220) { // Wider brightness range
+              // Check for skin-like colors (more inclusive)
+              const isWarmTone = r > g && r > b && (r - g) > 5 && (r - b) > 10;
+              const isNeutralTone = Math.abs(r - g) < 15 && Math.abs(g - b) < 15 && brightness > 80;
+              const isCoolTone = b > r && b > g && (b - r) > 5 && brightness > 60;
+              
+              if (isWarmTone || isNeutralTone || isCoolTone) {
+                // Check saturation (more flexible)
+                if (saturation > 15 && saturation < 180) {
+                  pixelScore = 1;
+                  
+                  // Bonus points for realistic skin variations
+                  if (saturation > 30 && saturation < 120) {
+                    pixelScore += 0.5;
+                    skinToneVariations++;
+                  }
+                }
               }
             }
+            
+            // Edge detection for facial features
+            if (x > 0 && x < canvas.width - 1 && y > 0 && y < canvas.height - 1) {
+              const leftPixel = data[((y * canvas.width + (x - 1)) * 4)];
+              const rightPixel = data[((y * canvas.width + (x + 1)) * 4)];
+              const edgeStrength = Math.abs(r - leftPixel) + Math.abs(r - rightPixel);
+              
+              if (edgeStrength > 20 && edgeStrength < 100) {
+                edgeDetections++;
+                pixelScore += 0.3; // Bonus for potential facial features
+              }
+            }
+            
+            totalFaceScore += pixelScore * zoneWeight;
           }
         }
-        
-        faceScore += pixelScore;
+      });
+      
+      // Calculate adaptive thresholds based on lighting conditions
+      const averageBrightness = brightnessSum / totalSamples;
+      const brightnessRange = maxBrightness - minBrightness;
+      const lightingQuality = brightnessRange > 50 ? 'good' : brightnessRange > 25 ? 'fair' : 'poor';
+      
+      // Adaptive face threshold based on lighting
+      let faceThreshold = 0.06; // Base threshold (lowered from 0.08)
+      if (lightingQuality === 'poor') {
+        faceThreshold = 0.04; // More forgiving in poor lighting
+      } else if (lightingQuality === 'good') {
+        faceThreshold = 0.08; // Stricter in good lighting
       }
       
-      // Calculate face probability
-      const faceProbability = faceScore / totalSamples;
-      const averageBrightness = brightnessSum / totalSamples;
-      const hasFace = faceProbability > 0.08; // 8% threshold
+      // Bonus for skin tone variations and edge detections
+      const variationBonus = skinToneVariations / totalSamples * 0.02;
+      const edgeBonus = edgeDetections / totalSamples * 0.01;
       
-      console.log(`🔍 Face detection results:`);
-      console.log(`   📊 Samples: ${totalSamples}`);
-      console.log(`   🎯 Face pixels: ${faceScore}`);
-      console.log(`   📈 Face probability: ${(faceProbability * 100).toFixed(1)}%`);
-      console.log(`   💡 Average brightness: ${averageBrightness.toFixed(1)}`);
-      console.log(`   🌈 Brightness range: ${minBrightness}-${maxBrightness}`);
-      console.log(`   ✅ Result: ${hasFace ? 'FACE DETECTED' : 'NO FACE'}`);
+      const faceProbability = (totalFaceScore / totalSamples) + variationBonus + edgeBonus;
+      
+      // Confidence buffering for smoother detection
+      const confidenceBuffer = 0.02; // 2% buffer zone
+      const upperThreshold = faceThreshold + confidenceBuffer;
+      const lowerThreshold = faceThreshold - confidenceBuffer;
+      
+      let hasFace;
+      if (faceProbability > upperThreshold) {
+        hasFace = true;
+      } else if (faceProbability < lowerThreshold) {
+        hasFace = false;
+      } else {
+        // In buffer zone - maintain current state for stability
+        hasFace = faceDetected; // Keep current state to avoid flickering
+      }
+      
+      // Update confidence for UI feedback
+      setFaceDetectionConfidence(faceProbability);
+      
+      // Cool logging with emojis and insights
+      console.log(`🤖 Smart Detection Results:`);
+      console.log(`   📊 Total samples: ${totalSamples.toLocaleString()}`);
+      console.log(`   🎯 Face score: ${totalFaceScore.toFixed(1)}`);
+      console.log(`   📈 Probability: ${(faceProbability * 100).toFixed(1)}%`);
+      console.log(`   🎚️ Threshold: ${(faceThreshold * 100).toFixed(1)}%`);
+      console.log(`   🛡️ Buffer zone: ${(lowerThreshold * 100).toFixed(1)}% - ${(upperThreshold * 100).toFixed(1)}%`);
+      console.log(`   💡 Lighting: ${lightingQuality} (${averageBrightness.toFixed(1)} avg)`);
+      console.log(`   🌈 Range: ${minBrightness}-${maxBrightness}`);
+      console.log(`   🎨 Skin variations: ${skinToneVariations}`);
+      console.log(`   🔍 Edge features: ${edgeDetections}`);
+      console.log(`   ${hasFace ? '✅ FACE DETECTED' : '❌ NO FACE'} ${hasFace ? '👤' : '👻'}`);
       
       return hasFace;
     } catch (error) {
@@ -154,9 +230,9 @@ export const useEyeTracking = (interviewId = null) => {
     console.log('🚀 Running initial detection...');
     runDetection();
     
-    // Set up continuous monitoring
-    console.log('⏰ Setting up continuous monitoring (every 1.5 seconds)...');
-    faceDetectionIntervalRef.current = setInterval(runDetection, 1500); // Check every 1.5 seconds
+    // Set up continuous monitoring with smart intervals
+    console.log('⏰ Setting up smart monitoring (every 2.5 seconds)...');
+    faceDetectionIntervalRef.current = setInterval(runDetection, 2500); // Check every 2.5 seconds - less aggressive
     
     console.log('✅ Face detection monitoring started');
   }, [detectFace]);
@@ -205,32 +281,44 @@ export const useEyeTracking = (interviewId = null) => {
         violationTimerRef.current = null;
       }
       
-      // Simulate random user behavior
+      // Natural and intelligent user behavior simulation
       const behavior = Math.random();
+      const currentViolations = violationCount;
       
-      if (behavior < 0.15) {
-        // 15% chance of quick glance (no violation)
+      // Adaptive behavior based on current violation count
+      const focusProbability = Math.max(0.4, 0.8 - (currentViolations * 0.1)); // More focused when fewer violations
+      const glanceProbability = Math.min(0.3, 0.15 + (currentViolations * 0.05)); // More glances when more violations
+      const lookAwayProbability = 1 - focusProbability - glanceProbability;
+      
+      if (behavior < glanceProbability) {
+        // Natural quick glances (no violation) - more frequent
         const directions = ['left', 'right', 'up', 'down'];
         const quickDirection = directions[Math.floor(Math.random() * directions.length)];
-        console.log(`👀 Quick glance ${quickDirection} (no violation)`);
+        const glanceDuration = 200 + Math.random() * 600; // 200-800ms natural glances
+        
+        console.log(`👀 Natural glance ${quickDirection} (${glanceDuration.toFixed(0)}ms)`);
         setGazeDirection(quickDirection);
         setIsLookingAway(false);
         
-        // Return to center quickly
+        // Return to center naturally
         setTimeout(() => {
           setGazeDirection('center');
-        }, 500);
-      } else if (behavior < 0.35) {
-        // 20% chance of looking away (potential violation) - balanced
-        // Randomly choose direction when looking away
+          console.log('🔄 Returned to center naturally');
+        }, glanceDuration);
+        
+      } else if (behavior < glanceProbability + lookAwayProbability) {
+        // Occasional longer looks (potential violation) - less aggressive
         const directions = ['left', 'right', 'up', 'down'];
         const randomDirection = directions[Math.floor(Math.random() * directions.length)];
         
-        console.log(`👁️ User looked ${randomDirection} - starting violation timer`);
+        // Adaptive look-away time based on violation count
+        const adaptiveLookAwayTime = Math.max(2000, LOOK_AWAY_TIME - (currentViolations * 200)); // Shorter time for repeat offenders
+        
+        console.log(`👁️ User looked ${randomDirection} - monitoring (${adaptiveLookAwayTime}ms threshold)`);
         setGazeDirection(randomDirection);
         setIsLookingAway(true);
         
-        // Only record violation if user stays looking away for full duration
+        // Only record violation if user stays looking away for adaptive duration
         violationTimerRef.current = setTimeout(() => {
           // Double-check face is still detected before recording violation
           if (!faceDetected) {
@@ -242,23 +330,43 @@ export const useEyeTracking = (interviewId = null) => {
           
           setViolationCount(prev => {
             const newCount = prev + 1;
-            console.log(`🚨 VIOLATION #${newCount} - User looked ${randomDirection} for too long`);
+            const severity = newCount <= 2 ? '😊' : newCount <= 4 ? '😐' : '😟';
+            console.log(`${severity} VIOLATION #${newCount} - Extended look ${randomDirection}`);
+            
+            // Provide helpful feedback
+            if (newCount === 3) {
+              console.log('💡 Tip: Try to maintain eye contact with the camera');
+            } else if (newCount === 5) {
+              console.log('⚠️ Warning: Multiple violations detected');
+            }
+            
             return newCount;
           });
           
-          // Return to center
+          // Return to center with encouragement
           setGazeDirection('center');
           setIsLookingAway(false);
-          console.log('✅ User returned to screen');
-        }, LOOK_AWAY_TIME);
+          console.log('✅ User returned to screen - good focus!');
+        }, adaptiveLookAwayTime);
+        
       } else {
-        // 65% chance of staying focused - balanced
-        console.log('✅ User focused on screen');
-        setGazeDirection('center');
+        // Focused behavior - most of the time
+        const focusVariations = ['center', 'center', 'center', 'slight-left', 'slight-right'];
+        const focusDirection = focusVariations[Math.floor(Math.random() * focusVariations.length)];
+        
+        console.log(`✅ User focused ${focusDirection === 'center' ? 'on screen' : focusDirection}`);
+        setGazeDirection(focusDirection);
         setIsLookingAway(false);
+        
+        // Natural micro-movements even when focused
+        if (focusDirection !== 'center') {
+          setTimeout(() => {
+            setGazeDirection('center');
+          }, 1000 + Math.random() * 2000);
+        }
       }
       
-    }, 6000); // Check every 6 seconds - balanced
+    }, 8000); // Check every 8 seconds - more relaxed and natural
   }, [LOOK_AWAY_TIME, faceDetected]);
 
   // Stop tracking (but keep face detection running)
@@ -314,6 +422,7 @@ export const useEyeTracking = (interviewId = null) => {
     gazeDirection,
     faceDetected,
     facePosition,
+    faceDetectionConfidence,
     violations: [],
     violationCount,
     isLookingAway,

@@ -1,11 +1,23 @@
 import { useState, useRef, useCallback } from 'react';
+import useGoogleSTT from './useGoogleSTT';
 
-export const useVoiceRecording = () => {
+export const useVoiceRecording = (options = {}) => {
+  const { useGoogleSTT: useGoogle = false, ...sttOptions } = options;
+  
+  // Always call all hooks at the top level
   const [isRecording, setIsRecording] = useState(false);
   const [transcription, setTranscription] = useState('');
   const [interimTranscription, setInterimTranscription] = useState('');
   const recognitionRef = useRef(null);
 
+  // Use Google STT if enabled
+  const googleSTT = useGoogleSTT({
+    ...sttOptions,
+    continuousMode: true,
+    autoTranscribeInterval: 2000 // Transcribe every 2 seconds
+  });
+
+  // Define all callbacks at the top level
   const startRecording = useCallback(async () => {
     try {
       console.log('🎙️ Starting recording...');
@@ -87,6 +99,25 @@ export const useVoiceRecording = () => {
     setInterimTranscription('');
   }, []);
 
+  // If Google STT is enabled, return Google STT hook
+  if (useGoogle) {
+    return {
+      isRecording: googleSTT.isRecording,
+      transcription: googleSTT.transcription,
+      interimTranscription: googleSTT.interimTranscription,
+      startRecording: googleSTT.startRecording,
+      stopRecording: googleSTT.stopRecording,
+      clearTranscription: googleSTT.clearTranscription,
+      error: googleSTT.error,
+      confidence: googleSTT.confidence,
+      isTranscribing: googleSTT.isTranscribing,
+      forceStop: googleSTT.forceStop,
+      checkHealth: googleSTT.checkHealth,
+      getSupportedLanguages: googleSTT.getSupportedLanguages
+    };
+  }
+
+  // Return Web Speech API implementation
   return {
     isRecording,
     transcription,

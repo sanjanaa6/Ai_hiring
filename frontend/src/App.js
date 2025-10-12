@@ -36,6 +36,7 @@ import LanguageDetectionDebug from './components/LanguageDetectionDebug';
 import InterviewGenerationTest from './components/InterviewGenerationTest';
 import InterviewTest from './components/InterviewTest';
 import TTSTestPage from './pages/TTSTestPage';
+import STTTestPage from './pages/STTTestPage';
 import CameraTest from './components/CameraTest';
 import CodingChallengePage from './pages/CodingChallengePage';
 import CodingInterviewDemo from './pages/CodingInterviewDemo';
@@ -135,6 +136,7 @@ function AppShell() {
           <Route path="/interview-generation-test" element={<InterviewGenerationTest />} />
           <Route path="/interview-test" element={<InterviewTest />} />
           <Route path="/tts-test" element={<TTSTestPage />} />
+          <Route path="/stt-test" element={<STTTestPage />} />
           <Route path="/camera-test" element={<CameraTest />} />
           <Route path="/coding-challenges" element={<CodingChallengePage />} />
           <Route path="/coding-interview-demo" element={<CodingInterviewDemo />} />
