@@ -133,6 +133,7 @@ app.use('/api/files', (req, res, next) => {
   next();
 }, require('./routes/fileUpload'));
 app.use('/api/eye-tracking', require('./routes/eyeTracking'));
+app.use('/api/judge0', require('./routes/judge0'));
 
 // Global OPTIONS handler to guarantee preflight success across all routes
 app.options('*', (req, res) => {

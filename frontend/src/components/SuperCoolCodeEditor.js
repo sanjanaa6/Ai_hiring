@@ -13,6 +13,7 @@ import {
   MicOff
 } from 'lucide-react';
 import aiService from '../services/aiService';
+import judge0Service from '../services/judge0Service';
 import { cleanupResizeObservers } from '../utils/resizeObserver';
 
 const SuperCoolCodeEditor = ({ 
@@ -456,17 +457,26 @@ const SuperCoolCodeEditor = ({
     };
   }, []);
 
-  // Supported programming languages with enhanced info
+  // Supported programming languages with enhanced info (Judge0 powered)
   const supportedLanguages = [
-    { value: 'jsx', label: 'React (JSX)', extension: 'jsx', icon: '⚛️', color: 'bg-blue-500' },
+    { value: 'javascript', label: 'JavaScript (Node.js)', extension: 'js', icon: '🟨', color: 'bg-yellow-500' },
     { value: 'typescript', label: 'TypeScript', extension: 'ts', icon: '🔷', color: 'bg-blue-600' },
-    { value: 'tsx', label: 'React (TSX)', extension: 'tsx', icon: '⚛️', color: 'bg-blue-500' },
-    { value: 'javascript', label: 'JavaScript', extension: 'js', icon: '🟨', color: 'bg-yellow-500' },
-    { value: 'python', label: 'Python', extension: 'py', icon: '🐍', color: 'bg-green-500' },
-    { value: 'java', label: 'Java', extension: 'java', icon: '☕', color: 'bg-orange-500' },
-    { value: 'cpp', label: 'C++', extension: 'cpp', icon: '⚡', color: 'bg-purple-500' },
-    { value: 'c', label: 'C', extension: 'c', icon: '🔧', color: 'bg-gray-500' },
-    { value: 'csharp', label: 'C#', extension: 'cs', icon: '💜', color: 'bg-purple-600' }
+    { value: 'python', label: 'Python 3.8', extension: 'py', icon: '🐍', color: 'bg-green-500' },
+    { value: 'java', label: 'Java (OpenJDK)', extension: 'java', icon: '☕', color: 'bg-orange-500' },
+    { value: 'cpp', label: 'C++ (GCC)', extension: 'cpp', icon: '⚡', color: 'bg-purple-500' },
+    { value: 'c', label: 'C (GCC)', extension: 'c', icon: '🔧', color: 'bg-gray-500' },
+    { value: 'csharp', label: 'C# (Mono)', extension: 'cs', icon: '💜', color: 'bg-purple-600' },
+    { value: 'go', label: 'Go', extension: 'go', icon: '🐹', color: 'bg-cyan-500' },
+    { value: 'rust', label: 'Rust', extension: 'rs', icon: '🦀', color: 'bg-orange-600' },
+    { value: 'php', label: 'PHP', extension: 'php', icon: '🐘', color: 'bg-indigo-500' },
+    { value: 'ruby', label: 'Ruby', extension: 'rb', icon: '💎', color: 'bg-red-500' },
+    { value: 'swift', label: 'Swift', extension: 'swift', icon: '🍎', color: 'bg-orange-400' },
+    { value: 'kotlin', label: 'Kotlin', extension: 'kt', icon: '🟣', color: 'bg-purple-500' },
+    { value: 'scala', label: 'Scala', extension: 'scala', icon: '🔴', color: 'bg-red-600' },
+    { value: 'r', label: 'R', extension: 'r', icon: '📊', color: 'bg-blue-500' },
+    { value: 'sql', label: 'SQL', extension: 'sql', icon: '🗄️', color: 'bg-gray-600' },
+    { value: 'bash', label: 'Bash', extension: 'sh', icon: '🐚', color: 'bg-gray-700' },
+    { value: 'powershell', label: 'PowerShell', extension: 'ps1', icon: '💙', color: 'bg-blue-700' }
   ];
 
   const handleEditorDidMount = (editor, monaco) => {
@@ -585,50 +595,33 @@ const SuperCoolCodeEditor = ({
     setOutput('');
 
     try {
-      if (['javascript', 'typescript', 'jsx', 'tsx'].includes(selectedLanguage)) {
-        // Simple code execution without test cases
-        const wrappedCode = `
-          (function() {
-            try {
-              // Capture console.log for output
-              const originalConsoleLog = console.log;
-              const outputs = [];
-              console.log = function(...args) {
-                outputs.push(args.map(arg => 
-                  typeof arg === 'object' ? JSON.stringify(arg) : String(arg)
-                ).join(' '));
-                originalConsoleLog.apply(console, args);
-              };
+      console.log('🚀 [SUPER COOL EDITOR] Running code with Judge0...');
+      console.log('🔍 [SUPER COOL EDITOR] Language:', selectedLanguage);
+      console.log('🔍 [SUPER COOL EDITOR] Code length:', code.length);
 
-              // Execute user code
-              ${code}
-              
-              return {
-                success: true,
-                output: outputs.join('\\n') || '🎉 Code executed successfully!'
-              };
-            } catch (error) {
-              return {
-                success: false,
-                error: error.message
-              };
-            }
-          })()
-        `;
+      const result = await judge0Service.executeCode(code, selectedLanguage);
+
+      if (result.success) {
+        const data = result.data;
+        let outputText = data.stdout || '🎉 Code executed successfully!';
         
-        // eslint-disable-next-line no-eval
-        const result = eval(wrappedCode);
-        
-        if (result.success) {
-          setOutput(result.output);
-        } else {
-          setOutput(`❌ Error: ${result.error}`);
+        if (data.stderr) {
+          outputText += '\n\nErrors:\n' + data.stderr;
         }
+
+        if (data.compile_output) {
+          outputText += '\n\nCompilation:\n' + data.compile_output;
+        }
+
+        setOutput(outputText);
+        console.log('✅ [SUPER COOL EDITOR] Code executed successfully');
       } else {
-        setOutput(`💾 Code saved! Execution available for JavaScript/TypeScript/React. Your ${supportedLanguages.find(lang => lang.value === selectedLanguage)?.label} code is ready.`);
+        setOutput(`❌ Error: ${result.error}`);
+        console.error('❌ [SUPER COOL EDITOR] Execution failed:', result.error);
       }
     } catch (error) {
       setOutput(`💥 Execution Error: ${error.message}`);
+      console.error('❌ [SUPER COOL EDITOR] Execution error:', error);
     } finally {
       setIsRunning(false);
     }
@@ -641,38 +634,69 @@ const SuperCoolCodeEditor = ({
     setTestResults([]);
 
     try {
-      // Simulate running test cases
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      const results = testCases.map((testCase, index) => {
-        // Mock test results - in real implementation, this would execute the code
-        const isPassed = Math.random() > 0.3; // 70% pass rate for demo
-        return {
-          id: testCase.id,
-          name: testCase.name,
-          input: testCase.input,
-          expectedOutput: testCase.expectedOutput,
-          actualOutput: isPassed ? testCase.expectedOutput : "Error or wrong output",
-          passed: isPassed,
-          executionTime: Math.random() * 100 + 10 // 10-110ms
-        };
-      });
+      console.log('🧪 [SUPER COOL EDITOR] Running test cases with Judge0...');
+      console.log('🔍 [SUPER COOL EDITOR] Test cases count:', testCases.length);
+      console.log('🔍 [SUPER COOL EDITOR] Test cases data:', testCases);
+      console.log('🔍 [SUPER COOL EDITOR] Code:', code);
+      console.log('🔍 [SUPER COOL EDITOR] Language:', selectedLanguage);
 
-      setTestResults(results);
+      const result = await judge0Service.runTestCases(code, selectedLanguage, testCases);
+
+      if (result.success) {
+        const formattedResults = result.results.map((testResult, index) => ({
+          id: testCases[index]?.id || index + 1,
+          name: testCases[index]?.name || `Test Case ${index + 1}`,
+          input: testResult.input,
+          expectedOutput: testResult.expected,
+          actualOutput: testResult.actual,
+          passed: testResult.passed,
+          executionTime: parseFloat(testResult.time) * 1000, // Convert to ms
+          status: testResult.status,
+          error: testResult.error
+        }));
+
+        setTestResults(formattedResults);
+        console.log('✅ [SUPER COOL EDITOR] Test cases completed');
+        console.log('📊 [SUPER COOL EDITOR] Summary:', result.summary);
+      } else {
+        setTestResults([{
+          id: 1,
+          name: 'Test Case 1',
+          input: 'N/A',
+          expectedOutput: 'N/A',
+          actualOutput: '',
+          passed: false,
+          executionTime: 0,
+          status: 'Error',
+          error: result.error
+        }]);
+        console.error('❌ [SUPER COOL EDITOR] Test cases failed:', result.error);
+      }
     } catch (error) {
-      console.error('Error running test cases:', error);
-      setTestResults([]);
+      console.error('❌ [SUPER COOL EDITOR] Test cases error:', error);
+      setTestResults([{
+        id: 1,
+        name: 'Test Case 1',
+        input: 'N/A',
+        expectedOutput: 'N/A',
+        actualOutput: '',
+        passed: false,
+        executionTime: 0,
+        status: 'Error',
+        error: error.message
+      }]);
     } finally {
       setIsRunningTests(false);
     }
   };
 
   const resetCode = () => {
-    setCode(starterCode);
+    const currentStarterCode = starterCode || judge0Service.getStarterCode(selectedLanguage);
+    setCode(currentStarterCode);
     setOutput('');
     setTestResults([]);
     if (onCodeChange) {
-      onCodeChange(starterCode);
+      onCodeChange(currentStarterCode);
     }
   };
 
