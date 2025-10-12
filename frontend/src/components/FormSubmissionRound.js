@@ -139,7 +139,11 @@ const FormSubmissionRound = ({ round, onComplete, candidateInfo, isDarkMode }) =
       formData.append('fieldId', fieldId);
       formData.append('roundId', round.roundId);
 
-      const response = await fetch('/api/interviews/upload-form-file', {
+      const apiBaseUrl = process.env.REACT_APP_API_URL || (process.env.NODE_ENV === 'production' 
+        ? `${window.location.origin.replace(/\/$/, '')}/api`
+        : 'http://localhost:5000/api');
+
+      const response = await fetch(`${apiBaseUrl}/interviews/upload-form-file`, {
         method: 'POST',
         body: formData
       });
@@ -232,7 +236,11 @@ const FormSubmissionRound = ({ round, onComplete, candidateInfo, isDarkMode }) =
 
       console.log('FormSubmissionRound: Sending submission data:', submissionData);
 
-      const response = await fetch('/api/interviews/submit-form', {
+      const apiBaseUrl = process.env.REACT_APP_API_URL || (process.env.NODE_ENV === 'production' 
+        ? `${window.location.origin.replace(/\/$/, '')}/api`
+        : 'http://localhost:5000/api');
+
+      const response = await fetch(`${apiBaseUrl}/interviews/submit-form`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
