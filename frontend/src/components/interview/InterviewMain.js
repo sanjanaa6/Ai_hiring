@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Mic, 
   MicOff, 
@@ -39,6 +39,8 @@ const InterviewMain = ({
   aiQuestions,
   currentAiQuestionIndex,
   cameraStream,
+  personDetectionWarning,
+  testWarning,
   onStartRecording,
   onStopRecording,
   onSkipQuestion,
@@ -66,6 +68,11 @@ const InterviewMain = ({
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
+
+  // Debug effect to track warning prop
+  useEffect(() => {
+    console.log('🚨 InterviewMain received personDetectionWarning:', personDetectionWarning);
+  }, [personDetectionWarning]);
 
   const getQuestionTypeIcon = () => {
     if (isLiveCodingRound) return <Code className="h-5 w-5" />;
@@ -193,6 +200,52 @@ const InterviewMain = ({
             </button>
           </div>
         </div>
+      </div>
+
+      {/* Person Detection Warning */}
+      {personDetectionWarning && (
+        <div className={`flex-shrink-0 px-6 py-3 border-b ${
+          isDarkMode 
+            ? 'bg-red-900/20 border-red-500/30' 
+            : 'bg-red-50 border-red-200'
+        }`}>
+          <div className="flex items-center space-x-3">
+            <div className={`w-3 h-3 rounded-full ${
+              isDarkMode ? 'bg-red-400' : 'bg-red-500'
+            } animate-pulse`}></div>
+            <div className="flex-1">
+              <p className={`font-medium ${
+                isDarkMode ? 'text-red-300' : 'text-red-800'
+              }`}>
+                ⚠️ Person Detection Alert
+              </p>
+              <p className={`text-sm ${
+                isDarkMode ? 'text-red-400' : 'text-red-700'
+              }`}>
+                No person detected in camera. Please position yourself in front of the camera to continue the interview.
+              </p>
+            </div>
+            <button 
+              onClick={() => console.log('Test button clicked - warning should be visible')}
+              className="px-2 py-1 text-xs bg-blue-500 text-white rounded"
+            >
+              Test
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Test Warning Button (temporary) */}
+      <div className="fixed top-4 right-4 z-50">
+        <button 
+          onClick={() => {
+            console.log('🚨 Test warning button clicked');
+            testWarning();
+          }}
+          className="px-4 py-2 bg-red-500 text-white rounded shadow-lg"
+        >
+          Test Warning
+        </button>
       </div>
 
       {/* Main Content Area */}

@@ -32,6 +32,7 @@ export const useInterviewState = () => {
   const [aiQuestionMap, setAiQuestionMap] = useState(new Map());
   const [isCodeDone, setIsCodeDone] = useState(false);
   const [isAiQuestionAnswered, setIsAiQuestionAnswered] = useState(false);
+  const [personDetectionWarning, setPersonDetectionWarning] = useState(false);
 
   const resetInterviewState = useCallback(() => {
     setStep('setup');
@@ -65,6 +66,7 @@ export const useInterviewState = () => {
     setAiQuestionMap(new Map());
     setIsCodeDone(false);
     setIsAiQuestionAnswered(false);
+    setPersonDetectionWarning(false);
   }, []);
 
   return {
@@ -100,6 +102,7 @@ export const useInterviewState = () => {
     aiQuestionMap,
     isCodeDone,
     isAiQuestionAnswered,
+    personDetectionWarning,
     
     // Setters
     setStep,
@@ -133,6 +136,7 @@ export const useInterviewState = () => {
     setAiQuestionMap,
     setIsCodeDone,
     setIsAiQuestionAnswered,
+    setPersonDetectionWarning,
     
     // Actions
     resetInterviewState

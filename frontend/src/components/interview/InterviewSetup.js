@@ -10,7 +10,8 @@ const InterviewSetup = ({
   onStartInterview, 
   onRetryCamera,
   isCameraRestarting,
-  cameraStream
+  cameraStream,
+  faceDetected = false
 }) => {
   const { isDarkMode } = useTheme();
 
@@ -105,6 +106,22 @@ const InterviewSetup = ({
                     {getCameraStatusText()}
                   </span>
                 </div>
+
+                {/* Face Detection Status */}
+                {cameraStatus === 'connected' || cameraStatus === 'playing' ? (
+                  <div className={`absolute top-4 right-4 flex items-center space-x-2 px-3 py-2 rounded-lg ${
+                    isDarkMode ? 'bg-black/50' : 'bg-white/80'
+                  } backdrop-blur-sm`}>
+                    <div className={`w-3 h-3 rounded-full ${
+                      faceDetected ? 'bg-green-500' : 'bg-yellow-500 animate-pulse'
+                    }`}></div>
+                    <span className={`text-sm font-medium ${
+                      isDarkMode ? 'text-white' : 'text-gray-900'
+                    }`}>
+                      {faceDetected ? 'Person Detected' : 'Detecting Person...'}
+                    </span>
+                  </div>
+                ) : null}
               </div>
 
               {cameraStatus === 'error' && (
@@ -119,6 +136,31 @@ const InterviewSetup = ({
                 >
                   {isCameraRestarting ? 'Retrying...' : 'Retry Camera'}
                 </button>
+              )}
+
+              {/* Person Detection Warning */}
+              {(cameraStatus === 'connected' || cameraStatus === 'playing') && !faceDetected && (
+                <div className={`p-4 rounded-lg border-l-4 border-yellow-500 ${
+                  isDarkMode ? 'bg-yellow-900/20 border-yellow-400' : 'bg-yellow-50'
+                }`}>
+                  <div className="flex items-center space-x-2">
+                    <AlertTriangle className={`h-5 w-5 ${
+                      isDarkMode ? 'text-yellow-400' : 'text-yellow-600'
+                    }`} />
+                    <div>
+                      <p className={`font-medium ${
+                        isDarkMode ? 'text-yellow-300' : 'text-yellow-800'
+                      }`}>
+                        Person Detection Required
+                      </p>
+                      <p className={`text-sm ${
+                        isDarkMode ? 'text-yellow-400' : 'text-yellow-700'
+                      }`}>
+                        Please position yourself in front of the camera. The interview cannot start until a person is detected.
+                      </p>
+                    </div>
+                  </div>
+                </div>
               )}
 
               {/* Debug Information */}
@@ -210,16 +252,22 @@ const InterviewSetup = ({
               {/* Start Button */}
               <button
                 onClick={onStartInterview}
-                disabled={cameraStatus !== 'playing' && cameraStatus !== 'connected'}
+                disabled={cameraStatus === 'error' || (cameraStatus === 'connected' && !faceDetected)}
                 className={`w-full py-4 px-6 rounded-xl font-semibold text-lg transition-all transform ${
-                  cameraStatus === 'playing' || cameraStatus === 'connected'
+                  !(cameraStatus === 'error' || (cameraStatus === 'connected' && !faceDetected))
                     ? 'bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl hover:scale-105'
                     : 'bg-gray-400 cursor-not-allowed text-gray-600'
                 }`}
               >
-                {cameraStatus === 'playing' || cameraStatus === 'connected' 
-                  ? 'Start Interview' 
-                  : 'Camera Not Ready'
+                {cameraStatus === 'error' 
+                  ? 'Camera Error - Cannot Start'
+                  : cameraStatus === 'connected' && !faceDetected
+                    ? 'Waiting for Person Detection...'
+                    : cameraStatus === 'connected' && faceDetected
+                      ? 'Start Interview'
+                      : cameraStatus === 'playing'
+                        ? 'Start Interview'
+                        : 'Start Interview (No Camera)'
                 }
               </button>
             </div>

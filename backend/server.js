@@ -31,13 +31,18 @@ app.use(cors({
       'http://localhost:3001',
       'http://localhost:5000',
       'https://aihiring.eval8.xyz',
-      'https://aihire.eval8.xyz'
+      'https://aihire.eval8.xyz',
+      'https://www.aihiring.eval8.xyz',
+      'https://www.aihire.eval8.xyz'
     ];
 
     if (allowedOrigins.indexOf(normalizedOrigin) !== -1) {
+      console.log('✅ [CORS] Allowed origin:', normalizedOrigin);
       callback(null, true);
     } else {
-      console.log('CORS blocked origin:', origin);
+      console.log('❌ [CORS] Blocked origin:', origin);
+      console.log('🔍 [CORS] Normalized origin:', normalizedOrigin);
+      console.log('📋 [CORS] Allowed origins:', allowedOrigins);
       callback(new Error('Not allowed by CORS'));
     }
   },

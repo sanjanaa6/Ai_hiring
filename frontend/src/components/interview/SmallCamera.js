@@ -60,6 +60,19 @@ const SmallCamera = ({
           className="w-full h-full object-cover"
         />
         
+        {/* Camera Offline Message */}
+        {!cameraStream && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+            <div className="text-center text-white p-4">
+              <div className="text-2xl mb-2">📹</div>
+              <div className="text-sm font-medium">Camera Offline</div>
+              <div className="text-xs mt-1 opacity-80">
+                Interview continues normally
+              </div>
+            </div>
+          </div>
+        )}
+        
         {/* Recording Indicator */}
         {isRecording && (
           <div className="absolute top-3 left-3 flex items-center space-x-2">
@@ -77,12 +90,12 @@ const SmallCamera = ({
               isDarkMode ? 'bg-black/50' : 'bg-white/80'
             } backdrop-blur-sm`}>
               <div className={`w-2 h-2 rounded-full ${
-                cameraStream ? 'bg-green-500' : 'bg-red-500'
+                cameraStream ? 'bg-green-500' : 'bg-yellow-500'
               }`}></div>
               <span className={`text-xs font-medium ${
                 isDarkMode ? 'text-white' : 'text-gray-900'
               }`}>
-                {cameraStream ? 'Live' : 'Offline'}
+                {cameraStream ? 'Live' : 'Reconnecting...'}
               </span>
             </div>
           </div>

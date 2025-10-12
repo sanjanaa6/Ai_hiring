@@ -80,6 +80,7 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
     // aiQuestionMap, setAiQuestionMap,
     // isCodeDone, setIsCodeDone,
     // isAiQuestionAnswered, setIsAiQuestionAnswered,
+    personDetectionWarning, setPersonDetectionWarning,
     resetInterviewState
   } = interviewState;
 
@@ -525,6 +526,19 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
   const handleStartInterview = useCallback(async () => {
     try {
       setLoading(true);
+      
+      // Check if camera is available and person is detected
+      if (camera.cameraStatus === 'connected' || camera.cameraStatus === 'playing') {
+        if (!eyeTracking.faceDetected) {
+          console.log('⚠️ Cannot start interview - no person detected in camera');
+          setError('Please position yourself in front of the camera. Person detection is required to start the interview.');
+          setLoading(false);
+          return;
+        }
+      } else {
+        console.log('⚠️ Camera not available, but allowing interview to proceed for testing');
+      }
+      
       await startInterviewTracking();
       await loadInterviewRounds();
       setStep('round-selection');
@@ -534,11 +548,12 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
     } finally {
       setLoading(false);
     }
-  }, [startInterviewTracking, loadInterviewRounds, setStep, setError, setLoading]);
+  }, [startInterviewTracking, loadInterviewRounds, setStep, setError, setLoading, camera.cameraStatus, eyeTracking.faceDetected]);
 
   // Handle restart interview
   const handleRestartInterview = useCallback(() => {
     resetInterviewState();
+    eyeTracking.stopAllTracking();
     eyeTracking.resetViolations();
     setStep('setup');
   }, [resetInterviewState, setStep, eyeTracking]);
@@ -587,7 +602,7 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
   const handleRemoveUser = useCallback(() => {
     console.log('🚨 Removing user from interview due to violations');
     setError('Interview terminated due to multiple violations. Please contact support if you believe this is an error.');
-    eyeTracking.stopTracking();
+    eyeTracking.stopAllTracking();
     eyeTracking.resetViolations(); // Reset violations when removing user
   }, [setError, eyeTracking]);
 
@@ -602,22 +617,144 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
         cameraInitialized.current = true;
         await camera.initializeCamera();
         console.log('✅ Camera initialization completed');
+        
+        // Start face detection once camera is ready
+        if (camera.videoRef.current) {
+          console.log('📹 Starting face detection after camera init...');
+          console.log('📹 Video ref:', camera.videoRef.current);
+          eyeTracking.startFaceDetection(camera.videoRef.current);
+        }
       } catch (error) {
         console.error('❌ Camera initialization failed:', error);
         cameraInitialized.current = false; // Reset on error
-        setError('Camera access is required for the interview. Please grant camera permissions and refresh the page.');
+        // Don't set error - allow interview to continue without camera
+        console.log('⚠️ Camera unavailable, continuing interview without camera monitoring');
       }
     };
 
     initCamera();
-  }, [camera, setError]);
+  }, [camera, setError, eyeTracking]);
 
-  // Start eye tracking when interview is active
+  // Try to reconnect camera periodically if it's offline
   useEffect(() => {
-    if (step === 'interview' && !eyeTracking.isTracking && !error) {
+    if (step !== 'interview') return;
+
+    const reconnectCamera = async () => {
+      if (camera.cameraStatus === 'error' || camera.cameraStatus === 'stopped') {
+        try {
+          console.log('🔄 Attempting to reconnect camera...');
+          await camera.restartCamera();
+          console.log('✅ Camera reconnected successfully');
+          
+          // Restart face detection after reconnection
+          if (camera.videoRef.current) {
+            eyeTracking.startFaceDetection(camera.videoRef.current);
+          }
+        } catch (error) {
+          console.log('⚠️ Camera reconnection failed, continuing without camera');
+        }
+      }
+    };
+
+    // Try to reconnect every 30 seconds if camera is offline
+    const reconnectInterval = setInterval(reconnectCamera, 30000);
+
+    return () => clearInterval(reconnectInterval);
+  }, [step, camera, eyeTracking]);
+
+  // Start eye tracking when interview is active AND face is detected
+  useEffect(() => {
+    if (step === 'interview' && !eyeTracking.isTracking && !error && eyeTracking.faceDetected) {
+      console.log('🎯 Starting eye tracking - person detected');
       eyeTracking.startTracking();
+    } else if (step === 'interview' && !eyeTracking.faceDetected) {
+      console.log('⚠️ Cannot start eye tracking - no person detected in camera');
     }
-  }, [step, eyeTracking.isTracking, eyeTracking, error]);
+  }, [step, eyeTracking.isTracking, eyeTracking.faceDetected, eyeTracking, error]);
+
+  // Ensure face detection continues during interview
+  useEffect(() => {
+    console.log('🔍 Face detection restart effect triggered:', { 
+      step, 
+      hasVideoRef: !!camera.videoRef.current, 
+      isFaceDetectionRunning: eyeTracking.isFaceDetectionRunning() 
+    });
+    
+    if (step === 'interview' && camera.videoRef.current && !eyeTracking.isFaceDetectionRunning()) {
+      console.log('🔄 Restarting face detection for interview');
+      console.log('📹 Video ref:', camera.videoRef.current);
+      eyeTracking.startFaceDetection(camera.videoRef.current);
+    }
+  }, [step, camera.videoRef, eyeTracking]);
+
+  // Continuous person detection monitoring during interview - every 5 seconds
+  useEffect(() => {
+    console.log('🔍 Monitoring effect triggered:', { step, faceDetected: eyeTracking.faceDetected, cameraStatus: camera.cameraStatus });
+    
+    if (step !== 'interview') {
+      console.log('❌ Not in interview step, clearing warning');
+      setPersonDetectionWarning(false);
+      return;
+    }
+
+    console.log('👤 Starting continuous person detection monitoring during interview...');
+    
+    // Initial check
+    const checkPersonDetection = () => {
+      console.log('🔄 Checking person detection during interview...');
+      console.log('📊 Current state:', {
+        cameraStatus: camera.cameraStatus,
+        faceDetected: eyeTracking.faceDetected,
+        isFaceDetectionRunning: eyeTracking.isFaceDetectionRunning()
+      });
+      
+      if (camera.cameraStatus === 'connected' || camera.cameraStatus === 'playing') {
+        if (!eyeTracking.faceDetected) {
+          console.log('⚠️ No person detected during interview - showing warning');
+          setPersonDetectionWarning(true);
+        } else {
+          console.log('✅ Person detected during interview');
+          setPersonDetectionWarning(false);
+        }
+      } else {
+        console.log('⚠️ Camera not available during interview');
+        setPersonDetectionWarning(true);
+      }
+    };
+
+    // Run initial check
+    console.log('🚀 Running initial person detection check...');
+    checkPersonDetection();
+
+    // Set up 5-second monitoring interval
+    console.log('⏰ Setting up 5-second monitoring interval...');
+    const monitoringInterval = setInterval(() => {
+      console.log('⏰ 5-second interval triggered - checking person detection...');
+      checkPersonDetection();
+    }, 5000);
+
+    // Cleanup
+    return () => {
+      console.log('🧹 Cleaning up person detection monitoring...');
+      clearInterval(monitoringInterval);
+      setPersonDetectionWarning(false);
+    };
+  }, [step, eyeTracking.faceDetected, camera.cameraStatus, setPersonDetectionWarning, eyeTracking]);
+
+  // Test function to manually trigger warning (temporary)
+  const testWarning = () => {
+    console.log('🚨 Test warning triggered manually');
+    setPersonDetectionWarning(true);
+    setTimeout(() => {
+      console.log('🚨 Test warning cleared after 3 seconds');
+      setPersonDetectionWarning(false);
+    }, 3000);
+  };
+
+  // Debug effect to track warning state changes
+  useEffect(() => {
+    console.log('🚨 Person detection warning state changed:', personDetectionWarning);
+  }, [personDetectionWarning]);
 
   // Load interview data on mount
   useEffect(() => {
@@ -755,6 +892,7 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
           onRetryCamera={camera.restartCamera}
           isCameraRestarting={camera.isCameraRestarting}
           cameraStream={camera.cameraStream}
+          faceDetected={eyeTracking.faceDetected}
         />
       );
 
@@ -831,6 +969,8 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
             aiQuestions={[]}
             currentAiQuestionIndex={0}
             cameraStream={camera.cameraStream}
+            personDetectionWarning={personDetectionWarning}
+            testWarning={testWarning}
             onStartRecording={voiceRecording.startRecording}
             onStopRecording={voiceRecording.stopRecording}
             onSkipQuestion={moveToNextQuestion}
