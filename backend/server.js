@@ -100,6 +100,7 @@ app.use('/api/tts', require('./routes/tts'));
 app.use('/uploads/recruiter-docs', express.static(path.join(__dirname, 'uploads', 'recruiter-docs')));
 // Serve form submission files statically
 app.use('/uploads/form-submissions', express.static(path.join(__dirname, 'uploads', 'form-submissions')));
+
 // Add specific CORS handling for auth routes to ensure headers on all responses
 app.use('/api/auth', (req, res, next) => {
   res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
@@ -160,6 +161,17 @@ app.get('/api/cors-test', (req, res) => {
     timestamp: new Date().toISOString()
   });
 });
+
+// Serve frontend static files in production
+if (process.env.NODE_ENV === 'production') {
+  // Serve static files from the React app build directory
+  app.use(express.static(path.join(__dirname, '../frontend/build')));
+  
+  // Handle React routing, return all requests to React app
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../frontend/build', 'index.html'));
+  });
+}
 
 // 404 handler with CORS headers to cover unmatched routes
 app.use((req, res, next) => {
