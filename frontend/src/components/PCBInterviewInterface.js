@@ -66,7 +66,7 @@ const PCBInterviewInterface = ({
   // Handle PCB app navigation
   const handleOpenPCBApp = () => {
     // Open PCB app in new tab
-    const pcbUrl = '/pcb';
+    const pcbUrl = 'https://pcb1.eval8.xyz/';
     window.open(pcbUrl, '_blank');
   };
 

@@ -76,9 +76,9 @@ const SimpleVoiceInterview = ({ interviewId, candidateInfo, onComplete, onError 
   const loadInterviewData = useCallback(async () => {
     try {
       console.log('🔄 Loading interview data for interviewId:', interviewId);
-      const apiBaseUrl = process.env.NODE_ENV === 'production' 
-        ? 'https://aihire.eval8.xyz/api' 
-        : 'http://localhost:5000/api';
+      const apiBaseUrl = process.env.REACT_APP_API_URL || (process.env.NODE_ENV === 'production' 
+        ? `${window.location.origin.replace(/\/$/, '')}/api`
+        : 'http://localhost:5000/api');
       
       const response = await fetch(`${apiBaseUrl}/interviews/public/${interviewId}`, {
         method: 'GET',

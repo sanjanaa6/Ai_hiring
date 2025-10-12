@@ -205,9 +205,9 @@ const InterviewScheduler = ({ interviewId, onClose }) => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const apiBaseUrl = process.env.NODE_ENV === 'production' 
-        ? 'https://aihire.eval8.xyz/api' 
-        : 'http://localhost:5000/api';
+      const apiBaseUrl = process.env.REACT_APP_API_URL || (process.env.NODE_ENV === 'production' 
+        ? `${window.location.origin.replace(/\/$/, '')}/api`
+        : 'http://localhost:5000/api');
       const response = await fetch(`${apiBaseUrl}/interviews/${interviewId}/schedules/${scheduleId}/regenerate-link`, {
         method: 'PUT',
         headers: {
