@@ -57,6 +57,11 @@ const {
 } = require('../handlers/interviewResults');
 
 const {
+  generateFeedback,
+  getFeedback
+} = require('../handlers/interviewFeedback');
+
+const {
   aiVoice,
   aiVoiceSpeak
 } = require('../handlers/interviewVoice');
@@ -143,6 +148,10 @@ router.get('/:interviewId/performance', auth, getPerformanceAnalytics);
 
 // Get comprehensive interview analytics
 router.get('/:interviewId/analytics', auth, getInterviewAnalytics);
+
+// Feedback routes
+router.post('/:interviewId/feedback/generate', generateFeedback);
+router.get('/:interviewId/feedback/:candidateId', getFeedback);
 
 // Get interview by ID (authenticated) - MUST BE LAST TO AVOID CONFLICTS
 router.get('/:interviewId', auth, getInterviewById);

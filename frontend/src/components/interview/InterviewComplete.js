@@ -1,9 +1,11 @@
-import React from 'react';
-import { CheckCircle, Trophy, Clock, Users, Award } from 'lucide-react';
+import React, { useState } from 'react';
+import { CheckCircle, Trophy, Clock, Users, Award, Download, FileText } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
+import apiService from '../../services/apiService';
 
 const InterviewComplete = ({ 
   interviewData, 
+  interviewId: interviewIdProp,
   userProgress, 
   completedRounds, 
   allRounds,
@@ -11,6 +13,19 @@ const InterviewComplete = ({
   onRetakeRound
 }) => {
   const { isDarkMode } = useTheme();
+  const interviewId = interviewIdProp || interviewData?.interviewId || interviewData?.interview?.interviewId;
+  
+  const [generatingFeedback, setGeneratingFeedback] = useState(false);
+  const [feedbackGenerated, setFeedbackGenerated] = useState(false);
+  const [feedbackPdfUrl, setFeedbackPdfUrl] = useState(null);
+  const [feedbackError, setFeedbackError] = useState(null);
+
+  // Debug logging
+  console.log('🎉 InterviewComplete component rendered');
+  console.log('📊 Interview ID:', interviewId);
+  console.log('📊 All Rounds:', allRounds);
+  console.log('📊 Completed Rounds:', completedRounds);
+  console.log('📊 User Progress:', userProgress);
 
   const getCompletionStats = () => {
     const totalRounds = allRounds.length;
@@ -45,13 +60,55 @@ const InterviewComplete = ({
   const stats = getCompletionStats();
   const totalTime = getTotalTimeSpent();
 
+  const handleGenerateFeedback = async () => {
+    try {
+      setGeneratingFeedback(true);
+      setFeedbackError(null);
+
+      // Get candidate info from userProgress or localStorage
+      const candidateId = userProgress?.candidateId || localStorage.getItem('candidateId') || `anon_${Date.now()}`;
+      const candidateName = userProgress?.candidateName || localStorage.getItem('candidateName') || 'Anonymous Candidate';
+      const candidateEmail = userProgress?.candidateEmail || localStorage.getItem('candidateEmail') || 'anonymous@example.com';
+
+      console.log('🎯 Generating feedback for:', { candidateId, candidateName, candidateEmail });
+
+      const result = await apiService.generateFeedback(interviewId, {
+        candidateId,
+        candidateName,
+        candidateEmail
+      });
+
+      if (result.success) {
+        setFeedbackGenerated(true);
+        setFeedbackPdfUrl(result.data.pdfUrl);
+        console.log('✅ Feedback generated successfully:', result.data.pdfUrl);
+      } else {
+        setFeedbackError(result.error || 'Failed to generate feedback');
+        console.error('❌ Feedback generation failed:', result.error);
+      }
+    } catch (error) {
+      console.error('❌ Error generating feedback:', error);
+      setFeedbackError(error.message || 'Failed to generate feedback');
+    } finally {
+      setGeneratingFeedback(false);
+    }
+  };
+
+  const handleDownloadFeedback = () => {
+    if (feedbackPdfUrl) {
+      const baseUrl = apiService.client.defaults.baseURL.replace('/api', '');
+      const fullUrl = `${baseUrl}${feedbackPdfUrl}`;
+      window.open(fullUrl, '_blank');
+    }
+  };
+
   return (
-    <div className={`min-h-screen flex items-center justify-center p-4 ${
+    <div className={`min-h-screen p-4 ${
       isDarkMode 
         ? 'bg-gradient-to-br from-slate-900 via-gray-900 to-black' 
         : 'bg-gradient-to-br from-white via-blue-50 to-indigo-100'
     }`}>
-      <div className={`max-w-4xl w-full ${
+      <div className={`max-w-4xl w-full mx-auto my-8 ${
         isDarkMode 
           ? 'bg-slate-800/50 backdrop-blur-md border border-white/10' 
           : 'bg-white/80 backdrop-blur-md border border-gray-200'
@@ -78,6 +135,75 @@ const InterviewComplete = ({
 
         <div className="p-8">
           
+          {/* Feedback Section - PROMINENTLY PLACED AT TOP */}
+          {console.log('✅ Rendering Feedback Section')}
+          <div 
+            className={`mb-8 ${
+              isDarkMode 
+                ? 'bg-gradient-to-r from-purple-900/30 to-blue-900/30 border-2 border-purple-500' 
+                : 'bg-gradient-to-r from-purple-50 to-blue-50 border-2 border-purple-500'
+            } rounded-2xl p-6`}
+            style={{ minHeight: '200px' }}
+          >
+            <h3 className={`text-2xl font-bold mb-4 flex items-center gap-2 ${
+              isDarkMode ? 'text-purple-300' : 'text-purple-700'
+            }`}>
+              <FileText className="w-8 h-8" />
+              🎯 Performance Feedback
+            </h3>
+            <p className={`mb-4 text-lg font-semibold ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+              Get AI-generated feedback on your interview performance. Download a detailed PDF report with insights and recommendations.
+            </p>
+            
+            {feedbackError && (
+              <div className={`mb-4 p-4 rounded-lg ${
+                isDarkMode ? 'bg-red-900/30 border border-red-500/30 text-red-300' : 'bg-red-50 border border-red-200 text-red-700'
+              }`}>
+                {feedbackError}
+              </div>
+            )}
+
+            <div className="flex flex-col sm:flex-row gap-3">
+              {!feedbackGenerated ? (
+                <button
+                  onClick={handleGenerateFeedback}
+                  disabled={generatingFeedback}
+                  className={`flex-1 px-6 py-3 rounded-xl font-semibold transition-all transform flex items-center justify-center gap-2 ${
+                    generatingFeedback
+                      ? 'bg-gray-400 cursor-not-allowed'
+                      : isDarkMode
+                        ? 'bg-purple-600 hover:bg-purple-700 text-white shadow-lg hover:shadow-xl hover:scale-105'
+                        : 'bg-purple-600 hover:bg-purple-700 text-white shadow-lg hover:shadow-xl hover:scale-105'
+                  }`}
+                >
+                  {generatingFeedback ? (
+                    <>
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                      Generating Feedback...
+                    </>
+                  ) : (
+                    <>
+                      <FileText className="w-5 h-5" />
+                      Generate Feedback
+                    </>
+                  )}
+                </button>
+              ) : (
+                <button
+                  onClick={handleDownloadFeedback}
+                  className={`flex-1 px-6 py-3 rounded-xl font-semibold transition-all transform flex items-center justify-center gap-2 ${
+                    isDarkMode
+                      ? 'bg-green-600 hover:bg-green-700 text-white shadow-lg hover:shadow-xl hover:scale-105'
+                      : 'bg-green-600 hover:bg-green-700 text-white shadow-lg hover:shadow-xl hover:scale-105'
+                  }`}
+                >
+                  <Download className="w-5 h-5" />
+                  Download Feedback PDF
+                </button>
+              )}
+            </div>
+          </div>
+
           {/* Stats Grid */}
           <div className="grid md:grid-cols-3 gap-6 mb-8">
             

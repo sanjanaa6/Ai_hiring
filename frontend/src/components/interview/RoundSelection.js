@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { CheckCircle, Lock, Clock, Play } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
+// feedback removed
 
 const RoundSelection = ({ 
   allRounds, 
@@ -8,9 +9,11 @@ const RoundSelection = ({
   userProgress, 
   interviewData,
   onSelectRound,
+  onFinishInterview,
   loading 
 }) => {
   const { isDarkMode } = useTheme();
+  const interviewId = interviewData?.interviewId || interviewData?.interview?.interviewId;
 
   const startSpecificRound = (roundId) => {
     const round = allRounds.find(r => (r._id || r.id || r.roundId) === roundId);
@@ -391,6 +394,33 @@ const RoundSelection = ({
                 }`}>
                   {allRounds.length > 0 ? Math.round((completedRounds.size / allRounds.length) * 100) : 0}% Complete
                 </div>
+
+                {/* Finish Interview Button - Show when all rounds completed */}
+                {completedRounds.size === allRounds.length && allRounds.length > 0 && (
+                  <div className="mt-8">
+                    <button
+                      onClick={() => {
+                        console.log('🎉 Finishing interview...');
+                        if (onFinishInterview) {
+                          onFinishInterview();
+                        }
+                      }}
+                      className={`w-full max-w-md mx-auto py-6 px-8 rounded-2xl font-black text-xl transition-all duration-500 transform hover:scale-110 shadow-2xl ${
+                        isDarkMode
+                          ? 'bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 hover:from-green-700 hover:via-emerald-700 hover:to-teal-700 text-white shadow-green-500/50'
+                          : 'bg-gradient-to-r from-green-500 via-emerald-500 to-teal-500 hover:from-green-600 hover:via-emerald-600 hover:to-teal-600 text-white shadow-green-400/50'
+                      }`}
+                    >
+                      <div className="flex items-center justify-center space-x-3">
+                        <CheckCircle className="w-8 h-8" />
+                        <span>🎉 Finish Interview & Get Feedback</span>
+                      </div>
+                    </button>
+                    <p className={`text-sm mt-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                      Click to complete your interview and generate AI feedback
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           </div>

@@ -459,9 +459,19 @@ const InterviewMain = ({
                   <span>Skip</span>
                 </button>
 
-                {/* Next Question Button */}
+                {/* Next Question Button - Now submits answer first */}
                 <button
-                  onClick={onNextQuestion}
+                  onClick={async () => {
+                    console.log('🔵 [NEXT BUTTON] Clicked - submitting answer first');
+                    // Submit answer before moving to next question
+                    if (onSubmitAnswer) {
+                      await onSubmitAnswer();
+                    }
+                    // Then move to next question
+                    if (onNextQuestion) {
+                      onNextQuestion();
+                    }
+                  }}
                   className={`flex items-center space-x-2 px-6 py-4 rounded-2xl font-medium transition-all ${
                     isDarkMode
                       ? 'bg-green-600 hover:bg-green-700 text-white'
@@ -469,7 +479,7 @@ const InterviewMain = ({
                   }`}
                 >
                   <CheckCircle className="h-5 w-5" />
-                  <span>Next Question</span>
+                  <span>Submit & Next</span>
                 </button>
               </div>
             </div>

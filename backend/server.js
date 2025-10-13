@@ -101,6 +101,8 @@ app.use('/api/stt', require('./routes/stt'));
 app.use('/uploads/recruiter-docs', express.static(path.join(__dirname, 'uploads', 'recruiter-docs')));
 // Serve form submission files statically
 app.use('/uploads/form-submissions', express.static(path.join(__dirname, 'uploads', 'form-submissions')));
+// Serve feedback PDFs statically
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Add specific CORS handling for auth routes to ensure headers on all responses
 app.use('/api/auth', (req, res, next) => {

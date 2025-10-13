@@ -94,6 +94,33 @@ const candidateAnswerSchema = new mongoose.Schema({
   }
 });
 
+const candidateFeedbackSchema = new mongoose.Schema({
+  candidateId: { type: String, required: true },
+  candidateName: { type: String, required: true },
+  candidateEmail: { type: String, required: true },
+  overallScore: { type: Number }, // NEW: Overall score 0-10
+  overallPerformance: { type: String },
+  strengths: [{ type: String }],
+  areasForImprovement: [{ type: String }],
+  recommendations: [{ type: String }],
+  roundWiseFeedback: [{
+    roundId: { type: String },
+    roundTitle: { type: String },
+    score: { type: Number }, // NEW: Round score 0-10
+    performance: { type: String },
+    keyPoints: [{ type: String }]
+  }],
+  questionScores: [{ // NEW: Question-by-question scores
+    question: { type: String },
+    answer: { type: String },
+    score: { type: Number },
+    reasoning: { type: String }
+  }],
+  pdfUrl: { type: String },
+  pdfPath: { type: String },
+  generatedAt: { type: Date, default: Date.now }
+});
+
 const fileUploadSchema = new mongoose.Schema({
   candidateId: { type: String, required: true },
   candidateName: { type: String, required: true },
@@ -157,6 +184,7 @@ const interviewSchema = new mongoose.Schema({
   candidateAnswers: [candidateAnswerSchema],
   fileUploads: [fileUploadSchema],
   formSubmissions: [formSubmissionSchema],
+  candidateFeedbacks: [candidateFeedbackSchema],
   statistics: {
     totalCandidates: { type: Number, default: 0 },
     completedInterviews: { type: Number, default: 0 },

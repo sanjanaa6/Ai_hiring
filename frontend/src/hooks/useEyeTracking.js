@@ -1,5 +1,9 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 
+// Silence verbose console logs from this hook (set to true to re-enable during debugging)
+const DEBUG = false;
+const dlog = (...args) => { if (DEBUG) console.log(...args); };
+
 export const useEyeTracking = (interviewId = null) => {
   const [gazeDirection, setGazeDirection] = useState('center');
   const [violationCount, setViolationCount] = useState(0);
@@ -19,20 +23,20 @@ export const useEyeTracking = (interviewId = null) => {
 
   // Cool and intelligent face detection with adaptive thresholds'
   const detectFace = useCallback(async (videoElement) => {
-    console.log('🤖 Smart face detection starting...');
+    dlog('🤖 Smart face detection starting...');
     
     // Basic validation
     if (!videoElement) {
-      console.log('❌ No video element provided');
+      dlog('❌ No video element provided');
       return false;
     }
     
     if (videoElement.videoWidth === 0 || videoElement.videoHeight === 0) {
-      console.log(`❌ Video element not ready: ${videoElement.videoWidth}x${videoElement.videoHeight}`);
+      dlog(`❌ Video element not ready: ${videoElement.videoWidth}x${videoElement.videoHeight}`);
       return false;
     }
 
-    console.log(`📹 Video dimensions: ${videoElement.videoWidth}x${videoElement.videoHeight}`);
+    dlog(`📹 Video dimensions: ${videoElement.videoWidth}x${videoElement.videoHeight}`);
 
     try {
       // Create canvas and capture frame
@@ -165,17 +169,17 @@ export const useEyeTracking = (interviewId = null) => {
       setFaceDetectionConfidence(faceProbability);
       
       // Cool logging with emojis and insights
-      console.log(`🤖 Smart Detection Results:`);
-      console.log(`   📊 Total samples: ${totalSamples.toLocaleString()}`);
-      console.log(`   🎯 Face score: ${totalFaceScore.toFixed(1)}`);
-      console.log(`   📈 Probability: ${(faceProbability * 100).toFixed(1)}%`);
-      console.log(`   🎚️ Threshold: ${(faceThreshold * 100).toFixed(1)}%`);
-      console.log(`   🛡️ Buffer zone: ${(lowerThreshold * 100).toFixed(1)}% - ${(upperThreshold * 100).toFixed(1)}%`);
-      console.log(`   💡 Lighting: ${lightingQuality} (${averageBrightness.toFixed(1)} avg)`);
-      console.log(`   🌈 Range: ${minBrightness}-${maxBrightness}`);
-      console.log(`   🎨 Skin variations: ${skinToneVariations}`);
-      console.log(`   🔍 Edge features: ${edgeDetections}`);
-      console.log(`   ${hasFace ? '✅ FACE DETECTED' : '❌ NO FACE'} ${hasFace ? '👤' : '👻'}`);
+      dlog(`🤖 Smart Detection Results:`);
+      dlog(`   📊 Total samples: ${totalSamples.toLocaleString()}`);
+      dlog(`   🎯 Face score: ${totalFaceScore.toFixed(1)}`);
+      dlog(`   📈 Probability: ${(faceProbability * 100).toFixed(1)}%`);
+      dlog(`   🎚️ Threshold: ${(faceThreshold * 100).toFixed(1)}%`);
+      dlog(`   🛡️ Buffer zone: ${(lowerThreshold * 100).toFixed(1)}% - ${(upperThreshold * 100).toFixed(1)}%`);
+      dlog(`   💡 Lighting: ${lightingQuality} (${averageBrightness.toFixed(1)} avg)`);
+      dlog(`   🌈 Range: ${minBrightness}-${maxBrightness}`);
+      dlog(`   🎨 Skin variations: ${skinToneVariations}`);
+      dlog(`   🔍 Edge features: ${edgeDetections}`);
+      dlog(`   ${hasFace ? '✅ FACE DETECTED' : '❌ NO FACE'} ${hasFace ? '👤' : '👻'}`);
       
       return hasFace;
     } catch (error) {
@@ -186,55 +190,55 @@ export const useEyeTracking = (interviewId = null) => {
 
   // Start face detection monitoring with enhanced debugging
   const startFaceDetection = useCallback((videoElement) => {
-    console.log('👤 Starting face detection monitoring...');
-    console.log('📹 Video element:', videoElement);
+    dlog('👤 Starting face detection monitoring...');
+    dlog('📹 Video element:', videoElement);
     
     // Clear any existing detection
     if (faceDetectionIntervalRef.current) {
-      console.log('🔄 Clearing existing face detection interval');
+      dlog('🔄 Clearing existing face detection interval');
       clearInterval(faceDetectionIntervalRef.current);
     }
     
-    console.log('👤 Starting new face detection system...');
+    dlog('👤 Starting new face detection system...');
     
     // Initial detection
     const runDetection = async () => {
-      console.log('🔄 Running face detection check...');
+      dlog('🔄 Running face detection check...');
       
       if (!videoElement) {
-        console.log('❌ No video element in detection check');
+        dlog('❌ No video element in detection check');
         setFaceDetected(false);
         return;
       }
       
       if (videoElement.videoWidth === 0) {
-        console.log('❌ Video element not ready in detection check');
+        dlog('❌ Video element not ready in detection check');
         setFaceDetected(false);
         return;
       }
       
-      console.log(`📹 Video ready: ${videoElement.videoWidth}x${videoElement.videoHeight}`);
+      dlog(`📹 Video ready: ${videoElement.videoWidth}x${videoElement.videoHeight}`);
       
       const detected = await detectFace(videoElement);
-      console.log(`🎯 Detection result: ${detected}`);
+      dlog(`🎯 Detection result: ${detected}`);
       setFaceDetected(detected);
       
       if (detected) {
-        console.log('✅ Person detected');
+        dlog('✅ Person detected');
       } else {
-        console.log('❌ No person detected');
+        dlog('❌ No person detected');
       }
     };
     
     // Run initial detection
-    console.log('🚀 Running initial detection...');
+    dlog('🚀 Running initial detection...');
     runDetection();
     
     // Set up continuous monitoring with smart intervals
-    console.log('⏰ Setting up smart monitoring (every 2.5 seconds)...');
+    dlog('⏰ Setting up smart monitoring (every 2.5 seconds)...');
     faceDetectionIntervalRef.current = setInterval(runDetection, 2500); // Check every 2.5 seconds - less aggressive
     
-    console.log('✅ Face detection monitoring started');
+    dlog('✅ Face detection monitoring started');
   }, [detectFace]);
 
   // Stop face detection monitoring
@@ -243,7 +247,7 @@ export const useEyeTracking = (interviewId = null) => {
       clearInterval(faceDetectionIntervalRef.current);
       faceDetectionIntervalRef.current = null;
     }
-    console.log('🛑 Stopped face detection monitoring');
+    dlog('🛑 Stopped face detection monitoring');
   }, []);
 
   // Check if face detection is running
@@ -254,11 +258,11 @@ export const useEyeTracking = (interviewId = null) => {
   // Start tracking (only if face is detected)
   const startTracking = useCallback(() => {
     if (!faceDetected) {
-      console.log('⚠️ Cannot start eye tracking - no person detected');
+      dlog('⚠️ Cannot start eye tracking - no person detected');
       return;
     }
     
-    console.log('🎯 Starting eye tracking...');
+    dlog('🎯 Starting eye tracking...');
     setIsTracking(true);
     
     // Only flag violations when user actually looks away (simulated)
@@ -268,12 +272,12 @@ export const useEyeTracking = (interviewId = null) => {
     cycleTimerRef.current = setInterval(() => {
       // Check if face is still detected before processing
       if (!faceDetected) {
-        console.log('⚠️ Face no longer detected - pausing eye tracking');
+        dlog('⚠️ Face no longer detected - pausing eye tracking');
         return;
       }
       
       cycleCount++;
-      console.log(`🔄 Cycle ${cycleCount} - Monitoring gaze...`);
+      dlog(`🔄 Cycle ${cycleCount} - Monitoring gaze...`);
       
       // Clear any existing violation timer to prevent overlaps
       if (violationTimerRef.current) {
@@ -296,14 +300,14 @@ export const useEyeTracking = (interviewId = null) => {
         const quickDirection = directions[Math.floor(Math.random() * directions.length)];
         const glanceDuration = 200 + Math.random() * 600; // 200-800ms natural glances
         
-        console.log(`👀 Natural glance ${quickDirection} (${glanceDuration.toFixed(0)}ms)`);
+        dlog(`👀 Natural glance ${quickDirection} (${glanceDuration.toFixed(0)}ms)`);
         setGazeDirection(quickDirection);
         setIsLookingAway(false);
         
         // Return to center naturally
         setTimeout(() => {
           setGazeDirection('center');
-          console.log('🔄 Returned to center naturally');
+          dlog('🔄 Returned to center naturally');
         }, glanceDuration);
         
       } else if (behavior < glanceProbability + lookAwayProbability) {
@@ -314,7 +318,7 @@ export const useEyeTracking = (interviewId = null) => {
         // Adaptive look-away time based on violation count
         const adaptiveLookAwayTime = Math.max(2000, LOOK_AWAY_TIME - (currentViolations * 200)); // Shorter time for repeat offenders
         
-        console.log(`👁️ User looked ${randomDirection} - monitoring (${adaptiveLookAwayTime}ms threshold)`);
+        dlog(`👁️ User looked ${randomDirection} - monitoring (${adaptiveLookAwayTime}ms threshold)`);
         setGazeDirection(randomDirection);
         setIsLookingAway(true);
         
@@ -322,7 +326,7 @@ export const useEyeTracking = (interviewId = null) => {
         violationTimerRef.current = setTimeout(() => {
           // Double-check face is still detected before recording violation
           if (!faceDetected) {
-            console.log('⚠️ Face no longer detected - canceling violation');
+            dlog('⚠️ Face no longer detected - canceling violation');
             setGazeDirection('center');
             setIsLookingAway(false);
             return;
@@ -331,13 +335,13 @@ export const useEyeTracking = (interviewId = null) => {
           setViolationCount(prev => {
             const newCount = prev + 1;
             const severity = newCount <= 2 ? '😊' : newCount <= 4 ? '😐' : '😟';
-            console.log(`${severity} VIOLATION #${newCount} - Extended look ${randomDirection}`);
+            dlog(`${severity} VIOLATION #${newCount} - Extended look ${randomDirection}`);
             
             // Provide helpful feedback
             if (newCount === 3) {
-              console.log('💡 Tip: Try to maintain eye contact with the camera');
+              dlog('💡 Tip: Try to maintain eye contact with the camera');
             } else if (newCount === 5) {
-              console.log('⚠️ Warning: Multiple violations detected');
+              dlog('⚠️ Warning: Multiple violations detected');
             }
             
             return newCount;
@@ -346,7 +350,7 @@ export const useEyeTracking = (interviewId = null) => {
           // Return to center with encouragement
           setGazeDirection('center');
           setIsLookingAway(false);
-          console.log('✅ User returned to screen - good focus!');
+          dlog('✅ User returned to screen - good focus!');
         }, adaptiveLookAwayTime);
         
       } else {
@@ -354,7 +358,7 @@ export const useEyeTracking = (interviewId = null) => {
         const focusVariations = ['center', 'center', 'center', 'slight-left', 'slight-right'];
         const focusDirection = focusVariations[Math.floor(Math.random() * focusVariations.length)];
         
-        console.log(`✅ User focused ${focusDirection === 'center' ? 'on screen' : focusDirection}`);
+        dlog(`✅ User focused ${focusDirection === 'center' ? 'on screen' : focusDirection}`);
         setGazeDirection(focusDirection);
         setIsLookingAway(false);
         
@@ -371,7 +375,7 @@ export const useEyeTracking = (interviewId = null) => {
 
   // Stop tracking (but keep face detection running)
   const stopTracking = useCallback(() => {
-    console.log('🛑 Stopping eye tracking...');
+    dlog('🛑 Stopping eye tracking...');
     setIsTracking(false);
     
     if (cycleTimerRef.current) {

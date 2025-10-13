@@ -189,6 +189,36 @@ const getInterviewResults = async (req, res) => {
         rank: index + 1
       }));
 
+    // Attach feedbackReport info for each candidate from Interview model
+    for (const candidate of rankedCandidates) {
+      try {
+        // Check Interview model's candidateFeedbacks array
+        const feedback = interview.candidateFeedbacks.find(
+          f => f.candidateId === candidate.candidateId
+        );
+        
+        if (feedback && feedback.pdfUrl) {
+          candidate.feedbackReport = {
+            pdfUrl: feedback.pdfUrl,
+            generatedAt: feedback.generatedAt,
+            overallPerformance: feedback.overallPerformance,
+            strengths: feedback.strengths,
+            areasForImprovement: feedback.areasForImprovement
+          };
+        }
+        
+        // Also check User model for backward compatibility
+        const user = await User.findById(candidate.candidateId).select('interviewProgress');
+        const progress = (user?.interviewProgress || []).find(p => p.interviewId === req.params.interviewId);
+        if (progress?.feedbackReport && progress.feedbackReport.status === 'ready' && !candidate.feedbackReport) {
+          candidate.feedbackReport = {
+            pdfUrl: progress.feedbackReport.pdfUrl,
+            generatedAt: progress.feedbackReport.generatedAt
+          };
+        }
+      } catch (_) {}
+    }
+
     const responseData = {
       success: true,
       data: {
@@ -211,7 +241,10 @@ const getInterviewResults = async (req, res) => {
           }))
         },
         analytics,
-        rankedCandidates,
+        rankedCandidates: rankedCandidates.map(rc => ({
+          ...rc,
+          feedbackReport: rc.feedbackReport || null
+        })),
         summary: {
           topPerformer: rankedCandidates[0] || null,
           averagePerformance: {

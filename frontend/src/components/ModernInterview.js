@@ -339,18 +339,35 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
   // Submit current answer
   const submitCurrentAnswer = useCallback(async (answerData = null) => {
     try {
-      if (!currentQuestion || !currentRound) return;
+      console.log('🔍 [SUBMIT] submitCurrentAnswer called');
+      console.log('🔍 [SUBMIT] currentQuestion:', currentQuestion?.question);
+      console.log('🔍 [SUBMIT] currentRound:', currentRound?.title);
+      
+      if (!currentQuestion || !currentRound) {
+        console.log('⚠️ [SUBMIT] Missing currentQuestion or currentRound, skipping submission');
+        return;
+      }
 
-      const roundId = currentRound._id || currentRound.id || currentRound.roundId;
-      const questionId = currentQuestion._id || currentQuestion.id;
+      // CRITICAL: Use roundId (like "round_1") not MongoDB _id
+      const roundId = currentRound.roundId || currentRound.id || currentRound._id;
+      const questionId = currentQuestion.id || currentQuestion._id;
+      
+      console.log('🔍 [SUBMIT] Using roundId:', roundId);
+      console.log('🔍 [SUBMIT] Using questionId:', questionId);
       
       let answerContent = '';
       let answerType = 'text';
       let additionalData = {};
 
+      console.log('🔍 [SUBMIT] Checking answer sources...');
+      console.log('🔍 [SUBMIT] isLiveCodingRound:', isLiveCodingRound);
+      console.log('🔍 [SUBMIT] codeAnswer length:', codeAnswer?.length || 0);
+      console.log('🔍 [SUBMIT] voiceRecording.transcription length:', voiceRecording.transcription?.length || 0);
+
       if (isLiveCodingRound && codeAnswer.trim()) {
         answerContent = codeAnswer;
         answerType = 'code';
+        console.log('✅ [SUBMIT] Using code answer');
         
         // Include test results and execution data for coding answers
         if (answerData) {
@@ -364,9 +381,51 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
       } else if (voiceRecording.transcription.trim()) {
         answerContent = voiceRecording.transcription;
         answerType = 'voice';
+        console.log('✅ [SUBMIT] Using voice transcription');
+      } else {
+        console.log('⚠️ [SUBMIT] No answer content found! Not submitting.');
       }
 
+      console.log('🔍 [SUBMIT] Final answerContent length:', answerContent.length);
+
       if (answerContent) {
+        // Get candidate info - CRITICAL: Use same ID throughout interview
+        let candidateId = candidateInfo?.id || localStorage.getItem('candidateId');
+        
+        // Only generate new ID if none exists
+        if (!candidateId) {
+          candidateId = `candidate_${Date.now()}`;
+          localStorage.setItem('candidateId', candidateId);
+          console.log('🆔 Generated new candidate ID:', candidateId);
+        }
+        
+        const candidateName = candidateInfo?.name || localStorage.getItem('candidateName') || 'Anonymous';
+        const candidateEmail = candidateInfo?.email || localStorage.getItem('candidateEmail') || 'anonymous@example.com';
+        
+        console.log('🔍 [SUBMIT] Using candidate ID:', candidateId);
+
+        // Submit answer to backend
+        console.log('📤 Submitting answer to backend...');
+        const submitResult = await apiService.submitAnswer(interviewId, {
+          candidateId,
+          candidateName,
+          candidateEmail,
+          roundId,
+          questionId,
+          question: currentQuestion.question,
+          answer: answerContent,
+          answerType,
+          timeTaken: 0, // You can track this if needed
+          ...additionalData
+        });
+
+        if (submitResult.success) {
+          console.log('✅ Answer submitted successfully to backend');
+        } else {
+          console.error('❌ Failed to submit answer to backend:', submitResult.error);
+        }
+
+        // Update progress
         await updateProgress(roundId, questionId, 'answered', 0);
         console.log('✅ Answer submitted:', { 
           answerType, 
@@ -380,7 +439,7 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
     } catch (error) {
       console.error('❌ Failed to submit answer:', error);
     }
-  }, [currentQuestion, currentRound, isLiveCodingRound, codeAnswer, voiceRecording.transcription, updateProgress, moveToNextQuestion]);
+  }, [currentQuestion, currentRound, isLiveCodingRound, codeAnswer, voiceRecording.transcription, candidateInfo, interviewId, updateProgress, moveToNextQuestion]);
 
   // Start interview tracking
   const startInterviewTracking = useCallback(async () => {
@@ -904,6 +963,10 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
           userProgress={userProgress}
           interviewData={interviewData}
           onSelectRound={handleSelectRound}
+          onFinishInterview={() => {
+            console.log('🎉 [MODERN INTERVIEW] Finishing interview, moving to complete step');
+            setStep('complete');
+          }}
           loading={loading}
         />
       );
@@ -1131,6 +1194,7 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
       return (
         <InterviewComplete
           interviewData={interviewData}
+          interviewId={interviewId}
           userProgress={userProgress}
           completedRounds={completedRounds}
           allRounds={allRounds}

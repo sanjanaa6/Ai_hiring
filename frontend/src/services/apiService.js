@@ -816,6 +816,35 @@ class ApiService {
     }
   }
 
+  // Feedback API methods
+  async generateFeedback(interviewId, candidateData) {
+    try {
+      const response = await this.client.post(`/interviews/${interviewId}/feedback/generate`, candidateData);
+      return response.data;
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('Generate feedback error:', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to generate feedback'
+      };
+    }
+  }
+
+  async getFeedback(interviewId, candidateId) {
+    try {
+      const response = await this.client.get(`/interviews/${interviewId}/feedback/${candidateId}`);
+      return response.data;
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('Get feedback error:', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to get feedback'
+      };
+    }
+  }
+
   async getCandidateReport(interviewId, candidateId) {
     try {
       const response = await this.client.get(`/interviews/${interviewId}/candidates/${candidateId}/report`);

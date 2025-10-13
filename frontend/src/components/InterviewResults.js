@@ -571,6 +571,18 @@ const InterviewResults = ({ interviewId, onClose }) => {
                                     <Eye className="w-3 h-3 inline mr-1" />
                                     Report
                                   </button>
+                                  {candidate.feedbackReport?.pdfUrl && (
+                                    <a
+                                      href={`${window.location.protocol}//${window.location.hostname}:5000${candidate.feedbackReport.pdfUrl}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className={`px-3 py-1 rounded-lg text-xs font-medium ${isDarkMode ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-green-600 hover:bg-green-700 text-white'}`}
+                                      title="Download AI-generated feedback PDF"
+                                    >
+                                      <FileText className="w-3 h-3 inline mr-1" />
+                                      Feedback PDF
+                                    </a>
+                                  )}
                                   <button
                                     onClick={() => toggleCandidateExpansion(candidate.candidateId)}
                                     className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${

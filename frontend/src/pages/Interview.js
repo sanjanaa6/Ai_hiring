@@ -68,6 +68,10 @@ const Interview = () => {
     console.log('Candidate info set:', info);
     setCandidateInfo(info);
     localStorage.setItem('candidateInfo', JSON.stringify(info));
+    // Also store individual fields for easier access
+    localStorage.setItem('candidateId', info.id);
+    localStorage.setItem('candidateName', info.name);
+    localStorage.setItem('candidateEmail', info.email);
     setShowCandidateForm(false);
   };
 
