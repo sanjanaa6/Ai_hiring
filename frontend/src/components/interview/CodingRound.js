@@ -118,6 +118,28 @@ const CodingRound = ({
     ? defaultPractical
     : currentQuestion;
 
+  // If prompt asks to debug/fix a snippet and no starter is provided, seed a buggy snippet
+  const mentionsSnippet = (txt) => {
+    if (!txt) return false;
+    const s = String(txt).toLowerCase();
+    return s.includes('debug') || s.includes('fix') || s.includes('code snippet') || s.includes('bug');
+  };
+
+  const needsDebugSeed = isFrontendRound && mentionsSnippet(displayQuestion?.question) && !displayQuestion?.codeEditor?.starterCode;
+
+  const seededHtml = needsDebugSeed
+    ? '<div class="wrap">\n  <button id="btn">Increment</button>\n  <span id="count">0</span>\n</div>'
+    : (displayQuestion?.codeEditor?.starterCode || '<div id="app">Hello</div>');
+
+  const seededCss = needsDebugSeed
+    ? '.wrap{display:flex;gap:12px;align-items:center;font-family:sans-serif} #btn{background:#2563eb;color:#fff;border:none;border-radius:6px;padding:8px 12px;cursor:pointer}'
+    : 'body{font-family:sans-serif;} #app{color:#2563eb;font-weight:600;}';
+
+  // Intentional bug: querySelector uses wrong id so count never updates
+  const seededJs = needsDebugSeed
+    ? 'let count = 0;\nconst btn = document.getElementById("btn");\nconst out = document.getElementById("cnut"); // BUG: typo id should be count\nbtn.addEventListener("click", () => {\n  count++;\n  if(out) out.textContent = String(count);\n});\n// Task: fix the bug so clicking updates the number, and disable button at 10.'
+    : 'document.getElementById("app")?.addEventListener("click",()=>console.log("clicked"))';
+
   // If this is a frontend round, normalize the language to HTML for downstream logic
   useEffect(() => {
     if (isFrontendRound && typeof onLanguageChange === 'function') {
