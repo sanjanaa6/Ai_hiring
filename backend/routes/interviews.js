@@ -78,8 +78,17 @@ router.post('/:interviewId/start-anonymous', startAnonymousInterview);
 router.post('/:interviewId/answer', submitAnswer);
 router.post('/:interviewId/answers', submitAnswers);
 
-// Get answers (protected for recruiters)
-router.get('/:interviewId/answers', auth, getAnswers);
+// Get answers - allow public access with candidateId query param, require auth otherwise
+router.get('/:interviewId/answers', (req, res, next) => {
+  // If candidateId is provided in query, allow public access (skip auth)
+  if (req.query.candidateId) {
+    console.log('📝 [ANSWERS] Public access for candidateId:', req.query.candidateId);
+    return next(); // Skip auth, go directly to getAnswers
+  }
+  // Otherwise require authentication (for recruiters)
+  console.log('📝 [ANSWERS] Requiring authentication for recruiter access');
+  return auth(req, res, next);
+}, getAnswers);
 
 // Get detailed candidate information with all answers and evaluations
 router.get('/:interviewId/candidates/:candidateId/details', auth, getCandidateDetailsFromAnswers);

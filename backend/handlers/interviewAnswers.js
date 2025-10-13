@@ -225,6 +225,9 @@ const getAnswers = async (req, res) => {
     // Get all candidate answers
     let answers = interview.candidateAnswers || [];
     
+    console.log('📊 [GET ANSWERS] Total answers in database:', answers.length);
+    console.log('📋 [GET ANSWERS] Sample answers:', answers.slice(0, 3));
+    
     // Filter by candidate if specified
     if (candidateId) {
       answers = answers.filter(answer => answer.candidateId === candidateId);
@@ -233,10 +236,17 @@ const getAnswers = async (req, res) => {
     // Get unique candidate IDs from answers
     const uniqueCandidateIds = [...new Set(answers.map(answer => answer.candidateId).filter(id => id && id !== 'anonymous'))];
     
+    // Filter out anonymous IDs (those starting with 'anon_') to get only valid ObjectIds
+    const mongoose = require('mongoose');
+    const validObjectIds = uniqueCandidateIds.filter(id => {
+      // Check if it's a valid ObjectId format and not an anonymous ID
+      return !id.startsWith('anon_') && mongoose.Types.ObjectId.isValid(id);
+    });
+    
     // Fetch additional candidate information from User model if available
     const User = require('../models/User');
     const candidateUsers = await User.find({
-      _id: { $in: uniqueCandidateIds }
+      _id: { $in: validObjectIds }
     }).select('name email _id');
 
     // Create a map of candidate ID to user info

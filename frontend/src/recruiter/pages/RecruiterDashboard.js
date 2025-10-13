@@ -111,15 +111,6 @@ const RecruiterDashboard = () => {
     }
   }, [activeTab, selectedInterviewId, selectedCandidateId]);
 
-  // Auto-refresh answers every 7s while on Answers tab
-  useEffect(() => {
-    if (activeTab !== 'answers' || !selectedInterviewId) return;
-    const id = setInterval(() => {
-      loadAnswers(selectedInterviewId, selectedCandidateId);
-    }, 7000);
-    return () => clearInterval(id);
-  }, [activeTab, selectedInterviewId, selectedCandidateId]);
-
   const loadInterviews = async () => {
     try {
       const result = await apiService.getAllInterviews();
@@ -175,6 +166,8 @@ const RecruiterDashboard = () => {
           totalCandidates: Object.keys(data?.answersByCandidate || {}).length,
           summary: data?.summary
         });
+        console.log('📋 [LOAD ANSWERS] Raw answers data:', data?.answers);
+        console.log('👥 [LOAD ANSWERS] Answers by candidate:', data?.answersByCandidate);
       } else {
         console.error('Failed to load answers:', result.error);
         setAnswers([]);
@@ -275,9 +268,16 @@ const RecruiterDashboard = () => {
       return [];
     }
     
+    console.log('🔍 [GROUP] Processing answers:', answers.length, 'total answers');
+    
     const map = new Map();
     for (const a of answers) {
       if (!map.has(a.candidateId)) {
+        console.log('👤 [GROUP] New candidate:', {
+          id: a.candidateId,
+          name: a.candidateName,
+          email: a.candidateEmail
+        });
         map.set(a.candidateId, {
           candidateId: a.candidateId,
           candidateName: a.candidateName,
@@ -295,10 +295,18 @@ const RecruiterDashboard = () => {
         const t = new Date(v.timestamp).getTime();
         return t > p ? t : p;
       }, 0);
+      console.log('📊 [GROUP] Candidate summary:', {
+        name: c.candidateName,
+        email: c.candidateEmail,
+        answersCount: c.items.length,
+        averageScore: avg
+      });
       return { ...c, averageScore: avg, lastAnswered };
     });
     // sort by averageScore desc
     const sortedList = list.sort((a, b) => (b.averageScore || 0) - (a.averageScore || 0));
+    
+    console.log('✅ [GROUP] Final grouped candidates:', sortedList.length);
     
     // Final safety check to ensure we return an array
     return Array.isArray(sortedList) ? sortedList : [];
@@ -2867,8 +2875,19 @@ The interview should feel natural and relevant to someone applying for this spec
                         👥 Candidate Performance Analysis
                       </h3>
                       
+                      {groupAnswersByCandidate().length === 0 ? (
+                        <div className={`${isDarkMode ? 'bg-black/30 border border-blue-500/20' : 'bg-gray-50 border border-gray-200'} rounded-xl p-12 text-center`}>
+                          <Users className={`w-16 h-16 mx-auto mb-4 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`} />
+                          <h4 className={`text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'} mb-2`}>
+                            No Candidates Yet
+                          </h4>
+                          <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                            No candidates have attended this interview yet. Share the interview link to get started.
+                          </p>
+                        </div>
+                      ) : (
                       <div className="space-y-4">
-                        {(groupAnswersByCandidate() || []).map((candidate, index) => (
+                        {groupAnswersByCandidate().map((candidate, index) => (
                           <div key={candidate.candidateId} className={`${isDarkMode ? 'bg-black/30 border border-blue-500/20' : 'bg-gray-50 border border-gray-200'} rounded-xl p-6 transition-all duration-200 hover:shadow-lg`}>
                             <div className="flex items-center justify-between mb-4">
                               <div className="flex items-center space-x-4">
@@ -3035,6 +3054,7 @@ The interview should feel natural and relevant to someone applying for this spec
                           </div>
                         ))}
                       </div>
+                      )}
                     </div>
                   </>
                 ) : (
