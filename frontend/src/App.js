@@ -7,6 +7,7 @@ import './utils/errorHandler'; // Import to activate global error handling
 
 // Context
 
+
 import { AuthProvider } from './context/AuthContext';
 
 // Components
