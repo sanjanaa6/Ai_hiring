@@ -14,8 +14,21 @@
       "src": "/static/(.*)",
       "headers": {
         "cache-control": "s-maxage=31536000,immutable"
-      },
-      "dest": "/static/$1"
+      }
+    },
+    {
+      "src": "/manifest.json",
+      "dest": "/manifest.json"
+    },
+    {
+      "src": "/favicon.ico",
+      "dest": "/favicon.ico"
+    },
+    {
+      "src": "/(.*\\.(js|css|png|jpg|jpeg|gif|ico|svg))",
+      "headers": {
+        "cache-control": "public, max-age=31536000, immutable"
+      }
     },
     {
       "src": "/(.*)",
