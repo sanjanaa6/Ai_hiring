@@ -47,6 +47,7 @@ import NotFound from './pages/NotFound';
 import AdminLoginPage from './pages/AdminLoginPage';
 import RecruiterPCB from './recruiter/pages/RecruiterPCB';
 import PCBApp from './pcb/src/App';
+import Playground from './pages/Playground';
 
 // Recruiter components
 import { InterviewReviewer } from './recruiter/components/InterviewReviewer';
@@ -124,6 +125,7 @@ function AppShell() {
           <Route path="/jobs" element={<JobSearch />} />
           <Route path="/jobs/:id" element={<JobDetails />} />
           <Route path="/interview/:interviewId" element={<Interview />} />
+          <Route path="/playground" element={<Playground />} />
           <Route path="/round/:accessLink" element={<RoundAccess />} />
           <Route path="/pcb-round/:accessLink" element={<ElectronicInterview />} />
           <Route path="/pcb" element={<PCBApp />} />

@@ -12,6 +12,7 @@ import {
   EyeOff
 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
+import CodePenEditor from '../CodePenEditor';
 import SuperCoolCodeEditor from '../SuperCoolCodeEditor';
 import SmallCamera from './SmallCamera';
 import { cleanupResizeObservers } from '../../utils/resizeObserver';
@@ -63,6 +64,66 @@ const CodingRound = ({
   const hints = currentQuestion?.codeEditor?.hints || [];
   const timeLimit = currentQuestion?.timeLimit || 15;
   const difficulty = currentQuestion?.difficulty || 'Medium';
+
+  const isFrontendToken = (val) => {
+    if (!val) return false;
+    const s = String(val).toLowerCase();
+    return (
+      /(^|\b)(front[- ]?end|frontend|web|html|css|javascript|js)($|\b)/i.test(val) ||
+      s === 'html' || s === 'css' || s === 'javascript' || s === 'js'
+    );
+  };
+
+  const gatherTokens = () => {
+    const tokens = [];
+    tokens.push(currentRound?.stack);
+    tokens.push(currentRound?.title);
+    if (Array.isArray(currentRound?.tags)) tokens.push(currentRound.tags.join(' '));
+    tokens.push(currentQuestion?.codeEditor?.mode);
+    tokens.push(currentQuestion?.codeEditor?.language);
+    if (Array.isArray(currentQuestion?.tags)) tokens.push(currentQuestion.tags.join(' '));
+    tokens.push(currentQuestion?.question);
+    tokens.push(selectedLanguage);
+    return tokens.filter(Boolean);
+  };
+
+  const isFrontendRound = gatherTokens().some(isFrontendToken);
+
+  // For frontend rounds, prefer practical, editor-solvable prompts.
+  const isTheoryQuestion = (text) => {
+    if (!text) return false;
+    const s = String(text).toLowerCase();
+    return (
+      s.includes('difference between') ||
+      s.includes('what is') ||
+      s.includes('explain') ||
+      s.includes('define') ||
+      s.includes('advantages') ||
+      s.includes('disadvantages') ||
+      s.includes('compare') ||
+      s.includes('vs ')
+    );
+  };
+
+  const defaultPractical = {
+    question: 'Build a responsive card grid with hover effects',
+    description: 'Create a 3-card layout that wraps on small screens. Each card should have a title, description, and a button with a hover transition.',
+    codeEditor: {
+      mode: 'html',
+      starterCode: '<div class="grid">\n  <div class="card">\n    <h3>Card 1</h3>\n    <p>Description goes here.</p>\n    <button>Learn more</button>\n  </div>\n  <div class="card">\n    <h3>Card 2</h3>\n    <p>Description goes here.</p>\n    <button>Learn more</button>\n  </div>\n  <div class="card">\n    <h3>Card 3</h3>\n    <p>Description goes here.</p>\n    <button>Learn more</button>\n  </div>\n</div>\n\n<style>\n  *{box-sizing:border-box} body{font-family:sans-serif;margin:0;padding:16px;}\n  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}\n  @media (max-width: 800px){.grid{grid-template-columns:repeat(2,1fr)}}\n  @media (max-width: 520px){.grid{grid-template-columns:1fr}}\n  .card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:16px;box-shadow:0 6px 16px rgba(0,0,0,.06);transition:transform .2s, box-shadow .2s;}\n  .card:hover{transform:translateY(-4px);box-shadow:0 10px 24px rgba(0,0,0,.12)}\n  button{background:#2563eb;color:#fff;border:none;border-radius:8px;padding:10px 14px;cursor:pointer;transition:background .2s} button:hover{background:#1e40af}\n</style>'
+    }
+  };
+
+  const displayQuestion = (isFrontendRound && isTheoryQuestion(currentQuestion?.question))
+    ? defaultPractical
+    : currentQuestion;
+
+  // If this is a frontend round, normalize the language to HTML for downstream logic
+  useEffect(() => {
+    if (isFrontendRound && typeof onLanguageChange === 'function') {
+      onLanguageChange('html');
+    }
+  }, [isFrontendRound, onLanguageChange]);
 
   // Show test cases toggle
   const handleShowTestCases = () => {
@@ -123,7 +184,9 @@ const CodingRound = ({
   };
 
   // Check if submit button should be enabled
-  const isSubmitEnabled = codeAnswer.trim() && conversationState.isConversationComplete;
+  const isSubmitEnabled = isFrontendRound
+    ? Boolean(codeAnswer && codeAnswer.trim())
+    : Boolean(codeAnswer && codeAnswer.trim() && conversationState.isConversationComplete);
 
   // Get difficulty color
   const getDifficultyColor = (difficulty) => {
@@ -247,12 +310,14 @@ const CodingRound = ({
             )}
 
             {/* Test Cases Status */}
-            <div className="flex items-center space-x-2">
-              <CheckCircle className="h-4 w-4 text-purple-500" />
-              <span className="text-sm font-medium text-purple-500">
-                Test Cases Available
-              </span>
-            </div>
+            {!isFrontendRound && (
+              <div className="flex items-center space-x-2">
+                <CheckCircle className="h-4 w-4 text-purple-500" />
+                <span className="text-sm font-medium text-purple-500">
+                  Test Cases Available
+                </span>
+              </div>
+            )}
 
           </div>
 
@@ -320,14 +385,14 @@ const CodingRound = ({
                       <h3 className={`text-xl font-semibold mb-3 ${
                         isDarkMode ? 'text-white' : 'text-gray-900'
                       }`}>
-                        {currentQuestion.question}
+                        {displayQuestion?.question || currentQuestion?.question}
                       </h3>
                       
-                      {currentQuestion.description && (
+                      {(displayQuestion?.description || currentQuestion?.description) && (
                         <p className={`text-sm mb-4 ${
                           isDarkMode ? 'text-gray-300' : 'text-gray-600'
                         }`}>
-                          {currentQuestion.description}
+                          {displayQuestion?.description || currentQuestion?.description}
                         </p>
                       )}
 
@@ -382,19 +447,28 @@ const CodingRound = ({
             </div>
           </div>
 
-          {/* Code Editor */}
+          {/* Editor */}
           <div className="flex-1">
-            <SuperCoolCodeEditor
-              language={selectedLanguage}
-              starterCode={currentQuestion?.codeEditor?.starterCode || ''}
-              question={currentQuestion?.question || ''}
-              onCodeChange={onCodeChange}
-              disabled={false}
-              sessionId={interviewId}
-              languageLocked={isLanguageLocked}
-              aiDeterminedLanguage={aiDeterminedLanguage}
-              onConversationStateChange={handleConversationStateChange}
-            />
+            {isFrontendRound ? (
+              <CodePenEditor 
+                onCodeChange={(val)=> onCodeChange && onCodeChange(val.combined)} 
+                initialHtml={displayQuestion?.codeEditor?.starterCode || '<div id="app">Hello</div>'}
+                initialCss={'body{font-family:sans-serif;} #app{color:#2563eb;font-weight:600;}'}
+                initialJs={'document.getElementById("app")?.addEventListener("click",()=>console.log("clicked"))'}
+              />
+            ) : (
+              <SuperCoolCodeEditor
+                language={selectedLanguage}
+                starterCode={currentQuestion?.codeEditor?.starterCode || ''}
+                question={currentQuestion?.question || ''}
+                onCodeChange={onCodeChange}
+                disabled={false}
+                sessionId={interviewId}
+                languageLocked={isLanguageLocked}
+                aiDeterminedLanguage={aiDeterminedLanguage}
+                onConversationStateChange={handleConversationStateChange}
+              />
+            )}
           </div>
 
           {/* Bottom Controls */}
@@ -406,31 +480,33 @@ const CodingRound = ({
             <div className="max-w-4xl mx-auto">
               <div className="flex items-center justify-between">
                 
-                {/* Left: Test Case Toggle */}
-                <button
-                  onClick={handleShowTestCases}
-                  className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all ${
-                    showTestCases
-                      ? isDarkMode
-                        ? 'bg-blue-500 text-white'
-                        : 'bg-blue-500 text-white'
-                      : isDarkMode
-                        ? 'bg-slate-700 text-gray-300 hover:bg-slate-600'
-                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                  }`}
-                >
-                  {showTestCases ? (
-                    <>
-                      <EyeOff className="h-4 w-4" />
-                      <span>Hide Test Cases</span>
-                    </>
-                  ) : (
-                    <>
-                      <Eye className="h-4 w-4" />
-                      <span>Show Test Cases</span>
-                    </>
-                  )}
-                </button>
+                {/* Test cases: show only for non-frontend rounds */}
+                {!isFrontendRound && (
+                  <button
+                    onClick={handleShowTestCases}
+                    className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all ${
+                      showTestCases
+                        ? isDarkMode
+                          ? 'bg-blue-500 text-white'
+                          : 'bg-blue-500 text-white'
+                        : isDarkMode
+                          ? 'bg-slate-700 text-gray-300 hover:bg-slate-600'
+                          : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    }`}
+                  >
+                    {showTestCases ? (
+                      <>
+                        <EyeOff className="h-4 w-4" />
+                        <span>Hide Test Cases</span>
+                      </>
+                    ) : (
+                      <>
+                        <Eye className="h-4 w-4" />
+                        <span>Show Test Cases</span>
+                      </>
+                    )}
+                  </button>
+                )}
 
                 {/* Center: Action Buttons */}
                 <div className="flex items-center space-x-3">
@@ -449,14 +525,15 @@ const CodingRound = ({
                       <CheckCircle className="h-4 w-4" />
                     )}
                     <span>
-                      {isSubmitting 
-                        ? 'Submitting...' 
-                        : !codeAnswer.trim() 
-                          ? 'Submit Code' 
-                          : !conversationState.isConversationComplete 
-                            ? 'Complete AI Discussion' 
-                            : 'Submit Code'
-                      }
+                      {isSubmitting
+                        ? 'Submitting...'
+                        : isFrontendRound
+                          ? 'Submit Code'
+                          : (!codeAnswer || !codeAnswer.trim())
+                            ? 'Submit Code'
+                            : (!conversationState.isConversationComplete
+                                ? 'Complete AI Discussion'
+                                : 'Submit Code')}
                     </span>
                   </button>
                 </div>
@@ -519,15 +596,15 @@ const CodingRound = ({
               </div>
             </div>
 
-            {/* Test Cases Section - Removed */}
-            {showTestCases && (
+            {/* Test Cases Section (non-frontend) */}
+            {!isFrontendRound && showTestCases && (
               <div className="flex-1 overflow-y-auto p-4">
                 <div className={`text-center py-8 ${
                   isDarkMode ? 'text-slate-400' : 'text-gray-500'
                 }`}>
                   <Code2 className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                  <p className="text-sm">Test cases integration removed</p>
-                  <p className="text-xs mt-1">Code execution available in the editor</p>
+                  <p className="text-sm">Test cases placeholder</p>
+                  <p className="text-xs mt-1">Integrate judge/execution as needed</p>
                 </div>
               </div>
             )}
