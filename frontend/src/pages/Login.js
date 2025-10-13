@@ -155,7 +155,7 @@ const Login = () => {
             className="mb-6"
           >
             <button
-              onClick={() => window.open(window.location.origin, '_blank')}
+              onClick={() => window.location.href = window.location.origin}
               className="flex items-center text-blue-400 hover:text-blue-300 transition-colors duration-200 group"
             >
               <ArrowLeft className="w-5 h-5 mr-2 group-hover:-translate-x-1 transition-transform duration-200" />
