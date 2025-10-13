@@ -166,8 +166,22 @@ app.get('/api/cors-test', (req, res) => {
 
 // Serve frontend static files in production
 if (process.env.NODE_ENV === 'production') {
-  // Serve static files from the React app build directory
-  app.use(express.static(path.join(__dirname, '../frontend/build')));
+  // Serve static files from the React app build directory with proper cache headers
+  app.use(express.static(path.join(__dirname, '../frontend/build'), {
+    // Cache static assets (JS, CSS, images) for 1 year
+    maxAge: '1y',
+    // Don't cache HTML files to ensure users get the latest version
+    setHeaders: (res, path) => {
+      if (path.endsWith('.html')) {
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+      } else if (path.match(/\.(js|css|png|jpg|jpeg|gif|ico|svg)$/)) {
+        // Cache static assets with versioning
+        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      }
+    }
+  }));
   
   // Handle React routing, but ONLY for non-API routes
   app.get('*', (req, res, next) => {
@@ -176,7 +190,10 @@ if (process.env.NODE_ENV === 'production') {
       return next();
     }
     
-    // For all other routes, serve the React app
+    // For all other routes, serve the React app with no-cache headers
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
     res.sendFile(path.join(__dirname, '../frontend/build', 'index.html'));
   });
   
