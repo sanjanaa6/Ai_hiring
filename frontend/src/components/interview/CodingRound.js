@@ -65,6 +65,14 @@ const CodingRound = ({
   const timeLimit = currentQuestion?.timeLimit || 15;
   const difficulty = currentQuestion?.difficulty || 'Medium';
 
+  // Strict gate: only coding round may show code editors / design prompts
+  const isCodingRound = (() => {
+    const type = String(currentRound?.type || '').toLowerCase();
+    const title = String(currentRound?.title || '').toLowerCase();
+    // Treat common variants as coding rounds
+    return /(cod|code|coding|challenge|technical)/i.test(type) || /(cod|code|coding|challenge|technical)/i.test(title);
+  })();
+
   const isFrontendToken = (val) => {
     if (!val) return false;
     const s = String(val).toLowerCase();
@@ -87,7 +95,7 @@ const CodingRound = ({
     return tokens.filter(Boolean);
   };
 
-  const isFrontendRound = gatherTokens().some(isFrontendToken);
+  const isFrontendRound = isCodingRound && gatherTokens().some(isFrontendToken);
 
   // For frontend rounds, prefer practical, editor-solvable prompts.
   const isTheoryQuestion = (text) => {
@@ -114,7 +122,7 @@ const CodingRound = ({
     }
   };
 
-  const displayQuestion = (isFrontendRound && isTheoryQuestion(currentQuestion?.question))
+  const displayQuestion = (isCodingRound && isFrontendRound && isTheoryQuestion(currentQuestion?.question))
     ? defaultPractical
     : currentQuestion;
 
@@ -125,7 +133,7 @@ const CodingRound = ({
     return s.includes('debug') || s.includes('fix') || s.includes('code snippet') || s.includes('bug');
   };
 
-  const needsDebugSeed = isFrontendRound && mentionsSnippet(displayQuestion?.question) && !displayQuestion?.codeEditor?.starterCode;
+  const needsDebugSeed = isCodingRound && isFrontendRound && mentionsSnippet(displayQuestion?.question) && !displayQuestion?.codeEditor?.starterCode;
 
   const seededHtml = needsDebugSeed
     ? '<div class="wrap">\n  <button id="btn">Increment</button>\n  <span id="count">0</span>\n</div>'
