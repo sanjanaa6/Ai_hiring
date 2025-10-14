@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CheckCircle, Lock, Clock, Play } from 'lucide-react';
+import { CheckCircle, Lock, Clock, Play, Zap, Target, Brain, Rocket, Star, Award, Trophy, Crown } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 // feedback removed
 
@@ -26,14 +26,22 @@ const RoundSelection = ({
     return (
       <div className={`min-h-screen flex items-center justify-center ${
         isDarkMode 
-          ? 'bg-gradient-to-br from-slate-900 via-gray-900 to-black' 
-          : 'bg-gradient-to-br from-white via-blue-50 to-indigo-100'
+          ? 'bg-gradient-to-br from-gray-900 via-slate-900 to-black' 
+          : 'bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100'
       }`}>
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-          <p className={`text-lg ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-            Loading interview rounds...
-          </p>
+          <div className="relative">
+            <div className="animate-spin rounded-full h-16 w-16 border-4 border-transparent border-t-blue-500 border-r-purple-500 mx-auto mb-6"></div>
+            <div className="absolute inset-0 animate-ping rounded-full h-16 w-16 border-2 border-blue-400 opacity-20"></div>
+          </div>
+          <div className="space-y-2">
+            <p className={`text-xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+              Preparing Your Interview Journey
+            </p>
+            <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+              Loading rounds...
+            </p>
+          </div>
         </div>
       </div>
     );
@@ -42,30 +50,194 @@ const RoundSelection = ({
   return (
     <div className={`fixed inset-0 overflow-hidden ${
       isDarkMode 
-        ? 'bg-gradient-to-br from-slate-900 via-gray-900 to-black' 
-        : 'bg-gradient-to-br from-white via-blue-50 to-indigo-100'
+        ? 'bg-gradient-to-br from-gray-900 via-slate-900 to-black' 
+        : 'bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100'
     }`}>
-      <div className="h-full flex flex-col">
-        {/* Header */}
-        <div className={`backdrop-blur-md border-b px-6 py-4 ${
+      {/* Animated Background Elements */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute top-0 left-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute top-0 right-0 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
+        <div className="absolute bottom-0 left-1/2 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl animate-pulse delay-2000"></div>
+      </div>
+
+      <div className="h-full flex flex-col relative z-10">
+        {/* Professional Header */}
+        <div className={`backdrop-blur-xl border-b px-8 py-8 ${
           isDarkMode 
-            ? 'bg-black/20 border-white/10' 
-            : 'bg-white/80 border-gray-200'
+            ? 'bg-gradient-to-r from-slate-900/90 via-gray-900/80 to-black/70 border-white/10' 
+            : 'bg-gradient-to-r from-white/95 via-slate-50/90 to-gray-100/80 border-gray-200'
         }`}>
-          <div className="text-center">
-            <h1 className={`text-2xl font-bold mb-1 ${
-              isDarkMode ? 'text-white' : 'text-gray-900'
-            }`}>Choose Interview Round</h1>
-            <p className={`text-sm ${
-              isDarkMode ? 'text-gray-300' : 'text-gray-600'
-            }`}>Complete rounds in sequence to unlock the next ones</p>
+          <div className="max-w-7xl mx-auto">
+            <div className="flex items-center justify-between">
+              {/* Left Section - Logo & Title */}
+              <div className="flex items-center space-x-6">
+                <div className={`p-4 rounded-2xl shadow-xl ${
+                isDarkMode 
+                    ? 'bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700 shadow-blue-500/30' 
+                    : 'bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-600 shadow-blue-400/40'
+                }`}>
+                  <Trophy className="h-10 w-10 text-white" />
+                </div>
+                <div>
+                  <h1 className={`text-3xl font-bold ${
+                    isDarkMode ? 'text-white' : 'text-gray-900'
+                  }`}>
+                    Interview Management
+                  </h1>
+                  <p className={`text-sm font-medium ${
+                    isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                  }`}>
+                    Professional Assessment Dashboard
+                  </p>
+                </div>
+              </div>
+
+              {/* Right Section - Status & Progress */}
+              <div className="flex items-center space-x-6">
+                <div className={`px-4 py-2 rounded-full ${
+                isDarkMode 
+                    ? 'bg-emerald-500/20 border border-emerald-400/30' 
+                    : 'bg-emerald-100 border border-emerald-300'
+              }`}>
+                  <span className={`text-sm font-semibold ${
+                    isDarkMode ? 'text-emerald-300' : 'text-emerald-700'
+                  }`}>
+                    Active Assessment
+                  </span>
+                </div>
+                <div className="text-right">
+                  <div className={`text-2xl font-bold ${
+                    isDarkMode ? 'text-white' : 'text-gray-900'
+                  }`}>
+                    {completedRounds.size}/{allRounds.length}
+                </div>
+                  <div className={`text-xs font-medium ${
+                    isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                  }`}>
+                    Rounds Completed
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 overflow-y-auto p-6">
-          <div className="w-full max-w-6xl mx-auto">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="flex-1 overflow-y-auto p-8">
+          <div className="w-full max-w-7xl mx-auto">
+            {/* Professional Progress Dashboard */}
+            <div className="mb-12">
+              <div className={`rounded-2xl p-8 backdrop-blur-xl border shadow-2xl ${
+                isDarkMode 
+                  ? 'bg-gradient-to-br from-slate-900/80 via-gray-900/60 to-black/40 border-white/10' 
+                  : 'bg-gradient-to-br from-white/90 via-slate-50/80 to-gray-100/60 border-gray-200'
+              }`}>
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                  {/* Progress Stats */}
+                  <div className="lg:col-span-2">
+                    <div className="flex items-center justify-between mb-6">
+                      <div>
+                        <h2 className={`text-2xl font-bold ${
+                          isDarkMode ? 'text-white' : 'text-gray-900'
+                        }`}>
+                          Assessment Progress
+                        </h2>
+                        <p className={`text-sm ${
+                          isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                        }`}>
+                          Track candidate performance across all rounds
+                        </p>
+                      </div>
+                      <div className={`px-6 py-3 rounded-xl ${
+                        isDarkMode 
+                          ? 'bg-gradient-to-r from-blue-600 to-purple-600 shadow-blue-500/30' 
+                          : 'bg-gradient-to-r from-blue-500 to-purple-500 shadow-blue-400/40'
+                      }`}>
+                        <span className="text-white font-bold text-lg">
+                          {completedRounds.size}/{allRounds.length}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    {/* Progress Bar */}
+                    <div className="space-y-4">
+                      <div className={`w-full rounded-full h-4 ${
+                        isDarkMode ? 'bg-gray-800' : 'bg-gray-200'
+                      }`}>
+                        <div
+                          className="bg-gradient-to-r from-blue-500 via-purple-500 to-indigo-500 h-4 rounded-full transition-all duration-1000 shadow-lg relative overflow-hidden"
+                          style={{ width: `${allRounds.length > 0 ? (completedRounds.size / allRounds.length) * 100 : 0}%` }}
+                        >
+                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-pulse"></div>
+                        </div>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className={`font-medium ${
+                          isDarkMode ? 'text-gray-300' : 'text-gray-600'
+                        }`}>
+                          {allRounds.length > 0 ? Math.round((completedRounds.size / allRounds.length) * 100) : 0}% Complete
+                        </span>
+                        <span className={`font-medium ${
+                          isDarkMode ? 'text-blue-400' : 'text-blue-600'
+                        }`}>
+                          {allRounds.length - completedRounds.size} rounds remaining
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Quick Stats */}
+                  <div className="space-y-4">
+                    <div className={`p-4 rounded-xl ${
+                      isDarkMode 
+                        ? 'bg-emerald-500/10 border border-emerald-400/20' 
+                        : 'bg-emerald-50 border border-emerald-200'
+                    }`}>
+                      <div className="flex items-center space-x-3">
+                        <CheckCircle className="h-6 w-6 text-emerald-500" />
+                        <div>
+                          <div className={`text-lg font-bold ${
+                            isDarkMode ? 'text-emerald-300' : 'text-emerald-700'
+                          }`}>
+                            {completedRounds.size}
+                          </div>
+                          <div className={`text-xs ${
+                            isDarkMode ? 'text-emerald-400' : 'text-emerald-600'
+                          }`}>
+                            Completed
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className={`p-4 rounded-xl ${  
+                      isDarkMode 
+                        ? 'bg-blue-500/10 border border-blue-400/20' 
+                        : 'bg-blue-50 border border-blue-200'
+                    }`}>
+                      <div className="flex items-center space-x-3">
+                        <Clock className="h-6 w-6 text-blue-500" />
+                        <div>
+                          <div className={`text-lg font-bold ${
+                            isDarkMode ? 'text-blue-300' : 'text-blue-700'
+                          }`}>
+                            {allRounds.length - completedRounds.size}
+                          </div>
+                          <div className={`text-xs ${
+                            isDarkMode ? 'text-blue-400' : 'text-blue-600'
+                          }`}>
+                            Remaining
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Rounds Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
               {allRounds.map((round, index) => {
                 const roundId = round._id || round.id || round.roundId;
                 const isCompleted = completedRounds.has(roundId);
@@ -107,85 +279,101 @@ const RoundSelection = ({
                 // Round is available if it's either not scheduled OR if it's scheduled and within time window
                 const finalAvailability = isAvailable && (!isScheduled || isScheduledAndActive);
                 
+                // Get appropriate icon for round type
+                const getRoundIcon = (roundType, index) => {
+                  const icons = [
+                    <Brain className="h-6 w-6" />,
+                    <Target className="h-6 w-6" />,
+                    <Zap className="h-6 w-6" />,
+                    <Rocket className="h-6 w-6" />,
+                    <Star className="h-6 w-6" />,
+                    <Award className="h-6 w-6" />,
+                    <Trophy className="h-6 w-6" />,
+                    <Crown className="h-6 w-6" />
+                  ];
+                  
+                  if (roundType === 'form_submission') return <Target className="h-6 w-6" />;
+                  if (roundType === 'file_upload') return <Zap className="h-6 w-6" />;
+                  return icons[index % icons.length];
+                };
+                
                 return (
                   <div
                     key={roundId}
-                    className={`group relative rounded-3xl p-8 transition-all duration-500 transform hover:scale-110 hover:-translate-y-2 ${
+                    className={`group relative rounded-2xl overflow-hidden transition-all duration-500 transform hover:scale-105 hover:-translate-y-2 shadow-xl ${
                       isCompleted
                         ? isDarkMode 
-                          ? 'bg-gradient-to-br from-emerald-500/20 via-green-500/15 to-teal-500/10 border-2 border-emerald-400/50 shadow-2xl shadow-emerald-500/30' 
-                          : 'bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50 border-2 border-emerald-300 shadow-2xl shadow-emerald-200/60'
+                          ? 'bg-gradient-to-br from-emerald-500/15 via-green-500/10 to-teal-500/5 border border-emerald-400/40 shadow-emerald-500/20' 
+                          : 'bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50 border border-emerald-300 shadow-emerald-200/30'
                         : isScheduled
                         ? isDarkMode
-                          ? 'bg-gradient-to-br from-orange-900/40 via-red-900/30 to-pink-900/20 border-2 border-orange-700/40 opacity-70'
-                          : 'bg-gradient-to-br from-orange-100 via-red-100 to-pink-100 border-2 border-orange-400 opacity-70'
+                          ? 'bg-gradient-to-br from-orange-900/25 via-red-900/15 to-pink-900/10 border border-orange-700/40 opacity-80'
+                          : 'bg-gradient-to-br from-orange-100 via-red-100 to-pink-100 border border-orange-400 opacity-80'
                         : finalAvailability
                         ? isDarkMode
-                          ? 'bg-gradient-to-br from-slate-900/80 via-gray-900/60 to-black/40 border-2 border-blue-400/40 hover:border-blue-400/80 hover:shadow-2xl hover:shadow-blue-500/40 cursor-pointer backdrop-blur-md'
-                          : 'bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 border-2 border-blue-300 hover:border-blue-500 hover:shadow-2xl hover:shadow-blue-200/60 cursor-pointer'
+                          ? 'bg-gradient-to-br from-slate-800/70 via-gray-800/50 to-black/30 border border-blue-400/40 hover:border-blue-400/70 hover:shadow-2xl hover:shadow-blue-500/40 cursor-pointer backdrop-blur-md'
+                          : 'bg-gradient-to-br from-white/90 via-blue-50/70 to-indigo-50/50 border border-blue-300 hover:border-blue-500 hover:shadow-2xl hover:shadow-blue-200/60 cursor-pointer backdrop-blur-md'
                         : isDarkMode
-                          ? 'bg-gradient-to-br from-gray-900/40 via-slate-900/30 to-black/20 border-2 border-gray-700/40 opacity-60'
-                          : 'bg-gradient-to-br from-gray-100 via-slate-100 to-gray-200 border-2 border-gray-400 opacity-60'
+                          ? 'bg-gradient-to-br from-gray-800/40 via-slate-800/30 to-black/20 border border-gray-700/40 opacity-70'
+                          : 'bg-gradient-to-br from-gray-100 via-slate-100 to-gray-200 border border-gray-400 opacity-70'
                     }`}
                   >
-                    {/* Animated Background Glow */}
+                    {/* Professional Card Header */}
+                    <div className={`relative p-6 ${
+                      isCompleted
+                        ? 'bg-gradient-to-r from-emerald-500/15 to-green-500/15'
+                        : isScheduled
+                        ? 'bg-gradient-to-r from-orange-500/15 to-red-500/15'
+                        : finalAvailability
+                        ? 'bg-gradient-to-r from-blue-500/15 to-purple-500/15'
+                        : 'bg-gradient-to-r from-gray-500/15 to-slate-500/15'
+                    }`}>
+                      {/* Subtle Animation for Available Rounds */}
                     {finalAvailability && !isScheduled && (
-                      <div className={`absolute inset-0 rounded-3xl opacity-0 group-hover:opacity-100 transition-all duration-500 ${
-                        isDarkMode 
-                          ? 'bg-gradient-to-br from-blue-500/20 via-cyan-500/15 to-indigo-500/10 animate-pulse' 
-                          : 'bg-gradient-to-br from-blue-100/60 via-cyan-100/40 to-indigo-100/50'
-                      }`}></div>
-                    )}
-                    
-                    {/* Floating Particles Effect */}
-                    {finalAvailability && !isScheduled && (
-                      <div className="absolute inset-0 overflow-hidden rounded-3xl">
-                        <div className="absolute top-2 left-4 w-1 h-1 bg-blue-400 rounded-full animate-ping opacity-60"></div>
-                        <div className="absolute top-6 right-6 w-1 h-1 bg-cyan-400 rounded-full animate-ping opacity-40 delay-300"></div>
-                        <div className="absolute bottom-4 left-8 w-1 h-1 bg-indigo-400 rounded-full animate-ping opacity-50 delay-700"></div>
-                        <div className="absolute bottom-8 right-4 w-1 h-1 bg-blue-300 rounded-full animate-ping opacity-30 delay-1000"></div>
+                        <div className="absolute inset-0 overflow-hidden">
+                          <div className="absolute top-3 left-6 w-1 h-1 bg-blue-400 rounded-full animate-ping opacity-40"></div>
+                          <div className="absolute top-8 right-8 w-1 h-1 bg-purple-400 rounded-full animate-ping opacity-30 delay-500"></div>
+                          <div className="absolute bottom-6 left-10 w-1 h-1 bg-indigo-400 rounded-full animate-ping opacity-35 delay-1000"></div>
                       </div>
                     )}
                     
-                    <div className="relative z-10 text-center">
-                      {/* Round Number with Enhanced Design */}
-                      <div className="relative mb-8">
-                        <div
-                          className={`w-20 h-20 rounded-3xl flex items-center justify-center mx-auto shadow-2xl transition-all duration-500 group-hover:scale-110 ${
+                      <div className="relative z-10 flex items-center justify-between">
+                        {/* Round Number Badge */}
+                        <div className={`w-14 h-14 rounded-xl flex items-center justify-center shadow-lg transition-all duration-500 group-hover:scale-110 ${
                             isCompleted
-                                ? 'bg-gradient-to-br from-emerald-500 via-green-500 to-teal-600 shadow-emerald-500/40'
+                            ? 'bg-gradient-to-br from-emerald-500 to-green-600 shadow-emerald-500/30'
                               : isScheduled
-                                ? 'bg-gradient-to-br from-orange-500 via-red-500 to-pink-600 shadow-orange-500/50'
+                            ? 'bg-gradient-to-br from-orange-500 to-red-600 shadow-orange-500/30'
                               : finalAvailability
-                                ? 'bg-gradient-to-br from-slate-800 via-blue-600 to-indigo-700 shadow-blue-500/50'
-                                : 'bg-gradient-to-br from-gray-600 to-slate-700 shadow-gray-500/30'
-                          }`}
-                        >
+                            ? 'bg-gradient-to-br from-blue-500 to-purple-600 shadow-blue-500/30'
+                            : 'bg-gradient-to-br from-gray-500 to-slate-600 shadow-gray-500/30'
+                        }`}>
                           {isCompleted ? (
-                              <CheckCircle className="h-10 w-10 text-white drop-shadow-lg animate-bounce" />
+                            <CheckCircle className="h-7 w-7 text-white drop-shadow-lg" />
                           ) : (
-                              <span className="text-white text-2xl font-black drop-shadow-lg">{index + 1}</span>
+                            <span className="text-white text-lg font-bold drop-shadow-lg">{index + 1}</span>
                           )}
                         </div>
 
-                        {/* Animated Decorative Rings */}
-                        {finalAvailability && !isScheduled && (
-                          <>
-                            <div className="absolute inset-0 w-20 h-20 mx-auto rounded-3xl border-2 border-blue-400/40 animate-ping"></div>
-                            <div className="absolute inset-0 w-20 h-20 mx-auto rounded-3xl border border-cyan-400/60 animate-pulse"></div>
-                            <div className="absolute inset-0 w-20 h-20 mx-auto rounded-3xl border border-indigo-400/30 animate-pulse delay-300"></div>
-                          </>
-                        )}
-                        
-                        {/* Glowing Orb Effect */}
-                        {finalAvailability && !isScheduled && (
-                          <div className="absolute inset-0 w-20 h-20 mx-auto rounded-3xl bg-gradient-to-br from-blue-400/20 to-cyan-400/20 blur-xl animate-pulse"></div>
-                        )}
+                        {/* Round Type Icon */}
+                        <div className={`p-3 rounded-lg ${
+                          isCompleted
+                            ? 'bg-emerald-500/20 border border-emerald-400/30'
+                            : isScheduled
+                            ? 'bg-orange-500/20 border border-orange-400/30'
+                            : finalAvailability
+                            ? 'bg-blue-500/20 border border-blue-400/30'
+                            : 'bg-gray-500/20 border border-gray-400/30'
+                        }`}>
+                          {getRoundIcon(round.type, index)}
+                        </div>
+                      </div>
                       </div>
 
-                      {/* Round Title with Better Typography */}
-                      <h3
-                        className={`text-2xl font-black mb-2 leading-tight transition-all duration-300 group-hover:scale-105 ${
+                    {/* Professional Card Content */}
+                    <div className="p-6">
+                      {/* Round Title */}
+                      <h3 className={`text-lg font-bold mb-3 leading-tight ${
                           isCompleted
                             ? isDarkMode ? 'text-emerald-200' : 'text-emerald-800'
                             : isScheduled
@@ -193,28 +381,26 @@ const RoundSelection = ({
                             : finalAvailability
                             ? isDarkMode ? 'text-white' : 'text-slate-900'
                             : isDarkMode ? 'text-gray-400' : 'text-gray-500'
-                        }`}
-                      >
+                      }`}>
                         {round.title}
                       </h3>
 
                       {/* Round Type Badge */}
                       <div className="mb-4">
-                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+                        <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold ${
                           round.type === 'form_submission'
-                            ? 'bg-green-100 text-green-800'
+                            ? isDarkMode ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/30' : 'bg-emerald-100 text-emerald-800 border border-emerald-300'
                             : round.type === 'file_upload'
-                            ? 'bg-purple-100 text-purple-800'
-                            : 'bg-blue-100 text-blue-800'
+                            ? isDarkMode ? 'bg-purple-500/20 text-purple-300 border border-purple-400/30' : 'bg-purple-100 text-purple-800 border border-purple-300'
+                            : isDarkMode ? 'bg-blue-500/20 text-blue-300 border border-blue-400/30' : 'bg-blue-100 text-blue-800 border border-blue-300'
                         }`}>
                           {round.type === 'form_submission' ? '📝 Form Submission' : 
                            round.type === 'file_upload' ? '📁 File Upload' : '💬 Interview'}
                         </span>
                       </div>
 
-                      {/* Round Description with Better Spacing */}
-                      <p
-                        className={`text-sm mb-6 leading-relaxed transition-all duration-300 ${
+                      {/* Round Description */}
+                      <p className={`text-sm mb-6 leading-relaxed ${
                           isCompleted
                             ? isDarkMode ? 'text-emerald-300/90' : 'text-emerald-700'
                             : isScheduled
@@ -222,8 +408,7 @@ const RoundSelection = ({
                             : finalAvailability
                             ? isDarkMode ? 'text-gray-200/95' : 'text-slate-600'
                             : isDarkMode ? 'text-gray-500/70' : 'text-gray-400'
-                        }`}
-                      >
+                      }`}>
                         {round.description}
                       </p>
 
@@ -231,39 +416,46 @@ const RoundSelection = ({
                       {isScheduled && (
                         <div className={`mb-6 p-4 rounded-lg border ${
                           isDarkMode 
-                            ? 'bg-orange-900/20 border-orange-700 text-orange-300' 
-                            : 'bg-orange-50 border-orange-200 text-orange-700'
+                            ? 'bg-orange-500/10 border-orange-400/30 text-orange-300' 
+                            : 'bg-orange-50 border-orange-300 text-orange-700'
                         }`}>
-                          <div className="flex items-center space-x-2 mb-2">
+                          <div className="flex items-center space-x-2 mb-3">
                             <Clock className="h-4 w-4" />
-                            <span className="font-semibold text-sm">Round is Scheduled</span>
+                            <span className="font-semibold text-sm">Scheduled Round</span>
                           </div>
-                          <div className="text-xs space-y-1">
-                            <div>Start: {new Date(roundSchedule.startDateTime).toLocaleString()}</div>
-                            <div>End: {new Date(roundSchedule.endDateTime).toLocaleString()}</div>
-                            <div className="font-medium mt-2">⏰ Round will be available during scheduled time</div>
+                          <div className="text-xs space-y-2">
+                            <div className="flex justify-between">
+                              <span className="opacity-80">Start:</span>
+                              <span className="font-medium">{new Date(roundSchedule.startDateTime).toLocaleDateString()}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="opacity-80">End:</span>
+                              <span className="font-medium">{new Date(roundSchedule.endDateTime).toLocaleDateString()}</span>
+                            </div>
+                            <div className="mt-2 p-2 rounded bg-orange-500/10 text-center">
+                              <span className="text-xs font-medium">⏰ Scheduled Time</span>
+                            </div>
                           </div>
                         </div>
                       )}
 
-                      {/* Enhanced Round Info with Black/Blue Theme */}
-                      <div className={`flex justify-center space-x-4 mb-8 ${
-                        isDarkMode ? 'text-gray-300' : 'text-slate-600'
-                      }`}>
-                        <div className={`flex items-center space-x-2 px-4 py-2 rounded-full transition-all duration-300 group-hover:scale-105 ${
+                      {/* Round Info Cards */}
+                      <div className="flex justify-between space-x-3 mb-6">
+                        <div className={`flex-1 flex items-center justify-center space-x-2 px-3 py-2 rounded-lg transition-all duration-300 ${
                           isDarkMode 
-                            ? 'bg-slate-800/60 border border-blue-400/30' 
-                            : 'bg-blue-100/80 border border-blue-200'
+                            ? 'bg-blue-500/10 border border-blue-400/20' 
+                            : 'bg-blue-50 border border-blue-200'
                         }`}>
-                          <Clock className="h-4 w-4 text-blue-400" />
-                          <span className="text-xs font-bold">{round.duration || 30}m</span>
+                          <Clock className="h-4 w-4 text-blue-500" />
+                          <span className="text-xs font-semibold text-blue-600">{round.duration || 30}m</span>
                         </div>
-                        <div className={`flex items-center space-x-2 px-4 py-2 rounded-full transition-all duration-300 group-hover:scale-105 ${
+                        <div className={`flex-1 flex items-center justify-center space-x-2 px-3 py-2 rounded-lg transition-all duration-300 ${
                           isDarkMode 
-                            ? 'bg-slate-800/60 border border-cyan-400/30' 
-                            : 'bg-cyan-100/80 border border-cyan-200'
+                            ? 'bg-purple-500/10 border border-purple-400/20' 
+                            : 'bg-purple-50 border border-purple-200'
                         }`}>
-                          <span className="text-xs font-bold">
+                          <Target className="h-4 w-4 text-purple-500" />
+                          <span className="text-xs font-semibold text-purple-600">
                             {round.type === 'form_submission' 
                               ? `${round.formFields?.length || 0} Fields`
                               : round.type === 'file_upload'
@@ -274,67 +466,63 @@ const RoundSelection = ({
                         </div>
                       </div>
 
-                      {/* Enhanced Action Button with Black/Blue Theme */}
+                      {/* Professional Action Button */}
                       {isCompleted ? (
-                        <div className="space-y-4">
-                          <div className={`w-full py-4 px-6 rounded-2xl font-bold text-sm transition-all duration-300 ${
+                        <div className="space-y-3">
+                          <div className={`w-full py-3 px-4 rounded-lg font-semibold text-sm text-center ${
                             isDarkMode 
-                              ? 'bg-emerald-500/20 text-emerald-300 border-2 border-emerald-400/40 shadow-lg shadow-emerald-500/20' 
-                              : 'bg-emerald-100 text-emerald-800 border-2 border-emerald-300 shadow-lg shadow-emerald-200/40'
+                              ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/30' 
+                              : 'bg-emerald-100 text-emerald-800 border border-emerald-300'
                           }`}>
-                            ✅ Completed
+                            ✅ Completed Successfully
                           </div>
                           {round.allowRetake ? (
                             <button
                               onClick={() => startSpecificRound(roundId)}
                               disabled={loading}
-                              className="w-full py-4 px-6 bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 hover:from-emerald-700 hover:via-green-700 hover:to-teal-700 text-white rounded-2xl font-bold text-sm transition-all duration-300 transform hover:scale-105 shadow-2xl shadow-emerald-500/30 hover:shadow-emerald-500/50"
+                              className="w-full py-3 px-4 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white rounded-lg font-semibold text-sm transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-emerald-500/30"
                             >
-                              Retake Round
+                              🔄 Retake Round
                             </button>
                           ) : (
-                            <div className={`w-full py-4 px-6 rounded-2xl font-bold text-sm transition-all duration-300 ${
+                            <div className={`w-full py-3 px-4 rounded-lg font-semibold text-sm text-center ${
                               isDarkMode 
-                                ? 'bg-gray-700/50 text-gray-400 border-2 border-gray-600/40' 
-                                : 'bg-gray-100 text-gray-500 border-2 border-gray-300'
+                                ? 'bg-gray-700/50 text-gray-400 border border-gray-600/40' 
+                                : 'bg-gray-100 text-gray-500 border border-gray-300'
                             }`}>
                               🔒 Retake Not Allowed
                             </div>
                           )}
                         </div>
                       ) : isScheduled && !isScheduledAndActive ? (
-                        <div className={`w-full py-5 px-8 rounded-2xl font-bold text-sm transition-all duration-300 ${
+                        <div className={`w-full py-3 px-4 rounded-lg font-semibold text-sm text-center ${
                           isDarkMode 
-                            ? 'bg-orange-800/40 text-orange-300 border-2 border-orange-600/40' 
-                            : 'bg-orange-200 text-orange-700 border-2 border-orange-400'
+                            ? 'bg-orange-500/20 text-orange-300 border border-orange-400/30' 
+                            : 'bg-orange-100 text-orange-700 border border-orange-300'
                         }`}>
-                          <div className="flex items-center justify-center space-x-3">
-                            <span className="text-lg">⏰</span>
-                            <span>Round is Scheduled - Not Yet Available</span>
+                          <div className="flex items-center justify-center space-x-2">
+                            <Clock className="h-4 w-4" />
+                            <span>Scheduled - Not Yet Available</span>
                           </div>
                         </div>
                       ) : finalAvailability ? (
                         <button
                           onClick={() => startSpecificRound(roundId)}
                           disabled={loading}
-                          className={`w-full py-5 px-8 rounded-2xl font-black text-base transition-all duration-500 transform hover:scale-110 hover:-translate-y-1 disabled:transform-none shadow-2xl relative overflow-hidden ${
+                          className={`w-full py-3 px-4 rounded-lg font-semibold text-sm transition-all duration-500 transform hover:scale-105 shadow-lg relative overflow-hidden ${
                             isInProgress 
-                              ? 'bg-gradient-to-r from-orange-600 via-amber-600 to-yellow-600 hover:from-orange-700 hover:via-amber-700 hover:to-yellow-700 shadow-orange-500/40 hover:shadow-orange-500/60'
-                              : 'bg-gradient-to-r from-slate-800 via-blue-700 to-indigo-800 hover:from-slate-700 hover:via-blue-600 hover:to-indigo-700 shadow-blue-500/40 hover:shadow-blue-500/60'
-                          } text-white disabled:from-gray-600 disabled:to-gray-600`}
+                              ? 'bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white shadow-orange-500/30 hover:shadow-orange-500/50'
+                              : 'bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-blue-500/30 hover:shadow-blue-500/50'
+                          } disabled:transform-none`}
                         >
                           {/* Animated Background */}
-                          <div className={`absolute inset-0 opacity-0 hover:opacity-100 transition-opacity duration-500 ${
-                            isInProgress 
-                              ? 'bg-gradient-to-r from-orange-400/20 via-amber-400/20 to-yellow-400/20'
-                              : 'bg-gradient-to-r from-blue-400/20 via-cyan-400/20 to-indigo-400/20'
-                          }`}></div>
+                          <div className="absolute inset-0 opacity-0 hover:opacity-100 transition-opacity duration-500 bg-gradient-to-r from-white/10 to-white/5"></div>
                           
                           {/* Button Content */}
-                          <div className="relative z-10 flex items-center justify-center space-x-3">
+                          <div className="relative z-10 flex items-center justify-center space-x-2">
                             {loading ? (
                               <>
-                                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
                                 <span>Starting...</span>
                               </>
                             ) : (
@@ -346,14 +534,14 @@ const RoundSelection = ({
                           </div>
                         </button>
                       ) : (
-                        <div className={`w-full py-5 px-8 rounded-2xl font-bold text-sm transition-all duration-300 ${
+                        <div className={`w-full py-3 px-4 rounded-lg font-semibold text-sm text-center ${
                           isDarkMode 
-                            ? 'bg-slate-800/40 text-gray-400 border-2 border-gray-600/40' 
-                            : 'bg-gray-200 text-gray-500 border-2 border-gray-400'
+                            ? 'bg-gray-700/50 text-gray-400 border border-gray-600/40' 
+                            : 'bg-gray-100 text-gray-500 border border-gray-300'
                         }`}>
-                          <div className="flex items-center justify-center space-x-3">
-                            <span className="text-lg">🔒</span>
-                            <span>Complete Previous Rounds First</span>
+                          <div className="flex items-center justify-center space-x-2">
+                            <Lock className="h-4 w-4" />
+                            <span>Complete Previous Rounds</span>
                           </div>
                         </div>
                       )}
@@ -363,39 +551,60 @@ const RoundSelection = ({
               })}
             </div>
 
-            {/* Enhanced Overall Progress with Black/Blue Theme */}
-            <div className="mt-10 text-center">
-              <div className={`border-2 rounded-3xl p-8 shadow-2xl transition-all duration-500 hover:scale-105 ${
+            {/* Professional Assessment Summary */}
+            <div className="mt-12">
+              <div className={`rounded-2xl p-8 shadow-2xl transition-all duration-500 hover:scale-105 backdrop-blur-xl border ${
                 isDarkMode 
-                  ? 'bg-gradient-to-br from-slate-900/80 via-gray-900/60 to-black/40 border-blue-400/40 shadow-blue-500/30' 
-                  : 'bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 border-blue-300 shadow-blue-200/40'
+                  ? 'bg-gradient-to-br from-slate-900/80 via-gray-900/60 to-black/40 border-white/10' 
+                  : 'bg-gradient-to-br from-white/90 via-slate-50/80 to-gray-100/60 border-gray-200'
               }`}>
-                <h3 className={`font-black text-2xl mb-4 ${
-                  isDarkMode ? 'text-white' : 'text-slate-900'
-                }`}>Interview Progress</h3>
-                <div className={`text-lg mb-6 ${
-                  isDarkMode ? 'text-gray-200' : 'text-slate-600'
-                }`}>
-                  Completed: <span className="font-black text-blue-500 text-2xl">{completedRounds.size}</span> / <span className="font-black text-xl">{allRounds.length}</span> rounds
+                <div className="text-center mb-8">
+                  <div className="flex items-center justify-center mb-4">
+                    <div className={`p-4 rounded-2xl ${
+                      isDarkMode 
+                        ? 'bg-gradient-to-r from-blue-600 to-purple-600 shadow-blue-500/30' 
+                        : 'bg-gradient-to-r from-blue-500 to-purple-500 shadow-blue-400/40'
+                    }`}>
+                      <Trophy className="h-8 w-8 text-white" />
+                    </div>
+                    <h3 className={`font-bold text-3xl ml-4 ${
+                      isDarkMode ? 'text-white' : 'text-gray-900'
+                    }`}>Assessment Summary</h3>
+                  </div>
+                  
+                  <div className={`text-xl mb-8 ${
+                    isDarkMode ? 'text-gray-200' : 'text-gray-600'
+                  }`}>
+                    <span className="font-semibold">Progress:</span> 
+                    <span className={`font-bold text-3xl mx-2 ${
+                      isDarkMode ? 'text-blue-400' : 'text-blue-600'
+                    }`}>{completedRounds.size}</span>
+                    <span className="font-semibold">/</span>
+                    <span className={`font-bold text-2xl mx-1 ${
+                      isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                    }`}>{allRounds.length}</span>
+                    <span className="font-semibold">rounds completed</span>
                 </div>
-                <div className={`w-full rounded-full h-4 mt-4 ${
-                  isDarkMode ? 'bg-slate-800' : 'bg-gray-200'
+                  
+                  <div className={`w-full rounded-full h-4 mb-6 ${
+                    isDarkMode ? 'bg-gray-800' : 'bg-gray-200'
                 }`}>
                   <div
-                    className="bg-gradient-to-r from-slate-800 via-blue-600 to-indigo-600 h-4 rounded-full transition-all duration-700 shadow-lg relative overflow-hidden"
+                      className="bg-gradient-to-r from-blue-500 via-purple-500 to-indigo-500 h-4 rounded-full transition-all duration-1000 shadow-lg relative overflow-hidden"
                     style={{ width: `${allRounds.length > 0 ? (completedRounds.size / allRounds.length) * 100 : 0}%` }}
                   >
-                    {/* Animated Shimmer Effect */}
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-pulse"></div>
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-pulse"></div>
+                    </div>
                   </div>
-                </div>
-                <div className={`text-sm mt-4 font-bold ${
+                  
+                  <div className={`text-lg font-semibold ${
                   isDarkMode ? 'text-blue-300' : 'text-blue-600'
                 }`}>
                   {allRounds.length > 0 ? Math.round((completedRounds.size / allRounds.length) * 100) : 0}% Complete
+                  </div>
                 </div>
 
-                {/* Finish Interview Button - Show when all rounds completed */}
+                {/* Professional Finish Button */}
                 {completedRounds.size === allRounds.length && allRounds.length > 0 && (
                   <div className="mt-8">
                     <button
@@ -405,19 +614,19 @@ const RoundSelection = ({
                           onFinishInterview();
                         }
                       }}
-                      className={`w-full max-w-md mx-auto py-6 px-8 rounded-2xl font-black text-xl transition-all duration-500 transform hover:scale-110 shadow-2xl ${
+                      className={`w-full max-w-lg mx-auto py-6 px-8 rounded-2xl font-bold text-xl transition-all duration-500 transform hover:scale-110 shadow-2xl ${
                         isDarkMode
-                          ? 'bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 hover:from-green-700 hover:via-emerald-700 hover:to-teal-700 text-white shadow-green-500/50'
-                          : 'bg-gradient-to-r from-green-500 via-emerald-500 to-teal-500 hover:from-green-600 hover:via-emerald-600 hover:to-teal-600 text-white shadow-green-400/50'
+                          ? 'bg-gradient-to-r from-green-500 via-emerald-500 to-teal-500 hover:from-green-600 hover:via-emerald-600 hover:to-teal-600 text-white shadow-green-500/50'
+                          : 'bg-gradient-to-r from-green-400 via-emerald-400 to-teal-400 hover:from-green-500 hover:via-emerald-500 hover:to-teal-500 text-white shadow-green-400/50'
                       }`}
                     >
                       <div className="flex items-center justify-center space-x-3">
-                        <CheckCircle className="w-8 h-8" />
-                        <span>🎉 Finish Interview & Get Feedback</span>
+                        <Crown className="w-8 h-8" />
+                        <span>🎉 Complete Assessment & Generate Report</span>
                       </div>
                     </button>
                     <p className={`text-sm mt-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                      Click to complete your interview and generate AI feedback
+                      Generate comprehensive AI-powered assessment report
                     </p>
                   </div>
                 )}
