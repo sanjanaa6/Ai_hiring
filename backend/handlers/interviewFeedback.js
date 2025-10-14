@@ -80,12 +80,27 @@ const generateFeedback = async (req, res) => {
       return {
         roundTitle: round.title,
         roundId: round.roundId,
-        answers: roundAnswers.map(a => ({
-          question: a.question,
-          answer: a.answer,
-          timeTaken: a.timeTaken,
-          aiEvaluation: a.aiEvaluation
-        }))
+        answers: roundAnswers.map(a => {
+          // Handle PCB design answers differently
+          if (a.answerType === 'pcb_design' && a.pcbDesignData) {
+            return {
+              question: a.question,
+              answer: a.designNotes || 'No explanation provided',
+              pcbDesignData: a.pcbDesignData,
+              pcbDesignSummary: `PCB Design JSON uploaded (${JSON.stringify(a.pcbDesignData).length} characters)`,
+              timeTaken: a.timeTaken,
+              aiEvaluation: a.aiEvaluation,
+              answerType: 'pcb_design'
+            };
+          }
+          return {
+            question: a.question,
+            answer: a.answer,
+            timeTaken: a.timeTaken,
+            aiEvaluation: a.aiEvaluation,
+            answerType: a.answerType || 'text'
+          };
+        })
       };
     }).filter(r => r.answers.length > 0);
 
@@ -101,10 +116,21 @@ const generateFeedback = async (req, res) => {
 **Interview Questions and Answers:**
 ${roundsData.map((round, idx) => `
 Round ${idx + 1}: ${round.roundTitle}
-${round.answers.map((a, qIdx) => `
+${round.answers.map((a, qIdx) => {
+  if (a.answerType === 'pcb_design') {
+    return `
+Q${qIdx + 1}: ${a.question}
+Answer Type: PCB Design Submission
+Design Notes: ${a.answer}
+PCB Design Data: ${a.pcbDesignSummary}
+[Note: Evaluate based on design notes and the fact that a PCB design JSON was submitted]
+`;
+  }
+  return `
 Q${qIdx + 1}: ${a.question}
 Answer: ${a.answer}
-`).join('\n')}
+`;
+}).join('\n')}
 `).join('\n')}
 
 **STRICT Evaluation Requirements:**
@@ -305,6 +331,16 @@ Answer: ${a.answer}
 
     console.log('✅ [FEEDBACK] PDF generated at:', pdfPath);
 
+    // Collect PCB design data if any
+    const pcbDesigns = candidateAnswers
+      .filter(a => a.answerType === 'pcb_design' && a.pcbDesignData)
+      .map(a => ({
+        question: a.question,
+        pcbDesignData: a.pcbDesignData,
+        designNotes: a.designNotes,
+        submittedAt: a.submittedAt
+      }));
+
     // Save feedback to database with STRICT SCORES
     const feedback = {
       candidateId,
@@ -317,6 +353,7 @@ Answer: ${a.answer}
       recommendations: feedbackData.recommendations || [],
       roundWiseFeedback: feedbackData.roundWiseFeedback || [],
       questionScores: feedbackData.questionScores || [], // NEW: Individual question scores
+      pcbDesigns: pcbDesigns.length > 0 ? pcbDesigns : undefined, // Include PCB designs if any
       pdfUrl,
       pdfPath,
       generatedAt: new Date()

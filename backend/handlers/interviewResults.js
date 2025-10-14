@@ -382,6 +382,9 @@ const getCandidateReport = async (req, res) => {
               text: answer.answer,
               timeTaken: answer.timeTaken,
               timestamp: answer.timestamp,
+              pcbDesignData: answer.pcbDesignData || null,
+              designNotes: answer.designNotes || null,
+              answerType: answer.answerType || 'text',
               aiEvaluation: answer.aiEvaluation || {
                 score: Math.floor(Math.random() * 4) + 1,
                 feedback: 'AI evaluation pending',

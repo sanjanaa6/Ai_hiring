@@ -48,7 +48,7 @@ const RoundSelection = ({
   }
 
   return (
-    <div className={`fixed inset-0 overflow-hidden ${
+    <div className={`fixed inset-0 overflow-hidden pt-16 ${
       isDarkMode 
         ? 'bg-gradient-to-br from-gray-900 via-slate-900 to-black' 
         : 'bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100'

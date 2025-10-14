@@ -21,7 +21,10 @@ import {
   Eye,
   Filter,
   SortAsc,
-  SortDesc
+  SortDesc,
+  Download,
+  ExternalLink,
+  Code
 } from 'lucide-react';
 
 const InterviewResults = ({ interviewId, onClose }) => {
@@ -758,6 +761,109 @@ const InterviewResults = ({ interviewId, onClose }) => {
                                 </div>
                               </div>
                             ))}
+                          </div>
+
+                          {/* Detailed Questions & Answers */}
+                          <div className="mt-6">
+                            <h5 className={`font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'} mb-3`}>Questions & Answers</h5>
+                            <div className="space-y-4">
+                              {candidateReport.performance.byRound.map((round, roundIndex) => (
+                                <div key={roundIndex} className="space-y-3">
+                                  <h6 className={`font-medium text-sm ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>
+                                    {round.title}
+                                  </h6>
+                                  {round.questions && round.questions.map((q, qIndex) => (
+                                    <div key={qIndex} className={`${isDarkMode ? 'bg-gray-700 border border-gray-600' : 'bg-gray-50 border border-gray-200'} rounded-lg p-4`}>
+                                      <div className="mb-2">
+                                        <span className={`text-xs font-semibold ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                                          Q{qIndex + 1}:
+                                        </span>
+                                        <p className={`text-sm font-medium mt-1 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                                          {q.question}
+                                        </p>
+                                      </div>
+                                      {q.answer ? (
+                                        <>
+                                          <div className="mt-3">
+                                            <span className={`text-xs font-semibold ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                                              Answer:
+                                            </span>
+                                            <p className={`text-sm mt-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                                              {q.answer.text}
+                                            </p>
+                                          </div>
+                                          {q.answer.aiEvaluation && (
+                                            <div className="mt-3 flex items-center justify-between">
+                                              <span className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                                                Score: <span className="font-semibold">{q.answer.aiEvaluation.score}/4</span>
+                                              </span>
+                                              <span className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                                                Time: {Math.round(q.answer.timeTaken / 1000)}s
+                                              </span>
+                                            </div>
+                                          )}
+                                          
+                                          {/* PCB Design Data for this answer */}
+                                          {q.answer.pcbDesignData && (
+                                            <div className="mt-3">
+                                              <div className={`${isDarkMode ? 'bg-emerald-900/20 border-emerald-700' : 'bg-emerald-50 border-emerald-300'} border rounded-lg p-3`}>
+                                                <div className="flex items-center justify-between">
+                                                  <div className="flex items-center gap-2">
+                                                    <Code className="w-4 h-4 text-emerald-600" />
+                                                    <span className={`text-xs font-medium ${isDarkMode ? 'text-emerald-300' : 'text-emerald-900'}`}>
+                                                      PCB Design JSON Submitted
+                                                    </span>
+                                                  </div>
+                                                  <div className="flex items-center gap-2">
+                                                    <button
+                                                      onClick={() => {
+                                                        const dataStr = JSON.stringify(q.answer.pcbDesignData, null, 2);
+                                                        const dataBlob = new Blob([dataStr], { type: 'application/json' });
+                                                        const url = URL.createObjectURL(dataBlob);
+                                                        const link = document.createElement('a');
+                                                        link.href = url;
+                                                        link.download = `pcb_design_q${qIndex + 1}.json`;
+                                                        link.click();
+                                                        URL.revokeObjectURL(url);
+                                                      }}
+                                                      className={`px-2 py-1 rounded text-xs font-medium flex items-center gap-1 transition-colors ${
+                                                        isDarkMode 
+                                                          ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                                                          : 'bg-blue-600 hover:bg-blue-700 text-white'
+                                                      }`}
+                                                    >
+                                                      <Download className="w-3 h-3" />
+                                                      JSON
+                                                    </button>
+                                                    <button
+                                                      onClick={() => {
+                                                        window.open('https://pcb1.eval8.xyz/', '_blank');
+                                                      }}
+                                                      className={`px-2 py-1 rounded text-xs font-medium flex items-center gap-1 transition-colors ${
+                                                        isDarkMode 
+                                                          ? 'bg-emerald-600 hover:bg-emerald-700 text-white' 
+                                                          : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                                                      }`}
+                                                    >
+                                                      <ExternalLink className="w-3 h-3" />
+                                                      View
+                                                    </button>
+                                                  </div>
+                                                </div>
+                                              </div>
+                                            </div>
+                                          )}
+                                        </>
+                                      ) : (
+                                        <p className={`text-sm italic mt-2 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                                          Not answered
+                                        </p>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              ))}
+                            </div>
                           </div>
 
                           {/* Recommendations */}

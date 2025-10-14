@@ -104,6 +104,9 @@ const ConversationalSalesRound = ({
         step: msg.step
       }));
 
+      console.log('🤖 Requesting AI-generated conversational question from OpenRouter...');
+      console.log('📝 Conversation context length:', conversationContext.length);
+
       const response = await apiService.client.post('/ai/generate-sales-response', {
         step: step,
         scenario: scenario,
@@ -113,35 +116,46 @@ const ConversationalSalesRound = ({
       });
 
       if (response.data.success && response.data.data.content) {
+        console.log('✅ AI-generated question received:', response.data.data.content.substring(0, 100) + '...');
         return response.data.data.content;
       } else {
-        // Context-aware fallback questions based on conversation
-        const lastUserMessage = conversationHistory.filter(msg => msg.type === 'user').pop();
-        const userResponse = lastUserMessage?.content || '';
-        
-        if (userResponse.toLowerCase().includes('no idea') || userResponse.toLowerCase().includes('don\'t know')) {
-          return "I understand you might be unsure. Let's try a different approach - can you tell me about any products or services you've worked with before?";
-        } else if (userResponse.toLowerCase().includes('cost') || userResponse.toLowerCase().includes('price')) {
-          return "That's a great point about cost. How would you demonstrate the value and ROI of your solution to justify the investment?";
-        } else if (userResponse.toLowerCase().includes('time') || userResponse.toLowerCase().includes('timeline')) {
-          return "Timeline is important. How would you handle objections about implementation time and ensure a smooth transition?";
-        } else {
-          return "That's interesting. Can you elaborate on how you would handle potential objections from customers?";
-        }
+        console.warn('⚠️ API returned success but no content, using contextual fallback');
+        return generateContextualFallback(step, conversationHistory);
       }
     } catch (error) {
-      console.error('Error generating AI question:', error);
-      // Context-aware fallback
-      const lastUserMessage = conversationHistory.filter(msg => msg.type === 'user').pop();
-      const userResponse = lastUserMessage?.content || '';
-      
-      if (userResponse.toLowerCase().includes('no idea') || userResponse.toLowerCase().includes('don\'t know')) {
-        return "I understand you might be unsure. Let's try a different approach - can you tell me about any products or services you've worked with before?";
-      } else {
-        return "That's interesting. Can you elaborate on how you would handle potential objections from customers?";
-      }
+      console.error('❌ Error generating AI question:', error);
+      console.log('⚠️ Using contextual fallback due to API error');
+      return generateContextualFallback(step, conversationHistory);
     }
   }, [conversationHistory]);
+
+  // Helper function for contextual fallbacks (only used when API fails)
+  const generateContextualFallback = (step, history) => {
+    const lastUserMessage = history.filter(msg => msg.type === 'user').pop();
+    const userResponse = lastUserMessage?.content || '';
+    const userResponseLower = userResponse.toLowerCase();
+    
+    console.log('🔄 Generating contextual fallback based on user response');
+    
+    // Generate conversational response based on what the candidate said
+    if (userResponseLower.includes('cost') || userResponseLower.includes('price') || userResponseLower.includes('budget')) {
+      return "I appreciate you addressing the cost. However, I'm more focused on the ROI. Can you share some specific examples of cost savings your clients have achieved?";
+    } else if (userResponseLower.includes('implement') || userResponseLower.includes('timeline') || userResponseLower.includes('time')) {
+      return "That timeline sounds reasonable, but I'm concerned about disrupting our operations. How do you typically handle the transition to minimize downtime?";
+    } else if (userResponseLower.includes('team') || userResponseLower.includes('training')) {
+      return "Training is a big concern for us. My team is already stretched thin. What kind of time commitment and support can we expect during onboarding?";
+    } else if (userResponseLower.includes('competitor') || userResponseLower.includes('different')) {
+      return "I've heard similar pitches from competitors. What specifically makes your solution stand out? I need concrete differentiators.";
+    } else if (userResponseLower.includes('value') || userResponseLower.includes('benefit')) {
+      return "The benefits sound good, but I need to see real numbers. Do you have case studies from companies similar to ours?";
+    } else if (step === 0) {
+      return "Thanks for that. I've been looking at solutions for our operational challenges. What specific industries have you had the most success with?";
+    } else if (step === 1) {
+      return "I see what you're saying, but we've tried similar solutions before. What makes this different, and how can you guarantee better results?";
+    } else {
+      return "This is interesting. However, I need to discuss with my team before making commitments. What's your typical process from here?";
+    }
+  };
 
   // Handle user voice response
   const handleVoiceResponse = useCallback(async (voiceTranscription) => {
@@ -175,19 +189,20 @@ const ConversationalSalesRound = ({
     setIsGeneratingResponse(true);
 
     try {
-      // Check if this is the last step
+      // Check if this is the last step (after 3 questions: step 0, 1, 2)
       if (conversationStep >= 2) {
-        // Complete the conversation
+        // Complete the conversation after 3 questions
         const thankYouMessage = {
           id: Date.now() + 1,
           type: 'ai',
-          content: "Thank you for the great conversation! You've demonstrated excellent sales skills. The role-play is now complete.",
+          content: "Thank you for the engaging conversation! You've completed all three questions of this sales role-play. I appreciate your time and approach.",
           timestamp: new Date(),
-          step: conversationStep
+          step: conversationStep + 1
         };
 
         setConversationHistory(prev => [...prev, thankYouMessage]);
         setIsConversationComplete(true);
+        setConversationStep(3); // Move to complete state
         
         // Speak completion message
         if (typeof onSpeakText === 'function') {

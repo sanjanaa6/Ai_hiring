@@ -61,7 +61,7 @@ export default function CodePenEditor({
       </script>
     `;
     
-    return `<!doctype html><html><head><style>${css}</style></head><body>${html}${consoleScript}<script>${js}<\/script></body></html>`;
+    return `<!doctype html><html><head><style>${css}</style></head><body>${html}${consoleScript}<script>${js}</script></body></html>`;
   }, [html, css, js]);
 
   useEffect(() => {
@@ -112,6 +112,7 @@ export default function CodePenEditor({
       case 'html': setHtml(newValue); break;
       case 'css': setCss(newValue); break;
       case 'js': setJs(newValue); break;
+      default: break;
     }
   };
 

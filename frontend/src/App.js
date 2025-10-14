@@ -124,7 +124,11 @@ function AppShell() {
           <Route path="/register" element={<Register />} />
           <Route path="/jobs" element={<JobSearch />} />
           <Route path="/jobs/:id" element={<JobDetails />} />
-          <Route path="/interview/:interviewId" element={<Interview />} />
+          <Route path="/interview/:interviewId" element={
+            <ProtectedRoute>
+              <Interview />
+            </ProtectedRoute>
+          } />
           <Route path="/playground" element={<Playground />} />
           <Route path="/round/:accessLink" element={<RoundAccess />} />
           <Route path="/pcb-round/:accessLink" element={<ElectronicInterview />} />

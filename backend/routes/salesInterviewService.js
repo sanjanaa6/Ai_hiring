@@ -18,7 +18,7 @@ router.post('/generate-sales-response', auth, async (req, res) => {
   console.log('🎭 [SALES ROLE-PLAY] Generating AI response for sales scenario...');
   
   try {
-    const { prompt, scenario, userInput, step, isQuestionGeneration } = req.body;
+    const { prompt, scenario, userInput, step, isQuestionGeneration, conversationContext } = req.body;
     
     if (!scenario) {
       return res.status(400).json({
@@ -31,15 +31,16 @@ router.post('/generate-sales-response', auth, async (req, res) => {
       step,
       scenarioTitle: scenario.title,
       userInputLength: userInput?.length || 0,
-      isQuestionGeneration
+      isQuestionGeneration,
+      conversationHistoryLength: conversationContext?.length || 0
     });
 
     let aiResponse;
     
     if (isQuestionGeneration) {
-      // Generate question for the specific step
-      const questionPrompt = generateQuestionPrompt(step, scenario);
-      aiResponse = await callOpenRouterAPI(questionPrompt, req);
+      // Generate question for the specific step using conversation history
+      const questionPrompt = generateConversationalQuestionPrompt(step, scenario, conversationContext);
+      aiResponse = await callOpenRouterAPI(questionPrompt, req, true); // true = conversational mode
     } else {
       // Generate response based on user input
       if (!prompt || !userInput) {
@@ -48,7 +49,7 @@ router.post('/generate-sales-response', auth, async (req, res) => {
           error: 'Missing required parameters: prompt and userInput are required for response generation'
         });
       }
-      aiResponse = await callOpenRouterAPI(prompt, req);
+      aiResponse = await callOpenRouterAPI(prompt, req, false); // false = JSON mode
     }
     const aiContent = aiResponse.data.choices[0].message.content;
     
@@ -59,8 +60,11 @@ router.post('/generate-sales-response', auth, async (req, res) => {
     
     if (isQuestionGeneration) {
       // For question generation, the response should be plain text
+      const cleanedContent = aiContent.trim();
+      console.log('🎯 [SALES ROLE-PLAY] AI-generated conversational question:', cleanedContent.substring(0, 100) + '...');
+      
       responseData = {
-        content: aiContent.trim(),
+        content: cleanedContent,
         nextStep: step,
         feedback: null,
         metrics: null
@@ -152,40 +156,59 @@ router.post('/generate-sales-questions', auth, async (req, res) => {
   }
 });
 
-// Generate question prompt for specific step
-function generateQuestionPrompt(step, scenario) {
+// Generate conversational question prompt based on conversation history
+function generateConversationalQuestionPrompt(step, scenario, conversationContext) {
   const customerName = scenario.customerProfile.name;
   const companyName = scenario.customerProfile.company;
   
-  return `You are a potential customer in a sales role-play interview scenario. Generate exactly one question for step ${step} of a 3-step sales conversation.
+  // Build conversation history string
+  let conversationHistory = '';
+  if (conversationContext && conversationContext.length > 0) {
+    conversationHistory = '\n\nCONVERSATION HISTORY:\n';
+    conversationContext.forEach((msg, index) => {
+      const speaker = msg.type === 'ai' ? customerName : 'Sales Candidate';
+      conversationHistory += `${speaker}: ${msg.content}\n`;
+    });
+  }
+  
+  return `You are ${customerName}, a potential customer in a sales role-play interview scenario. You are having a natural, flowing conversation with a sales candidate.
 
 SCENARIO CONTEXT:
 ${scenario.context}
 
-CUSTOMER PROFILE:
-- Name: ${customerName}
+YOUR PROFILE (${customerName}):
 - Company: ${companyName}
 - Pain Points: ${scenario.customerProfile.painPoints.join(', ')}
 - Budget: ${scenario.customerProfile.budget}
 - Timeline: ${scenario.customerProfile.timeline}
 - Decision Style: ${scenario.customerProfile.decisionMakingStyle}
+${conversationHistory}
 
-CONVERSATION FLOW:
-- Step 0: Initial interest and needs discovery
-- Step 1: Objections and concerns about cost/timeline
-- Step 2: Decision process and next steps
+CONVERSATION STRUCTURE:
+This is a 3-question sales roleplay (Question 0, 1, and 2). You are currently generating Question ${step}.
+- Question 0: Initial discovery - understand their approach, build rapport
+- Question 1: Value discussion and objections - test their value proposition and objection handling
+- Question 2: Decision and closing - test their closing skills and next steps
 
-Generate a realistic customer question for step ${step} that:
-1. Stays in character as the customer
-2. Tests the candidate's sales skills appropriately
-3. Moves the conversation forward naturally
-4. Is relevant to the scenario and customer profile
+Based on the conversation so far, generate your next response as the customer. Your response should:
+1. Be a natural continuation of the conversation - reference what the candidate just said
+2. Stay in character as ${customerName} with your specific concerns and decision-making style
+3. Test the candidate's sales skills appropriate for Question ${step}
+4. Move the conversation forward organically based on what has been discussed
+5. Be realistic - ask follow-up questions, raise concerns, or express interest based on the candidate's responses
 
-Respond with ONLY the question text - no explanations, no JSON, just the question itself.`;
+IMPORTANT: 
+- DO NOT use generic, scripted questions
+- DO reference specific points the candidate made in their last response
+- DO act like a real customer who is listening and responding to what's being said
+- If the candidate addressed your concerns well, show interest; if not, push back naturally
+- Keep responses concise (2-3 sentences max) to maintain natural conversation flow
+
+Respond with ONLY your next statement or question as the customer - no explanations, no JSON, just what ${customerName} would naturally say next.`;
 }
 
 // Helper function to call OpenRouter API
-async function callOpenRouterAPI(prompt, req = null) {
+async function callOpenRouterAPI(prompt, req = null, isConversational = false) {
   console.log('🤖 [OPENROUTER] Calling OpenRouter API for sales interview...');
   
   // Get the referer URL safely
@@ -196,47 +219,69 @@ async function callOpenRouterAPI(prompt, req = null) {
     return process.env.FRONTEND_URL || 'http://localhost:3000';
   };
   
+  // Different system prompts for conversational vs structured responses
+  const systemPrompt = isConversational 
+    ? 'You are a realistic potential customer in a sales role-play scenario. Respond naturally as the customer would, based on the conversation context. Be authentic, ask relevant questions, raise realistic concerns, and react to what the sales candidate says. Do not break character.'
+    : 'You are an expert sales interviewer and role-play customer. You MUST respond with ONLY valid JSON. Do not include any text, explanations, or markdown outside the JSON structure. The JSON must be complete and properly formatted.';
+  
   for (let i = 0; i < FALLBACK_MODELS.length; i++) {
     const model = FALLBACK_MODELS[i];
-    try {
-      console.log(`🎯 [OPENROUTER] Trying model ${i + 1}/${FALLBACK_MODELS.length}: ${model}`);
-      
-      const response = await axios.post(OPENROUTER_API_URL, {
-        model: model,
-        messages: [
-          {
-            role: 'system',
-            content: 'You are an expert sales interviewer and role-play customer. You MUST respond with ONLY valid JSON. Do not include any text, explanations, or markdown outside the JSON structure. The JSON must be complete and properly formatted.'
+    
+    // Try each model with retries
+    for (let retry = 0; retry < 3; retry++) {
+      try {
+        console.log(`🎯 [OPENROUTER] Trying model ${i + 1}/${FALLBACK_MODELS.length}: ${model} (attempt ${retry + 1}/3)`);
+        
+        const response = await axios.post(OPENROUTER_API_URL, {
+          model: model,
+          messages: [
+            {
+              role: 'system',
+              content: systemPrompt
+            },
+            {
+              role: 'user',
+              content: prompt
+            }
+          ],
+          max_tokens: 2000,
+          temperature: 0.7
+        }, {
+          headers: {
+            'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+            'Content-Type': 'application/json',
+            'HTTP-Referer': getRefererUrl(),
+            'X-Title': 'AI Sales Interview Platform'
           },
-          {
-            role: 'user',
-            content: prompt
+          timeout: 45000, // Increased timeout to 45 seconds
+          validateStatus: function (status) {
+            return status < 500; // Resolve only if status is less than 500
           }
-        ],
-        max_tokens: 2000,
-        temperature: 0.7
-      }, {
-        headers: {
-          'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
-          'Content-Type': 'application/json',
-          'HTTP-Referer': getRefererUrl(),
-          'X-Title': 'AI Sales Interview Platform'
-        },
-        timeout: 30000
-      });
-      
-      console.log(`✅ [OPENROUTER] Success with model: ${model}`);
-      return response;
-      
-    } catch (error) {
-      console.log(`❌ [OPENROUTER] Failed with model: ${model}`, error.response?.status || error.message);
-      
-      if (i === FALLBACK_MODELS.length - 1) {
-        console.log('💥 [OPENROUTER] All models failed');
-        throw new Error('All AI models failed to generate sales response');
+        });
+        
+        // Check if response is successful
+        if (response.status === 200 && response.data.choices && response.data.choices.length > 0) {
+          console.log(`✅ [OPENROUTER] Success with model: ${model}`);
+          return response;
+        } else {
+          throw new Error(`Invalid response: ${response.status}`);
+        }
+        
+      } catch (error) {
+        const errorMsg = error.response?.data?.error?.message || error.message;
+        console.log(`❌ [OPENROUTER] Attempt ${retry + 1} failed for ${model}:`, errorMsg);
+        
+        // If this is the last retry for the last model, throw error
+        if (i === FALLBACK_MODELS.length - 1 && retry === 2) {
+          console.log('💥 [OPENROUTER] All models and retries exhausted');
+          throw new Error('All AI models failed to generate sales response. Please check your internet connection.');
+        }
+        
+        // Exponential backoff: wait longer between retries
+        const waitTime = Math.min(1000 * Math.pow(2, retry), 5000);
+        console.log(`⏳ [OPENROUTER] Waiting ${waitTime}ms before retry...`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
       }
-      
-      await new Promise(resolve => setTimeout(resolve, 1000));
     }
   }
 }
@@ -299,44 +344,42 @@ Respond with valid JSON in this exact format:
 Make sure each scenario is directly relevant to the ${title} role and tests practical sales skills.`;
 }
 
-// Create fallback sales response
-function createFallbackSalesResponse(userInput, step, scenario) {
+// Create fallback sales response based on conversation context
+function createFallbackSalesResponse(userInput, step, scenario, conversationContext) {
   console.log('🔄 [FALLBACK SALES] Creating fallback sales response...');
   
   const customerName = scenario.customerProfile.name;
-  const responses = {
-    introduction: [
-      "That's interesting. Can you tell me more about your company and how you've helped similar businesses?",
-      "I appreciate you taking the time to meet with me. What specific challenges are you facing right now?",
-      "Before we dive deeper, I'd like to understand your current situation better. What's working well for you?"
-    ],
-    pitch: [
-      "That sounds promising, but I'm concerned about the implementation process. How long does it typically take?",
-      "The benefits you mentioned are interesting, but I need to see some concrete ROI data. Do you have case studies?",
-      "I like what I'm hearing, but I'm worried about the cost. What kind of investment are we talking about?"
-    ],
-    objection: [
-      "I understand your point, but I'm still not convinced this is the right solution for us. What makes you different from competitors?",
-      "That's a good point, but I'm concerned about the learning curve for my team. How do you handle training?",
-      "I see the value, but I need to discuss this with my team first. What's your timeline for implementation?"
-    ],
-    closing: [
-      "I'm interested, but I need to think about it. What's the next step in your process?",
-      "This looks good, but I need to get approval from my manager. When do you need a decision?",
-      "I like what I see, but I want to compare this with a couple of other options. Can you send me a proposal?"
-    ],
-    feedback: [
-      "Thank you for the presentation. I'll review everything and get back to you soon.",
-      "I appreciate your time today. I'll discuss this with my team and let you know our decision.",
-      "This has been very informative. I'll be in touch once I've had a chance to review everything."
-    ]
-  };
-
-  const stepResponses = responses[step] || responses.introduction;
-  const randomResponse = stepResponses[Math.floor(Math.random() * stepResponses.length)];
+  
+  // Analyze user input for context
+  const userInputLower = userInput.toLowerCase();
+  let response = '';
+  
+  // Check what the candidate mentioned and respond accordingly
+  if (userInputLower.includes('cost') || userInputLower.includes('price') || userInputLower.includes('budget')) {
+    response = "I appreciate you bringing up the cost. However, I'm more concerned about the ROI and how quickly we can see results. Can you walk me through some specific examples of cost savings your clients have achieved?";
+  } else if (userInputLower.includes('implement') || userInputLower.includes('timeline') || userInputLower.includes('time')) {
+    response = "That timeline is interesting. But I'm worried about disrupting our current operations during implementation. How do you typically handle the transition to minimize downtime?";
+  } else if (userInputLower.includes('team') || userInputLower.includes('training') || userInputLower.includes('learn')) {
+    response = "Training is definitely a concern for us. My team is already stretched thin. How much time commitment are we looking at for onboarding, and what kind of support do you provide during that period?";
+  } else if (userInputLower.includes('competitor') || userInputLower.includes('different') || userInputLower.includes('compare')) {
+    response = "I've heard similar pitches from your competitors. What specifically makes your solution stand out? I need concrete differentiators, not just marketing speak.";
+  } else if (userInputLower.includes('roi') || userInputLower.includes('return') || userInputLower.includes('value')) {
+    response = "The value proposition sounds good on paper, but I need to see real numbers. Do you have case studies from companies similar to ours that show measurable results?";
+  } else if (userInputLower.includes('demo') || userInputLower.includes('show') || userInputLower.includes('see')) {
+    response = "A demo would be helpful. But before we schedule that, I need to understand if this is even the right fit for our specific pain points. Can you tell me more about how you've solved similar challenges?";
+  } else if (step === 0) {
+    // Initial conversation - respond to their introduction
+    response = "Thanks for that introduction. I've been looking at solutions to address our operational inefficiencies. What specific industries or use cases have you had the most success with?";
+  } else if (step === 1) {
+    // Mid conversation - raise objections
+    response = "I see what you're saying, but I'm still not entirely convinced. We've tried similar solutions before and they didn't deliver. What makes this different, and how can you guarantee we won't face the same issues?";
+  } else {
+    // Later conversation - closing concerns
+    response = "This is definitely interesting, and I can see potential value. However, I need to discuss this with my leadership team before making any commitments. What's your typical sales process from here, and what kind of timeline are we looking at?";
+  }
 
   return {
-    content: randomResponse,
+    content: response,
     nextStep: getNextStep(step),
     feedback: generateFeedback(userInput, step),
     metrics: generateMetrics(userInput, step)

@@ -364,7 +364,21 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
       console.log('🔍 [SUBMIT] codeAnswer length:', codeAnswer?.length || 0);
       console.log('🔍 [SUBMIT] voiceRecording.transcription length:', voiceRecording.transcription?.length || 0);
 
-      if (isLiveCodingRound && codeAnswer.trim()) {
+      if (answerData && (answerData.pcbDesignData || answerData.designNotes)) {
+        // PCB Round submission - always submit even if no JSON uploaded
+        answerContent = answerData.designNotes || 'PCB Design submitted (no explanation provided)';
+        answerType = 'pcb_design';
+        console.log('✅ [SUBMIT] Using PCB design answer');
+        console.log('📋 [SUBMIT] PCB Design Notes:', answerData.designNotes);
+        console.log('📋 [SUBMIT] PCB Design Data:', answerData.pcbDesignData ? 'Present' : 'Not uploaded');
+        
+        additionalData = {
+          pcbDesignData: answerData.pcbDesignData || null,
+          designNotes: answerData.designNotes || '',
+          timeSpent: answerData.timeSpent || 0,
+          submittedAt: answerData.submittedAt || new Date().toISOString()
+        };
+      } else if (isLiveCodingRound && codeAnswer.trim()) {
         answerContent = codeAnswer;
         answerType = 'code';
         console.log('✅ [SUBMIT] Using code answer');
