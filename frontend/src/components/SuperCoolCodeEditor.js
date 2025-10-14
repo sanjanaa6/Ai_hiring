@@ -1269,7 +1269,11 @@ const SuperCoolCodeEditor = ({
             /* Console Output Section */
             <div className="p-4">
           {output ? (
-            <div className="bg-gray-900 text-green-400 p-4 rounded-lg font-mono text-sm border border-gray-300">
+            <div className={`bg-gray-900 p-4 rounded-lg font-mono text-sm border border-gray-300 ${
+              output.includes('Error') || output.includes('❌') || output.includes('stderr') || output.includes('Exception') || output.includes('Traceback')
+                ? 'text-red-400'
+                : 'text-green-400'
+            }`}>
               <pre className="whitespace-pre-wrap leading-relaxed">{output}</pre>
             </div>
           ) : isTyping ? (

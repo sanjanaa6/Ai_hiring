@@ -253,9 +253,9 @@ export default function CodePenEditor({
                 consoleLogs.map((log, idx) => (
                   <div 
                     key={idx} 
-                    className={`py-1 ${
-                      log.type === 'error' ? 'text-red-400' : 
-                      log.type === 'warn' ? 'text-yellow-400' : 
+                    className={`py-2 px-3 mb-1 rounded ${
+                      log.type === 'error' ? 'text-red-500 bg-red-950/50 border-l-4 border-red-500' : 
+                      log.type === 'warn' ? 'text-yellow-400 bg-yellow-950/30 border-l-4 border-yellow-500' : 
                       'text-green-400'
                     }`}
                   >
