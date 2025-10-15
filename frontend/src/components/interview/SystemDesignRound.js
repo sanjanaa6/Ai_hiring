@@ -338,24 +338,6 @@ const SystemDesignRound = ({
                   </span>
                 </div>
               )}
-              
-              {/* Timer */}
-              <div className={`flex items-center space-x-2 px-4 py-2 rounded-lg ${
-                timeRemaining < 300 
-                  ? 'bg-red-500/20 border border-red-500/50' 
-                  : isDarkMode 
-                    ? 'bg-blue-500/20 border border-blue-500/50' 
-                    : 'bg-blue-100 border border-blue-300'
-              }`}>
-                <Clock className={`h-5 w-5 ${timeRemaining < 300 ? 'text-red-500' : 'text-blue-500'}`} />
-                <span className={`font-mono text-lg font-bold ${
-                  timeRemaining < 300 
-                    ? 'text-red-500' 
-                    : isDarkMode ? 'text-blue-400' : 'text-blue-700'
-                }`}>
-                  {formatTime(timeRemaining)}
-                </span>
-              </div>
 
               {/* Submit Button */}
               <button

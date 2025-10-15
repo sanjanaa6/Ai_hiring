@@ -187,18 +187,6 @@ const InterviewMain = ({
             </div>
           </div>
 
-          {/* Center: Timer */}
-          <div className={`flex items-center space-x-2 px-4 py-2 rounded-full ${
-            isDarkMode ? 'bg-slate-700/50' : 'bg-gray-100'
-          }`}>
-            <Clock className="h-5 w-5 text-blue-500" />
-            <span className={`text-lg font-mono font-bold ${
-              isDarkMode ? 'text-white' : 'text-gray-900'
-            }`}>
-              {formatTime(timeRemaining)}
-            </span>
-          </div>
-
           {/* Right: Controls */}
           <div className="flex items-center space-x-3">
             <button
