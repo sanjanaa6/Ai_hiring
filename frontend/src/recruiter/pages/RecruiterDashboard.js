@@ -422,21 +422,80 @@ const RecruiterDashboard = () => {
     if (roleType === 'developer') {
       return `${basePrompt}
 
+CRITICAL INSTRUCTIONS - FOLLOW EXACTLY:
+- ONLY ask questions about technologies/tools EXPLICITLY mentioned in the job description
+- DO NOT ask about AWS, Docker, Kubernetes, CI/CD, or any DevOps tools UNLESS they are specifically mentioned in the job description
+- Round 3 is the ONLY round where candidates write actual code
+- All other rounds must be 100% theoretical - NO practical tasks, NO code writing, NO "implement this" questions
+
 Please structure the interview with these specific rounds:
 
-1. **Introduction & Self Intro** – Ask about themselves, background, past projects, career goals, and what they're looking for in their next role. NO CODING QUESTIONS - only conversational questions about experience and motivation.
+1. **Introduction & Self Intro** (5-7 minutes)
+   - Ask about their background, experience, and motivation
+   - Questions about past projects and career goals
+   - What they're looking for in their next role
+   - STRICTLY NO TECHNICAL QUESTIONS - only conversational/behavioral
+   - Example: "Tell me about your journey as a developer"
+   - Example: "What motivated you to apply for this position?"
 
-2. **Basic Technical Questions** – Role-specific technical fundamentals based on the job requirements. For Python developers: Python syntax, data structures, OOP concepts, libraries. For React developers: JSX, props, state, hooks. For Java developers: Java syntax, collections, OOP, Spring. For other roles: relevant technical concepts. NO CODING - only theoretical/conceptual questions about how these technologies work.
+2. **Basic Technical Questions** (10-15 minutes)
+   - ONLY theoretical questions about concepts mentioned in job description
+   - For Python: "What is the difference between list and tuple?" "Explain decorators"
+   - For React: "What is the virtual DOM?" "Explain useState vs useEffect"
+   - For Java: "What is polymorphism?" "Explain interfaces vs abstract classes"
+   - ABSOLUTELY NO CODE WRITING - only "What is...", "Explain...", "Describe..." questions
+   - ABSOLUTELY NO questions about tools not mentioned in job description
 
-3. **Coding Round** – ONLY ROUND WITH CODING. Role-specific hands-on task: For Python developers: data processing, algorithm implementation, or API development. For React developers: building a todo app, component creation, or API integration. For Java developers: class design, algorithm implementation, or Spring application. For other roles: relevant practical coding challenges. This is the ONLY round where actual coding should be involved.
+3. **Coding Round** (20-30 minutes) - THE ONLY PRACTICAL ROUND
+   - This is the ONLY round where candidates write actual code
+   - Give 2-3 coding problems that require writing complete working code
+   - Problems should be directly related to technologies in job description
+   - For Python: "Write a function to reverse a string", "Implement a binary search"
+   - For React: "Create a counter component with increment/decrement buttons"
+   - For Java: "Write a class to implement a stack with push/pop operations"
+   - NO EXPLANATIONS - just pure code writing tasks
+   - Format: "Write code to..." or "Implement a function that..."
 
-4. **Advanced Technical Questions** – Role-specific advanced concepts. For Python: frameworks (Django/Flask), data science libraries, async programming. For React: state management, performance optimization, testing. For Java: Spring framework, microservices, design patterns. For other roles: relevant advanced concepts, best practices, and system design basics. NO CODING - only discussion about concepts, best practices, and theoretical knowledge.
+4. **Advanced Technical Questions** (10-15 minutes)
+   - ONLY theoretical questions about advanced concepts from job description
+   - For Python: "Explain how garbage collection works", "What are metaclasses?"
+   - For React: "Explain React reconciliation algorithm", "What is Context API?"
+   - For Java: "Explain JVM memory management", "What are design patterns?"
+   - ABSOLUTELY NO CODE WRITING - only theoretical discussions
+   - NO questions about deployment, DevOps, or infrastructure unless in job description
 
-5. **Behavioral/Soft Skills** – Communication skills, teamwork, problem-solving approach, handling pressure, learning new technologies, and confidence in technical discussions. NO CODING - only behavioral and soft skills questions.
+5. **System Design & Architecture** (15-20 minutes) - DESIGN ONLY
+   - ONLY high-level architecture and design questions
+   - "How would you design a URL shortener?" (architecture diagram, not code)
+   - "Design the database schema for an e-commerce platform"
+   - "Explain how you would architect a real-time chat application"
+   - Focus on: Components, Data flow, Database design, API structure, Scalability
+   - ABSOLUTELY NO CODE IMPLEMENTATION - only design diagrams and explanations
+   - This is about DRAWING and EXPLAINING architecture, not writing code
 
-6. **Final Feedback & Decision** – Discuss strengths, areas for improvement, technical fit, cultural fit, and next steps (offer or decline). NO CODING - only feedback and decision discussion.
+6. **Behavioral/Soft Skills** (10 minutes)
+   - Communication, teamwork, problem-solving approach
+   - Handling pressure and deadlines
+   - Learning new technologies
+   - STRICTLY NO TECHNICAL QUESTIONS - only behavioral
 
-IMPORTANT: Only Round 3 (Coding Round) should involve actual coding. All other rounds must be strictly non-coding - use theoretical questions, discussions, and behavioral assessments only.`;
+7. **Final Feedback & Decision** (5 minutes)
+   - Discuss strengths and areas for improvement
+   - Technical fit and cultural fit
+   - Next steps (offer or decline)
+   - STRICTLY NO QUESTIONS - only feedback discussion
+
+ABSOLUTE RULES - DO NOT VIOLATE:
+1. Round 3 (Coding Round) = ONLY round with actual code writing
+2. Round 5 (System Design) = ONLY design/architecture, NO code implementation
+3. All other rounds = 100% theoretical, NO practical tasks
+4. ONLY ask about technologies mentioned in the job description
+5. NO AWS/Docker/Kubernetes questions unless explicitly in job description
+6. Each coding question must start with "Write code to..." or "Implement..."
+7. Each theoretical question must start with "What is...", "Explain...", "Describe..."
+8. Each design question must start with "How would you design...", "Design a..."
+
+Generate questions that strictly follow these rules.`;
     } else if (roleType === 'sales') {
       return `${basePrompt}
 
@@ -458,53 +517,88 @@ Each round should have 3-5 relevant questions that progressively assess the cand
     } else if (roleType === 'pcb') {
       return `${basePrompt}
 
+CRITICAL INSTRUCTIONS - FOLLOW EXACTLY:
+- ONLY ask questions about electronics/PCB technologies EXPLICITLY mentioned in the job description
+- DO NOT ask about software, programming, or firmware UNLESS specifically mentioned in the job description
+- Round 3 is the ONLY round where candidates do actual PCB design work
+- All other rounds must be 100% theoretical - NO practical design tasks, NO "design this circuit" questions
+
 Please structure the interview with these specific rounds for an Electronics/PCB Design Engineer:
 
-1. **Electronics Fundamentals** – Test theoretical knowledge of:
-   - Analog and digital circuit design principles
-   - Component selection and specifications
-   - Signal integrity and power management
-   - PCB manufacturing processes and constraints
-   - Testing and validation methodologies
+1. **Introduction & Background** (5-7 minutes)
+   - Ask about their electronics/PCB design experience
+   - Previous projects and achievements
+   - What motivated them to apply
+   - STRICTLY NO TECHNICAL QUESTIONS - only conversational/behavioral
+   - Example: "Tell me about your journey as a PCB designer"
+   - Example: "What's the most challenging PCB project you've worked on?"
 
-2. **Advanced Electronics Concepts** – Assess knowledge of:
-   - High-speed digital design
-   - RF and microwave circuit design
-   - Power electronics and motor control
-   - Embedded systems integration
-   - Design for manufacturability (DFM) and testability (DFT)
+2. **Electronics Fundamentals** (10-15 minutes) - THEORETICAL ONLY
+   - ONLY theoretical questions about basic electronics concepts
+   - "What is the difference between analog and digital signals?"
+   - "Explain Ohm's Law and its applications"
+   - "What is impedance matching and why is it important?"
+   - "Describe the difference between series and parallel circuits"
+   - ABSOLUTELY NO DESIGN TASKS - only "What is...", "Explain...", "Describe..." questions
+   - ABSOLUTELY NO questions about tools/software not in job description
 
-3. **PCB Design Round** – This is Round 3 and should be completely hands-on PCB design. Create multiple PCB design challenges where the candidate must:
-   - Design circuit schematics for specific electronics applications
-   - Select appropriate components (resistors, capacitors, microcontrollers, etc.)
-   - Create PCB layouts with proper component placement
-   - Consider EMI/EMC, thermal management, and manufacturability
-   - Use PCB design tools (Altium Designer, KiCad, Eagle, etc.)
-   - This round should be entirely practical and hands-on, allowing the candidate to demonstrate real PCB design skills
-   - ALL questions in this round should be PCB design challenges
+3. **PCB Design Round** (25-35 minutes) - THE ONLY PRACTICAL ROUND
+   - This is the ONLY round where candidates do actual PCB design work
+   - Give 2-3 hands-on PCB design challenges using design canvas/tools
+   - "Design a 2-layer PCB for a simple LED circuit with power supply"
+   - "Create a schematic for a voltage regulator circuit (5V to 3.3V)"
+   - "Design component placement for a microcontroller board considering signal integrity"
+   - Candidates should use PCB design tools to create actual schematics and layouts
+   - NO EXPLANATIONS - just pure design work
+   - Format: "Design a...", "Create a schematic for...", "Layout a PCB for..."
 
-4. **Circuit Analysis** – Test practical circuit analysis skills:
-   - Analyze given circuit schematics
-   - Calculate component values and circuit parameters
-   - Troubleshoot circuit problems
-   - Explain circuit behavior and performance
-   - This round should focus on theoretical analysis and problem-solving
+4. **Advanced Electronics Concepts** (10-15 minutes) - THEORETICAL ONLY
+   - ONLY theoretical questions about advanced concepts from job description
+   - "Explain signal integrity and crosstalk in high-speed designs"
+   - "What is EMI/EMC and how do you mitigate it?"
+   - "Describe thermal management techniques in PCB design"
+   - "What are design for manufacturability (DFM) principles?"
+   - ABSOLUTELY NO DESIGN TASKS - only theoretical discussions
+   - NO questions about firmware/software unless in job description
 
-5. **Project Experience & Problem Solving** – Discuss:
+5. **Circuit Analysis & Troubleshooting** (10-15 minutes) - THEORETICAL ONLY
+   - ONLY theoretical questions about analyzing circuits
+   - "How would you troubleshoot a circuit that's not powering on?"
+   - "Explain how to calculate current in a resistor network"
+   - "What tools would you use to debug signal integrity issues?"
+   - "Describe the process of component selection for a power supply"
+   - ABSOLUTELY NO ACTUAL DESIGN - only explaining processes and methods
+   - Focus on methodology, not implementation
+
+6. **Project Experience & Collaboration** (10 minutes)
    - Previous PCB design projects and challenges
-   - Troubleshooting and debugging techniques
-   - Collaboration with firmware and mechanical engineers
-   - Quality assurance and testing procedures
+   - Working with cross-functional teams
+   - Project management and timelines
+   - STRICTLY NO TECHNICAL QUESTIONS - only experience discussion
 
-6. **Behavioral & Soft Skills** – Evaluate:
-   - Communication skills for technical discussions
-   - Project management and timeline adherence
-   - Learning new technologies and tools
-   - Working in cross-functional teams
+7. **Behavioral & Soft Skills** (5-7 minutes)
+   - Communication skills
+   - Handling pressure and deadlines
+   - Learning new tools and technologies
+   - STRICTLY NO TECHNICAL QUESTIONS - only behavioral
 
-7. **Final Feedback & Decision** – Discuss technical fit, project experience, and next steps.
+8. **Final Feedback & Decision** (5 minutes)
+   - Discuss strengths and areas for improvement
+   - Technical fit and cultural fit
+   - Next steps
+   - STRICTLY NO QUESTIONS - only feedback discussion
 
-IMPORTANT: Round 3 (PCB Design Round) should be completely hands-on with ALL questions being PCB design challenges. Round 4 (Circuit Analysis) should be theoretical analysis questions. The other rounds should complement these with knowledge assessment and experience evaluation.`;
+ABSOLUTE RULES - DO NOT VIOLATE:
+1. Round 3 (PCB Design Round) = ONLY round with actual design work using tools
+2. All other rounds = 100% theoretical, NO practical design tasks
+3. ONLY ask about electronics/PCB topics mentioned in job description
+4. NO software/firmware questions unless explicitly in job description
+5. Each design question must start with "Design...", "Create a schematic...", "Layout..."
+6. Each theoretical question must start with "What is...", "Explain...", "Describe...", "How would you..."
+7. Round 3 should use actual PCB design canvas/tools for hands-on work
+8. Rounds 1, 2, 4, 5, 6, 7, 8 must be 100% theoretical discussions
+
+Generate questions that strictly follow these rules.`;
     } else if (roleType === 'generic') {
       return `${basePrompt}
 
