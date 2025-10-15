@@ -36,8 +36,8 @@ const Hero = () => {
   return (
     <section className={`relative pt-16 min-h-screen flex items-center overflow-hidden ${
       isDarkMode 
-        ? 'bg-gradient-to-br from-gray-900 via-blue-900/20 to-slate-900' 
-        : 'bg-gradient-to-br from-blue-50 via-indigo-50 to-slate-100'
+        ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-slate-900' 
+        : 'bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50'
     }`}>
       {/* Animated Background Elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">

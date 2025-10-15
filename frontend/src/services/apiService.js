@@ -859,20 +859,6 @@ class ApiService {
     }
   }
 
-  async getInterviewRecordings(interviewId) {
-    try {
-      const response = await this.client.get(`/interviews/${interviewId}/recordings`);
-      return response.data;
-    } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error('Get interview recordings error:', error);
-      return {
-        success: false,
-        error: error.response?.data?.error || error.message || 'Failed to get interview recordings'
-      };
-    }
-  }
-
   // File Upload Methods
   async uploadInterviewFile(interviewId, formData) {
     try {
@@ -980,6 +966,309 @@ class ApiService {
       };
     }
   }
+
+  // ===== Session Management API calls =====
+  
+  /**
+   * Create a new interview session
+   * @param {string} interviewId - The interview ID
+   * @param {object} candidateInfo - Candidate information { name, email, candidateId? }
+   * @param {object} deviceInfo - Device information (optional)
+   * @returns {Promise} Session creation response
+   */
+  async createSession(interviewId, candidateInfo, deviceInfo = null) {
+    try {
+      const response = await this.client.post('/sessions/create', {
+        interviewId,
+        candidateInfo,
+        deviceInfo
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Create session error:', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to create session'
+      };
+    }
+  }
+
+  /**
+   * Get session by session ID
+   * @param {string} sessionId - The session ID
+   * @returns {Promise} Session data
+   */
+  async getSession(sessionId) {
+    try {
+      const response = await this.client.get(`/sessions/${sessionId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Get session error:', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to get session'
+      };
+    }
+  }
+
+  /**
+   * Start a session
+   * @param {string} sessionId - The session ID
+   * @returns {Promise} Started session data
+   */
+  async startSession(sessionId) {
+    try {
+      const response = await this.client.post(`/sessions/${sessionId}/start`);
+      return response.data;
+    } catch (error) {
+      console.error('Start session error:', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to start session'
+      };
+    }
+  }
+
+  /**
+   * Get current round of a session
+   * @param {string} sessionId - The session ID
+   * @returns {Promise} Current round data
+   */
+  async getCurrentRound(sessionId) {
+    try {
+      const response = await this.client.get(`/sessions/${sessionId}/current-round`);
+      return response.data;
+    } catch (error) {
+      console.error('Get current round error:', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to get current round'
+      };
+    }
+  }
+
+  /**
+   * Update round progress
+   * @param {string} sessionId - The session ID
+   * @param {number} roundNumber - The round number
+   * @param {object} progressData - Progress data { timeSpent?, questions?, fileUploads?, formSubmitted? }
+   * @returns {Promise} Updated session data
+   */
+  async updateRoundProgress(sessionId, roundNumber, progressData) {
+    try {
+      const response = await this.client.put(`/sessions/${sessionId}/rounds/${roundNumber}/progress`, progressData);
+      return response.data;
+    } catch (error) {
+      console.error('Update round progress error:', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to update round progress'
+      };
+    }
+  }
+
+  /**
+   * Complete current round
+   * @param {string} sessionId - The session ID
+   * @param {object} roundData - Round completion data { roundScore?, evaluation?, feedback? }
+   * @returns {Promise} Completed round data
+   */
+  async completeRound(sessionId, roundData = {}) {
+    try {
+      const response = await this.client.post(`/sessions/${sessionId}/rounds/complete`, roundData);
+      return response.data;
+    } catch (error) {
+      console.error('Complete round error:', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to complete round'
+      };
+    }
+  }
+
+  /**
+   * Move to next round
+   * @param {string} sessionId - The session ID
+   * @returns {Promise} Next round data
+   */
+  async moveToNextRound(sessionId) {
+    try {
+      const response = await this.client.post(`/sessions/${sessionId}/rounds/next`);
+      return response.data;
+    } catch (error) {
+      console.error('Move to next round error:', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to move to next round'
+      };
+    }
+  }
+
+  /**
+   * Complete entire session
+   * @param {string} sessionId - The session ID
+   * @param {object} sessionData - Session completion data { overallScore?, overallEvaluation?, overallFeedback? }
+   * @returns {Promise} Completed session data
+   */
+  async completeSession(sessionId, sessionData = {}) {
+    try {
+      const response = await this.client.post(`/sessions/${sessionId}/complete`, sessionData);
+      return response.data;
+    } catch (error) {
+      console.error('Complete session error:', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to complete session'
+      };
+    }
+  }
+
+  /**
+   * Get all sessions for an interview
+   * @param {string} interviewId - The interview ID
+   * @param {object} filters - Filter options { status?, page?, limit? }
+   * @returns {Promise} Sessions list
+   */
+  async getInterviewSessions(interviewId, filters = {}) {
+    try {
+      const params = new URLSearchParams(filters).toString();
+      const url = `/sessions/interview/${interviewId}${params ? `?${params}` : ''}`;
+      const response = await this.client.get(url);
+      return response.data;
+    } catch (error) {
+      console.error('Get interview sessions error:', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to get interview sessions'
+      };
+    }
+  }
+
+  /**
+   * Get candidate's sessions
+   * @param {string} candidateEmail - The candidate email
+   * @param {object} filters - Filter options { status? }
+   * @returns {Promise} Sessions list
+   */
+  async getCandidateSessions(candidateEmail, filters = {}) {
+    try {
+      const params = new URLSearchParams(filters).toString();
+      const url = `/sessions/candidate/${candidateEmail}${params ? `?${params}` : ''}`;
+      const response = await this.client.get(url);
+      return response.data;
+    } catch (error) {
+      console.error('Get candidate sessions error:', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to get candidate sessions'
+      };
+    }
+  }
+
+  /**
+   * Update session monitoring data
+   * @param {string} sessionId - The session ID
+   * @param {object} monitoringData - Monitoring data
+   * @returns {Promise} Updated monitoring data
+   */
+  async updateSessionMonitoring(sessionId, monitoringData) {
+    try {
+      const response = await this.client.put(`/sessions/${sessionId}/monitoring`, { monitoringData });
+      return response.data;
+    } catch (error) {
+      console.error('Update session monitoring error:', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to update session monitoring'
+      };
+    }
+  }
+
+  /**
+   * Add note to session
+   * @param {string} sessionId - The session ID
+   * @param {string} note - The note to add
+   * @returns {Promise} Updated notes
+   */
+  async addSessionNote(sessionId, note) {
+    try {
+      const response = await this.client.post(`/sessions/${sessionId}/notes`, { note });
+      return response.data;
+    } catch (error) {
+      console.error('Add session note error:', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to add session note'
+      };
+    }
+  }
+
+  /**
+   * Generic POST request
+   * @param {string} url - The API endpoint URL
+   * @param {object} data - The data to send
+   * @param {object} config - Optional axios config
+   * @returns {Promise} Response data
+   */
+  async post(url, data, config = {}) {
+    try {
+      const response = await this.client.post(url, data, config);
+      return response;
+    } catch (error) {
+      console.error('POST request error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Generic GET request
+   * @param {string} url - The API endpoint URL
+   * @param {object} config - Optional axios config
+   * @returns {Promise} Response data
+   */
+  async get(url, config = {}) {
+    try {
+      const response = await this.client.get(url, config);
+      return response;
+    } catch (error) {
+      console.error('GET request error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Generic PUT request
+   * @param {string} url - The API endpoint URL
+   * @param {object} data - The data to send
+   * @param {object} config - Optional axios config
+   * @returns {Promise} Response data
+   */
+  async put(url, data, config = {}) {
+    try {
+      const response = await this.client.put(url, data, config);
+      return response;
+    } catch (error) {
+      console.error('PUT request error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Generic DELETE request
+   * @param {string} url - The API endpoint URL
+   * @param {object} config - Optional axios config
+   * @returns {Promise} Response data
+   */
+  async delete(url, config = {}) {
+    try {
+      const response = await this.client.delete(url, config);
+      return response;
+    } catch (error) {
+      console.error('DELETE request error:', error);
+      throw error;
+    }
+  }
+
 }
 
 const apiService = new ApiService();

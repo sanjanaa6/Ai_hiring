@@ -43,12 +43,12 @@ const InterviewSetup = ({
 
 
   return (
-    <div className={`min-h-screen flex items-center justify-center p-4 ${
+    <div className={`min-h-screen flex items-start justify-center p-4 py-8 overflow-y-auto ${
       isDarkMode 
         ? 'bg-gradient-to-br from-slate-900 via-gray-900 to-black' 
         : 'bg-gradient-to-br from-white via-blue-50 to-indigo-100'
     }`}>
-      <div className={`max-w-4xl w-full ${
+      <div className={`max-w-4xl w-full my-auto ${
         isDarkMode 
           ? 'bg-slate-800/50 backdrop-blur-md border border-white/10' 
           : 'bg-white/80 backdrop-blur-md border border-gray-200'

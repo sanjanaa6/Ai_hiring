@@ -28,6 +28,7 @@ import ThemeSwitcher from '../../components/common/ThemeSwitcher';
 import FileUploadRoundManager from './FileUploadRoundManager';
 import FormFieldManager from './FormFieldManager';
 import FormSubmissionViewer from './FormSubmissionViewer';
+import SystemDesignViewer from './SystemDesignViewer';
 
 // Use apiService instead of custom axios instance
 
@@ -51,6 +52,8 @@ const InterviewReviewer = () => {
   const [showAddFileRequirementModal, setShowAddFileRequirementModal] = useState(false);
   const [selectedRoundIndex, setSelectedRoundIndex] = useState(null);
   const [selectedFormRound, setSelectedFormRound] = useState(null);
+  const [systemDesignSubmissions, setSystemDesignSubmissions] = useState([]);
+  const [loadingSubmissions, setLoadingSubmissions] = useState(false);
   const [newRoundData, setNewRoundData] = useState({
     type: 'interview',
     title: '',
@@ -132,6 +135,30 @@ const InterviewReviewer = () => {
   useEffect(() => {
     fetchInterview();
   }, [fetchInterview]);
+
+  // Fetch system design submissions
+  const fetchSystemDesignSubmissions = useCallback(async () => {
+    if (!interviewId) return;
+    
+    setLoadingSubmissions(true);
+    try {
+      const response = await apiService.get(`/interviews/system-design/${interviewId}/all`);
+      if (response.data.success) {
+        setSystemDesignSubmissions(response.data.submissions || []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch system design submissions:', error);
+    } finally {
+      setLoadingSubmissions(false);
+    }
+  }, [interviewId]);
+
+  // Fetch submissions when system-design tab is active
+  useEffect(() => {
+    if (activeTab === 'system-design') {
+      fetchSystemDesignSubmissions();
+    }
+  }, [activeTab, fetchSystemDesignSubmissions]);
 
   const handleRoundEdit = (roundIndex) => {
     setEditingRound(roundIndex);
@@ -827,6 +854,20 @@ const InterviewReviewer = () => {
             >
               Form Submissions
             </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => setActiveTab('system-design')}
+              className={`flex-1 py-2 px-4 rounded-md font-medium transition-colors duration-200 ${
+                activeTab === 'system-design'
+                  ? 'bg-white text-indigo-600 shadow-sm'
+                  : isDarkMode 
+                    ? 'text-gray-400 hover:text-white' 
+                    : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              System Design
+            </motion.button>
           </div>
 
           {/* Tab Content */}
@@ -1243,23 +1284,24 @@ const InterviewReviewer = () => {
                     : 'border-gray-300 bg-gray-50'
                 }`}>
                   <div className="text-center">
-                    <div className={`w-12 h-12 mx-auto mb-4 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
-                      📝
-                    </div>
-                    <h3 className={`text-lg font-medium mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                      No Form Submission Rounds Yet
+                    <div className="text-4xl mb-3">📝</div>
+                    <h3 className={`text-lg font-semibold mb-2 ${
+                      isDarkMode ? 'text-white' : 'text-gray-900'
+                    }`}>
+                      No Form Submission Rounds
                     </h3>
-                    <p className={`text-sm mb-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                      Create form submission rounds to collect structured information from candidates.
+                    <p className={`text-sm ${
+                      isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                    }`}>
+                      Add a form submission round to collect structured data from candidates
                     </p>
                     <motion.button
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
-                      onClick={() => setActiveTab('rounds')}
-                      className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 flex items-center gap-2 mx-auto"
+                      onClick={handleAddRound}
+                      className="mt-4 bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200"
                     >
-                      <Plus className="w-4 h-4" />
-                      Create Form Round
+                      Add Form Round
                     </motion.button>
                   </div>
                 </div>
@@ -1326,6 +1368,101 @@ const InterviewReviewer = () => {
             </div>
           )}
 
+          {activeTab === 'system-design' && (
+            <div className="space-y-6">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h2 className={`text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                    System Design Submissions
+                  </h2>
+                  <p className={`text-sm mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                    View candidate system design diagrams ({systemDesignSubmissions.length} submissions)
+                  </p>
+                </div>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={fetchSystemDesignSubmissions}
+                  disabled={loadingSubmissions}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                    isDarkMode 
+                      ? 'bg-indigo-600 hover:bg-indigo-700 text-white' 
+                      : 'bg-indigo-500 hover:bg-indigo-600 text-white'
+                  } disabled:opacity-50`}
+                >
+                  <RefreshCw className={`w-4 h-4 ${loadingSubmissions ? 'animate-spin' : ''}`} />
+                  Refresh
+                </motion.button>
+              </div>
+
+              {loadingSubmissions ? (
+                <div className={`p-8 rounded-lg border ${
+                  isDarkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'
+                }`}>
+                  <div className="flex items-center justify-center">
+                    <RefreshCw className="w-6 h-6 animate-spin text-indigo-500 mr-3" />
+                    <span className={isDarkMode ? 'text-gray-300' : 'text-gray-700'}>
+                      Loading submissions...
+                    </span>
+                  </div>
+                </div>
+              ) : systemDesignSubmissions.length === 0 ? (
+                <div className={`p-6 rounded-lg border ${
+                  isDarkMode 
+                    ? 'border-gray-700 bg-gray-800' 
+                    : 'border-gray-200 bg-white'
+                }`}>
+                  <div className="text-center py-8">
+                    <div className="text-4xl mb-3">🎨</div>
+                    <h3 className={`text-lg font-semibold mb-2 ${
+                      isDarkMode ? 'text-white' : 'text-gray-900'
+                    }`}>
+                      No Submissions Yet
+                    </h3>
+                    <p className={`text-sm ${
+                      isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                    }`}>
+                      System design submissions will appear here once candidates complete their diagrams.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {systemDesignSubmissions.map((submission, index) => {
+                    // Find the round information for this submission
+                    const round = interview?.rounds?.find(r => r.roundId === submission.roundId);
+                    const roundInfo = round ? {
+                      title: round.title,
+                      description: round.description,
+                      question: round.questions?.[0]?.question || null
+                    } : null;
+
+                    return (
+                      <motion.div
+                        key={submission.candidateId + submission.roundId}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.1 }}
+                      >
+                        <SystemDesignViewer
+                          diagramData={submission.diagramData}
+                          candidateInfo={{
+                            name: submission.candidateName,
+                            email: submission.candidateEmail,
+                            id: submission.candidateId
+                          }}
+                          submissionTime={submission.submittedAt}
+                          timeSpent={submission.timeSpent}
+                          roundInfo={roundInfo}
+                        />
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Form Submission Viewer Modal */}
           {selectedFormRound && (
             <motion.div
@@ -1339,7 +1476,7 @@ const InterviewReviewer = () => {
                 initial={{ scale: 0.9, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.9, opacity: 0 }}
-                className={`w-full max-w-6xl max-h-[90vh] overflow-hidden rounded-2xl shadow-2xl ${
+                className={`w-full max-w-6xl max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl ${
                   isDarkMode ? 'bg-gray-800' : 'bg-white'
                 }`}
                 onClick={(e) => e.stopPropagation()}

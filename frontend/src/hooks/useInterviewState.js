@@ -18,6 +18,7 @@ export const useInterviewState = () => {
   const [isLiveCodingRound, setIsLiveCodingRound] = useState(false);
   const [isSalesRound, setIsSalesRound] = useState(false);
   const [isPCBRound, setIsPCBRound] = useState(false);
+  const [isSystemDesignRound, setIsSystemDesignRound] = useState(false);
   const [codeAnswer, setCodeAnswer] = useState('');
   const [selectedLanguage, setSelectedLanguage] = useState('javascript');
   const [isLanguageLocked, setIsLanguageLocked] = useState(false);
@@ -52,6 +53,7 @@ export const useInterviewState = () => {
     setIsLiveCodingRound(false);
     setIsSalesRound(false);
     setIsPCBRound(false);
+    setIsSystemDesignRound(false);
     setCodeAnswer('');
     setSelectedLanguage('javascript');
     setIsLanguageLocked(false);
@@ -88,6 +90,7 @@ export const useInterviewState = () => {
     isLiveCodingRound,
     isSalesRound,
     isPCBRound,
+    isSystemDesignRound,
     codeAnswer,
     selectedLanguage,
     isLanguageLocked,
@@ -122,6 +125,7 @@ export const useInterviewState = () => {
     setIsLiveCodingRound,
     setIsSalesRound,
     setIsPCBRound,
+    setIsSystemDesignRound,
     setCodeAnswer,
     setSelectedLanguage,
     setIsLanguageLocked,

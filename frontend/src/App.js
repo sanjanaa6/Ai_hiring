@@ -26,6 +26,7 @@ import Profile from './pages/Profile';
 import Interview from './pages/Interview';
 import RoundAccess from './pages/RoundAccess';
 import ElectronicInterview from './pages/ElectronicInterview';
+import SystemDesignInterview from './pages/SystemDesignInterview';
 import UserDashboard from './user/pages/UserDashboard';
 import StyleTest from './components/StyleTest';
 import OpenRouterTest from './components/OpenRouterTest';
@@ -48,6 +49,7 @@ import AdminLoginPage from './pages/AdminLoginPage';
 import RecruiterPCB from './recruiter/pages/RecruiterPCB';
 import PCBApp from './pcb/src/App';
 import Playground from './pages/Playground';
+import CandidateProfile from './pages/CandidateProfile';
 
 // Recruiter components
 import { InterviewReviewer } from './recruiter/components/InterviewReviewer';
@@ -105,7 +107,7 @@ function AppShell() {
   return (
     <div className="App min-h-screen flex flex-col">
       {!hideGlobalNavbar && <Header />}
-      <main className={`flex-1 ${mainTopPaddingClass}`}>
+      <main className={`flex-1 overflow-y-auto ${mainTopPaddingClass}`}>
         <Routes>
           {/* Landing Page - Only shows when not logged in */}
           <Route path="/" element={<ConditionalLanding />} />
@@ -132,6 +134,7 @@ function AppShell() {
           <Route path="/playground" element={<Playground />} />
           <Route path="/round/:accessLink" element={<RoundAccess />} />
           <Route path="/pcb-round/:accessLink" element={<ElectronicInterview />} />
+          <Route path="/system-design-round/:accessLink" element={<SystemDesignInterview />} />
           <Route path="/pcb" element={<PCBApp />} />
           <Route path="/style-test" element={<StyleTest />} />
           <Route path="/openrouter-test" element={<OpenRouterTest />} />
@@ -149,6 +152,9 @@ function AppShell() {
           <Route path="/coding-interview-demo" element={<CodingInterviewDemo />} />
           <Route path="/test-case-demo" element={<TestCaseDemo />} />
           <Route path="/language-detection-demo" element={<LanguageDetectionDemo />} />
+          
+          {/* Candidate Profile Route */}
+          <Route path="/profile/:profileId" element={<CandidateProfile />} />
           
           {/* Protected Routes */}
           <Route path="/dashboard" element={

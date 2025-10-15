@@ -2,7 +2,6 @@ import React, { useEffect, useCallback, useRef } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import { useInterviewState } from '../hooks/useInterviewState';
 import { useCamera } from '../hooks/useCamera';
-import { useVoiceRecording } from '../hooks/useVoiceRecording';
 import { useEyeTracking } from '../hooks/useEyeTracking';
 import InterviewSetup from './interview/InterviewSetup';
 import RoundSelection from './interview/RoundSelection';
@@ -36,8 +35,24 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
   // Custom hooks
   const interviewState = useInterviewState();
   const camera = useCamera();
-  const voiceRecording = useVoiceRecording();
   const eyeTracking = useEyeTracking(interviewId);
+  
+  // Mock recording hooks (removed S3 recording functionality)
+  const voiceRecording = {
+    isRecording: false,
+    transcription: '',
+    interimTranscription: '',
+    startRecording: () => {},
+    stopRecording: () => {},
+    clearTranscription: () => {}
+  };
+  
+  const interviewRecording = {
+    isSupported: false,
+    isRecording: false,
+    startRecording: () => {},
+    stopRecording: () => {}
+  };
   
   // Ref to track camera initialization
   const cameraInitialized = useRef(false);
@@ -66,6 +81,7 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
     isLiveCodingRound, setIsLiveCodingRound,
     isSalesRound, setIsSalesRound,
     setIsPCBRound,
+    isSystemDesignRound, setIsSystemDesignRound,
     codeAnswer, setCodeAnswer,
     selectedLanguage, setSelectedLanguage,
     isLanguageLocked, setIsLanguageLocked,
@@ -494,6 +510,7 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
                       round.roundNumber === 3); // Specifically Round 3 for sales role-play
       const isFileUpload = round.type === 'file_upload';
       const isFormSubmission = round.type === 'form_submission';
+      const isSystemDesign = round.type === 'system_design';
       
       // Check if this is a PCB round (only for electronics interviews)
       const isElectronicsInterview = interviewData?.interviewType === 'electronics';
@@ -562,7 +579,17 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
       }
 
       // Handle different round types
-      if (isFileUpload) {
+      if (isSystemDesign) {
+        // System Design rounds work like regular interview rounds with TTS + Canvas button
+        console.log('🎨 [SYSTEM DESIGN] Detected system_design round with', round.questions?.length || 0, 'questions');
+        setStep('interview'); // Use regular interview flow
+        setIsSystemDesignRound(true); // Flag to show canvas button instead of answer input
+        
+        if (round.questions && round.questions.length > 0) {
+          const firstQuestion = round.questions[0];
+          setCurrentQuestion(firstQuestion);
+        }
+      } else if (isFileUpload) {
         setStep('file-upload');
       } else if (isFormSubmission) {
         setStep('form-submission');
@@ -614,6 +641,13 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
       
       await startInterviewTracking();
       await loadInterviewRounds();
+      
+      // Start recording when interview begins
+      if (interviewRecording.isSupported && !interviewRecording.isRecording) {
+        console.log('🎥 [MODERN INTERVIEW] Starting interview recording...');
+        await interviewRecording.startRecording();
+      }
+      
       setStep('round-selection');
     } catch (error) {
       console.error('❌ Failed to start interview:', error);
@@ -621,7 +655,7 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
     } finally {
       setLoading(false);
     }
-  }, [startInterviewTracking, loadInterviewRounds, setStep, setError, setLoading, camera.cameraStatus, eyeTracking.faceDetected]);
+  }, [startInterviewTracking, loadInterviewRounds, setStep, setError, setLoading, camera.cameraStatus, eyeTracking.faceDetected, interviewRecording]);
 
   // Handle restart interview
   const handleRestartInterview = useCallback(() => {
@@ -1042,6 +1076,7 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
             isCodeEditorFullscreen={isCodeEditorFullscreen}
             isLiveCodingRound={isLiveCodingRound}
             isSalesRound={isSalesRound}
+            isSystemDesignRound={isSystemDesignRound}
             isAiQuestioning={false}
             aiQuestions={[]}
             currentAiQuestionIndex={0}
@@ -1060,6 +1095,7 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
             onToggleAISpeaking={() => setIsAISpeaking(!isAISpeaking)}
             onAnswerAIQuestion={() => {}}
             interviewData={interviewData}
+            candidateInfo={candidateInfo}
           />
           
           {/* Eye Tracking Monitor */}
@@ -1205,6 +1241,12 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
       );
 
     case 'complete':
+      // Stop recording when interview completes
+      if (interviewRecording.isRecording) {
+        console.log('🛑 [MODERN INTERVIEW] Stopping interview recording...');
+        interviewRecording.stopRecording();
+      }
+      
       return (
         <InterviewComplete
           interviewData={interviewData}

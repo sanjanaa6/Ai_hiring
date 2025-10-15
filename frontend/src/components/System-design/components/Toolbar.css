@@ -1,0 +1,144 @@
+.toolbar {
+  height: 64px;
+  background: linear-gradient(135deg, var(--bg-medium) 0%, var(--bg-light) 100%);
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  gap: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.toolbar-logo {
+  font-size: 20px;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+
+.logo-icon {
+  font-size: 24px;
+  -webkit-text-fill-color: var(--primary-color);
+}
+
+.toolbar-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.toolbar-tools {
+  flex: 1;
+  justify-content: center;
+  gap: 4px;
+}
+
+.toolbar-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 10px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  position: relative;
+  min-width: 42px;
+  min-height: 42px;
+}
+
+.toolbar-btn:hover {
+  background: var(--hover-color);
+  color: var(--text-primary);
+  border-color: var(--border-color);
+}
+
+.toolbar-btn.active {
+  background: var(--primary-color);
+  color: white !important;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 20px rgba(102, 126, 234, 0.4);
+  transform: scale(1.05);
+}
+
+.active-indicator {
+  position: absolute;
+  bottom: -2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 24px;
+  height: 3px;
+  background: white;
+  border-radius: 2px;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.toolbar-btn.theme-toggle {
+  background: var(--bg-dark);
+  border: 1px solid var(--border-color);
+}
+
+.toolbar-btn.theme-toggle:hover {
+  background: var(--primary-color);
+  color: white;
+  transform: rotate(180deg);
+  transition: all 0.3s ease;
+}
+
+.toolbar-btn-danger:hover {
+  background: var(--danger-color);
+  color: white;
+  border-color: var(--danger-color);
+}
+
+.toolbar-btn.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.toolbar-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.zoom-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-dark);
+  padding: 4px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+}
+
+.zoom-display {
+  min-width: 50px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+

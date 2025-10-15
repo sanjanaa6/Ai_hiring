@@ -265,6 +265,17 @@ Make sure each question is directly relevant to the specific role and requiremen
       return createFallbackInterview(jobDetails, interviewId);
     }
     
+    // Post-process: Convert Round 3 to system_design type for developer roles
+    if (isDeveloperRole && interviewData.rounds && interviewData.rounds.length >= 3) {
+      const round3 = interviewData.rounds[2]; // Round 3 is index 2
+      if (round3 && (round3.title.toLowerCase().includes('system design') || round3.title.toLowerCase().includes('architecture'))) {
+        console.log('🎨 [AI INTERVIEW] Converting Round 3 to system_design type for developer interview');
+        round3.type = 'system_design';
+        // Keep all 5 questions - each will have TTS + Canvas
+        console.log(`✅ [AI INTERVIEW] Round 3 converted to system_design type with ${round3.questions?.length || 0} questions`);
+      }
+    }
+    
     console.log('✅ [AI INTERVIEW] Successfully generated AI interview with', interviewData?.rounds?.length || 0, 'rounds');
     console.log('🔍 [AI INTERVIEW] Generated interview data:', JSON.stringify(interviewData, null, 2));
     

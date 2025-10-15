@@ -1,26 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTheme } from '../../context/ThemeContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Star, 
   Quote, 
-  ChevronLeft, 
-  ChevronRight, 
-  Heart, 
-  TrendingUp,
-  Users,
-  Zap,
-  Shield,
-  Rocket,
-  CheckCircle,
-  Pause,
-  Play
+  Star,
+  ArrowRight,
+  Sparkles
 } from 'lucide-react';
 
 const Testimonials = () => {
   const { isDarkMode } = useTheme();
   const [currentTestimonial, setCurrentTestimonial] = useState(0);
-  const [isAutoPlaying, setIsAutoPlaying] = useState(true);
 
   const testimonials = [
     {
@@ -28,10 +18,8 @@ const Testimonials = () => {
       role: "HR Director",
       company: "TechCorp",
       image: "https://images.unsplash.com/photo-1494790108755-2616b612b786?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=687&q=80",
-      content: "AI Hiring has completely transformed our recruitment process. We've reduced our time-to-hire by 65% and the quality of candidates has significantly improved. The AI interviews are so natural that candidates often forget they're talking to a machine.",
+      content: "AI Hiring has completely transformed our recruitment process. We've reduced our time-to-hire by 65% and the quality of candidates has significantly improved.",
       rating: 5,
-      color: "from-blue-500 to-cyan-500",
-      icon: Users,
       metric: "65%",
       metricLabel: "Faster Hiring"
     },
@@ -40,10 +28,8 @@ const Testimonials = () => {
       role: "CEO",
       company: "StartupXYZ",
       image: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80",
-      content: "As a startup, we needed to scale our hiring quickly without compromising quality. AI Hiring allowed us to interview 10x more candidates while maintaining high standards. The detailed reports help us make data-driven hiring decisions.",
+      content: "As a startup, we needed to scale our hiring quickly without compromising quality. AI Hiring allowed us to interview 10x more candidates while maintaining high standards.",
       rating: 5,
-      color: "from-emerald-500 to-teal-500",
-      icon: Rocket,
       metric: "10x",
       metricLabel: "More Candidates"
     },
@@ -52,519 +38,280 @@ const Testimonials = () => {
       role: "Talent Acquisition Manager",
       company: "GlobalTech",
       image: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80",
-      content: "The bias-free assessment feature is a game-changer. We've seen a 40% increase in diverse hires since implementing AI Hiring. The platform helps us focus on skills and potential rather than unconscious biases.",
+      content: "The bias-free assessment feature is a game-changer. We've seen a 40% increase in diverse hires since implementing AI Hiring.",
       rating: 5,
-      color: "from-orange-500 to-red-500",
-      icon: Shield,
       metric: "40%",
-      metricLabel: "More Diverse Hires"
-    },
-    {
-      name: "David Thompson",
-      role: "VP of Engineering",
-      company: "InnovateLab",
-      image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80",
-      content: "The technical assessment capabilities are outstanding. AI Hiring accurately evaluates coding skills, problem-solving abilities, and technical communication. We've hired some of our best engineers through this platform.",
-      rating: 5,
-      color: "from-indigo-500 to-blue-500",
-      icon: Zap,
-      metric: "95%",
-      metricLabel: "Technical Accuracy"
-    },
-    {
-      name: "Lisa Wang",
-      role: "Head of People",
-      company: "ScaleUp Inc",
-      image: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1176&q=80",
-      content: "The analytics dashboard provides incredible insights into our hiring funnel. We can now identify bottlenecks, optimize our process, and make strategic decisions based on real data. ROI has been exceptional.",
-      rating: 5,
-      color: "from-violet-500 to-purple-500",
-      icon: TrendingUp,
-      metric: "300%",
-      metricLabel: "ROI Increase"
+      metricLabel: "Diverse Hires"
     }
   ];
 
-  const nextTestimonial = () => {
-    setCurrentTestimonial((prev) => (prev + 1) % testimonials.length);
-  };
-
-  const prevTestimonial = () => {
-    setCurrentTestimonial((prev) => (prev - 1 + testimonials.length) % testimonials.length);
-  };
+  // Auto-rotate testimonials
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTestimonial((prev) => (prev + 1) % testimonials.length);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [testimonials.length]);
 
   const current = testimonials[currentTestimonial];
-
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1,
-        delayChildren: 0.3
-      }
-    }
-  };
-
-  const itemVariants = {
-    hidden: { y: 50, opacity: 0 },
-    visible: {
-      y: 0,
-      opacity: 1,
-      transition: {
-        type: "spring",
-        stiffness: 100,
-        damping: 12
-      }
-    }
-  };
 
   return (
     <section id="testimonials" className={`relative py-24 overflow-hidden ${
       isDarkMode 
-        ? 'bg-gradient-to-br from-gray-900 via-slate-900 to-gray-800' 
-        : 'bg-gradient-to-br from-white via-blue-50/30 to-indigo-50/30'
+        ? 'bg-black' 
+        : 'bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50'
     }`}>
-      {/* Animated Background Elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {/* Floating Hearts */}
-        {[...Array(12)].map((_, i) => (
-          <motion.div
-            key={i}
-            className={`absolute w-2 h-2 rounded-full ${
-              isDarkMode ? 'bg-pink-400/20' : 'bg-pink-500/10'
-            }`}
-            style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-            }}
-            animate={{
-              y: [0, -80, 0],
-              opacity: [0, 1, 0],
-              scale: [0, 1, 0],
-            }}
-            transition={{
-              duration: Math.random() * 6 + 8,
-              repeat: Infinity,
-              delay: Math.random() * 4,
-            }}
-          />
-        ))}
-        
-        {/* Large Floating Orbs */}
-        <motion.div
-          className={`absolute top-1/4 right-1/4 w-96 h-96 rounded-full ${
-            isDarkMode ? 'bg-gradient-to-r from-pink-500/5 to-rose-500/5' : 'bg-gradient-to-r from-pink-400/10 to-rose-400/10'
-          } blur-3xl`}
-          animate={{
-            scale: [1, 1.3, 1],
-            rotate: [0, 180, 360],
-          }}
-          transition={{
-            duration: 20,
-            repeat: Infinity,
-            ease: "linear"
-          }}
-        />
-        
-        <motion.div
-          className={`absolute bottom-1/4 left-1/4 w-80 h-80 rounded-full ${
-            isDarkMode ? 'bg-gradient-to-r from-blue-500/5 to-cyan-500/5' : 'bg-gradient-to-r from-blue-400/10 to-cyan-400/10'
-          } blur-3xl`}
-          animate={{
-            scale: [1.2, 1, 1.2],
-            rotate: [360, 180, 0],
-          }}
-          transition={{
-            duration: 25,
-            repeat: Infinity,
-            ease: "linear"
-          }}
-        />
-        </div>
+      {/* Diagonal Background Pattern */}
+      <div className="absolute inset-0 opacity-5">
+        <div className={`w-full h-full ${isDarkMode ? 'bg-white' : 'bg-black'}`} style={{
+          backgroundImage: `repeating-linear-gradient(-45deg, transparent, transparent 20px, ${
+            isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'
+          } 20px, ${
+            isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'
+          } 40px)`
+        }}></div>
+      </div>
 
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Enhanced Section Header */}
+        {/* Section Header */}
         <motion.div 
           className="text-center mb-20"
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-        >
-          <motion.div
-            variants={itemVariants}
-            className="inline-flex items-center space-x-2 px-4 py-2 rounded-full text-sm font-medium mb-6 bg-gradient-to-r from-pink-500/10 to-rose-500/10 border border-pink-500/20"
-          >
-            <motion.div
-              animate={{ rotate: [0, 360] }}
-              transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-            >
-              <Heart className="w-4 h-4 text-pink-500" />
-            </motion.div>
-            <span className="text-pink-600 font-semibold">Customer Love</span>
-          </motion.div>
-
-          <motion.h2 
-            variants={itemVariants}
-            className={`text-4xl md:text-6xl font-bold mb-6 ${
-              isDarkMode ? 'text-white' : 'text-gray-900'
-            }`}
-          >
-            <motion.span
-              className="block"
-              initial={{ opacity: 0, x: -50 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.5, duration: 0.8 }}
-            >
-              What Our Customers
-            </motion.span>
-            <motion.span
-              className="block bg-gradient-to-r from-pink-600 via-rose-500 to-red-500 bg-clip-text text-transparent"
-              initial={{ opacity: 0, x: 50 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.7, duration: 0.8 }}
-            >
-              Say About Us
-            </motion.span>
-          </motion.h2>
-
-          <motion.p 
-            variants={itemVariants}
-            className={`text-xl md:text-2xl max-w-4xl mx-auto leading-relaxed ${
-              isDarkMode ? 'text-gray-300' : 'text-gray-600'
-            }`}
-          >
-            Join thousands of companies that have transformed their hiring with 
-            <motion.span 
-              className={`font-bold ${isDarkMode ? 'text-pink-400' : 'text-pink-600'}`}
-              animate={{ opacity: [1, 0.7, 1] }}
-              transition={{ duration: 2, repeat: Infinity }}
-            >
-              {" "}AI-powered recruitment
-            </motion.span>
-            . See the results for yourself.
-          </motion.p>
-        </motion.div>
-
-        {/* 3D Testimonial Carousel */}
-        <motion.div 
-          className="relative mb-16"
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-        >
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={currentTestimonial}
-              className={`relative rounded-3xl p-8 md:p-12 overflow-hidden backdrop-blur-xl border ${
-          isDarkMode 
-                  ? 'bg-gradient-to-br from-gray-800/80 to-gray-700/80 border-gray-600/50' 
-                  : 'bg-gradient-to-br from-white/80 to-blue-50/80 border-gray-200/50'
-              } shadow-2xl`}
-              initial={{ opacity: 0, rotateY: 90, scale: 0.8 }}
-              animate={{ opacity: 1, rotateY: 0, scale: 1 }}
-              exit={{ opacity: 0, rotateY: -90, scale: 0.8 }}
-              transition={{ duration: 0.8, type: "spring", stiffness: 100 }}
-              whileHover={{ scale: 1.02, y: -5 }}
-              style={{ transformStyle: 'preserve-3d' }}
-            >
-              {/* Animated Background Gradient */}
-              <motion.div
-                className={`absolute inset-0 bg-gradient-to-br ${current.color} opacity-5`}
-                animate={{
-                  opacity: [0.05, 0.1, 0.05],
-                }}
-                transition={{
-                  duration: 4,
-                  repeat: Infinity,
-                  ease: "easeInOut"
-                }}
-              />
-
-              {/* Floating Quote Icons */}
-              <div className="absolute top-8 right-8">
-                <motion.div
-                  animate={{ 
-                    rotate: [0, 360],
-                    scale: [1, 1.1, 1]
-                  }}
-                  transition={{ 
-                    duration: 20, 
-                    repeat: Infinity, 
-                    ease: "linear" 
-                  }}
-                >
-                  <Quote className={`w-24 h-24 ${
-                    isDarkMode ? 'text-gray-600/20' : 'text-gray-300/30'
-                  }`} />
-                </motion.div>
-          </div>
-
-          <div className="relative z-10">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-center">
-              {/* Testimonial Content */}
-                  <div className="lg:col-span-2">
-                    {/* Animated Stars */}
-                    <motion.div 
-                      className="flex items-center mb-6"
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.3 }}
-                    >
-                  {[...Array(current.rating)].map((_, i) => (
-                        <motion.div
-                          key={i}
-                          initial={{ scale: 0, rotate: -180 }}
-                          animate={{ scale: 1, rotate: 0 }}
-                          transition={{ delay: 0.5 + i * 0.1, type: "spring", stiffness: 200 }}
-                        >
-                          <Star className="w-6 h-6 text-yellow-400 fill-current" />
-                        </motion.div>
-                      ))}
-                    </motion.div>
-
-                    {/* Testimonial Text */}
-                    <motion.blockquote 
-                      className={`text-xl md:text-2xl leading-relaxed mb-8 transition-colors duration-300 ${
-                  isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                      }`}
-                      initial={{ opacity: 0, y: 30 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.7 }}
-                    >
-                      <motion.span
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: 0.9 }}
-                      >
-                  "{current.content}"
-                      </motion.span>
-                    </motion.blockquote>
-
-                    {/* Author Info */}
-                    <motion.div 
-                      className="flex items-center space-x-4"
-                      initial={{ opacity: 0, x: -30 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 1.1 }}
-                    >
-                      <motion.div
-                        className="relative"
-                        whileHover={{ scale: 1.1, rotate: 5 }}
-                        transition={{ duration: 0.3 }}
-                      >
-                  <img
-                    src={current.image}
-                    alt={current.name}
-                          className="w-20 h-20 rounded-full object-cover border-4 border-white shadow-lg"
-                        />
-                        <motion.div
-                          className="absolute -top-1 -right-1 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center"
-                          animate={{ scale: [1, 1.2, 1] }}
-                          transition={{ duration: 2, repeat: Infinity }}
-                        >
-                          <motion.div
-                            animate={{ rotate: [0, 360] }}
-                            transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-                          >
-                            <CheckCircle className="w-4 h-4 text-white" />
-                          </motion.div>
-                        </motion.div>
-                      </motion.div>
-                  <div>
-                        <motion.div 
-                          className={`font-bold text-xl ${
-                            isDarkMode ? 'text-white' : 'text-gray-900'
-                          }`}
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 1.3 }}
-                        >
-                      {current.name}
-                        </motion.div>
-                        <motion.div 
-                          className={`transition-colors duration-300 ${
-                    isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                          }`}
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 1.4 }}
-                        >
-                      {current.role} at {current.company}
-                        </motion.div>
-                    </div>
-                    </motion.div>
-              </div>
-
-                  {/* Metric Card */}
-                  <motion.div
-                    className="lg:col-span-1"
-                    initial={{ opacity: 0, x: 50, rotateY: 90 }}
-                    animate={{ opacity: 1, x: 0, rotateY: 0 }}
-                    transition={{ delay: 1.5, duration: 0.8, type: "spring" }}
-                    whileHover={{ scale: 1.05, rotateY: 5 }}
-                    style={{ transformStyle: 'preserve-3d' }}
-                  >
-                    <div className={`relative p-8 rounded-2xl backdrop-blur-xl border ${
-                      isDarkMode 
-                        ? 'bg-gradient-to-br from-gray-800/50 to-gray-700/50 border-gray-600/30' 
-                        : 'bg-gradient-to-br from-white/50 to-gray-50/50 border-gray-200/30'
-                    } shadow-xl`}>
-                      {/* Animated Background */}
-                      <motion.div
-                        className={`absolute inset-0 bg-gradient-to-br ${current.color} opacity-10 rounded-2xl`}
-                        animate={{
-                          opacity: [0.1, 0.2, 0.1],
-                        }}
-                        transition={{
-                          duration: 3,
-                          repeat: Infinity,
-                          ease: "easeInOut"
-                        }}
-                      />
-
-                      <div className="relative text-center">
-                        {/* Icon */}
-                        <motion.div
-                          className={`w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br ${current.color} flex items-center justify-center`}
-                          animate={{ 
-                            rotate: [0, 360],
-                            scale: [1, 1.1, 1]
-                          }}
-                          transition={{ 
-                            duration: 8, 
-                            repeat: Infinity, 
-                            ease: "linear" 
-                          }}
-                        >
-                          <current.icon className="w-8 h-8 text-white" />
-                        </motion.div>
-
-                        {/* Metric */}
-                        <motion.div
-                          className={`text-4xl font-bold bg-gradient-to-r ${current.color} bg-clip-text text-transparent mb-2`}
-                          initial={{ scale: 0 }}
-                          animate={{ scale: 1 }}
-                          transition={{ 
-                            delay: 1.7, 
-                            type: "spring", 
-                            stiffness: 200 
-                          }}
-                        >
-                          {current.metric}
-                        </motion.div>
-
-                        <motion.div 
-                          className={`text-sm font-medium ${
-                            isDarkMode ? 'text-gray-400' : 'text-gray-500'
-                          }`}
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          transition={{ delay: 1.8 }}
-                        >
-                          {current.metricLabel}
-                        </motion.div>
-              </div>
-            </div>
-                  </motion.div>
-          </div>
-        </div>
-
-              {/* Shine Effect */}
-              <motion.div
-                className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-0"
-                animate={{
-                  x: ['-100%', '100%'],
-                  opacity: [0, 1, 0]
-                }}
-                transition={{
-                  duration: 2,
-                  repeat: Infinity,
-                  ease: "easeInOut"
-                }}
-              />
-            </motion.div>
-          </AnimatePresence>
-
-          {/* Enhanced Navigation */}
-          <div className="flex justify-center items-center space-x-6 mt-8">
-            <motion.button
-              onClick={prevTestimonial}
-              className={`w-14 h-14 rounded-full flex items-center justify-center shadow-xl transition-all duration-300 ${
-                isDarkMode 
-                  ? 'bg-gray-800/50 border border-gray-700/50 text-gray-300 hover:text-white hover:bg-gray-700/50' 
-                  : 'bg-white/50 border border-gray-200/50 text-gray-600 hover:text-gray-900 hover:bg-white/80'
-              } backdrop-blur-sm`}
-              whileHover={{ scale: 1.1, rotate: -10 }}
-              whileTap={{ scale: 0.9 }}
-            >
-              <ChevronLeft className="w-6 h-6" />
-            </motion.button>
-
-            {/* Auto-play Toggle */}
-            <motion.button
-              onClick={() => setIsAutoPlaying(!isAutoPlaying)}
-              className={`w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-all duration-300 ${
-                isAutoPlaying 
-                  ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white' 
-                  : 'bg-gray-300 text-gray-600'
-              }`}
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-            >
-              <motion.div
-                animate={{ rotate: isAutoPlaying ? 360 : 0 }}
-                transition={{ duration: 0.5 }}
-              >
-                {isAutoPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
-              </motion.div>
-            </motion.button>
-
-            <motion.button
-              onClick={nextTestimonial}
-              className={`w-14 h-14 rounded-full flex items-center justify-center shadow-xl transition-all duration-300 ${
-                isDarkMode 
-                  ? 'bg-gray-800/50 border border-gray-700/50 text-gray-300 hover:text-white hover:bg-gray-700/50' 
-                  : 'bg-white/50 border border-gray-200/50 text-gray-600 hover:text-gray-900 hover:bg-white/80'
-              } backdrop-blur-sm`}
-              whileHover={{ scale: 1.1, rotate: 10 }}
-              whileTap={{ scale: 0.9 }}
-            >
-              <ChevronRight className="w-6 h-6" />
-            </motion.button>
-          </div>
-        </motion.div>
-
-        {/* Animated Testimonial Indicators */}
-        <motion.div 
-          className="flex justify-center space-x-3 mt-8"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 2, duration: 0.6 }}
+          transition={{ duration: 0.6 }}
         >
-          {testimonials.map((testimonial, index) => (
+          <motion.div
+            className="inline-flex items-center gap-2 mb-6"
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.2 }}
+          >
+            <Sparkles className={`w-5 h-5 ${isDarkMode ? 'text-white' : 'text-black'}`} />
+            <span className={`text-sm font-semibold tracking-wider uppercase ${
+              isDarkMode ? 'text-gray-400' : 'text-gray-600'
+            }`}>
+              Success Stories
+            </span>
+          </motion.div>
+
+          <h2 className={`text-5xl md:text-6xl font-bold mb-6 ${
+            isDarkMode ? 'text-white' : 'text-black'
+          }`}>
+            Trusted by Industry
+            <br />
+            <span className="relative inline-block">
+              Leaders
+              <motion.div
+                className={`absolute bottom-2 left-0 right-0 h-3 ${
+                  isDarkMode ? 'bg-white' : 'bg-black'
+                } opacity-10`}
+                initial={{ scaleX: 0 }}
+                animate={{ scaleX: 1 }}
+                transition={{ delay: 0.8, duration: 0.8 }}
+              />
+            </span>
+          </h2>
+        </motion.div>
+
+        {/* Unique Split-Screen Testimonial Layout */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={currentTestimonial}
+            className="grid grid-cols-1 lg:grid-cols-2 gap-0 border-2"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.6 }}
+          >
+            {/* Left Side - Image & Stats */}
+            <motion.div
+              className={`relative overflow-hidden ${
+                isDarkMode ? 'bg-white' : 'bg-black'
+              }`}
+              initial={{ x: -100 }}
+              animate={{ x: 0 }}
+              transition={{ duration: 0.8, type: "spring" }}
+            >
+              {/* Large Profile Image */}
+              <div className="relative h-full min-h-[500px]">
+                <motion.img
+                  src={current.image}
+                  alt={current.name}
+                  className="absolute inset-0 w-full h-full object-cover"
+                  initial={{ scale: 1.2 }}
+                  animate={{ scale: 1 }}
+                  transition={{ duration: 0.8 }}
+                />
+                
+                {/* Gradient Overlay */}
+                <div className={`absolute inset-0 ${
+                  isDarkMode 
+                    ? 'bg-gradient-to-t from-white via-transparent to-transparent' 
+                    : 'bg-gradient-to-t from-black via-transparent to-transparent'
+                }`}></div>
+
+                {/* Stats Card */}
+                <motion.div
+                  className={`absolute bottom-8 left-8 right-8 p-6 border-2 ${
+                    isDarkMode 
+                      ? 'bg-white border-black' 
+                      : 'bg-black border-white'
+                  }`}
+                  initial={{ y: 50, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.4, duration: 0.6 }}
+                >
+                  <div className="flex items-end justify-between">
+                    <div>
+                      <motion.div
+                        className={`text-5xl font-bold mb-2 ${
+                          isDarkMode ? 'text-black' : 'text-white'
+                        }`}
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{ delay: 0.6, type: "spring", stiffness: 200 }}
+                      >
+                        {current.metric}
+                      </motion.div>
+                      <div className={`text-sm font-semibold ${
+                        isDarkMode ? 'text-gray-700' : 'text-gray-300'
+                      }`}>
+                        {current.metricLabel}
+                      </div>
+                    </div>
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                    >
+                      <Star className={`w-8 h-8 ${
+                        isDarkMode ? 'text-black' : 'text-white'
+                      }`} />
+                    </motion.div>
+                  </div>
+                </motion.div>
+              </div>
+            </motion.div>
+
+            {/* Right Side - Content */}
+            <motion.div
+              className={`relative p-12 flex flex-col justify-center ${
+                isDarkMode ? 'bg-black' : 'bg-white'
+              }`}
+              initial={{ x: 100 }}
+              animate={{ x: 0 }}
+              transition={{ duration: 0.8, type: "spring" }}
+            >
+              {/* Floating Quote */}
+              <motion.div
+                className="absolute top-8 right-8 opacity-5"
+                animate={{ rotate: [0, 10, 0] }}
+                transition={{ duration: 5, repeat: Infinity }}
+              >
+                <Quote className={`w-32 h-32 ${
+                  isDarkMode ? 'text-white' : 'text-black'
+                }`} />
+              </motion.div>
+
+              {/* Star Rating */}
+              <motion.div
+                className="flex gap-1 mb-6"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+              >
+                {[...Array(current.rating)].map((_, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ scale: 0, rotate: -180 }}
+                    animate={{ scale: 1, rotate: 0 }}
+                    transition={{ delay: 0.4 + i * 0.1, type: "spring" }}
+                  >
+                    <Star className={`w-6 h-6 ${
+                      isDarkMode ? 'text-white fill-white' : 'text-black fill-black'
+                    }`} />
+                  </motion.div>
+                ))}
+              </motion.div>
+
+              {/* Testimonial Text */}
+              <motion.blockquote
+                className={`text-2xl md:text-3xl font-light leading-relaxed mb-8 ${
+                  isDarkMode ? 'text-white' : 'text-black'
+                }`}
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 }}
+              >
+                "{current.content}"
+              </motion.blockquote>
+
+              {/* Author Info */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.7 }}
+              >
+                <div className={`text-xl font-bold mb-1 ${
+                  isDarkMode ? 'text-white' : 'text-black'
+                }`}>
+                  {current.name}
+                </div>
+                <div className={`text-sm mb-6 ${
+                  isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                }`}>
+                  {current.role} • {current.company}
+                </div>
+
+                {/* Read More Link */}
+                <motion.div
+                  className="flex items-center gap-2 group cursor-pointer"
+                  whileHover={{ x: 10 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <span className={`text-sm font-semibold ${
+                    isDarkMode ? 'text-white' : 'text-black'
+                  }`}>
+                    Read Full Story
+                  </span>
+                  <ArrowRight className={`w-5 h-5 ${
+                    isDarkMode ? 'text-white' : 'text-black'
+                  }`} />
+                </motion.div>
+              </motion.div>
+            </motion.div>
+          </motion.div>
+        </AnimatePresence>
+
+        {/* Progress Indicators */}
+        <div className="flex justify-center gap-3 mt-12">
+          {testimonials.map((_, index) => (
             <motion.button
               key={index}
               onClick={() => setCurrentTestimonial(index)}
-              className={`relative w-4 h-4 rounded-full transition-all duration-300 ${
+              className={`relative h-1 transition-all ${
                 index === currentTestimonial 
-                  ? `bg-gradient-to-r ${testimonial.color}` 
-                  : 'bg-gray-300'
+                  ? 'w-16' 
+                  : 'w-8'
               }`}
               whileHover={{ scale: 1.2 }}
-              whileTap={{ scale: 0.9 }}
             >
+              <div className={`absolute inset-0 ${
+                isDarkMode ? 'bg-gray-800' : 'bg-gray-300'
+              }`}></div>
               {index === currentTestimonial && (
                 <motion.div
-                  className={`absolute inset-0 rounded-full bg-gradient-to-r ${testimonial.color} opacity-50`}
-                  animate={{ scale: [1, 1.5, 1] }}
-                  transition={{ duration: 2, repeat: Infinity }}
+                  className={`absolute inset-0 ${
+                    isDarkMode ? 'bg-white' : 'bg-black'
+                  }`}
+                  initial={{ scaleX: 0 }}
+                  animate={{ scaleX: 1 }}
+                  transition={{ duration: 5, ease: "linear" }}
+                  style={{ transformOrigin: 'left' }}
                 />
               )}
             </motion.button>
           ))}
-        </motion.div>
-
+        </div>
       </div>
     </section>
   );

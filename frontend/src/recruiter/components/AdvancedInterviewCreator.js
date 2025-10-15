@@ -31,7 +31,7 @@ const AdvancedInterviewCreator = ({ onInterviewCreated, onCancel }) => {
 
   const [showAddRound, setShowAddRound] = useState(false);
   const [newRound, setNewRound] = useState({
-    type: 'interview', // 'interview' or 'file_upload'
+    type: 'interview', // 'interview', 'file_upload', 'form_submission', or 'system_design'
     title: '',
     description: '',
     duration: 10,
@@ -62,7 +62,7 @@ const AdvancedInterviewCreator = ({ onInterviewCreated, onCancel }) => {
       roundId: `round_${Date.now()}`,
       roundNumber: interviewData.rounds.length + 1,
       ...newRound,
-      questions: newRound.type === 'interview' ? [] : undefined,
+      questions: (newRound.type === 'interview' || newRound.type === 'system_design') ? [] : undefined,
       fileUploadRequirements: newRound.type === 'file_upload' ? [] : undefined,
       evaluationCriteria: {
         technical: '',
@@ -411,7 +411,9 @@ const AdvancedInterviewCreator = ({ onInterviewCreated, onCancel }) => {
                           }`}
                         >
                           <option value="interview">Interview Round (Questions)</option>
+                          <option value="system_design">System Design Round (Diagram)</option>
                           <option value="file_upload">File Upload Round (Documents)</option>
+                          <option value="form_submission">Form Submission Round</option>
                         </select>
                       </div>
                       <div>
@@ -509,9 +511,16 @@ const AdvancedInterviewCreator = ({ onInterviewCreated, onCancel }) => {
                         <div className={`px-2 py-1 rounded-full text-xs font-medium ${
                           round.type === 'file_upload'
                             ? 'bg-purple-100 text-purple-700'
+                            : round.type === 'system_design'
+                            ? 'bg-green-100 text-green-700'
+                            : round.type === 'form_submission'
+                            ? 'bg-orange-100 text-orange-700'
                             : 'bg-blue-100 text-blue-700'
                         }`}>
-                          {round.type === 'file_upload' ? 'File Upload' : 'Interview'}
+                          {round.type === 'file_upload' ? 'File Upload' : 
+                           round.type === 'system_design' ? 'System Design' :
+                           round.type === 'form_submission' ? 'Form Submission' :
+                           'Interview'}
                         </div>
                       </div>
                       <p className={`text-sm mb-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
@@ -522,10 +531,10 @@ const AdvancedInterviewCreator = ({ onInterviewCreated, onCancel }) => {
                           <Clock className="w-4 h-4" />
                           {round.duration} minutes
                         </div>
-                        {round.type === 'interview' && (
+                        {(round.type === 'interview' || round.type === 'system_design') && (
                           <div className={`flex items-center gap-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                             <Users className="w-4 h-4" />
-                            {round.questions?.length || 0} questions
+                            {round.questions?.length || 0} {round.type === 'system_design' ? 'design problems' : 'questions'}
                           </div>
                         )}
                         {round.type === 'file_upload' && (
@@ -537,14 +546,14 @@ const AdvancedInterviewCreator = ({ onInterviewCreated, onCancel }) => {
                       </div>
                     </div>
                     <div className="flex gap-2">
-                      {round.type === 'interview' && (
+                      {(round.type === 'interview' || round.type === 'system_design') && (
                         <motion.button
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
                           onClick={() => setShowAddQuestion(true)}
                           className="bg-green-600 hover:bg-green-700 text-white font-medium py-1 px-3 rounded-lg transition-colors duration-200 text-sm"
                         >
-                          Add Question
+                          {round.type === 'system_design' ? 'Add Design Problem' : 'Add Question'}
                         </motion.button>
                       )}
                       {round.type === 'file_upload' && (

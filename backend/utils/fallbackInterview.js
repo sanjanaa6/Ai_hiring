@@ -161,6 +161,7 @@ const createFallbackInterview = (jobDetails, interviewId) => {
       title: isDeveloperRole ? "System Design & Architecture" : "Problem Solving & Scenarios",
       description: isDeveloperRole ? "Assess candidate's system design and architecture knowledge" : "Assess candidate's problem-solving abilities and scenario handling",
       duration: 15,
+      type: isDeveloperRole ? "system_design" : "interview",
       questions: [
         {
           id: "q3_1",

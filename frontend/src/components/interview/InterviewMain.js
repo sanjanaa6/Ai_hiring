@@ -15,6 +15,7 @@ import { useTheme } from '../../context/ThemeContext';
 import SuperCoolCodeEditor from '../SuperCoolCodeEditor';
 import SmallCamera from './SmallCamera';
 import CodingRound from './CodingRound';
+import SystemDesignRound from './SystemDesignRound';
 import aiTestCaseService from '../../services/aiTestCaseService';
 
 const InterviewMain = ({
@@ -35,6 +36,7 @@ const InterviewMain = ({
   isCodeEditorFullscreen,
   isLiveCodingRound,
   isSalesRound,
+  isSystemDesignRound,
   isAiQuestioning,
   aiQuestions,
   currentAiQuestionIndex,
@@ -52,9 +54,11 @@ const InterviewMain = ({
   onToggleFullscreen,
   onToggleAISpeaking,
   onAnswerAIQuestion,
-  interviewData // Add interview data to check if it's a developer interview
+  interviewData, // Add interview data to check if it's a developer interview
+  candidateInfo,
 }) => {
   const { isDarkMode } = useTheme();
+  const [showSystemDesignCanvas, setShowSystemDesignCanvas] = useState(false); // Add state to show SystemDesignRound inline
   const [isMinimized, setIsMinimized] = useState(false);
   const [showTranscription, setShowTranscription] = useState(true);
 
@@ -83,7 +87,20 @@ const InterviewMain = ({
   const getQuestionTypeColor = () => {
     if (isLiveCodingRound) return 'text-blue-500';
     if (isSalesRound) return 'text-green-500';
+    if (isSystemDesignRound) return 'text-green-500';
     return 'text-purple-500';
+  };
+  
+  // Handle opening canvas for system design
+  const handleOpenCanvas = () => {
+    console.log('🎨 [SYSTEM DESIGN] Opening canvas inline');
+    setShowSystemDesignCanvas(true);
+  };
+  
+  // Handle closing canvas
+  const handleCloseCanvas = () => {
+    console.log('🎨 [SYSTEM DESIGN] Closing canvas');
+    setShowSystemDesignCanvas(false);
   };
 
   // Render enhanced coding round only for developer interviews with coding rounds
@@ -111,6 +128,23 @@ const InterviewMain = ({
         onLanguageChange={onLanguageChange}
         onToggleAISpeaking={onToggleAISpeaking}
         onSubmitAnswer={onSubmitAnswer}
+      />
+    );
+  }
+  
+  // Render System Design Round when canvas is opened
+  if (showSystemDesignCanvas && isSystemDesignRound) {
+    return (
+      <SystemDesignRound
+        round={currentRound}
+        interviewId={interviewId}
+        candidateInfo={candidateInfo}
+        onComplete={(roundId) => {
+          console.log('✅ System Design completed for round:', roundId);
+          handleCloseCanvas();
+          onNextQuestion();
+        }}
+        onBack={handleCloseCanvas}
       />
     );
   }
@@ -431,8 +465,28 @@ const InterviewMain = ({
                   )}
                 </button>
 
-                {/* Submit Answer Button */}
-                {(transcription || codeAnswer) && (
+                {/* Open Canvas Button for System Design OR Submit Answer Button */}
+                {isSystemDesignRound ? (
+                  <div className="flex flex-col gap-3 w-full">
+                    <button
+                      onClick={handleOpenCanvas}
+                      className={`flex items-center justify-center space-x-2 px-8 py-4 rounded-2xl font-semibold text-lg transition-all transform hover:scale-105 ${
+                        isDarkMode
+                          ? 'bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-lg'
+                          : 'bg-gradient-to-r from-green-600 to-emerald-700 hover:from-green-700 hover:to-emerald-800 text-white shadow-lg'
+                      }`}
+                    >
+                      <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      <span>Open Design Canvas</span>
+                    </button>
+                    
+                    <div className={`text-center text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                      Design your system, download the diagram, then click Next to continue
+                    </div>
+                  </div>
+                ) : (transcription || codeAnswer) && (
                   <button
                     onClick={onSubmitAnswer}
                     className={`flex items-center space-x-2 px-6 py-4 rounded-2xl font-medium transition-all ${

@@ -1,7 +1,10 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import FormSubmissionRound from './FormSubmissionRound';
 
-const InterviewRoundRouter = ({ round, onComplete, candidateInfo, isDarkMode }) => {
+const InterviewRoundRouter = ({ round, onComplete, candidateInfo, isDarkMode, interviewId, accessLink }) => {
+  const navigate = useNavigate();
+  
   // Route to appropriate component based on round type
   switch (round.type) {
     case 'form_submission':
@@ -12,6 +15,37 @@ const InterviewRoundRouter = ({ round, onComplete, candidateInfo, isDarkMode }) 
           candidateInfo={candidateInfo}
           isDarkMode={isDarkMode}
         />
+      );
+    
+    case 'system_design':
+      // Redirect to standalone System Design app (like PCB)
+      useEffect(() => {
+        const queryParams = new URLSearchParams({
+          interviewId: interviewId || '',
+          roundId: round.roundId || round._id || '',
+          duration: round.duration || '30',
+          candidateId: candidateInfo?.id || '',
+          candidateName: candidateInfo?.name || '',
+          candidateEmail: candidateInfo?.email || ''
+        });
+        
+        // Create access link for system design round
+        const systemDesignAccessLink = accessLink || `${interviewId}-${round.roundNumber}-system-design`;
+        const redirectUrl = `/system-design-round/${systemDesignAccessLink}?${queryParams.toString()}`;
+        
+        console.log('🎨 [SYSTEM DESIGN] Redirecting to standalone app:', redirectUrl);
+        window.location.href = redirectUrl;
+      }, []);
+      
+      return (
+        <div className={`min-h-screen flex items-center justify-center ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-16 w-16 border-4 border-transparent border-t-blue-500 border-r-purple-500 mx-auto mb-6"></div>
+            <p className={`text-xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+              Loading System Design Tool...
+            </p>
+          </div>
+        </div>
       );
     
     case 'file_upload':

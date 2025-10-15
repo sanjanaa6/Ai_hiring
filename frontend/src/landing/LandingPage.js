@@ -2,9 +2,10 @@ import React from 'react';
 import { useTheme } from '../context/ThemeContext';
 import Hero from './components/Hero';
 import Features from './components/Features';
+import Profiling from './components/Profiling';
 import HowItWorks from './components/HowItWorks';
 import Testimonials from './components/Testimonials';
-import Pricing from './components/Pricing';
+// import Pricing from './components/Pricing';
 import Footer from './components/Footer';
 
 const LandingPage = () => {
@@ -14,9 +15,10 @@ const LandingPage = () => {
     <div className={`min-h-screen transition-colors duration-300 ${isDarkMode ? 'bg-gray-900' : 'bg-white'}`}>
       <Hero />
       <Features />
+      <Profiling />
       <HowItWorks />
       <Testimonials />
-      <Pricing />
+      {/* <Pricing /> */}
       <Footer />
     </div>
   );

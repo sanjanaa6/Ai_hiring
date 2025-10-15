@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../context/ThemeContext';
+import { useNavigate } from 'react-router-dom';
 import apiService from '../services/apiService';
 import InterviewAnalyticsDashboard from './InterviewAnalyticsDashboard';
 import { 
@@ -24,11 +25,13 @@ import {
   SortDesc,
   Download,
   ExternalLink,
-  Code
+  Code,
+  Settings
 } from 'lucide-react';
 
 const InterviewResults = ({ interviewId, onClose }) => {
   const { isDarkMode } = useTheme();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [results, setResults] = useState(null);
   const [candidateReport, setCandidateReport] = useState(null);
@@ -231,6 +234,14 @@ const InterviewResults = ({ interviewId, onClose }) => {
                 </p>
               </div>
               <div className="flex items-center space-x-3">
+                <button
+                  onClick={() => navigate(`/recruiter/review/${interviewId}`)}
+                  className={`px-4 py-2 rounded-lg ${isDarkMode ? 'bg-purple-600 hover:bg-purple-700' : 'bg-purple-600 hover:bg-purple-700'} text-white transition-colors flex items-center space-x-2`}
+                  title="Manage Interview & View Submissions"
+                >
+                  <Settings className="w-4 h-4" />
+                  <span>Manage Interview</span>
+                </button>
                 <button
                   onClick={() => setShowAnalytics(true)}
                   className={`px-4 py-2 rounded-lg ${isDarkMode ? 'bg-blue-600 hover:bg-blue-700' : 'bg-blue-600 hover:bg-blue-700'} text-white transition-colors flex items-center space-x-2`}

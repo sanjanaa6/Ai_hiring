@@ -7,31 +7,23 @@ import InterviewResults from '../../components/InterviewResults';
 import InterviewAnalyticsDashboard from '../../components/InterviewAnalyticsDashboard';
 import InterviewScheduler from '../components/InterviewScheduler';
 import CandidateManager from '../components/CandidateManager';
-import { motion } from 'framer-motion';
 import { 
   Plus, 
-  Bot, 
-  Link, 
-  Copy, 
-  CheckCircle, 
-  Clock, 
   Users, 
   Briefcase,
-  Sparkles,
-  FileText,
-  MapPin,
-  DollarSign,
   BarChart3,
   Settings,
   Menu,
   X,
-  MessageSquare,
+  Calendar,
   Award,
-  ThumbsUp,
-  ThumbsDown,
-  Edit3,
-  Target,
-  Calendar
+Target,
+   
+
+  FileText,
+  MessageSquare,
+  CheckCircle,
+  Copy
 } from 'lucide-react';
 
 const RecruiterDashboard = () => {
@@ -669,19 +661,19 @@ The interview should feel natural and relevant to someone applying for this spec
 
   // Sidebar navigation items
   const sidebarItems = [
-    { id: 'jobs', label: 'Jobs', icon: Briefcase, description: 'Manage job postings' },
-    { id: 'manage-jobs', label: 'Job Management', icon: Settings, description: 'View, edit, activate jobs' },
-    { id: 'scheduler', label: 'Interview Scheduler', icon: Calendar, description: 'Schedule interview rounds' },
-    { id: 'candidate-manager', label: 'Candidate Manager', icon: Users, description: 'Manage candidate progression' },
-    { id: 'candidates', label: 'Candidates', icon: Users, description: 'Review applications' },
-    { id: 'analytics', label: 'Analytics', icon: BarChart3, description: 'Performance insights' },
-    { id: 'answers', label: 'Interview Results', icon: Award, description: 'AI interview analysis' },
-    { id: 'messages', label: 'Messages', icon: MessageSquare, description: 'Communicate with candidates' },
-    { id: 'settings', label: 'Settings', icon: Settings, description: 'Account preferences' }
+    { id: 'jobs', label: 'Jobs', icon: Briefcase },
+    { id: 'manage-jobs', label: 'Job Management', icon: Settings },
+    { id: 'scheduler', label: 'Scheduler', icon: Calendar },
+    { id: 'candidate-manager', label: 'Candidate Manager', icon: Users },
+    { id: 'candidates', label: 'Candidates', icon: Users },
+    { id: 'analytics', label: 'Analytics', icon: BarChart3 },
+    { id: 'answers', label: 'Results', icon: Award },
+    { id: 'messages', label: 'Messages', icon: MessageSquare },
+    { id: 'settings', label: 'Settings', icon: Settings }
   ];
 
   return (
-    <div className="h-screen flex overflow-hidden pt-16" style={{
+    <div className="min-h-screen flex overflow-y-auto pt-16" style={{
         background: isDarkMode
           ? 'radial-gradient(1200px 700px at -10% 0%, rgba(59,130,246,.08), transparent), radial-gradient(1000px 600px at 110% -10%, rgba(6,182,212,.08), transparent)'
           : undefined
@@ -707,18 +699,13 @@ The interview should feel natural and relevant to someone applying for this spec
         <div className={`p-4 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
           <div className="flex items-center justify-between">
             {sidebarOpen && (
-              <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
-                  <Bot className="h-5 w-5 text-white" />
-                </div>
               <div>
-                  <h1 className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                    AI Hiring
-                  </h1>
-                  <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                    Recruiter Portal
-                  </p>
-                </div>
+                <h1 className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                  Recruiter Dashboard
+                </h1>
+                <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                  {user?.name || 'Recruiter'}
+                </p>
               </div>
             )}
             <button
@@ -737,7 +724,7 @@ The interview should feel natural and relevant to someone applying for this spec
             </div>
 
         {/* Sidebar Navigation */}
-        <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
           {sidebarItems.map((item) => {
             const Icon = item.icon;
                 return (
@@ -748,26 +735,21 @@ The interview should feel natural and relevant to someone applying for this spec
                   setMobileSidebarOpen(false);
                 }}
                 className={`
-                  w-full flex items-center space-x-3 px-3 py-3 rounded-lg transition-all duration-200
+                  w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg transition-colors
                   ${activeTab === item.id 
                     ? isDarkMode 
-                      ? 'bg-blue-600 text-white shadow-lg' 
-                      : 'bg-blue-600 text-white shadow-lg'
+                      ? 'bg-blue-600 text-white' 
+                      : 'bg-blue-600 text-white'
                     : isDarkMode 
-                      ? 'text-gray-300 hover:bg-gray-800 hover:text-white' 
-                      : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                      ? 'text-gray-300 hover:bg-gray-800' 
+                      : 'text-gray-600 hover:bg-gray-100'
                   }
                 `}
                 title={!sidebarOpen ? item.label : ''}
               >
                 <Icon className="h-5 w-5 flex-shrink-0" />
                 {sidebarOpen && (
-                  <div className="flex-1 text-left">
-                    <div className="font-medium">{item.label}</div>
-                    <div className={`text-xs ${activeTab === item.id ? 'text-blue-100' : isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                      {item.description}
-                </div>
-                  </div>
+                  <span className="font-medium text-sm">{item.label}</span>
                 )}
               </button>
                 );
@@ -799,7 +781,7 @@ The interview should feel natural and relevant to someone applying for this spec
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-y-auto">
         {/* Mobile Header */}
         <div className={`lg:hidden p-4 border-b ${isDarkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'}`}>
           <div className="flex items-center justify-between">
@@ -829,806 +811,217 @@ The interview should feel natural and relevant to someone applying for this spec
         <div className="flex-1 overflow-y-auto">
         {activeTab === 'jobs' && (
           <>
-            {/* Enhanced Stats Cards with Animations */}
-            <motion.div 
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.7, duration: 0.6 }}
-              className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8"
-            >
+            {/* Stats Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
               {[
                 { 
-                  icon: Briefcase, 
                   label: 'Active Jobs', 
                   value: jobs.length, 
-                  color: 'blue',
-                  bgColor: isDarkMode ? 'bg-blue-500/20' : 'bg-blue-100',
-                  iconColor: 'text-blue-600',
-                  gradient: 'from-blue-500 to-blue-600'
+                  color: 'blue'
                 },
                 { 
-                  icon: Bot, 
-                  label: 'AI Interviews', 
+                  label: 'Interviews', 
                   value: jobs.length, 
-                  color: 'green',
-                  bgColor: isDarkMode ? 'bg-green-500/20' : 'bg-green-100',
-                  iconColor: 'text-green-600',
-                  gradient: 'from-green-500 to-green-600'
+                  color: 'green'
                 },
                 { 
-                  icon: Users, 
                   label: 'Candidates', 
                   value: 0, 
-                  color: 'purple',
-                  bgColor: isDarkMode ? 'bg-purple-500/20' : 'bg-purple-100',
-                  iconColor: 'text-purple-600',
-                  gradient: 'from-purple-500 to-purple-600'
+                  color: 'purple'
                 },
                 { 
-                  icon: Clock, 
                   label: 'Completed', 
                   value: 0, 
-                  color: 'yellow',
-                  bgColor: isDarkMode ? 'bg-yellow-500/20' : 'bg-yellow-100',
-                  iconColor: 'text-yellow-600',
-                  gradient: 'from-yellow-500 to-yellow-600'
+                  color: 'gray'
                 }
-              ].map((stat, index) => {
-                const Icon = stat.icon;
-                return (
-                  <motion.div
-                    key={stat.label}
-                    initial={{ opacity: 0, y: 30, scale: 0.9 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    transition={{ 
-                      delay: 0.8 + index * 0.1, 
-                      duration: 0.5,
-                      type: "spring",
-                      stiffness: 100
-                    }}
-                    whileHover={{ 
-                      y: -8, 
-                      scale: 1.02,
-                      transition: { duration: 0.2 }
-                    }}
-                    className={`group relative overflow-hidden rounded-2xl p-6 backdrop-blur-xl border transition-all duration-300 ${
-                      isDarkMode 
-                        ? 'bg-black/30 border-blue-500/30 shadow-2xl shadow-blue-500/10' 
-                        : 'bg-white/80 border-gray-200/50 shadow-xl shadow-gray-500/5'
-                    }`}
-                  >
-                    {/* Animated background gradient */}
-                    <div className={`absolute inset-0 bg-gradient-to-br ${stat.gradient} opacity-0 group-hover:opacity-10 transition-opacity duration-300`}></div>
-                    
-                    <div className="relative z-10">
-                      <div className="flex items-center justify-between mb-4">
-                        <motion.div
-                          whileHover={{ rotate: 360 }}
-                          transition={{ duration: 0.6 }}
-                          className={`p-3 rounded-xl ${stat.bgColor} group-hover:scale-110 transition-transform duration-300`}
-                        >
-                          <Icon className={`h-6 w-6 ${stat.iconColor}`} />
-                        </motion.div>
-                        <motion.div
-                          initial={{ scale: 0 }}
-                          animate={{ scale: 1 }}
-                          transition={{ delay: 1 + index * 0.1, type: "spring", stiffness: 200 }}
-                          className={`w-3 h-3 rounded-full bg-gradient-to-r ${stat.gradient} animate-pulse`}
-                        ></motion.div>
-              </div>
-
-                      <div>
-                        <motion.p 
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          transition={{ delay: 1.1 + index * 0.1 }}
-                          className={`text-sm font-medium mb-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}
-                        >
-                          {stat.label}
-                        </motion.p>
-                        <motion.p 
-                          initial={{ opacity: 0, scale: 0.5 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          transition={{ delay: 1.2 + index * 0.1, type: "spring", stiffness: 200 }}
-                          className={`text-2xl font-bold bg-gradient-to-r ${stat.gradient} bg-clip-text text-transparent`}
-                        >
-                          {stat.value}
-                        </motion.p>
-                  </div>
-                  </div>
-                  </motion.div>
-                );
-              })}
-            </motion.div>
-
-          {/* Enhanced Create Job Button */}
-          <motion.div 
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 1.3, duration: 0.6 }}
-            className="mb-8 text-center"
-          >
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <motion.button
-              onClick={() => setShowCreateJob(true)}
-              whileHover={{ 
-                scale: 1.05,
-                y: -5,
-                transition: { duration: 0.2 }
-              }}
-              whileTap={{ scale: 0.95 }}
-              className="group relative inline-flex items-center space-x-3 px-10 py-5 bg-gradient-to-r from-blue-600 via-blue-700 to-slate-800 hover:from-blue-700 hover:via-blue-800 hover:to-slate-900 text-white rounded-2xl shadow-2xl hover:shadow-blue-500/25 transition-all duration-300 font-semibold text-lg overflow-hidden"
-            >
-              {/* Animated background */}
-              <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-blue-600 opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
-              
-              {/* Floating particles effect */}
-              <div className="absolute inset-0 overflow-hidden">
-                <motion.div
-                  animate={{ 
-                    x: [0, 100, 0],
-                    opacity: [0, 1, 0]
-                  }}
-                  transition={{ 
-                    duration: 3,
-                    repeat: Infinity,
-                    ease: "easeInOut"
-                  }}
-                  className="absolute top-0 left-0 w-2 h-2 bg-white rounded-full"
-                ></motion.div>
-                <motion.div
-                  animate={{ 
-                    x: [0, -100, 0],
-                    opacity: [0, 1, 0]
-                  }}
-                  transition={{ 
-                    duration: 3,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                    delay: 1
-                  }}
-                  className="absolute bottom-0 right-0 w-1 h-1 bg-white rounded-full"
-                ></motion.div>
-            </div>
-
-              <motion.div
-                whileHover={{ rotate: 90 }}
-                transition={{ duration: 0.3 }}
-                className="relative z-10"
-            >
-              <Plus className="h-6 w-6" />
-              </motion.div>
-                <span className="relative z-10">Create AI Interview</span>
-              
-              {/* Shine effect */}
-              <motion.div
-                animate={{ x: ['-100%', '100%'] }}
-                transition={{ 
-                  duration: 2,
-                  repeat: Infinity,
-                  ease: "easeInOut"
-                }}
-                className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-12"
-              ></motion.div>
-            </motion.button>
-
-              <motion.button
-                onClick={() => window.location.href = '/recruiter/create-job'}
-                whileHover={{ 
-                  scale: 1.05,
-                  y: -5,
-                  transition: { duration: 0.2 }
-                }}
-                whileTap={{ scale: 0.95 }}
-                className="group relative inline-flex items-center space-x-3 px-10 py-5 bg-gradient-to-r from-blue-600 via-blue-700 to-slate-800 hover:from-blue-700 hover:via-blue-800 hover:to-slate-900 text-white rounded-2xl shadow-2xl hover:shadow-blue-500/25 transition-all duration-300 font-semibold text-lg overflow-hidden"
-              >
-                {/* Animated background */}
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-blue-600 opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
-                
-                {/* Floating particles effect */}
-                <div className="absolute inset-0 overflow-hidden">
-                  <motion.div
-                    animate={{ 
-                      x: [0, 100, 0],
-                      opacity: [0, 1, 0]
-                    }}
-                    transition={{ 
-                      duration: 3,
-                      repeat: Infinity,
-                      ease: "easeInOut"
-                    }}
-                    className="absolute top-0 left-0 w-2 h-2 bg-white rounded-full"
-                  ></motion.div>
-                  <motion.div
-                    animate={{ 
-                      x: [0, -100, 0],
-                      opacity: [0, 1, 0]
-                    }}
-                    transition={{ 
-                      duration: 3,
-                      repeat: Infinity,
-                      ease: "easeInOut",
-                      delay: 1
-                    }}
-                    className="absolute bottom-0 right-0 w-1 h-1 bg-white rounded-full"
-                  ></motion.div>
-                </div>
-
-                <motion.div
-                  whileHover={{ rotate: 90 }}
-                  transition={{ duration: 0.3 }}
-                  className="relative z-10"
+              ].map((stat) => (
+                <div
+                  key={stat.label}
+                  className={`rounded-lg p-4 border ${
+                    isDarkMode 
+                      ? 'bg-gray-800 border-gray-700' 
+                      : 'bg-white border-gray-200'
+                  }`}
                 >
-                  <Briefcase className="h-6 w-6" />
-                </motion.div>
-                <span className="relative z-10">Post Regular Job</span>
-                
-                {/* Shine effect */}
-                <motion.div
-                  animate={{ x: ['-100%', '100%'] }}
-                  transition={{ 
-                    duration: 2,
-                    repeat: Infinity,
-                    ease: "easeInOut"
-                  }}
-                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-12"
-                ></motion.div>
-              </motion.button>
-
-              {/* PCB Round Links button removed as requested */}
-
+                  <p className={`text-sm font-medium mb-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                    {stat.label}
+                  </p>
+                  <p className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                    {stat.value}
+                  </p>
+                </div>
+              ))}
             </div>
-          </motion.div>
 
-          {/* Enhanced Create Job Modal - Fixed Width */}
+          {/* Action Buttons */}
+          <div className="mb-6">
+            <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
+              <button
+                onClick={() => setShowCreateJob(true)}
+                className={`inline-flex items-center space-x-2 px-6 py-3 rounded-lg font-medium transition-colors ${
+                  isDarkMode 
+                    ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                    : 'bg-blue-600 hover:bg-blue-700 text-white'
+                }`}
+              >
+                <Plus className="h-5 w-5" />
+                <span>Create AI Interview</span>
+              </button>
+
+              <button
+                onClick={() => window.location.href = '/recruiter/create-job'}
+                className={`inline-flex items-center space-x-2 px-6 py-3 rounded-lg font-medium transition-colors ${
+                  isDarkMode 
+                    ? 'bg-gray-700 hover:bg-gray-600 text-white' 
+                    : 'bg-gray-200 hover:bg-gray-300 text-gray-900'
+                }`}
+              >
+                <Briefcase className="h-5 w-5" />
+                <span>Post Regular Job</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Create Job Modal */}
           {showCreateJob && (
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
-              className="fixed inset-0 z-50 overflow-hidden"
-            >
-              {/* Enhanced Backdrop */}
-              <motion.div 
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className={`absolute inset-0 ${isDarkMode ? 'bg-black/90 backdrop-blur-xl' : 'bg-white/95 backdrop-blur-xl'}`} 
-              />
+            <div className="fixed inset-0 z-50 overflow-y-auto">
+              <div className={`absolute inset-0 ${isDarkMode ? 'bg-black/80' : 'bg-gray-900/50'}`} onClick={() => setShowCreateJob(false)} />
               
-              {/* Animated Background Elements */}
-              <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                <motion.div
-                  animate={{ 
-                    scale: [1, 1.2, 1],
-                    opacity: [0.1, 0.2, 0.1]
-                  }}
-                  transition={{ 
-                    duration: 8,
-                    repeat: Infinity,
-                    ease: "easeInOut"
-                  }}
-                  className={`absolute top-1/4 left-1/4 w-96 h-96 rounded-full ${isDarkMode ? 'bg-blue-500' : 'bg-blue-300'}`}
-                ></motion.div>
-                <motion.div
-                  animate={{ 
-                    scale: [1, 1.3, 1],
-                    opacity: [0.05, 0.15, 0.05]
-                  }}
-                  transition={{ 
-                    duration: 10,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                    delay: 2
-                  }}
-                  className={`absolute bottom-1/4 right-1/4 w-80 h-80 rounded-full ${isDarkMode ? 'bg-purple-500' : 'bg-purple-300'}`}
-                ></motion.div>
-              </div>
-              
-              {/* Main Content Container */}
-              <div className="relative h-full flex items-center justify-center p-4">
-                <div className="w-full max-w-7xl h-full max-h-[90vh] flex flex-col">
-                  {/* Enhanced Header - Always Visible */}
-                  <motion.div 
-                    initial={{ y: -50, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 0.2, duration: 0.6 }}
-                    className={`${isDarkMode ? 'bg-black/40 border-blue-500/30' : 'bg-white/80 border-gray-200/50'} border-b backdrop-blur-2xl shadow-2xl rounded-t-3xl`}
-                  >
-                    <div className="px-8 py-6">
+              <div className="relative min-h-screen flex items-center justify-center p-4">
+                <div className={`relative w-full max-w-4xl rounded-lg ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`}>
+                  {/* Header */}
+                  <div className={`px-6 py-4 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-4">
-                          <motion.div 
-                            initial={{ scale: 0, rotate: -180 }}
-                            animate={{ scale: 1, rotate: 0 }}
-                            transition={{ delay: 0.4, type: "spring", stiffness: 200 }}
-                            className={`p-3 rounded-xl ${isDarkMode ? 'bg-gradient-to-br from-blue-500/30 to-purple-500/30 border border-blue-500/40' : 'bg-gradient-to-br from-blue-500 to-purple-600 shadow-lg'}`}
-                          >
-                            <motion.div
-                              animate={{ rotate: [0, 360] }}
-                              transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-                            >
-                              <Sparkles className={`h-8 w-8 ${isDarkMode ? 'text-blue-400' : 'text-white'}`} />
-                            </motion.div>
-                          </motion.div>
-                        <div>
-                            <motion.h1 
-                              initial={{ opacity: 0, x: -20 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              transition={{ delay: 0.5, duration: 0.6 }}
-                              className={`text-3xl font-bold bg-gradient-to-r ${isDarkMode 
-                                ? 'from-white via-blue-200 to-purple-200 bg-clip-text text-transparent' 
-                                : 'from-gray-900 via-blue-600 to-purple-600 bg-clip-text text-transparent'
-                              }`}
-                            >
-                            Create AI-Powered Interview
-                            </motion.h1>
-                            <motion.p 
-                              initial={{ opacity: 0, x: -20 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              transition={{ delay: 0.6, duration: 0.6 }}
-                              className={`${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mt-1 text-base`}
-                            >
-                            Describe your ideal candidate and let AI generate everything
-                            </motion.p>
-                        </div>
+                      <div>
+                        <h2 className={`text-xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                          Create AI Interview
+                        </h2>
+                        <p className={`text-sm mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                          Describe the job and let AI generate the interview
+                        </p>
                       </div>
-                        <motion.button
-                          initial={{ scale: 0 }}
-                          animate={{ scale: 1 }}
-                          transition={{ delay: 0.7, type: "spring", stiffness: 200 }}
-                          whileHover={{ scale: 1.1, rotate: 90 }}
-                          whileTap={{ scale: 0.9 }}
+                      <button
                         onClick={() => setShowCreateJob(false)}
-                          className={`p-3 rounded-xl transition-all duration-300 ${isDarkMode 
-                            ? 'text-gray-400 hover:text-white hover:bg-gray-700/50 border border-gray-600/50' 
-                            : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100 border border-gray-200'
-                          }`}
+                        className={`p-2 rounded-lg ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
                       >
-                          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                        </motion.button>
+                        <X className={`h-5 w-5 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} />
+                      </button>
                     </div>
                   </div>
-                  </motion.div>
 
-                  {/* Enhanced Content Area */}
-                <div className="flex-1 overflow-y-auto">
-                    <div className="px-8 py-6">
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                      {/* Enhanced Main Form */}
-                      <div className="lg:col-span-2">
-                        <motion.div
-                          initial={{ y: 30, opacity: 0 }}
-                          animate={{ y: 0, opacity: 1 }}
-                          transition={{ delay: 0.8, duration: 0.6 }}
-                          className={`${isDarkMode ? 'bg-black/40 border-blue-500/30' : 'bg-white/90 border-gray-200/50'} rounded-2xl border backdrop-blur-2xl shadow-2xl p-6`}
+                  {/* Content */}
+                  <div className="px-6 py-4">
+                    <div className="mb-4">
+                      <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                        Interview Type
+                      </label>
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          onClick={() => setJobType('developer')}
+                          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                            jobType === 'developer'
+                              ? 'bg-blue-600 text-white'
+                              : isDarkMode
+                                ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                          }`}
                         >
-                          <div className="mb-6">
-                            <motion.div
-                              initial={{ opacity: 0, x: -20 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              transition={{ delay: 0.9, duration: 0.6 }}
-                              className="flex items-center space-x-3 mb-3"
-                            >
-                              <div className={`p-2 rounded-lg ${isDarkMode ? 'bg-blue-500/20' : 'bg-blue-100'}`}>
-                                <FileText className={`h-5 w-5 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} />
-                              </div>
-                              <label className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                              Job Description Prompt *
-                            </label>
-                            </motion.div>
-                            
-                            <motion.p 
-                              initial={{ opacity: 0, x: -20 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              transition={{ delay: 1.0, duration: 0.6 }}
-                              className={`${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-4 leading-relaxed text-sm`}
-                            >
-                              Describe the job you want to hire for. Be as detailed as possible - include job title, level, requirements, responsibilities, company info, etc. AI will extract all details and create tailored interview questions.
-                            </motion.p>
-
-                            {/* Job Type Selector */}
-                            <motion.div 
-                              initial={{ opacity: 0, y: 20 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              transition={{ delay: 1.05, duration: 0.6 }}
-                              className="mb-4"
-                            >
-                              <label className={`block text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'} mb-2`}>
-                                Interview Type
-                              </label>
-                              <div className="flex space-x-4">
-                                <button
-                                  onClick={() => setJobType('developer')}
-                                  className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
-                                    jobType === 'developer'
-                                      ? isDarkMode
-                                        ? 'bg-blue-600 text-white shadow-lg'
-                                        : 'bg-blue-600 text-white shadow-lg'
-                                      : isDarkMode
-                                        ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                          Developer
+                        </button>
+                        <button
+                          onClick={() => setJobType('sales')}
+                          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                            jobType === 'sales'
+                              ? 'bg-blue-600 text-white'
+                              : isDarkMode
+                                ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                          }`}
+                        >
+                          Sales
+                        </button>
+                        <button
+                          onClick={() => setJobType('pcb')}
+                          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                            jobType === 'pcb'
+                              ? 'bg-blue-600 text-white'
+                              : isDarkMode
+                                ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                          }`}
+                        >
+                          Electronics
+                        </button>
+                        <button
+                          onClick={() => setJobType('generic')}
+                          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                            jobType === 'generic'
+                              ? 'bg-blue-600 text-white'
+                              : isDarkMode
+                                ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
                                         : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                                   }`}
                                 >
-                                  💻 Developer Interview
-                                </button>
-                                <button
-                                  onClick={() => setJobType('sales')}
-                                  className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
-                                    jobType === 'sales'
-                                      ? isDarkMode
-                                        ? 'bg-blue-600 text-white shadow-lg'
-                                        : 'bg-blue-600 text-white shadow-lg'
-                                      : isDarkMode
-                                        ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                                  }`}
-                                >
-                                  💼 Sales Interview
-                                </button>
-                                <button
-                                  onClick={() => setJobType('pcb')}
-                                  className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
-                                    jobType === 'pcb'
-                                      ? isDarkMode
-                                        ? 'bg-blue-600 text-white shadow-lg'
-                                        : 'bg-blue-600 text-white shadow-lg'
-                                      : isDarkMode
-                                        ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                                  }`}
-                                >
-                                  🔌 Electronics (PCB)
-                                </button>
-                                <button
-                                  onClick={() => setJobType('generic')}
-                                  className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
-                                    jobType === 'generic'
-                                      ? isDarkMode
-                                        ? 'bg-green-600 text-white shadow-lg'
-                                        : 'bg-green-600 text-white shadow-lg'
-                                      : isDarkMode
-                                        ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                                  }`}
-                                >
-                                  🎯 Any Job Type
-                                </button>
-                              </div>
-                              <p className={`text-xs mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                                {jobType === 'developer' 
-                                  ? 'Technical rounds: Intro (no coding), Basic Tech (theory only), Coding (hands-on), Advanced Tech (concepts), Behavioral, Final Feedback'
-                                  : jobType === 'sales'
-                                    ? 'Sales rounds: Self Intro, Basic Sales, Sales Pitch, Objection Handling, Communication, Final Feedback'
-                                    : jobType === 'pcb'
-                                      ? 'Electronics interview: Round 3 - PCB Design (hands-on), Round 4 - Circuit Analysis, plus technical and behavioral rounds'
-                                    : 'AI analyzes your job description and creates custom interview rounds tailored to the specific role, skills, and requirements'
-                                }
-                              </p>
-                            </motion.div>
-                            
-                            <motion.div 
-                              initial={{ opacity: 0, y: 20 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              transition={{ delay: 1.1, duration: 0.6 }}
-                              className="relative group"
-                            >
-                              <textarea
-                                value={jobPrompt}
-                                onChange={(e) => setJobPrompt(e.target.value)}
-                                rows={12}
-                                className={`w-full px-6 py-4 rounded-xl border-2 transition-all duration-300 resize-none focus:outline-none text-base ${
-                                  isDarkMode 
-                                    ? 'bg-black/30 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 hover:border-blue-400' 
-                                    : 'bg-white/80 border-gray-300 text-gray-900 placeholder-gray-500 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 hover:border-blue-400'
-                                }`}
-                                placeholder={jobType === 'developer' 
-                                  ? "Example: I need to hire a Senior React Developer for our fintech startup. The role involves building modern web applications using React, TypeScript, and Node.js. Requirements include 5+ years of React experience, strong knowledge of JavaScript/TypeScript, experience with Redux, REST APIs, and Git. The person will work remotely, salary range $100k-$140k. They'll be responsible for developing new features, maintaining existing code, and mentoring junior developers..."
-                                  : jobType === 'sales'
-                                    ? "Example: I need to hire a Sales Manager for our SaaS company. The role involves managing a team of 5 sales representatives, developing sales strategies, meeting quarterly targets, and building relationships with enterprise clients. Requirements include 3+ years of sales management experience, proven track record of meeting/exceeding targets, experience with CRM systems, and strong leadership skills. The person will work in our downtown office, salary range $80k-$120k plus commission. They'll be responsible for team performance, client acquisition, and revenue growth..."
-                                    : jobType === 'pcb'
-                                      ? "Example: I need to hire an Electronics Engineer for our IoT company. The role involves designing PCB layouts, selecting components, creating schematics, and testing electronic circuits. Requirements include 3+ years of electronics design experience, proficiency in Altium Designer or KiCad, knowledge of analog/digital circuits, experience with microcontrollers, and understanding of EMI/EMC principles. The person will work in our lab, salary range $70k-$90k. They'll be responsible for designing PCBs for IoT devices, collaborating with firmware engineers, and ensuring designs meet manufacturing requirements..."
-                                    : "Example: I need to hire a Marketing Manager for our e-commerce company. The role involves developing digital marketing strategies, managing social media campaigns, analyzing customer data, and driving brand awareness. Requirements include 4+ years of marketing experience, expertise in Google Analytics, Facebook Ads, email marketing, and content creation. The person will work in our office, salary range $60k-$80k. They'll be responsible for increasing online sales, managing marketing budgets, and collaborating with the design team..."
-                                }
-                              />
-                              
-                              {/* Animated character counter */}
-                              <motion.div 
-                                animate={{ scale: jobPrompt.length > 0 ? [1, 1.1, 1] : 1 }}
-                                transition={{ duration: 0.3 }}
-                                className={`absolute bottom-6 right-6 px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
-                                  jobPrompt.length >= 10 
-                                    ? isDarkMode 
-                                      ? 'bg-green-500/20 text-green-300 border border-green-500/30' 
-                                      : 'bg-green-100 text-green-700 border border-green-200'
-                                    : isDarkMode 
-                                      ? 'bg-gray-700/50 text-gray-400' 
-                                      : 'bg-gray-100 text-gray-500'
-                                }`}
-                              >
-                                {jobPrompt.length} characters (minimum 10 required)
-                              </motion.div>
-                              
-                              {/* Floating label effect */}
-                              {jobPrompt.length > 0 && (
-                                <motion.div
-                                  initial={{ opacity: 0, y: 10 }}
-                                  animate={{ opacity: 1, y: 0 }}
-                                  className={`absolute -top-2 left-6 px-2 text-xs font-medium ${isDarkMode ? 'bg-black text-blue-400' : 'bg-white text-blue-600'}`}
-                                >
-                                  Job Description
-                                </motion.div>
-                              )}
-                            </motion.div>
-                          </div>
-
-                          {/* Enhanced Action Buttons */}
-                          <motion.div 
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 1.2, duration: 0.6 }}
-                            className="flex justify-end space-x-4 mt-4"
-                          >
-                            <motion.button
-                              whileHover={{ scale: 1.05, y: -2 }}
-                              whileTap={{ scale: 0.95 }}
-                              onClick={() => setShowCreateJob(false)}
-                              className={`px-8 py-4 rounded-2xl font-semibold transition-all duration-300 ${
-                                isDarkMode 
-                                  ? 'text-gray-300 hover:text-white hover:bg-gray-700/50 border border-gray-600/50' 
-                                  : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100 border border-gray-200'
-                              }`}
-                            >
-                              Cancel
-                            </motion.button>
-                            
-                            <motion.button
-                              whileHover={{ 
-                                scale: loading || jobPrompt.trim().length < 10 ? 1 : 1.05,
-                                y: loading || jobPrompt.trim().length < 10 ? 0 : -3
-                              }}
-                              whileTap={{ scale: 0.95 }}
-                              onClick={generateAIInterview}
-                              disabled={loading || jobPrompt.trim().length < 10}
-                              className="group relative flex items-center space-x-3 px-10 py-4 bg-gradient-to-r from-blue-600 via-blue-700 to-purple-700 hover:from-blue-700 hover:via-blue-800 hover:to-purple-800 disabled:from-gray-300 disabled:to-gray-300 text-white rounded-2xl transition-all duration-300 font-semibold shadow-2xl hover:shadow-blue-500/25 disabled:shadow-none overflow-hidden"
-                            >
-                              {/* Animated background */}
-                              <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-purple-500 opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
-                              
-                              {/* Floating particles */}
-                              {!loading && jobPrompt.trim().length >= 10 && (
-                                <div className="absolute inset-0 overflow-hidden">
-                                  <motion.div
-                                    animate={{ 
-                                      x: [0, 100, 0],
-                                      opacity: [0, 1, 0]
-                                    }}
-                                    transition={{ 
-                                      duration: 3,
-                                      repeat: Infinity,
-                                      ease: "easeInOut"
-                                    }}
-                                    className="absolute top-0 left-0 w-2 h-2 bg-white rounded-full"
-                                  ></motion.div>
-                                  <motion.div
-                                    animate={{ 
-                                      x: [0, -100, 0],
-                                      opacity: [0, 1, 0]
-                                    }}
-                                    transition={{ 
-                                      duration: 3,
-                                      repeat: Infinity,
-                                      ease: "easeInOut",
-                                      delay: 1
-                                    }}
-                                    className="absolute bottom-0 right-0 w-1 h-1 bg-white rounded-full"
-                                  ></motion.div>
-                                </div>
-                              )}
-                              
-                              <div className="relative z-10 flex items-center space-x-3">
-                              {loading ? (
-                                <>
-                                    <motion.div
-                                      animate={{ rotate: 360 }}
-                                      transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                                      className="w-5 h-5 border-2 border-white border-t-transparent rounded-full"
-                                    ></motion.div>
-                                  <span>Creating AI Interview...</span>
-                                </>
-                              ) : (
-                                <>
-                                    <motion.div
-                                      whileHover={{ rotate: 180 }}
-                                      transition={{ duration: 0.5 }}
-                                    >
-                                  <Sparkles className="h-5 w-5" />
-                                    </motion.div>
-                                  <span>Generate AI Interview</span>
-                                </>
-                              )}
-                          </div>
-                              
-                              {/* Shine effect */}
-                              {!loading && jobPrompt.trim().length >= 10 && (
-                                <motion.div
-                                  animate={{ x: ['-100%', '100%'] }}
-                                  transition={{ 
-                                    duration: 2,
-                                    repeat: Infinity,
-                                    ease: "easeInOut"
-                                  }}
-                                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-12"
-                                ></motion.div>
-                              )}
-                            </motion.button>
-                          </motion.div>
-                        </motion.div>
+                          Any Job Type
+                        </button>
                       </div>
+                    </div>
 
-                      {/* Enhanced Sidebar */}
-                      <div className="space-y-6">
-                        {/* Enhanced AI Features */}
-                        <motion.div
-                          initial={{ x: 30, opacity: 0 }}
-                          animate={{ x: 0, opacity: 1 }}
-                          transition={{ delay: 1.3, duration: 0.6 }}
-                          className={`${isDarkMode ? 'bg-gradient-to-br from-blue-500/20 to-purple-500/20 border-blue-500/40' : 'bg-gradient-to-br from-blue-50 to-purple-50 border-blue-200'} rounded-2xl border backdrop-blur-xl shadow-2xl p-6`}
-                        >
-                          <div className="flex items-center space-x-3 mb-4">
-                            <motion.div 
-                              animate={{ rotate: [0, 360] }}
-                              transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-                              className={`p-2 rounded-lg ${isDarkMode ? 'bg-blue-500/30' : 'bg-blue-100'}`}
-                            >
-                              <Bot className={`h-6 w-6 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} />
-                            </motion.div>
-                            <h3 className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                              AI Magic ✨
-                            </h3>
-                          </div>
-                          <ul className={`space-y-3 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                            {[
-                              "Extract job title & level automatically",
-                              "Generate 5 tailored interview rounds", 
-                              "Create role-specific questions",
-                              "Optimize interview duration",
-                              "Include company context"
-                            ].map((feature, index) => (
-                              <motion.li 
-                                key={feature}
-                                initial={{ opacity: 0, x: 20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ delay: 1.4 + index * 0.1, duration: 0.4 }}
-                                className="flex items-start space-x-3 group"
-                              >
-                                <motion.div
-                                  whileHover={{ scale: 1.2, rotate: 360 }}
-                                  transition={{ duration: 0.3 }}
-                                >
-                                  <CheckCircle className={`h-4 w-4 mt-0.5 ${isDarkMode ? 'text-green-400' : 'text-green-600'}`} />
-                                </motion.div>
-                                <span className="text-xs group-hover:text-blue-400 transition-colors duration-200">{feature}</span>
-                              </motion.li>
-                            ))}
-                          </ul>
-                        </motion.div>
+                    <div className="mb-4">
+                      <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                        Job Description *
+                      </label>
+                      <textarea
+                        value={jobPrompt}
+                        onChange={(e) => setJobPrompt(e.target.value)}
+                        rows={8}
+                        className={`w-full px-4 py-3 rounded-lg border resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                          isDarkMode 
+                            ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
+                            : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                        }`}
+                        placeholder="Describe the job role, requirements, responsibilities, and any other relevant details..."
+                      />
+                      <p className={`text-xs mt-1 ${jobPrompt.length >= 10 ? 'text-green-600' : isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                        {jobPrompt.length} / 10 characters minimum
+                      </p>
+                    </div>
 
-                        {/* Enhanced Pro Tips */}
-                        <motion.div
-                          initial={{ x: 30, opacity: 0 }}
-                          animate={{ x: 0, opacity: 1 }}
-                          transition={{ delay: 1.8, duration: 0.6 }}
-                          className={`${isDarkMode ? 'bg-gradient-to-br from-yellow-500/10 to-orange-500/10 border-yellow-500/30' : 'bg-gradient-to-br from-yellow-50 to-orange-50 border-yellow-200'} rounded-2xl border backdrop-blur-xl shadow-2xl p-6`}
-                        >
-                          <div className="flex items-center space-x-3 mb-4">
-                            <motion.div 
-                              animate={{ 
-                                scale: [1, 1.1, 1],
-                                rotate: [0, 5, -5, 0]
-                              }}
-                              transition={{ 
-                                duration: 4,
-                                repeat: Infinity,
-                                ease: "easeInOut"
-                              }}
-                              className={`p-2 rounded-lg ${isDarkMode ? 'bg-yellow-500/30' : 'bg-yellow-100'}`}
-                            >
-                              <svg className={`h-6 w-6 ${isDarkMode ? 'text-yellow-400' : 'text-yellow-600'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                              </svg>
-                            </motion.div>
-                            <h3 className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                              Pro Tips 💡
-                            </h3>
-                          </div>
-                          <ul className={`space-y-3 text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-                            {[
-                              "Include specific technologies and frameworks",
-                              "Mention years of experience required",
-                              "Describe company culture and values",
-                              "Include salary range and benefits",
-                              "Specify remote/hybrid/onsite work"
-                            ].map((tip, index) => (
-                              <motion.li 
-                                key={tip}
-                                initial={{ opacity: 0, x: 20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ delay: 1.9 + index * 0.1, duration: 0.4 }}
-                                className="flex items-start space-x-3 group"
-                              >
-                                <motion.div
-                                  animate={{ scale: [1, 1.2, 1] }}
-                                  transition={{ 
-                                    duration: 2,
-                                    repeat: Infinity,
-                                    delay: index * 0.2
-                                  }}
-                                  className={`w-2 h-2 rounded-full mt-2 ${isDarkMode ? 'bg-blue-400' : 'bg-blue-500'}`}
-                                ></motion.div>
-                                <span className="text-xs group-hover:text-yellow-400 transition-colors duration-200">{tip}</span>
-                              </motion.li>
-                            ))}
-                          </ul>
-                        </motion.div>
-
-                        {/* Enhanced Example Output */}
-                        <motion.div
-                          initial={{ x: 30, opacity: 0 }}
-                          animate={{ x: 0, opacity: 1 }}
-                          transition={{ delay: 2.3, duration: 0.6 }}
-                          className={`${isDarkMode ? 'bg-gradient-to-br from-green-500/10 to-emerald-500/10 border-green-500/30' : 'bg-gradient-to-br from-green-50 to-emerald-50 border-green-200'} rounded-2xl border backdrop-blur-xl shadow-2xl p-6`}
-                        >
-                          <div className="flex items-center space-x-3 mb-4">
-                            <motion.div 
-                              animate={{ 
-                                y: [0, -5, 0],
-                                rotate: [0, 10, -10, 0]
-                              }}
-                              transition={{ 
-                                duration: 3,
-                                repeat: Infinity,
-                                ease: "easeInOut"
-                              }}
-                              className={`p-2 rounded-lg ${isDarkMode ? 'bg-green-500/30' : 'bg-green-100'}`}
-                            >
-                              <FileText className={`h-6 w-6 ${isDarkMode ? 'text-green-400' : 'text-green-600'}`} />
-                            </motion.div>
-                            <h3 className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                              Example Output 📄
-                            </h3>
-                          </div>
-                          <div className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} space-y-2`}>
-                            {[
-                              { label: "Job Title", value: "Senior React Developer" },
-                              { label: "Duration", value: "25-30 minutes" },
-                              { label: "Rounds", value: "5 interview rounds" },
-                              { label: "Questions", value: "15+ tailored questions" },
-                              { label: "Focus", value: "Technical skills, problem-solving, culture fit" }
-                            ].map((item, index) => (
-                              <motion.div
-                                key={item.label}
-                                initial={{ opacity: 0, x: 20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ delay: 2.4 + index * 0.1, duration: 0.4 }}
-                                className="flex justify-between items-center p-2 rounded-lg bg-black/10 border border-gray-600/20"
-                              >
-                                <span className="font-medium text-blue-400 text-xs">{item.label}:</span>
-                                <span className="text-right text-xs">{item.value}</span>
-                              </motion.div>
-                            ))}
-                          </div>
-                        </motion.div>
-                      </div>
-                      </div>
+                    <div className={`flex justify-end space-x-3 pt-4 border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+                      <button
+                        onClick={() => setShowCreateJob(false)}
+                        className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                          isDarkMode 
+                            ? 'text-gray-300 hover:bg-gray-700' 
+                            : 'text-gray-600 hover:bg-gray-100'
+                        }`}
+                      >
+                        Cancel
+                      </button>
+                      
+                      <button
+                        onClick={generateAIInterview}
+                        disabled={loading || jobPrompt.trim().length < 10}
+                        className={`px-6 py-2 rounded-lg font-medium transition-colors ${
+                          loading || jobPrompt.trim().length < 10
+                            ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                            : 'bg-blue-600 hover:bg-blue-700 text-white'
+                        }`}
+                      >
+                        {loading ? (
+                          <span className="flex items-center space-x-2">
+                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                            <span>Creating...</span>
+                          </span>
+                        ) : (
+                          'Generate Interview'
+                        )}
+                      </button>
                     </div>
                   </div>
                 </div>
               </div>
-            </motion.div>
+            </div>
           )}
 
           {/* Generated Interview Success */}
@@ -1670,138 +1063,55 @@ The interview should feel natural and relevant to someone applying for this spec
             </div>
           )}
 
-          {/* Enhanced Jobs List */}
-          <motion.div 
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 1.4, duration: 0.6 }}
-            className={`${isDarkMode ? 'bg-black/30 border border-blue-500/40 backdrop-blur-xl' : 'bg-white/90 backdrop-blur-sm'} rounded-2xl shadow-2xl overflow-hidden`}
-          >
-            <div className={`px-8 py-6 border-b ${isDarkMode ? 'border-blue-500/30' : 'border-gray-200'} flex items-center justify-between bg-gradient-to-r ${isDarkMode ? 'from-black/20 to-black/10' : 'from-blue-50/50 to-transparent'}`}>
-              <div className="flex items-center space-x-3">
-                <motion.div
-                  animate={{ rotate: [0, 360] }}
-                  transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-                  className={`p-2 rounded-lg ${isDarkMode ? 'bg-blue-500/20' : 'bg-blue-100'}`}
-                >
-                  <Briefcase className={`h-5 w-5 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} />
-                </motion.div>
-                <h2 className={`text-xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Your AI Interview Jobs</h2>
-              </div>
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ delay: 1.6, type: "spring", stiffness: 200 }}
-                className={`text-sm px-4 py-2 rounded-full font-medium ${isDarkMode ? 'bg-blue-500/20 text-blue-200 border border-blue-500/30' : 'bg-blue-100 text-blue-700 border border-blue-200'}`}
-              >
+          {/* Jobs List */}
+          <div className={`${isDarkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white'} rounded-lg shadow overflow-hidden`}>
+            <div className={`px-6 py-4 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} flex items-center justify-between`}>
+              <h2 className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Your Interview Jobs</h2>
+              <span className={`text-sm px-3 py-1 rounded-full font-medium ${isDarkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-700'}`}>
                 {jobs.length} total
-              </motion.div>
+              </span>
             </div>
             <div className="p-6">
               {jobs.length > 0 ? (
                 <div className="space-y-4">
                   {jobs.map((job, idx) => (
-                    <motion.div
+                    <div
                       key={job.id || idx}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 1.7 + idx * 0.1, duration: 0.5 }}
-                      whileHover={{ 
-                        y: -8, 
-                        scale: 1.02,
-                        transition: { duration: 0.2 }
-                      }}
-                      className={`group relative overflow-hidden rounded-2xl p-6 backdrop-blur-sm border transition-all duration-300 ${
+                      className={`rounded-lg p-4 border ${
                         isDarkMode 
-                          ? 'border-blue-500/30 bg-black/20 hover:bg-black/30 shadow-lg shadow-blue-500/10' 
-                          : 'border-gray-200 bg-white/80 hover:bg-white shadow-lg shadow-gray-500/5'
+                          ? 'border-gray-700 bg-gray-900' 
+                          : 'border-gray-200 bg-white'
                       }`}
                     >
-                      {/* Animated background gradient */}
-                      <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                      <div className="relative z-10 flex justify-between items-start">
+                      <div className="flex justify-between items-start">
                         <div className="flex-1">
-                          <motion.h3 
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ delay: 1.8 + idx * 0.1 }}
-                            className={`text-lg font-semibold mb-1 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}
-                          >
+                          <h3 className={`text-lg font-semibold mb-1 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                             {job.title}
-                          </motion.h3>
-                          <motion.p 
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ delay: 1.9 + idx * 0.1 }}
-                            className={`${isDarkMode ? 'text-gray-300' : 'text-gray-600'} text-sm mb-3`}
-                          >
+                          </h3>
+                          <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'} text-sm mb-3`}>
                             {job.company}
-                          </motion.p>
-                          <motion.div 
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 2.0 + idx * 0.1 }}
-                            className="flex items-center mt-2 space-x-6"
-                          >
-                            <div className={`flex items-center text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-500'}`}>
-                              <motion.div
-                                whileHover={{ scale: 1.2 }}
-                                className="mr-2"
-                              >
-                                <MapPin className="h-4 w-4" />
-                              </motion.div>
+                          </p>
+                          <div className="flex items-center mt-2 space-x-4 text-sm">
+                            <span className={isDarkMode ? 'text-gray-400' : 'text-gray-500'}>
                               {job.location}
-                            </div>
-                            <div className={`flex items-center text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-500'}`}>
-                              <motion.div
-                                whileHover={{ scale: 1.2 }}
-                                className="mr-2"
-                              >
-                                <DollarSign className="h-4 w-4" />
-                              </motion.div>
+                            </span>
+                            <span className={isDarkMode ? 'text-gray-400' : 'text-gray-500'}>
                               {job.salary}
-                            </div>
-                            <div className={`flex items-center text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-500'}`}>
-                              <motion.div
-                                whileHover={{ scale: 1.2 }}
-                                className="mr-2"
-                              >
-                                <Clock className="h-4 w-4" />
-                              </motion.div>
-                              {job.duration} min
+                            </span>
+
                           </div>
-                          </motion.div>
-                          <motion.div 
-                            initial={{ opacity: 0, scale: 0.8 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ delay: 2.1 + idx * 0.1 }}
-                            className="mt-3"
-                          >
-                            <span className={`inline-flex items-center px-3 py-1 text-xs font-medium rounded-full ${isDarkMode ? 'bg-green-500/20 text-green-300 border border-green-500/30' : 'bg-green-100 text-green-800 border border-green-200'}`}>
-                              <motion.div
-                                animate={{ scale: [1, 1.2, 1] }}
-                                transition={{ duration: 2, repeat: Infinity }}
-                                className="w-2 h-2 bg-green-500 rounded-full mr-2"
-                              ></motion.div>
+                          <div className="mt-3">
+                            <span className={`inline-flex items-center px-3 py-1 text-xs font-medium rounded-full ${isDarkMode ? 'bg-green-900 text-green-300' : 'bg-green-100 text-green-800'}`}>
                               {job.status}
                             </span>
-                          </motion.div>
                           </div>
-                        <motion.div 
-                          initial={{ opacity: 0, x: 20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: 2.2 + idx * 0.1 }}
-                          className="flex flex-col space-y-3 ml-4"
-                        >
-                          {/* Always visible interview URL */}
-                          <div className={`flex items-center space-x-2 px-3 py-2 rounded-lg border ${isDarkMode ? 'bg-gray-800/50 border-gray-600 text-gray-300' : 'bg-gray-50 border-gray-200 text-gray-700'}`}>
-                            <Link className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                        </div>
+                        <div className="flex flex-col space-y-3 ml-4">
+                          <div className={`flex items-center space-x-2 px-3 py-2 rounded-lg border ${isDarkMode ? 'bg-gray-800 border-gray-700 text-gray-300' : 'bg-gray-50 border-gray-200 text-gray-700'}`}>
                             <span className="text-xs font-mono truncate max-w-48">
                               {job.link || job.interviewLink || `${window.location.origin}/interview/${job.interviewId}`}
                             </span>
-                          <motion.button
-                              whileHover={{ scale: 1.1 }}
-                              whileTap={{ scale: 0.9 }}
+                          <button
                               onClick={async () => {
                               const computedLink = job.link || job.interviewLink || `${window.location.origin}/interview/${job.interviewId}`;
                                 try {
@@ -1820,116 +1130,70 @@ The interview should feel natural and relevant to someone applying for this spec
                               ) : (
                                 <Copy className="h-4 w-4 text-gray-500" />
                               )}
-                          </motion.button>
+                          </button>
                           </div>
 
-
-                          {/* Action buttons row */}
                           <div className="flex flex-wrap gap-2">
-                          {/* Approve and Reject buttons for pending interviews (including undefined for legacy interviews) */}
                           {(job.approvalStatus === 'pending' || job.approvalStatus === undefined) && (
                             <>
-                              <motion.button
-                                whileHover={{ scale: 1.05, y: -2 }}
-                                whileTap={{ scale: 0.95 }}
+                              <button
                                 onClick={() => {
                                   if (window.confirm('Are you sure you want to approve this interview?')) {
                                     approveInterview(job.interviewId);
                                   }
                                 }}
-                                className={`group flex items-center space-x-2 px-4 py-2 text-sm rounded-xl transition-all duration-300 ${isDarkMode ? 'bg-green-500/20 text-green-200 hover:bg-green-500/30 border border-green-500/30' : 'bg-green-100 text-green-800 hover:bg-green-200 border border-green-200'}`}
+                                className={`flex items-center space-x-2 px-3 py-1.5 text-sm rounded-lg transition-colors ${isDarkMode ? 'bg-green-900 text-green-300 hover:bg-green-800' : 'bg-green-100 text-green-800 hover:bg-green-200'}`}
                               >
-                                <motion.div
-                                  whileHover={{ scale: 1.1 }}
-                                  transition={{ duration: 0.2 }}
-                                >
-                                  <ThumbsUp className="h-4 w-4" />
-                                </motion.div>
                                 <span>Approve</span>
-                              </motion.button>
+                              </button>
 
-                              <motion.button
-                                whileHover={{ scale: 1.05, y: -2 }}
-                                whileTap={{ scale: 0.95 }}
+                              <button
                                 onClick={() => {
                                   if (window.confirm('Are you sure you want to reject this interview?')) {
                                     rejectInterview(job.interviewId);
                                   }
                                 }}
-                                className={`group flex items-center space-x-2 px-4 py-2 text-sm rounded-xl transition-all duration-300 ${isDarkMode ? 'bg-red-500/20 text-red-200 hover:bg-red-500/30 border border-red-500/30' : 'bg-red-100 text-red-800 hover:bg-red-200 border border-red-200'}`}
+                                className={`flex items-center space-x-2 px-3 py-1.5 text-sm rounded-lg transition-colors ${isDarkMode ? 'bg-red-900 text-red-300 hover:bg-red-800' : 'bg-red-100 text-red-800 hover:bg-red-200'}`}
                               >
-                                <motion.div
-                                  whileHover={{ scale: 1.1 }}
-                                  transition={{ duration: 0.2 }}
-                                >
-                                  <ThumbsDown className="h-4 w-4" />
-                                </motion.div>
                                 <span>Reject</span>
-                              </motion.button>
+                              </button>
                             </>
                           )}
 
-                          {/* Show approval status for approved/rejected interviews */}
                           {job.approvalStatus === 'approved' && (
-                            <motion.div
-                              initial={{ opacity: 0, scale: 0.8 }}
-                              animate={{ opacity: 1, scale: 1 }}
-                              className={`flex items-center space-x-2 px-4 py-2 text-sm rounded-xl ${isDarkMode ? 'bg-green-500/20 text-green-200 border border-green-500/30' : 'bg-green-100 text-green-800 border border-green-200'}`}
-                            >
+                            <div className={`flex items-center space-x-2 px-3 py-1.5 text-sm rounded-lg ${isDarkMode ? 'bg-green-900 text-green-300' : 'bg-green-100 text-green-800'}`}>
                               <CheckCircle className="h-4 w-4" />
                               <span>Approved</span>
-                            </motion.div>
+                            </div>
                           )}
 
                           {job.approvalStatus === 'rejected' && (
-                            <motion.div
-                              initial={{ opacity: 0, scale: 0.8 }}
-                              animate={{ opacity: 1, scale: 1 }}
-                              className={`flex items-center space-x-2 px-4 py-2 text-sm rounded-xl ${isDarkMode ? 'bg-red-500/20 text-red-200 border border-red-500/30' : 'bg-red-100 text-red-800 border border-red-200'}`}
-                            >
+                            <div className={`flex items-center space-x-2 px-3 py-1.5 text-sm rounded-lg ${isDarkMode ? 'bg-red-900 text-red-300' : 'bg-red-100 text-red-800'}`}>
                               <X className="h-4 w-4" />
                               <span>Rejected</span>
-                            </motion.div>
+                            </div>
                           )}
                             
-                            <motion.button
-                              whileHover={{ scale: 1.05, y: -2 }}
-                              whileTap={{ scale: 0.95 }}
+                            <button
                               onClick={() => {
                                 window.location.href = `/recruiter/review/${job.interviewId}`;
                               }}
-                              className={`group flex items-center space-x-2 px-4 py-2 text-sm rounded-xl transition-all duration-300 ${isDarkMode ? 'bg-blue-500/20 text-blue-200 hover:bg-blue-500/30 border border-blue-500/30' : 'bg-blue-100 text-blue-800 hover:bg-blue-200 border border-blue-200'}`}
+                              className={`flex items-center space-x-2 px-3 py-1.5 text-sm rounded-lg transition-colors ${isDarkMode ? 'bg-blue-900 text-blue-300 hover:bg-blue-800' : 'bg-blue-100 text-blue-800 hover:bg-blue-200'}`}
                             >
-                              <motion.div
-                                whileHover={{ scale: 1.1 }}
-                                transition={{ duration: 0.2 }}
-                            >
-                              <Edit3 className="h-4 w-4" />
-                              </motion.div>
                               <span>Edit</span>
-                            </motion.button>
+                            </button>
                           
-                          <motion.button
-                            whileHover={{ scale: 1.05, y: -2 }}
-                            whileTap={{ scale: 0.95 }}
+                          <button
                             onClick={() => {
                               setPerformanceInterviewId(job.interviewId);
                               setShowPerformanceDashboard(true);
                             }}
-                            className={`group flex items-center space-x-2 px-4 py-2 text-sm rounded-xl transition-all duration-300 ${isDarkMode ? 'bg-purple-500/20 text-purple-200 hover:bg-purple-500/30 border border-purple-500/30' : 'bg-purple-100 text-purple-800 hover:bg-purple-200 border border-purple-200'}`}
+                            className={`flex items-center space-x-2 px-3 py-1.5 text-sm rounded-lg transition-colors ${isDarkMode ? 'bg-purple-900 text-purple-300 hover:bg-purple-800' : 'bg-purple-100 text-purple-800 hover:bg-purple-200'}`}
                           >
-                            <motion.div
-                              whileHover={{ scale: 1.1 }}
-                              transition={{ duration: 0.2 }}
-                          >
-                            <BarChart3 className="h-4 w-4" />
-                            </motion.div>
                             <span>View Performance</span>
-                          </motion.button>
+                          </button>
                           
-                          <motion.button
-                            whileHover={{ scale: 1.05, y: -2 }}
-                            whileTap={{ scale: 0.95 }}
+                          <button
                             onClick={async () => {
                               if (!window.confirm('Delete this interview? This cannot be undone.')) return;
                               try {
@@ -1943,62 +1207,25 @@ The interview should feel natural and relevant to someone applying for this spec
                                 alert('Error deleting interview');
                               }
                             }}
-                            className={`group flex items-center space-x-2 px-4 py-2 text-sm rounded-xl transition-all duration-300 ${isDarkMode ? 'bg-red-500/20 text-red-200 hover:bg-red-500/30 border border-red-500/30' : 'bg-red-100 text-red-800 hover:bg-red-200 border border-red-200'}`}
+                            className={`flex items-center space-x-2 px-3 py-1.5 text-sm rounded-lg transition-colors ${isDarkMode ? 'bg-red-900 text-red-300 hover:bg-red-800' : 'bg-red-100 text-red-800 hover:bg-red-200'}`}
                           >
-                            <motion.span
-                              whileHover={{ scale: 1.1 }}
-                              transition={{ duration: 0.2 }}
-                            >
-                              Delete
-                            </motion.span>
-                          </motion.button>
+                            <span>Delete</span>
+                          </button>
                           </div>
-                        </motion.div>
+                        </div>
                       </div>
-                    </motion.div>
+                    </div>
                   ))}
                 </div>
               ) : (
-                <motion.div 
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 1.5, duration: 0.6 }}
-                  className="text-center py-12"
-                >
-                  <motion.div
-                    animate={{ 
-                      y: [0, -10, 0],
-                      rotate: [0, 5, -5, 0]
-                    }}
-                    transition={{ 
-                      duration: 4,
-                      repeat: Infinity,
-                      ease: "easeInOut"
-                    }}
-                    className="mb-6"
-                  >
-                    <Bot className="h-16 w-16 text-gray-400 mx-auto" />
-                  </motion.div>
-                  <motion.h3 
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 1.7 }}
-                    className={`text-xl font-semibold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}
-                  >
-                    No AI interview jobs created yet
-                  </motion.h3>
-                  <motion.p 
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 1.8 }}
-                    className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}
-                  >
-                    Create your first job with AI-powered interviews
-                  </motion.p>
-                </motion.div>
+                <div className="text-center py-12">
+                  <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                    No interview jobs created yet. Create your first job with AI-powered interviews.
+                  </p>
+                </div>
               )}
             </div>
-          </motion.div>
+          </div>
           </>
         )}
 

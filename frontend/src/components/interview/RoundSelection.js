@@ -158,7 +158,7 @@ const RoundSelection = ({
                         </span>
                       </div>
                     </div>
-                    
+
                     {/* Progress Bar */}
                     <div className="space-y-4">
                       <div className={`w-full rounded-full h-4 ${
@@ -392,10 +392,14 @@ const RoundSelection = ({
                             ? isDarkMode ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/30' : 'bg-emerald-100 text-emerald-800 border border-emerald-300'
                             : round.type === 'file_upload'
                             ? isDarkMode ? 'bg-purple-500/20 text-purple-300 border border-purple-400/30' : 'bg-purple-100 text-purple-800 border border-purple-300'
+                            : round.type === 'system_design'
+                            ? isDarkMode ? 'bg-green-500/20 text-green-300 border border-green-400/30' : 'bg-green-100 text-green-800 border border-green-300'
                             : isDarkMode ? 'bg-blue-500/20 text-blue-300 border border-blue-400/30' : 'bg-blue-100 text-blue-800 border border-blue-300'
                         }`}>
                           {round.type === 'form_submission' ? '📝 Form Submission' : 
-                           round.type === 'file_upload' ? '📁 File Upload' : '💬 Interview'}
+                           round.type === 'file_upload' ? '📁 File Upload' : 
+                           round.type === 'system_design' ? '🎨 System Design' :
+                           '💬 Interview'}
                         </span>
                       </div>
 
@@ -460,6 +464,8 @@ const RoundSelection = ({
                               ? `${round.formFields?.length || 0} Fields`
                               : round.type === 'file_upload'
                               ? `${round.fileUploadRequirements?.length || 0} Files`
+                              : round.type === 'system_design'
+                              ? `${round.questions?.length || 0} Problem${round.questions?.length !== 1 ? 's' : ''}`
                               : `${round.questions?.length || 0} Q`
                             }
                           </span>

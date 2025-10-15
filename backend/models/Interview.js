@@ -61,7 +61,7 @@ const roundSchema = new mongoose.Schema({
   title: { type: String, required: true },
   description: { type: String, required: true },
   duration: { type: Number, required: true },
-  type: { type: String, enum: ['interview', 'file_upload', 'form_submission'], default: 'interview' },
+  type: { type: String, enum: ['interview', 'file_upload', 'form_submission', 'system_design'], default: 'interview' },
   allowRetake: { type: Boolean, default: false }, // Allow candidates to retake this round
   questions: [questionSchema],
   fileUploadRequirements: [fileUploadRequirementSchema], // For file upload rounds
@@ -140,6 +140,21 @@ const fileUploadSchema = new mongoose.Schema({
   reviewedAt: { type: Date }
 });
 
+const systemDesignSubmissionSchema = new mongoose.Schema({
+  candidateId: { type: String, required: true },
+  candidateName: { type: String, required: true },
+  candidateEmail: { type: String, required: true },
+  roundId: { type: String, required: true },
+  diagramData: { type: mongoose.Schema.Types.Mixed, required: true }, // Stores the complete diagram JSON
+  submittedAt: { type: Date, default: Date.now },
+  timeSpent: { type: Number, default: 0 }, // in seconds
+  status: { type: String, enum: ['submitted', 'reviewed', 'approved', 'rejected'], default: 'submitted' },
+  reviewNotes: { type: String },
+  score: { type: Number, min: 0, max: 10 },
+  reviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  reviewedAt: { type: Date }
+});
+
 const interviewSchema = new mongoose.Schema({
   interviewId: { type: String, required: true, unique: true },
   title: { type: String, required: true },
@@ -184,6 +199,7 @@ const interviewSchema = new mongoose.Schema({
   candidateAnswers: [candidateAnswerSchema],
   fileUploads: [fileUploadSchema],
   formSubmissions: [formSubmissionSchema],
+  systemDesignSubmissions: [systemDesignSubmissionSchema],
   candidateFeedbacks: [candidateFeedbackSchema],
   statistics: {
     totalCandidates: { type: Number, default: 0 },

@@ -54,14 +54,32 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Request logging middleware
+app.use((req, res, next) => {
+  const timestamp = new Date().toISOString();
+  console.log(`📨 [${timestamp}] ${req.method} ${req.path}`);
+  
+  // Log query params if present
+  if (Object.keys(req.query).length > 0) {
+    console.log(`   Query:`, req.query);
+  }
+  
+  // Log body for POST/PUT/PATCH (but not for file uploads)
+  if (['POST', 'PUT', 'PATCH'].includes(req.method) && !req.path.includes('/upload')) {
+    if (req.body && Object.keys(req.body).length > 0) {
+      console.log(`   Body:`, JSON.stringify(req.body).substring(0, 200));
+    }
+  }
+  
+  next();
+});
+
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/ai-hiring';
 
 console.log('🔗 [SERVER] Attempting to connect to MongoDB...');
 console.log('🌐 [SERVER] MongoDB URI:', MONGODB_URI.replace(/\/\/.*@/, '//***:***@')); // Hide credentials
 
 mongoose.connect(MONGODB_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
   family: 4
 })
 .then(() => {
@@ -79,24 +97,153 @@ mongoose.connect(MONGODB_URI, {
 });
 
 // Routes
-app.use('/api/dashboard', require('./routes/dashboard'));
-app.use('/api/jobs', require('./routes/jobs'));
-app.use('/api/applications', require('./routes/applications'));
-app.use('/api/users', require('./routes/users'));
+console.log('📦 [SERVER] Loading routes...');
+
+try {
+  app.use('/api/dashboard', require('./routes/dashboard'));
+  console.log('  ✅ Dashboard routes loaded');
+} catch (err) {
+  console.error('  ❌ Dashboard routes failed:', err.message);
+}
+
+try {
+  app.use('/api/jobs', require('./routes/jobs'));
+  console.log('  ✅ Jobs routes loaded');
+} catch (err) {
+  console.error('  ❌ Jobs routes failed:', err.message);
+}
+
+try {
+  app.use('/api/applications', require('./routes/applications'));
+  console.log('  ✅ Applications routes loaded');
+} catch (err) {
+  console.error('  ❌ Applications routes failed:', err.message);
+}
+
+try {
+  app.use('/api/users', require('./routes/users'));
+  console.log('  ✅ Users routes loaded');
+} catch (err) {
+  console.error('  ❌ Users routes failed:', err.message);
+}
+
+// Session management routes
+try {
+  app.use('/api/sessions', require('./routes/sessions'));
+  console.log('  ✅ Session management routes loaded');
+} catch (err) {
+  console.error('  ❌ Session routes failed:', err.message);
+}
+
+// Recording management routes
+try {
+  app.use('/api/recordings', require('./routes/recordings'));
+  console.log('  ✅ Recording management routes loaded');
+} catch (err) {
+  console.error('  ❌ Recording routes failed:', err.message);
+}
+
 // Interview scheduling routes must come BEFORE main interviews routes to avoid conflicts
-app.use('/api/interviews', require('./routes/interviewScheduling'));
-app.use('/api/interviews', require('./routes/formSubmission'));
-app.use('/api/interviews', require('./routes/interviews'));
-app.use('/api/ai', require('./routes/ai'));
-app.use('/api/ai', require('./routes/aiEvaluation'));
-app.use('/api/ai', require('./routes/aiLanguageDetection'));
-app.use('/api/ai', require('./routes/salesInterviewService'));
-app.use('/api/electronics', require('./routes/electronicsInterviewService'));
-app.use('/api/coding-tutor', require('./routes/codingTutor'));
-app.use('/api/admin', require('./routes/admin'));
-app.use('/api/admin', require('./routes/adminAuth'));
-app.use('/api/tts', require('./routes/tts'));
-app.use('/api/stt', require('./routes/stt'));
+try {
+  app.use('/api/interviews', require('./routes/interviewScheduling'));
+  console.log('  ✅ Interview scheduling routes loaded');
+} catch (err) {
+  console.error('  ❌ Interview scheduling routes failed:', err.message);
+}
+
+try {
+  app.use('/api/interviews', require('./routes/formSubmission'));
+  console.log('  ✅ Form submission routes loaded');
+} catch (err) {
+  console.error('  ❌ Form submission routes failed:', err.message);
+}
+
+try {
+  app.use('/api/interviews', require('./routes/interviews'));
+  console.log('  ✅ Interview routes loaded');
+} catch (err) {
+  console.error('  ❌ Interview routes failed:', err.message);
+}
+
+try {
+  app.use('/api/ai', require('./routes/ai'));
+  console.log('  ✅ AI routes loaded');
+} catch (err) {
+  console.error('  ❌ AI routes failed:', err.message);
+}
+
+try {
+  app.use('/api/ai', require('./routes/aiEvaluation'));
+  console.log('  ✅ AI evaluation routes loaded');
+} catch (err) {
+  console.error('  ❌ AI evaluation routes failed:', err.message);
+}
+
+try {
+  app.use('/api/ai', require('./routes/aiLanguageDetection'));
+  console.log('  ✅ AI language detection routes loaded');
+} catch (err) {
+  console.error('  ❌ AI language detection routes failed:', err.message);
+}
+
+try {
+  app.use('/api/ai', require('./routes/salesInterviewService'));
+  console.log('  ✅ Sales interview service routes loaded');
+} catch (err) {
+  console.error('  ❌ Sales interview service routes failed:', err.message);
+}
+
+try {
+  app.use('/api/electronics', require('./routes/electronicsInterviewService'));
+  console.log('  ✅ Electronics interview service routes loaded');
+} catch (err) {
+  console.error('  ❌ Electronics interview service routes failed:', err.message);
+}
+
+try {
+  app.use('/api/coding-tutor', require('./routes/codingTutor'));
+  console.log('  ✅ Coding tutor routes loaded');
+} catch (err) {
+  console.error('  ❌ Coding tutor routes failed:', err.message);
+}
+
+try {
+  app.use('/api/admin', require('./routes/admin'));
+  console.log('  ✅ Admin routes loaded');
+} catch (err) {
+  console.error('  ❌ Admin routes failed:', err.message);
+}
+
+try {
+  app.use('/api/admin', require('./routes/adminAuth'));
+  console.log('  ✅ Admin auth routes loaded');
+} catch (err) {
+  console.error('  ❌ Admin auth routes failed:', err.message);
+}
+
+try {
+  app.use('/api/tts', require('./routes/tts'));
+  console.log('  ✅ TTS routes loaded');
+} catch (err) {
+  console.error('  ❌ TTS routes failed:', err.message);
+}
+
+try {
+  app.use('/api/stt', require('./routes/stt'));
+  console.log('  ✅ STT routes loaded');
+} catch (err) {
+  console.error('  ❌ STT routes failed:', err.message);
+}
+
+try {
+  app.use('/api/interviews', require('./routes/systemDesign'));
+  console.log('  ✅ System Design routes loaded');
+} catch (err) {
+  console.error('  ❌ System Design routes failed:', err.message);
+}
+
+console.log('📦 [SERVER] All routes loaded successfully!\n');
+
 // Serve recruiter documents statically for admin review
 app.use('/uploads/recruiter-docs', express.static(path.join(__dirname, 'uploads', 'recruiter-docs')));
 // Serve form submission files statically
@@ -252,10 +399,34 @@ app.use((err, req, res, next) => {
   });
 });
 
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    mongodb: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
+    environment: process.env.NODE_ENV || 'development'
+  });
+});
+
 app.listen(PORT, () => {
-  console.log('🚀 [SERVER] Starting AI Hiring Backend Server...');
-  console.log(`🌐 [SERVER] Server is running on port ${PORT}`);
-  console.log(`🔗 [SERVER] API Base URL: http://localhost:${PORT}/api`);
-  console.log(`📊 [SERVER] Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log('✅ [SERVER] Server started successfully!');
+  console.log('\n' + '='.repeat(60));
+  console.log('🚀 [SERVER] AI HIRING BACKEND SERVER');
+  console.log('='.repeat(60));
+  console.log(`🌐 Server URL:        http://localhost:${PORT}`);
+  console.log(`🔗 API Base URL:      http://localhost:${PORT}/api`);
+  console.log(`🏥 Health Check:      http://localhost:${PORT}/api/health`);
+  console.log(`📊 Environment:       ${process.env.NODE_ENV || 'development'}`);
+  console.log(`📅 Started At:        ${new Date().toLocaleString()}`);
+  console.log('='.repeat(60));
+  console.log('\n📋 Available Endpoints:');
+  console.log('  • /api/sessions       - Session Management');
+  console.log('  • /api/recordings     - Recording Management (NEW)');
+  console.log('  • /api/interviews     - Interview Management');
+  console.log('  • /api/users          - User Management');
+  console.log('  • /api/jobs           - Job Management');
+  console.log('  • /api/ai             - AI Services');
+  console.log('  • /api/admin          - Admin Panel');
+  console.log('='.repeat(60));
+  console.log('✅ [SERVER] Server is ready to accept connections!\n');
 });

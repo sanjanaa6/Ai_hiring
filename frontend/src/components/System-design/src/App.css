@@ -1,0 +1,15 @@
+.app {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-dark);
+  color: var(--text-primary);
+}
+
+.workspace {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
