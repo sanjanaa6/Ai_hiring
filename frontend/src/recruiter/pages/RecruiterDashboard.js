@@ -7,6 +7,7 @@ import InterviewResults from '../../components/InterviewResults';
 import InterviewAnalyticsDashboard from '../../components/InterviewAnalyticsDashboard';
 import InterviewScheduler from '../components/InterviewScheduler';
 import CandidateManager from '../components/CandidateManager';
+import FormBuilder from '../components/FormBuilder';
 import { 
   Plus, 
   Users, 
@@ -49,6 +50,7 @@ const RecruiterDashboard = () => {
   const [schedulerInterviewId, setSchedulerInterviewId] = useState(null);
   const [showCandidateManager, setShowCandidateManager] = useState(false);
   const [candidateManagerInterviewId, setCandidateManagerInterviewId] = useState(null);
+  const [savedForms, setSavedForms] = useState([]);
 
   // Answers state
   const [answersLoading, setAnswersLoading] = useState(false);
@@ -659,10 +661,23 @@ The interview should feel natural and relevant to someone applying for this spec
     }
   };
 
+  // Handle form save
+  const handleFormSave = (formData) => {
+    const newForm = {
+      id: Date.now(),
+      ...formData,
+      createdAt: new Date(),
+      createdBy: user?.name || 'Recruiter'
+    };
+    setSavedForms(prev => [newForm, ...prev]);
+    console.log('Form saved:', newForm);
+  };
+
   // Sidebar navigation items
   const sidebarItems = [
     { id: 'jobs', label: 'Jobs', icon: Briefcase },
     { id: 'manage-jobs', label: 'Job Management', icon: Settings },
+    { id: 'form-builder', label: 'Form Builder', icon: FileText },
     { id: 'scheduler', label: 'Scheduler', icon: Calendar },
     { id: 'candidate-manager', label: 'Candidate Manager', icon: Users },
     { id: 'candidates', label: 'Candidates', icon: Users },
@@ -2475,6 +2490,15 @@ The interview should feel natural and relevant to someone applying for this spec
                 </div>
               )}
             </div>
+          </div>
+        )}
+
+        {activeTab === 'form-builder' && (
+          <div className="space-y-6">
+            <FormBuilder 
+              isDarkMode={isDarkMode} 
+              onSave={handleFormSave}
+            />
           </div>
         )}
 

@@ -21,7 +21,10 @@ import {
   Upload,
   Eye,
   EyeOff,
-  X
+  X,
+  ChevronDown,
+  ChevronUp,
+  GripVertical
 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import ThemeSwitcher from '../../components/common/ThemeSwitcher';
@@ -54,12 +57,87 @@ const InterviewReviewer = () => {
   const [selectedFormRound, setSelectedFormRound] = useState(null);
   const [systemDesignSubmissions, setSystemDesignSubmissions] = useState([]);
   const [loadingSubmissions, setLoadingSubmissions] = useState(false);
+  const [expandedRounds, setExpandedRounds] = useState({});
+  const [draggedRound, setDraggedRound] = useState(null);
+  const [draggedQuestion, setDraggedQuestion] = useState(null);
+  const [draggedQuestionRound, setDraggedQuestionRound] = useState(null);
   const [newRoundData, setNewRoundData] = useState({
     type: 'interview',
     title: '',
     description: '',
     duration: 10
   });
+
+  // Toggle round expansion
+  const toggleRound = (roundIndex) => {
+    setExpandedRounds(prev => ({
+      ...prev,
+      [roundIndex]: !prev[roundIndex]
+    }));
+  };
+
+  // All rounds collapsed by default on load
+  useEffect(() => {
+    if (interview?.rounds) {
+      const expanded = {};
+      interview.rounds.forEach((_, index) => {
+        expanded[index] = false; // Changed to false - all rounds closed by default
+      });
+      setExpandedRounds(expanded);
+    }
+  }, [interview?.rounds?.length]);
+
+  // Handle round drag and drop
+  const handleRoundDragStart = (e, roundIndex) => {
+    setDraggedRound(roundIndex);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleRoundDragOver = (e, roundIndex) => {
+    e.preventDefault();
+    if (draggedRound === null || draggedRound === roundIndex) return;
+
+    const updatedInterview = { ...interview };
+    const rounds = [...updatedInterview.rounds];
+    const [removed] = rounds.splice(draggedRound, 1);
+    rounds.splice(roundIndex, 0, removed);
+    updatedInterview.rounds = rounds;
+    setInterview(updatedInterview);
+    setDraggedRound(roundIndex);
+    markAsChanged();
+  };
+
+  const handleRoundDragEnd = () => {
+    setDraggedRound(null);
+  };
+
+  // Handle question drag and drop within a round
+  const handleQuestionDragStart = (e, roundIndex, questionIndex) => {
+    setDraggedQuestion(questionIndex);
+    setDraggedQuestionRound(roundIndex);
+    e.dataTransfer.effectAllowed = 'move';
+    e.stopPropagation();
+  };
+
+  const handleQuestionDragOver = (e, roundIndex, questionIndex) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (draggedQuestion === null || draggedQuestionRound !== roundIndex || draggedQuestion === questionIndex) return;
+
+    const updatedInterview = { ...interview };
+    const questions = [...updatedInterview.rounds[roundIndex].questions];
+    const [removed] = questions.splice(draggedQuestion, 1);
+    questions.splice(questionIndex, 0, removed);
+    updatedInterview.rounds[roundIndex].questions = questions;
+    setInterview(updatedInterview);
+    setDraggedQuestion(questionIndex);
+    markAsChanged();
+  };
+
+  const handleQuestionDragEnd = () => {
+    setDraggedQuestion(null);
+    setDraggedQuestionRound(null);
+  };
   const [newFileRequirement, setNewFileRequirement] = useState({
     title: '',
     description: '',
@@ -928,119 +1006,168 @@ const InterviewReviewer = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: roundIndex * 0.1 }}
-                className={`p-6 rounded-2xl shadow-xl ${
+                draggable
+                onDragStart={(e) => handleRoundDragStart(e, roundIndex)}
+                onDragOver={(e) => handleRoundDragOver(e, roundIndex)}
+                onDragEnd={handleRoundDragEnd}
+                className={`rounded-2xl shadow-xl cursor-move transition-all ${
                   isDarkMode 
                     ? 'bg-gray-800 border border-gray-700' 
                     : 'bg-white border border-gray-200'
-                }`}
+                } ${draggedRound === roundIndex ? 'opacity-50' : 'opacity-100'}`}
               >
-                <div className="flex justify-between items-start mb-6">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className="p-2 bg-blue-100 rounded-full">
-                        <Users className="w-5 h-5 text-blue-600" />
+                {/* Round Header - Always Visible */}
+                <div 
+                  className="p-4 cursor-pointer hover:bg-opacity-50 transition-colors"
+                  onClick={() => toggleRound(roundIndex)}
+                >
+                  <div className="flex items-center justify-between">
+                    {/* Left Side - Drag Handle + Round Info */}
+                    <div className="flex items-center gap-3 flex-1">
+                      {/* Drag Handle */}
+                      <div className="cursor-move" onClick={(e) => e.stopPropagation()}>
+                        <GripVertical className={`w-5 h-5 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`} />
                       </div>
-                      <h3 className={`text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                        {round.title}
-                      </h3>
-                    </div>
-                    <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                      {round.description}
-                    </p>
-                    <div className="flex items-center gap-4 mt-3">
-                      <div className={`flex items-center gap-2 text-sm ${
-                        isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                      }`}>
-                        <Clock className="w-4 h-4" />
-                        {round.duration} minutes
-                      </div>
-                      <div className={`flex items-center gap-2 text-sm ${
-                        isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                      }`}>
-                        <Target className="w-4 h-4" />
-                        {round.type === 'file_upload' 
-                          ? `${(round.fileUploadRequirements || []).length} file requirements`
-                          : round.type === 'form_submission'
-                          ? `${(round.formFields || []).length} form fields`
-                          : `${(round.questions || []).length} questions`
-                        }
-                      </div>
-                      <div className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      
+                      {/* Round Badge */}
+                      <div className={`px-3 py-1 rounded-full text-sm font-medium ${
                         round.type === 'file_upload'
                           ? 'bg-purple-100 text-purple-700' 
                           : round.type === 'form_submission'
                           ? 'bg-green-100 text-green-700'
                           : 'bg-blue-100 text-blue-700'
                       }`}>
-                        {round.type === 'file_upload' ? '📁 File Upload' : 
-                         round.type === 'form_submission' ? '📝 Form Submission' : '💬 Interview'}
+                        Round {roundIndex + 1}
                       </div>
+                      
+                      {/* Round Title */}
+                      <h3 className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                        {round.title}
+                      </h3>
+                      
+                      {/* Metadata - Only show when collapsed */}
+                      {!expandedRounds[roundIndex] && (
+                        <div className="flex items-center gap-3 ml-4">
+                          <div className={`flex items-center gap-1 text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                            <Clock className="w-4 h-4" />
+                            {round.duration} min
+                          </div>
+                          <div className={`flex items-center gap-1 text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                            <Target className="w-4 h-4" />
+                            {round.type === 'file_upload' 
+                              ? `${(round.fileUploadRequirements || []).length} files`
+                              : round.type === 'form_submission'
+                              ? `${(round.formFields || []).length} fields`
+                              : `${(round.questions || []).length} questions`
+                            }
+                          </div>
+                          <div className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            round.type === 'file_upload'
+                              ? 'bg-purple-100 text-purple-700' 
+                              : round.type === 'form_submission'
+                              ? 'bg-green-100 text-green-700'
+                              : 'bg-blue-100 text-blue-700'
+                          }`}>
+                            {round.type === 'file_upload' ? '📁' : 
+                             round.type === 'form_submission' ? '📝' : '💬'}
+                          </div>
+                        </div>
+                      )}
                     </div>
                     
-                    {/* Retake Toggle */}
-                    <div className="flex items-center justify-between mt-4 p-3 rounded-lg border border-gray-200">
-                      <div className="flex items-center gap-3">
-                        <div className={`p-2 rounded-full ${
-                          Boolean(round.allowRetake)
-                            ? 'bg-green-100 text-green-600' 
-                            : 'bg-gray-100 text-gray-500'
-                        }`}>
-                          <RefreshCw className="w-4 h-4" />
-                        </div>
-                        <div>
-                          <h4 className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                            Allow Retake
-                          </h4>
-                          <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                            {Boolean(round.allowRetake)
-                              ? 'Candidates can retake this round' 
-                              : 'Candidates cannot retake this round'
-                            }
-                          </p>
-                        </div>
-                      </div>
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={Boolean(round.allowRetake)}
-                          onChange={(e) => {
-                            console.log(`🔄 Toggle changed for round ${roundIndex + 1}:`, e.target.checked);
-                            console.log(`🔄 Current round allowRetake:`, round.allowRetake, typeof round.allowRetake);
-                            const updatedInterview = { ...interview };
-                            updatedInterview.rounds[roundIndex].allowRetake = Boolean(e.target.checked);
-                            console.log(`🔄 Updated round allowRetake:`, updatedInterview.rounds[roundIndex].allowRetake, typeof updatedInterview.rounds[roundIndex].allowRetake);
-                            setInterview(updatedInterview);
-                            markAsChanged();
-                          }}
-                          className="sr-only peer"
-                        />
-                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                      </label>
+                    {/* Action Buttons */}
+                    <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRoundEdit(roundIndex);
+                        }}
+                        className={`p-2 rounded-lg transition-colors duration-200 ${
+                          isDarkMode 
+                            ? 'bg-gray-700 hover:bg-gray-600 text-gray-300' 
+                            : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                        }`}
+                      >
+                        <Edit3 className="w-4 h-4" />
+                      </motion.button>
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRoundDelete(roundIndex);
+                        }}
+                        className="p-2 rounded-lg transition-colors duration-200 bg-red-100 hover:bg-red-200 text-red-600"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </motion.button>
+                      {/* Expand/Collapse Button */}
+                      <button
+                        className={`p-2 rounded-lg transition-colors ${
+                          isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
+                        }`}
+                      >
+                        {expandedRounds[roundIndex] ? (
+                          <ChevronUp className="w-5 h-5" />
+                        ) : (
+                          <ChevronDown className="w-5 h-5" />
+                        )}
+                      </button>
                     </div>
                   </div>
-                  <div className="flex gap-2">
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => handleRoundEdit(roundIndex)}
-                      className={`p-2 rounded-lg transition-colors duration-200 ${
-                        isDarkMode 
-                          ? 'bg-gray-700 hover:bg-gray-600 text-gray-300' 
-                          : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
-                      }`}
-                    >
-                      <Edit3 className="w-4 h-4" />
-                    </motion.button>
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => handleRoundDelete(roundIndex)}
-                      className="p-2 rounded-lg transition-colors duration-200 bg-red-100 hover:bg-red-200 text-red-600"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </motion.button>
-                  </div>
                 </div>
+
+                {/* Collapsible Content */}
+                <AnimatePresence>
+                  {expandedRounds[roundIndex] && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.3 }}
+                      className="overflow-hidden"
+                    >
+                      <div className={`px-6 pb-6 border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+                        {/* Retake Toggle */}
+                        <div className="flex items-center justify-between mt-4 p-3 rounded-lg border border-gray-200" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center gap-3">
+                            <div className={`p-2 rounded-full ${
+                              Boolean(round.allowRetake)
+                                ? 'bg-green-100 text-green-600' 
+                                : 'bg-gray-100 text-gray-500'
+                            }`}>
+                              <RefreshCw className="w-4 h-4" />
+                            </div>
+                            <div>
+                              <h4 className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                                Allow Retake
+                              </h4>
+                              <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                                {Boolean(round.allowRetake)
+                                  ? 'Candidates can retake this round' 
+                                  : 'Candidates cannot retake this round'
+                                }
+                              </p>
+                            </div>
+                          </div>
+                          <label className="relative inline-flex items-center cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={Boolean(round.allowRetake)}
+                              onChange={(e) => {
+                                console.log(`🔄 Toggle changed for round ${roundIndex + 1}:`, e.target.checked);
+                                const updatedInterview = { ...interview };
+                                updatedInterview.rounds[roundIndex].allowRetake = Boolean(e.target.checked);
+                                setInterview(updatedInterview);
+                                markAsChanged();
+                              }}
+                              className="sr-only peer"
+                            />
+                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                          </label>
+                        </div>
 
                 {/* Questions or File Requirements */}
                 <div className="space-y-4">
@@ -1065,20 +1192,30 @@ const InterviewReviewer = () => {
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: questionIndex * 0.05 }}
-                      className={`p-4 rounded-lg border-l-4 border-blue-500 ${
+                      draggable
+                      onDragStart={(e) => handleQuestionDragStart(e, roundIndex, questionIndex)}
+                      onDragOver={(e) => handleQuestionDragOver(e, roundIndex, questionIndex)}
+                      onDragEnd={handleQuestionDragEnd}
+                      className={`p-4 rounded-lg border-l-4 border-blue-500 cursor-move transition-all ${
                         isDarkMode 
                           ? 'bg-gray-700/50 border-gray-600' 
                           : 'bg-gray-50 border-gray-200'
-                      }`}
+                      } ${draggedQuestion === questionIndex && draggedQuestionRound === roundIndex ? 'opacity-50' : 'opacity-100'}`}
                     >
                       <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <span className={`text-sm font-medium ${
-                              isDarkMode ? 'text-blue-400' : 'text-blue-600'
-                            }`}>
-                              Question {questionIndex + 1}
-                            </span>
+                        <div className="flex items-start gap-3 flex-1">
+                          {/* Drag Handle */}
+                          <div className="mt-1">
+                            <GripVertical className={`w-4 h-4 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`} />
+                          </div>
+                          
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className={`text-sm font-medium ${
+                                isDarkMode ? 'text-blue-400' : 'text-blue-600'
+                              }`}>
+                                Question {questionIndex + 1}
+                              </span>
                             <span className={`text-xs px-2 py-1 rounded-full ${
                               question.difficulty === 'easy' 
                                 ? 'bg-green-100 text-green-700' 
@@ -1094,6 +1231,7 @@ const InterviewReviewer = () => {
                           </p>
                           <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                             <strong>Expected Answer:</strong> {question.expectedAnswer}
+                          </div>
                           </div>
                         </div>
                         {editingRound === roundIndex && (
@@ -1247,6 +1385,10 @@ const InterviewReviewer = () => {
                     </div>
                   )}
                 </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </motion.div>
             ))}
             </div>

@@ -15,12 +15,319 @@ import {
   Mail,
   Hash,
   Calendar,
-  Upload
+  Upload,
+  Eye,
+  EyeOff
 } from 'lucide-react';
+
+// Inline Form Builder Interface Component
+const FormBuilderInterface = ({ round, onUpdate, isDarkMode }) => {
+  const [fields, setFields] = useState(round.formFields || []);
+  const [draggedItem, setDraggedItem] = useState(null);
+  const [showFieldPicker, setShowFieldPicker] = useState(false);
+  const [previewMode, setPreviewMode] = useState(false);
+
+  const fieldTypes = [
+    { id: 'text', label: 'Short Text', icon: Type },
+    { id: 'textarea', label: 'Long Text', icon: FileText },
+    { id: 'email', label: 'Email', icon: Mail },
+    { id: 'number', label: 'Number', icon: Hash },
+    { id: 'radio', label: 'Radio Buttons', icon: Radio },
+    { id: 'checkbox', label: 'Checkboxes', icon: CheckSquare },
+    { id: 'select', label: 'Dropdown', icon: List },
+    { id: 'file', label: 'File Upload', icon: Upload },
+    { id: 'date', label: 'Date', icon: Calendar },
+  ];
+
+  const addField = (type) => {
+    const newField = {
+      id: `field_${Date.now()}`,
+      type,
+      label: `New ${type} field`,
+      placeholder: '',
+      required: false,
+      options: ['radio', 'checkbox', 'select'].includes(type) ? ['Option 1', 'Option 2'] : [],
+      order: fields.length + 1
+    };
+    const updatedFields = [...fields, newField];
+    setFields(updatedFields);
+    updateRound(updatedFields);
+    setShowFieldPicker(false);
+  };
+
+  const updateField = (id, key, value) => {
+    const updatedFields = fields.map(f => f.id === id ? { ...f, [key]: value } : f);
+    setFields(updatedFields);
+    updateRound(updatedFields);
+  };
+
+  const deleteField = (id) => {
+    const updatedFields = fields.filter(f => f.id !== id);
+    setFields(updatedFields);
+    updateRound(updatedFields);
+  };
+
+  const updateRound = (updatedFields) => {
+    onUpdate({ ...round, formFields: updatedFields });
+  };
+
+  const handleDragStart = (e, id) => {
+    setDraggedItem(id);
+  };
+
+  const handleDragOver = (e, id) => {
+    e.preventDefault();
+    if (draggedItem === id) return;
+
+    const draggedIndex = fields.findIndex(f => f.id === draggedItem);
+    const targetIndex = fields.findIndex(f => f.id === id);
+    
+    if (draggedIndex !== -1 && targetIndex !== -1) {
+      const newFields = [...fields];
+      const [removed] = newFields.splice(draggedIndex, 1);
+      newFields.splice(targetIndex, 0, removed);
+      setFields(newFields);
+      updateRound(newFields);
+    }
+  };
+
+  const addOption = (fieldId) => {
+    const field = fields.find(f => f.id === fieldId);
+    if (field) {
+      const newOptions = [...field.options, `Option ${field.options.length + 1}`];
+      updateField(fieldId, 'options', newOptions);
+    }
+  };
+
+  const updateOption = (fieldId, optionIndex, value) => {
+    const field = fields.find(f => f.id === fieldId);
+    if (field) {
+      const newOptions = [...field.options];
+      newOptions[optionIndex] = value;
+      updateField(fieldId, 'options', newOptions);
+    }
+  };
+
+  const removeOption = (fieldId, optionIndex) => {
+    const field = fields.find(f => f.id === fieldId);
+    if (field && field.options.length > 1) {
+      const newOptions = field.options.filter((_, i) => i !== optionIndex);
+      updateField(fieldId, 'options', newOptions);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Preview Toggle */}
+      <div className="flex justify-end">
+        <button
+          onClick={() => setPreviewMode(!previewMode)}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+            previewMode 
+              ? 'bg-blue-600 text-white' 
+              : isDarkMode 
+                ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' 
+                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+          }`}
+        >
+          {previewMode ? <><EyeOff className="w-4 h-4" /> Edit</> : <><Eye className="w-4 h-4" /> Preview</>}
+        </button>
+      </div>
+
+      {/* Fields Area */}
+      {fields.length === 0 && !previewMode ? (
+        <div className={`p-12 rounded-xl border-2 border-dashed text-center ${
+          isDarkMode ? 'border-gray-600 bg-gray-700/30' : 'border-gray-300 bg-gray-50'
+        }`}>
+          <Plus className={`w-16 h-16 mx-auto mb-4 ${isDarkMode ? 'text-gray-600' : 'text-gray-300'}`} />
+          <h3 className={`text-xl font-semibold mb-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-400'}`}>No fields yet</h3>
+          <p className={`${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>Click the + button below to add your first field</p>
+        </div>
+      ) : previewMode ? (
+        <div className={`p-8 rounded-xl ${isDarkMode ? 'bg-gray-700/50' : 'bg-white'}`}>
+          <h2 className={`text-2xl font-bold mb-6 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Form Preview</h2>
+          <div className="space-y-6">
+            {fields.map(field => (
+              <div key={field.id}>
+                <label className={`block mb-2 font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                  {field.label}
+                  {field.required && <span className="text-red-500 ml-1">*</span>}
+                </label>
+                {field.type === 'text' || field.type === 'email' ? (
+                  <input type={field.type} className={`w-full px-3 py-2 rounded-lg border ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`} placeholder={field.placeholder} />
+                ) : field.type === 'textarea' ? (
+                  <textarea className={`w-full px-3 py-2 rounded-lg border ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`} rows="4" placeholder={field.placeholder} />
+                ) : field.type === 'number' ? (
+                  <input type="number" className={`w-full px-3 py-2 rounded-lg border ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
+                ) : field.type === 'date' ? (
+                  <input type="date" className={`w-full px-3 py-2 rounded-lg border ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
+                ) : field.type === 'radio' ? (
+                  <div className="space-y-2">
+                    {field.options.map((option, idx) => (
+                      <label key={idx} className={`flex items-center gap-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                        <input type="radio" name={`field-${field.id}`} />
+                        <span>{option}</span>
+                      </label>
+                    ))}
+                  </div>
+                ) : field.type === 'checkbox' ? (
+                  <div className="space-y-2">
+                    {field.options.map((option, idx) => (
+                      <label key={idx} className={`flex items-center gap-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                        <input type="checkbox" />
+                        <span>{option}</span>
+                      </label>
+                    ))}
+                  </div>
+                ) : field.type === 'select' ? (
+                  <select className={`w-full px-3 py-2 rounded-lg border ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}>
+                    <option>Choose...</option>
+                    {field.options.map((option, idx) => (
+                      <option key={idx}>{option}</option>
+                    ))}
+                  </select>
+                ) : field.type === 'file' ? (
+                  <input type="file" className={`w-full px-3 py-2 rounded-lg border ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
+                ) : null}
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {fields.map(field => (
+            <div
+              key={field.id}
+              draggable
+              onDragStart={(e) => handleDragStart(e, field.id)}
+              onDragOver={(e) => handleDragOver(e, field.id)}
+              className={`p-4 rounded-lg border-2 hover:border-blue-400 transition-all ${
+                isDarkMode ? 'bg-gray-700/50 border-gray-600' : 'bg-white border-gray-200'
+              }`}
+            >
+              <div className="flex items-start gap-3">
+                <GripVertical className={`w-5 h-5 mt-2 cursor-move ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`} />
+                <div className="flex-1">
+                  <input
+                    type="text"
+                    value={field.label}
+                    onChange={(e) => updateField(field.id, 'label', e.target.value)}
+                    className={`w-full text-lg font-medium border-b-2 border-transparent hover:border-gray-300 focus:border-blue-500 outline-none px-2 py-1 mb-2 ${isDarkMode ? 'bg-gray-700/50 text-white' : 'bg-white text-gray-900'}`}
+                    placeholder="Field label"
+                  />
+                  
+                  {(['radio', 'checkbox', 'select'].includes(field.type)) && (
+                    <div className="space-y-2 mt-3">
+                      {field.options.map((option, idx) => (
+                        <div key={idx} className="flex items-center gap-2">
+                          <span className={`text-sm ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>{idx + 1}.</span>
+                          <input
+                            type="text"
+                            value={option}
+                            onChange={(e) => updateOption(field.id, idx, e.target.value)}
+                            className={`flex-1 border-b px-2 py-1 text-sm ${isDarkMode ? 'bg-gray-700/50 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'}`}
+                          />
+                          {field.options.length > 1 && (
+                            <button onClick={() => removeOption(field.id, idx)} className="text-red-500 hover:text-red-700">
+                              <X className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                      <button onClick={() => addOption(field.id)} className="text-blue-600 text-sm hover:text-blue-800 flex items-center gap-1">
+                        <Plus className="w-4 h-4" /> Add option
+                      </button>
+                    </div>
+                  )}
+
+                  <div className={`flex items-center justify-between mt-4 pt-4 border-t ${isDarkMode ? 'border-gray-600' : 'border-gray-200'}`}>
+                    <label className={`flex items-center gap-2 text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                      <input
+                        type="checkbox"
+                        checked={field.required}
+                        onChange={(e) => updateField(field.id, 'required', e.target.checked)}
+                        className="rounded"
+                      />
+                      Required
+                    </label>
+                    <button
+                      onClick={() => deleteField(field.id)}
+                      className={`p-2 rounded ${isDarkMode ? 'text-red-400 hover:bg-red-900/20' : 'text-red-600 hover:bg-red-50'}`}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Add Field Button */}
+      {!previewMode && (
+        <div className="relative">
+          <button
+            onClick={() => setShowFieldPicker(!showFieldPicker)}
+            className={`w-full rounded-xl p-4 flex items-center justify-center gap-2 transition-all border-2 border-dashed ${
+              isDarkMode 
+                ? 'bg-gray-700/50 border-blue-500 text-blue-400 hover:bg-gray-700' 
+                : 'bg-white border-blue-300 text-blue-600 hover:bg-blue-50 hover:border-blue-500'
+            }`}
+          >
+            <Plus className="w-6 h-6" />
+            <span className="font-medium">Add Field</span>
+          </button>
+
+          {/* Field Picker Popup */}
+          {showFieldPicker && (
+            <>
+              <div
+                className="fixed inset-0 z-40"
+                onClick={() => setShowFieldPicker(false)}
+              />
+              <div className={`absolute left-0 right-0 mt-2 rounded-xl shadow-2xl p-4 z-50 border-2 ${
+                isDarkMode ? 'bg-gray-800 border-blue-500' : 'bg-white border-blue-200'
+              }`}>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className={`font-semibold ${isDarkMode ? 'text-white' : 'text-gray-700'}`}>Choose a field type</h3>
+                  <button onClick={() => setShowFieldPicker(false)} className={`p-1 rounded ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}>
+                    <X className={`w-5 h-5 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} />
+                  </button>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  {fieldTypes.map(ft => {
+                    const Icon = ft.icon;
+                    return (
+                      <button
+                        key={ft.id}
+                        onClick={() => addField(ft.id)}
+                        className={`flex items-center gap-2 p-3 text-left rounded-lg border transition-all ${
+                          isDarkMode 
+                            ? 'border-gray-700 hover:bg-gray-700 hover:border-blue-500' 
+                            : 'border-gray-200 hover:bg-blue-50 hover:border-blue-400'
+                        }`}
+                      >
+                        <Icon className="w-5 h-5" />
+                        <span className={`text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{ft.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
 
 const FormFieldManager = ({ round, onUpdate, isDarkMode }) => {
   const [showAddFieldModal, setShowAddFieldModal] = useState(false);
   const [editingField, setEditingField] = useState(null);
+  const [showFormBuilder, setShowFormBuilder] = useState(false);
+  const [draggedFieldIndex, setDraggedFieldIndex] = useState(null);
   const [newField, setNewField] = useState({
     type: 'text',
     label: '',
@@ -180,6 +487,46 @@ const FormFieldManager = ({ round, onUpdate, isDarkMode }) => {
     return fieldType ? fieldType.label : 'Text Input';
   };
 
+  // Toggle form builder view
+  const toggleFormBuilder = () => {
+    setShowFormBuilder(!showFormBuilder);
+  };
+
+  // If form builder is active, show full builder interface
+  if (showFormBuilder) {
+    return (
+      <div className={`rounded-xl ${isDarkMode ? 'bg-gray-800/50' : 'bg-white'} p-6`}>
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <h4 className={`text-xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+              Form Builder
+            </h4>
+            <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+              Design your custom form with drag-and-drop fields
+            </p>
+          </div>
+          <button
+            onClick={toggleFormBuilder}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              isDarkMode
+                ? 'bg-gray-700 hover:bg-gray-600 text-gray-300'
+                : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
+            }`}
+          >
+            ← Back to List
+          </button>
+        </div>
+        
+        {/* Full Form Builder Interface */}
+        <FormBuilderInterface 
+          round={round}
+          onUpdate={onUpdate}
+          isDarkMode={isDarkMode}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       {/* Form Fields Header */}
@@ -192,15 +539,26 @@ const FormFieldManager = ({ round, onUpdate, isDarkMode }) => {
             Create custom form fields for candidates to fill out
           </p>
         </div>
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={handleAddField}
-          className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 flex items-center gap-2"
-        >
-          <Plus className="w-4 h-4" />
-          Add Field
-        </motion.button>
+        <div className="flex gap-2">
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={toggleFormBuilder}
+            className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 flex items-center gap-2"
+          >
+            <FileText className="w-4 h-4" />
+            Open Form Builder
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={handleAddField}
+            className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 flex items-center gap-2"
+          >
+            <Plus className="w-4 h-4" />
+            Add Field
+          </motion.button>
+        </div>
       </div>
 
       {/* Form Fields List */}
@@ -378,28 +736,30 @@ const FormFieldManager = ({ round, onUpdate, isDarkMode }) => {
               <div className="space-y-4">
                 {/* Field Type */}
                 <div>
-                  <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  <label className={`block text-sm font-medium mb-3 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                     Field Type *
                   </label>
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-3 gap-3">
                     {fieldTypes.map((fieldType) => {
                       const IconComponent = fieldType.icon;
                       return (
                         <motion.button
                           key={fieldType.value}
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
                           onClick={() => setNewField(prev => ({ ...prev, type: fieldType.value }))}
-                          className={`p-3 rounded-lg border-2 transition-all duration-200 flex flex-col items-center gap-2 ${
+                          className={`p-4 rounded-xl border-2 transition-all duration-200 flex flex-col items-center gap-2 ${
                             newField.type === fieldType.value
-                              ? 'border-blue-500 bg-blue-50 text-blue-700'
+                              ? isDarkMode
+                                ? 'border-blue-500 bg-blue-500/20 text-blue-400'
+                                : 'border-blue-500 bg-blue-50 text-blue-700'
                               : isDarkMode
-                                ? 'border-gray-600 bg-gray-700 text-gray-300 hover:border-gray-500'
-                                : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400'
+                                ? 'border-gray-600 bg-gray-700/50 text-gray-300 hover:border-blue-400 hover:bg-gray-700'
+                                : 'border-gray-300 bg-white text-gray-700 hover:border-blue-400 hover:bg-gray-50'
                           }`}
                         >
-                          <IconComponent className="w-5 h-5" />
-                          <span className="text-xs font-medium">{fieldType.label}</span>
+                          <IconComponent className="w-6 h-6" />
+                          <span className="text-xs font-medium text-center leading-tight">{fieldType.label}</span>
                         </motion.button>
                       );
                     })}
@@ -408,17 +768,17 @@ const FormFieldManager = ({ round, onUpdate, isDarkMode }) => {
 
                 {/* Field Label */}
                 <div>
-                  <label className={`block text-sm font-medium mb-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                     Field Label *
                   </label>
                   <input
                     type="text"
                     value={newField.label}
                     onChange={(e) => setNewField(prev => ({ ...prev, label: e.target.value }))}
-                    className={`w-full px-3 py-2 rounded-lg border ${
+                    className={`w-full px-4 py-3 rounded-lg border focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all ${
                       isDarkMode 
-                        ? 'bg-gray-700 border-gray-600 text-white' 
-                        : 'bg-white border-gray-300 text-gray-900'
+                        ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
+                        : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
                     }`}
                     placeholder="e.g., Full Name, Email Address, Experience Level"
                   />
@@ -426,17 +786,17 @@ const FormFieldManager = ({ round, onUpdate, isDarkMode }) => {
 
                 {/* Placeholder */}
                 <div>
-                  <label className={`block text-sm font-medium mb-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                     Placeholder Text
                   </label>
                   <input
                     type="text"
                     value={newField.placeholder}
                     onChange={(e) => setNewField(prev => ({ ...prev, placeholder: e.target.value }))}
-                    className={`w-full px-3 py-2 rounded-lg border ${
+                    className={`w-full px-4 py-3 rounded-lg border focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all ${
                       isDarkMode 
-                        ? 'bg-gray-700 border-gray-600 text-white' 
-                        : 'bg-white border-gray-300 text-gray-900'
+                        ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
+                        : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
                     }`}
                     placeholder="Enter placeholder text..."
                   />
@@ -500,10 +860,10 @@ const FormFieldManager = ({ round, onUpdate, isDarkMode }) => {
                               ...prev,
                               validation: { ...prev.validation, minLength: e.target.value ? parseInt(e.target.value) : null }
                             }))}
-                            className={`w-full px-3 py-2 rounded-lg border ${
+                            className={`w-full px-3 py-2 rounded-lg border focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all ${
                               isDarkMode 
-                                ? 'bg-gray-700 border-gray-600 text-white' 
-                                : 'bg-white border-gray-300 text-gray-900'
+                                ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
+                                : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
                             }`}
                             min="0"
                           />
@@ -519,10 +879,10 @@ const FormFieldManager = ({ round, onUpdate, isDarkMode }) => {
                               ...prev,
                               validation: { ...prev.validation, maxLength: e.target.value ? parseInt(e.target.value) : null }
                             }))}
-                            className={`w-full px-3 py-2 rounded-lg border ${
+                            className={`w-full px-3 py-2 rounded-lg border focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all ${
                               isDarkMode 
-                                ? 'bg-gray-700 border-gray-600 text-white' 
-                                : 'bg-white border-gray-300 text-gray-900'
+                                ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
+                                : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
                             }`}
                             min="0"
                           />
@@ -581,10 +941,10 @@ const FormFieldManager = ({ round, onUpdate, isDarkMode }) => {
                         ...prev,
                         validation: { ...prev.validation, pattern: e.target.value }
                       }))}
-                      className={`w-full px-3 py-2 rounded-lg border ${
+                      className={`w-full px-3 py-2 rounded-lg border focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all ${
                         isDarkMode 
-                          ? 'bg-gray-700 border-gray-600 text-white' 
-                          : 'bg-white border-gray-300 text-gray-900'
+                          ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
+                          : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
                       }`}
                       placeholder="e.g., ^[0-9]{10}$ for 10-digit phone number"
                     />
@@ -606,21 +966,25 @@ const FormFieldManager = ({ round, onUpdate, isDarkMode }) => {
                 </div>
 
                 {/* Action Buttons */}
-                <div className="flex gap-2 pt-4">
+                <div className={`flex gap-3 pt-4 border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
                   <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
                     onClick={handleSaveField}
-                    className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 flex items-center gap-2"
+                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 shadow-lg shadow-blue-500/30"
                   >
-                    <Save className="w-4 h-4" />
+                    <Save className="w-5 h-5" />
                     {editingField ? 'Update Field' : 'Add Field'}
                   </motion.button>
                   <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
                     onClick={() => setShowAddFieldModal(false)}
-                    className="bg-gray-500 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200"
+                    className={`px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
+                      isDarkMode
+                        ? 'bg-gray-700 hover:bg-gray-600 text-gray-300'
+                        : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
+                    }`}
                   >
                     Cancel
                   </motion.button>
