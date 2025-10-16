@@ -32,6 +32,12 @@ const getInterviewResults = async (req, res) => {
     }).select('name email interviewProgress');
     
     console.log('👥 [INTERVIEW RESULTS] Found', usersWithInterview.length, 'users who took this interview');
+    console.log('👥 [INTERVIEW RESULTS] Users:', usersWithInterview.map(u => ({ name: u.name, email: u.email })));
+    
+    // Check unique candidates in candidateAnswers
+    const uniqueCandidateIds = [...new Set(interview.candidateAnswers.map(a => a.candidateId))];
+    console.log('📝 [INTERVIEW RESULTS] Unique candidate IDs in answers:', uniqueCandidateIds.length);
+    console.log('📝 [INTERVIEW RESULTS] Candidate IDs:', uniqueCandidateIds);
     
     // Extract candidate data from user progress and combine with actual answers
     const candidateData = [];
@@ -96,6 +102,45 @@ const getInterviewResults = async (req, res) => {
           improvements: allImprovements.length > 0 ? allImprovements : generateMockImprovements(averageScore),
           answers: userAnswers // Include actual answers for detailed reports
         });
+      }
+    });
+    
+    // Also include candidates who have answers but no User record (anonymous candidates)
+    uniqueCandidateIds.forEach(candidateId => {
+      const alreadyIncluded = candidateData.some(c => c.candidateId === candidateId);
+      if (!alreadyIncluded) {
+        const candidateAnswers = interview.candidateAnswers.filter(a => a.candidateId === candidateId);
+        if (candidateAnswers.length > 0) {
+          const firstAnswer = candidateAnswers[0];
+          const totalScore = candidateAnswers.reduce((sum, a) => sum + (a.aiEvaluation?.score || 0), 0);
+          const averageScore = totalScore / candidateAnswers.length;
+          
+          console.log('👤 [INTERVIEW RESULTS] Adding anonymous candidate:', {
+            id: candidateId,
+            name: firstAnswer.candidateName,
+            email: firstAnswer.candidateEmail,
+            answers: candidateAnswers.length
+          });
+          
+          candidateData.push({
+            candidateId: candidateId,
+            candidateName: firstAnswer.candidateName || 'Anonymous',
+            candidateEmail: firstAnswer.candidateEmail || 'anonymous@example.com',
+            averageScore: Math.round(averageScore * 100) / 100,
+            totalScore: totalScore,
+            totalAnswers: candidateAnswers.length,
+            roundsCompleted: [...new Set(candidateAnswers.map(a => a.roundId))].length,
+            totalRounds: interview.rounds.length,
+            completionPercentage: Math.round((candidateAnswers.length / interview.rounds.reduce((sum, r) => sum + r.questions.length, 0)) * 100),
+            totalTimeSpent: candidateAnswers.reduce((sum, a) => sum + a.timeTaken, 0),
+            startedAt: candidateAnswers[0].submittedAt,
+            completedAt: candidateAnswers[candidateAnswers.length - 1].submittedAt,
+            status: 'completed',
+            strengths: candidateAnswers.flatMap(a => a.aiEvaluation?.strengths || []),
+            improvements: candidateAnswers.flatMap(a => a.aiEvaluation?.improvements || []),
+            answers: candidateAnswers
+          });
+        }
       }
     });
     

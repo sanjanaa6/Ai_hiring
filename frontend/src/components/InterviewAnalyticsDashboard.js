@@ -2,19 +2,25 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import apiService from '../services/apiService';
 import {
-  BarChart3,
-  TrendingUp,
   Users,
-  MessageSquare,
-  Target,
+  Trophy,
+  TrendingUp,
   Clock,
   Download,
   ChevronDown,
   ChevronUp,
+  Eye,
+  Play,
+  Code,
+  FileText,
   CheckCircle,
+  Award,
   XCircle,
-  ArrowUp,
-  ArrowDown
+  BarChart3,
+  MessageSquare,
+  Target,
+  ArrowDown,
+  ArrowUp
 } from 'lucide-react';
 
 // Simple chart components (you can replace with Chart.js or Recharts later)

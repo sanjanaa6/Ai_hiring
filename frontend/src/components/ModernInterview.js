@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useRef } from 'react';
+import React, { useEffect, useCallback, useRef, useState } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import { useInterviewState } from '../hooks/useInterviewState';
 import { useCamera } from '../hooks/useCamera';
@@ -37,14 +37,101 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
   const camera = useCamera();
   const eyeTracking = useEyeTracking(interviewId);
   
-  // Mock recording hooks (removed S3 recording functionality)
+  // Voice recording with Web Speech API (fallback)
+  const [isRecording, setIsRecording] = useState(false);
+  const [transcription, setTranscription] = useState('');
+  const [interimTranscription, setInterimTranscription] = useState('');
+  const recognitionRef = useRef(null);
+
+  const startRecording = useCallback(() => {
+    try {
+      console.log('🎤 Starting voice recording...');
+      
+      // Check if browser supports Web Speech API
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      
+      if (!SpeechRecognition) {
+        alert('Your browser does not support speech recognition. Please use Chrome or Edge.');
+        return;
+      }
+
+      if (!recognitionRef.current) {
+        recognitionRef.current = new SpeechRecognition();
+        recognitionRef.current.continuous = true;
+        recognitionRef.current.interimResults = true;
+        recognitionRef.current.lang = 'en-US';
+
+        recognitionRef.current.onresult = (event) => {
+          let interimText = '';
+          let finalText = '';
+
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            const transcript = event.results[i][0].transcript;
+            if (event.results[i].isFinal) {
+              finalText += transcript + ' ';
+            } else {
+              interimText += transcript;
+            }
+          }
+
+          if (finalText) {
+            setTranscription(prev => prev + finalText);
+            console.log('📝 Final transcript:', finalText);
+          }
+          
+          setInterimTranscription(interimText);
+        };
+
+        recognitionRef.current.onerror = (event) => {
+          console.error('❌ Speech recognition error:', event.error);
+          setIsRecording(false);
+        };
+
+        recognitionRef.current.onend = () => {
+          console.log('🛑 Speech recognition ended');
+          if (isRecording) {
+            // Restart if still supposed to be recording
+            recognitionRef.current.start();
+          }
+        };
+      }
+
+      recognitionRef.current.start();
+      setIsRecording(true);
+      console.log('✅ Recording started');
+    } catch (error) {
+      console.error('❌ Failed to start recording:', error);
+      alert('Failed to start recording: ' + error.message);
+    }
+  }, [isRecording]);
+
+  const stopRecording = useCallback(() => {
+    try {
+      console.log('🛑 Stopping voice recording...');
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+      setIsRecording(false);
+      setInterimTranscription('');
+      console.log('✅ Recording stopped');
+      console.log('📝 Final transcription:', transcription);
+    } catch (error) {
+      console.error('❌ Failed to stop recording:', error);
+    }
+  }, [transcription]);
+
+  const clearTranscription = useCallback(() => {
+    setTranscription('');
+    setInterimTranscription('');
+  }, []);
+
   const voiceRecording = {
-    isRecording: false,
-    transcription: '',
-    interimTranscription: '',
-    startRecording: () => {},
-    stopRecording: () => {},
-    clearTranscription: () => {}
+    isRecording,
+    transcription,
+    interimTranscription,
+    startRecording,
+    stopRecording,
+    clearTranscription
   };
   
   const interviewRecording = {

@@ -13,6 +13,10 @@ const OPENROUTER_MODEL = 'anthropic/claude-3.5-sonnet'; // Using a good model fo
  */
 const generateFeedback = async (req, res) => {
   try {
+    console.log('🎯 [FEEDBACK] Generate feedback endpoint called');
+    console.log('🎯 [FEEDBACK] Request params:', req.params);
+    console.log('🎯 [FEEDBACK] Request body:', req.body);
+    
     const { interviewId } = req.params;
     const { candidateId, candidateName, candidateEmail } = req.body;
 
@@ -63,14 +67,20 @@ const generateFeedback = async (req, res) => {
     }
 
     // Gather all candidate's answers and evaluations
+    console.log('🔍 [FEEDBACK] Looking for answers with candidateId:', candidateId);
+    console.log('🔍 [FEEDBACK] Total answers in interview:', interview.candidateAnswers.length);
+    console.log('🔍 [FEEDBACK] Available candidateIds:', [...new Set(interview.candidateAnswers.map(a => a.candidateId))]);
+    
     const candidateAnswers = interview.candidateAnswers.filter(
-      answer => answer.candidateId === candidateId
+      answer => answer.candidateId === candidateId || answer.candidateId?.toString() === candidateId
     );
+
+    console.log('🔍 [FEEDBACK] Found', candidateAnswers.length, 'answers for this candidate');
 
     if (candidateAnswers.length === 0) {
       return res.status(404).json({
         success: false,
-        error: 'No interview answers found for this candidate'
+        error: 'No interview answers found for this candidate. Please ensure the candidate has completed at least one question.'
       });
     }
 
@@ -310,6 +320,23 @@ Answer: ${a.answer}
       });
     }
 
+    // Detect interview type from job title or interview title
+    const interviewType = interview.jobTitle || interview.title || 'General Interview';
+    
+    // Extract skill categories from feedback data
+    const skillCategories = feedbackData.skillScores ? 
+      Object.keys(feedbackData.skillScores) : 
+      ['Technical Skills', 'Communication', 'Problem Solving'];
+    
+    // Collect monitoring data if available
+    const monitoringData = {
+      profileImage: null,
+      interviewSnapshots: [],
+      cheatAttempts: { flagged: false },
+      eyeTrackingViolations: 0,
+      faceDetectionIssues: 0
+    };
+
     // Generate PDF
     const pdfFileName = `feedback_${candidateId}_${Date.now()}.pdf`;
     const pdfPath = path.join(__dirname, '../uploads', pdfFileName);
@@ -321,11 +348,23 @@ Answer: ${a.answer}
       fs.mkdirSync(uploadsDir, { recursive: true });
     }
 
+    console.log('📄 [FEEDBACK] Generating PDF with data:', {
+      candidateName,
+      candidateEmail,
+      interviewTitle: interview.title,
+      jobTitle: interview.jobTitle,
+      interviewType,
+      overallScore: feedbackData.overallScore
+    });
+
     await generatePDF(pdfPath, {
       candidateName,
       candidateEmail,
       interviewTitle: interview.title,
       jobTitle: interview.jobTitle,
+      interviewType,
+      skillCategories,
+      monitoringData,
       ...feedbackData
     });
 
@@ -390,6 +429,7 @@ Answer: ${a.answer}
 
   } catch (error) {
     console.error('❌ [FEEDBACK] Error generating feedback:', error);
+    console.error('❌ [FEEDBACK] Error stack:', error.stack);
     res.status(500).json({
       success: false,
       error: error.message || 'Failed to generate feedback'
@@ -458,10 +498,10 @@ async function generatePDF(filePath, data) {
       doc.fontSize(16).fillColor('#1f2937').text('Candidate Information', { underline: true });
       doc.moveDown(0.5);
       doc.fontSize(11).fillColor('#374151');
-      doc.text(`Name: ${data.candidateName}`);
-      doc.text(`Email: ${data.candidateEmail}`);
-      doc.text(`Position: ${data.jobTitle}`);
-      doc.text(`Interview: ${data.interviewTitle}`);
+      doc.text(`Name: ${data.candidateName || 'N/A'}`);
+      doc.text(`Email: ${data.candidateEmail || 'N/A'}`);
+      doc.text(`Position: ${data.jobTitle || 'N/A'}`);
+      doc.text(`Interview: ${data.interviewTitle || 'N/A'}`);
       doc.moveDown(2);
 
       // OVERALL SCORE - PROMINENT DISPLAY

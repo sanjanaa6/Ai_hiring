@@ -819,7 +819,10 @@ class ApiService {
   // Feedback API methods
   async generateFeedback(interviewId, candidateData) {
     try {
+      console.log('🔍 [API] Generating feedback:', { interviewId, candidateData });
+      console.log('🔍 [API] Full URL:', `/interviews/${interviewId}/feedback/generate`);
       const response = await this.client.post(`/interviews/${interviewId}/feedback/generate`, candidateData);
+      console.log('✅ [API] Generate feedback response:', response.data);
       return response.data;
     } catch (error) {
       // eslint-disable-next-line no-console

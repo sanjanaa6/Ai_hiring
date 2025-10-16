@@ -98,24 +98,43 @@ const candidateFeedbackSchema = new mongoose.Schema({
   candidateId: { type: String, required: true },
   candidateName: { type: String, required: true },
   candidateEmail: { type: String, required: true },
-  overallScore: { type: Number }, // NEW: Overall score 0-10
+  overallScore: { type: Number }, // Overall score 0-100
   overallPerformance: { type: String },
   strengths: [{ type: String }],
   areasForImprovement: [{ type: String }],
   recommendations: [{ type: String }],
+  skillScores: {
+    type: Map,
+    of: Number // Skill-based scores (0-100)
+  },
   roundWiseFeedback: [{
     roundId: { type: String },
     roundTitle: { type: String },
-    score: { type: Number }, // NEW: Round score 0-10
+    score: { type: Number }, // Round score 0-100
     performance: { type: String },
-    keyPoints: [{ type: String }]
+    keyPoints: [{ type: String }],
+    technicalAccuracy: { type: Number },
+    completeness: { type: Number }
   }],
-  questionScores: [{ // NEW: Question-by-question scores
+  questionScores: [{
     question: { type: String },
     answer: { type: String },
-    score: { type: Number },
-    reasoning: { type: String }
+    score: { type: Number }, // 0-100
+    reasoning: { type: String },
+    technicalCorrectness: { type: Number },
+    communicationQuality: { type: Number }
   }],
+  monitoringData: {
+    profileImage: { type: String },
+    interviewSnapshots: [{ type: String }],
+    cheatAttempts: {
+      flagged: { type: Boolean, default: false },
+      reason: { type: String },
+      flaggedAt: { type: Date }
+    },
+    eyeTrackingViolations: { type: Number, default: 0 },
+    faceDetectionIssues: { type: Number, default: 0 }
+  },
   pdfUrl: { type: String },
   pdfPath: { type: String },
   generatedAt: { type: Date, default: Date.now }

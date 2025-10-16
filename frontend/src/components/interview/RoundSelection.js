@@ -584,7 +584,7 @@ const RoundSelection = ({
                     <span className="font-semibold">Progress:</span> 
                     <span className={`font-bold text-3xl mx-2 ${
                       isDarkMode ? 'text-blue-400' : 'text-blue-600'
-                    }`}>{completedRounds.size}</span>
+                    }`}>{Math.min(completedRounds.size, allRounds.length)}</span>
                     <span className="font-semibold">/</span>
                     <span className={`font-bold text-2xl mx-1 ${
                       isDarkMode ? 'text-gray-300' : 'text-gray-700'
@@ -597,7 +597,7 @@ const RoundSelection = ({
                 }`}>
                   <div
                       className="bg-gradient-to-r from-blue-500 via-purple-500 to-indigo-500 h-4 rounded-full transition-all duration-1000 shadow-lg relative overflow-hidden"
-                    style={{ width: `${allRounds.length > 0 ? (completedRounds.size / allRounds.length) * 100 : 0}%` }}
+                    style={{ width: `${allRounds.length > 0 ? Math.min((completedRounds.size / allRounds.length) * 100, 100) : 0}%` }}
                   >
                       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-pulse"></div>
                     </div>
@@ -606,12 +606,12 @@ const RoundSelection = ({
                   <div className={`text-lg font-semibold ${
                   isDarkMode ? 'text-blue-300' : 'text-blue-600'
                 }`}>
-                  {allRounds.length > 0 ? Math.round((completedRounds.size / allRounds.length) * 100) : 0}% Complete
+                  {allRounds.length > 0 ? Math.min(Math.round((completedRounds.size / allRounds.length) * 100), 100) : 0}% Complete
                   </div>
                 </div>
 
                 {/* Professional Finish Button */}
-                {completedRounds.size === allRounds.length && allRounds.length > 0 && (
+                {completedRounds.size >= allRounds.length && allRounds.length > 0 && (
                   <div className="mt-8">
                     <button
                       onClick={() => {

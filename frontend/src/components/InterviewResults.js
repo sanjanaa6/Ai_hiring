@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../context/ThemeContext';
 import { useNavigate } from 'react-router-dom';
 import apiService from '../services/apiService';
-import InterviewAnalyticsDashboard from './InterviewAnalyticsDashboard';
+import ModernInterviewAnalytics from './ModernInterviewAnalytics';
 import { 
   Trophy, 
   Clock, 
@@ -911,7 +911,7 @@ const InterviewResults = ({ interviewId, onClose }) => {
 
       {/* Analytics Dashboard Modal */}
       {showAnalytics && (
-        <InterviewAnalyticsDashboard
+        <ModernInterviewAnalytics
           interviewId={interviewId}
           onClose={() => setShowAnalytics(false)}
         />
