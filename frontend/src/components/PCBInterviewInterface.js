@@ -2,6 +2,9 @@ import React, { useState, useEffect, useCallback } from 'react';
 
 const PCBInterviewInterface = ({
   question,
+  interviewId,
+  roundId,
+  candidateInfo,
   onAnswerSubmit,
   onNextQuestion,
   isDarkMode = true,
@@ -71,9 +74,31 @@ const PCBInterviewInterface = ({
 
   // Handle PCB app navigation
   const handleOpenPCBApp = () => {
-    // Open PCB app in new tab
-    const pcbUrl = 'https://pcb1.eval8.xyz/';
-    window.open(pcbUrl, '_blank');
+    // Open internal PCB app in new tab
+    // Use environment variable or default to localhost
+    const pcbUrl = process.env.REACT_APP_PCB_URL || 'http://localhost:3001';
+    
+    // Pass interview context to PCB app
+    const queryParams = new URLSearchParams({
+      interviewId: interviewId || '',
+      roundId: roundId || '',
+      questionId: question?.id || question?._id || '',
+      duration: timeLimit || 6,
+      candidateId: candidateInfo?.id || candidateInfo?._id || '',
+      candidateName: candidateInfo?.name || '',
+      candidateEmail: candidateInfo?.email || '',
+      mode: 'interview'
+    });
+    
+    console.log('🔧 [PCB] Opening PCB app with params:', {
+      interviewId,
+      roundId,
+      questionId: question?.id || question?._id,
+      candidateId: candidateInfo?.id || candidateInfo?._id
+    });
+    
+    const fullUrl = `${pcbUrl}?${queryParams.toString()}`;
+    window.open(fullUrl, '_blank', 'noopener,noreferrer');
   };
 
   // Handle JSON file upload

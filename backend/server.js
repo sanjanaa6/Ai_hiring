@@ -242,6 +242,13 @@ try {
   console.error('  ❌ System Design routes failed:', err.message);
 }
 
+try {
+  app.use('/api/interviews', require('./routes/pcbDesign'));
+  console.log('  ✅ PCB Design routes loaded');
+} catch (err) {
+  console.error('  ❌ PCB Design routes failed:', err.message);
+}
+
 console.log('📦 [SERVER] All routes loaded successfully!\n');
 
 // Serve recruiter documents statically for admin review

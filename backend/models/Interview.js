@@ -174,6 +174,22 @@ const systemDesignSubmissionSchema = new mongoose.Schema({
   reviewedAt: { type: Date }
 });
 
+const pcbDesignSubmissionSchema = new mongoose.Schema({
+  candidateId: { type: String, required: true },
+  candidateName: { type: String },
+  candidateEmail: { type: String },
+  roundId: { type: String, required: true },
+  questionId: { type: String, required: true },
+  pcbData: { type: mongoose.Schema.Types.Mixed, required: true }, // Stores the complete PCB design JSON
+  submittedAt: { type: Date, default: Date.now },
+  timeSpent: { type: Number, default: 0 }, // in seconds
+  status: { type: String, enum: ['in_progress', 'submitted', 'reviewed', 'approved', 'rejected'], default: 'submitted' },
+  reviewNotes: { type: String },
+  score: { type: Number, min: 0, max: 10 },
+  reviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  reviewedAt: { type: Date }
+});
+
 const interviewSchema = new mongoose.Schema({
   interviewId: { type: String, required: true, unique: true },
   title: { type: String, required: true },
@@ -219,6 +235,7 @@ const interviewSchema = new mongoose.Schema({
   fileUploads: [fileUploadSchema],
   formSubmissions: [formSubmissionSchema],
   systemDesignSubmissions: [systemDesignSubmissionSchema],
+  pcbDesignSubmissions: [pcbDesignSubmissionSchema],
   candidateFeedbacks: [candidateFeedbackSchema],
   statistics: {
     totalCandidates: { type: Number, default: 0 },

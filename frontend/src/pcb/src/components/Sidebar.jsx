@@ -120,44 +120,49 @@ const Sidebar = ({ isDarkMode, toggleTheme }) => {
     return ["all", ...types]; // Add "all" as first option
   }, [components]);
 
-  // Fetch components from JSON file (supports /pcb/ base path)
+  // Fetch components from JSON file
   useEffect(() => {
     const fetchComponents = async () => {
       try {
         setIsLoading(true);
-
-        const pathname = window.location.pathname || '/';
-        const pcbBase = '/pcb/';
-        const base = pathname.startsWith('/pcb') ? '/pcb/' : '/';
-        const candidateUrls = [
-          `${pcbBase}enriched_components.json`,
-          `${pcbBase}components.json`,
-          `${base}enriched_components.json`,
-          `${base}components.json`,
-          '/enriched_components.json',
-          '/components.json'
-        ];
-
-        let loaded = false;
-        for (const url of candidateUrls) {
-          try {
-            const resp = await fetch(url, { cache: 'no-store' });
-            if (!resp.ok) continue;
-            const data = await resp.json();
-            if (data && Array.isArray(data.components)) {
-              setComponents(data.components);
-              setError(null);
-              loaded = true;
-              break;
-            }
-          } catch (_) {
-            // try next
+        
+        let allComponents = [];
+        
+        // First, fetch enriched power components
+        try {
+          const powerResponse = await fetch('/enriched_power_components.json');
+          if (powerResponse.ok) {
+            const powerData = await powerResponse.json();
+            allComponents = Array.isArray(powerData) ? powerData : (powerData.power_and_passive_components || []);
+            console.log('Loaded power components:', allComponents.length);
           }
+        } catch (powerError) {
+          console.warn('Could not load power components');
         }
-
-        if (!loaded) {
-          throw new Error('No component definition file found');
+        
+        // Then fetch enriched components
+        try {
+          const enrichedResponse = await fetch('/enriched_components.json');
+          if (enrichedResponse.ok) {
+            const data = await enrichedResponse.json();
+            allComponents = [...allComponents, ...(data.components || data || [])];
+            setComponents(allComponents);
+            setError(null);
+            return;
+          }
+        } catch (enrichedError) {
+          console.warn('Could not load enriched components, falling back to regular components');
         }
+        
+        // Fall back to regular components if enriched ones aren't available
+        const response = await fetch('/components.json');
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        const data = await response.json();
+        allComponents = [...allComponents, ...(data.components || [])];
+        setComponents(allComponents);
+        setError(null);
       } catch (err) {
         console.error('Error fetching components:', err);
         setError('Failed to load components. Please try again later.');
@@ -472,8 +477,15 @@ const Sidebar = ({ isDarkMode, toggleTheme }) => {
                       type={component.type}
                       footprint={component.footprint}
                       dimensions={component.dimensions}
+                      width_px={component.canvas?.width_px}
+                      height_px={component.canvas?.height_px}
                       pins={component.pins}
                       tags={component.tags}
+                      resistance={component.resistance}
+                      color_code={component.color_code}
+                      color_hex={component.color_hex}
+                      voltage={component.voltage}
+                      description={component.description}
                       isDarkMode={isDarkMode}
                       getIcon={getIconForComponent}
                     />

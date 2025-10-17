@@ -234,7 +234,7 @@ const getInterviewResults = async (req, res) => {
         rank: index + 1
       }));
 
-    // Attach feedbackReport info for each candidate from Interview model
+    // Attach comprehensive feedback info for each candidate from Interview model
     for (const candidate of rankedCandidates) {
       try {
         // Check Interview model's candidateFeedbacks array
@@ -242,24 +242,32 @@ const getInterviewResults = async (req, res) => {
           f => f.candidateId === candidate.candidateId
         );
         
-        if (feedback && feedback.pdfUrl) {
+        if (feedback) {
           candidate.feedbackReport = {
             pdfUrl: feedback.pdfUrl,
             generatedAt: feedback.generatedAt,
+            overallScore: feedback.overallScore,
             overallPerformance: feedback.overallPerformance,
             strengths: feedback.strengths,
-            areasForImprovement: feedback.areasForImprovement
+            areasForImprovement: feedback.areasForImprovement,
+            recommendations: feedback.recommendations,
+            skillScores: feedback.skillScores,
+            roundWiseFeedback: feedback.roundWiseFeedback,
+            questionScores: feedback.questionScores,
+            monitoringData: feedback.monitoringData
           };
         }
         
         // Also check User model for backward compatibility
-        const user = await User.findById(candidate.candidateId).select('interviewProgress');
-        const progress = (user?.interviewProgress || []).find(p => p.interviewId === req.params.interviewId);
-        if (progress?.feedbackReport && progress.feedbackReport.status === 'ready' && !candidate.feedbackReport) {
-          candidate.feedbackReport = {
-            pdfUrl: progress.feedbackReport.pdfUrl,
-            generatedAt: progress.feedbackReport.generatedAt
-          };
+        if (!candidate.feedbackReport) {
+          const user = await User.findById(candidate.candidateId).select('interviewProgress');
+          const progress = (user?.interviewProgress || []).find(p => p.interviewId === req.params.interviewId);
+          if (progress?.feedbackReport && progress.feedbackReport.status === 'ready') {
+            candidate.feedbackReport = {
+              pdfUrl: progress.feedbackReport.pdfUrl,
+              generatedAt: progress.feedbackReport.generatedAt
+            };
+          }
         }
       } catch (_) {}
     }

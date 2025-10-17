@@ -376,17 +376,17 @@ const PCBComponent = ({
                     }}
                   />
                   
-                  {/* Show pin ID/label on hover if zoom allows */}
+                  {/* Show pin label (e.g., +, -, +5V) or ID on hover if zoom allows */}
                   {showPinLabels && (
                     <div 
                       className={`${isDarkMode ? 'text-gray-300' : 'text-gray-700'} ${getLabelStyles()}`}
                       style={{ 
                         opacity: hoveredPin === pin.id ? 1 : 0.7,
-                        fontWeight: hoveredPin === pin.id ? 'bold' : 'normal',
-                        fontSize: hoveredPin === pin.id ? `${Math.max(10, 11 * scale)}px` : `${Math.max(8, 9 * scale)}px`
+                        fontWeight: 'bold',
+                        fontSize: hoveredPin === pin.id ? `${Math.max(11, 12 * scale)}px` : `${Math.max(9, 10 * scale)}px`
                       }}
                     >
-                      {pin.id}
+                      {pin.label || pin.id}
                     </div>
                   )}
                 </div>

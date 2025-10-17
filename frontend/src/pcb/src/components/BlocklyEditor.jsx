@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as Blockly from 'blockly';
-import { Play, RotateCcw, Download } from 'lucide-react';
+import { Play, RotateCcw, Code, Download } from 'lucide-react';
 
 // Import Blockly core modules
 import 'blockly/blocks';
@@ -174,7 +174,7 @@ const BlocklyEditor = ({
     initialXml = ''
   }) => {
   const blocklyDiv = useRef(null);
-  const toolboxDiv = useRef(null); // eslint-disable-line no-unused-vars
+  const toolboxDiv = useRef(null);
   const workspaceRef = useRef(null);
   const [workspace, setWorkspace] = useState(null);
 
@@ -241,7 +241,7 @@ const BlocklyEditor = ({
     return () => {
       // Don't dispose here - let the component unmount handle it
     };
-  }, [blocklyDiv, isDarkMode, initialXml, onGenerateCode, workspace]);
+  }, [blocklyDiv, isDarkMode, initialXml, onGenerateCode]);
 
   // Component unmount cleanup
   useEffect(() => {

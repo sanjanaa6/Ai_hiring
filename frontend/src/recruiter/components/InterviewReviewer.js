@@ -972,34 +972,6 @@ const InterviewReviewer = () => {
               </div>
 
           <div className="grid gap-6" key={interview?.interviewId || 'no-interview'}>
-            {/* Check if there are any file upload rounds */}
-            {(interview?.rounds || []).filter(round => round.type === 'file_upload').length === 0 && (
-              <div className={`p-6 rounded-lg border-2 border-dashed mb-6 ${
-                isDarkMode 
-                  ? 'border-gray-600 bg-gray-700/30' 
-                  : 'border-gray-300 bg-gray-50'
-              }`}>
-                <div className="text-center">
-                  <Upload className={`w-12 h-12 mx-auto mb-4 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`} />
-                  <h3 className={`text-lg font-medium mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                    No File Upload Rounds Yet
-                  </h3>
-                  <p className={`text-sm mb-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                    To add file upload requirements, first create a "File Upload Round" by clicking "Add Round" and selecting "File Upload Round (Documents)".
-                  </p>
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={handleAddRound}
-                    className="bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 flex items-center gap-2 mx-auto"
-                  >
-                    <Plus className="w-4 h-4" />
-                    Add File Upload Round
-                  </motion.button>
-                </div>
-              </div>
-            )}
-
             {(interview?.rounds || []).map((round, roundIndex) => (
               <motion.div
                 key={round.roundId}

@@ -17,7 +17,13 @@ import {
   Calendar,
   Upload,
   Eye,
-  EyeOff
+  EyeOff,
+  Image,
+  AlignLeft,
+  Circle,
+  Users,
+  FileImage,
+  Table
 } from 'lucide-react';
 
 // Inline Form Builder Interface Component
@@ -28,15 +34,18 @@ const FormBuilderInterface = ({ round, onUpdate, isDarkMode }) => {
   const [previewMode, setPreviewMode] = useState(false);
 
   const fieldTypes = [
-    { id: 'text', label: 'Short Text', icon: Type },
-    { id: 'textarea', label: 'Long Text', icon: FileText },
-    { id: 'email', label: 'Email', icon: Mail },
-    { id: 'number', label: 'Number', icon: Hash },
-    { id: 'radio', label: 'Radio Buttons', icon: Radio },
-    { id: 'checkbox', label: 'Checkboxes', icon: CheckSquare },
-    { id: 'select', label: 'Dropdown', icon: List },
-    { id: 'file', label: 'File Upload', icon: Upload },
-    { id: 'date', label: 'Date', icon: Calendar },
+    { id: 'image', label: 'Image', icon: Image, color: 'text-red-500' },
+    { id: 'text', label: 'Short Text', icon: Type, color: 'text-purple-500' },
+    { id: 'email', label: 'Email', icon: AlignLeft, color: 'text-blue-500' },
+    { id: 'number', label: 'Number', icon: Hash, color: 'text-blue-400' },
+    { id: 'select', label: 'Dropdown', icon: List, color: 'text-purple-400' },
+    { id: 'checkbox', label: 'Checkbox', icon: CheckSquare, color: 'text-purple-600' },
+    { id: 'date', label: 'Date', icon: Calendar, color: 'text-gray-500' },
+    { id: 'time', label: 'Time', icon: Calendar, color: 'text-gray-600' },
+    { id: 'file', label: 'File Upload', icon: Upload, color: 'text-gray-700' },
+    { id: 'user', label: 'User', icon: Users, color: 'text-black' },
+    { id: 'media', label: 'Media', icon: FileImage, color: 'text-green-500' },
+    { id: 'table', label: 'Table', icon: Table, color: 'text-blue-600' }
   ];
 
   const addField = (type) => {
@@ -195,7 +204,10 @@ const FormBuilderInterface = ({ round, onUpdate, isDarkMode }) => {
         </div>
       ) : (
         <div className="space-y-3">
-          {fields.map(field => (
+          {fields.map(field => {
+            const fieldType = fieldTypes.find(ft => ft.id === field.type);
+            const Icon = fieldType?.icon || Type;
+            return (
             <div
               key={field.id}
               draggable
@@ -206,7 +218,7 @@ const FormBuilderInterface = ({ round, onUpdate, isDarkMode }) => {
               }`}
             >
               <div className="flex items-start gap-3">
-                <GripVertical className={`w-5 h-5 mt-2 cursor-move ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`} />
+                <Icon className={`w-5 h-5 mt-2 ${fieldType?.color || 'text-gray-500'}`} />
                 <div className="flex-1">
                   <input
                     type="text"
@@ -260,7 +272,8 @@ const FormBuilderInterface = ({ round, onUpdate, isDarkMode }) => {
                 </div>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -283,36 +296,41 @@ const FormBuilderInterface = ({ round, onUpdate, isDarkMode }) => {
           {showFieldPicker && (
             <>
               <div
-                className="fixed inset-0 z-40"
+                className="fixed inset-0 z-40 bg-black bg-opacity-50"
                 onClick={() => setShowFieldPicker(false)}
               />
-              <div className={`absolute left-0 right-0 mt-2 rounded-xl shadow-2xl p-4 z-50 border-2 ${
-                isDarkMode ? 'bg-gray-800 border-blue-500' : 'bg-white border-blue-200'
+              <div className={`fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl max-h-[80vh] overflow-y-auto rounded-xl shadow-2xl p-6 z-50 border-2 ${
+                isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
               }`}>
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className={`font-semibold ${isDarkMode ? 'text-white' : 'text-gray-700'}`}>Choose a field type</h3>
+                <div className="flex items-center justify-between mb-4 sticky top-0 pb-4 ${isDarkMode ? 'bg-gray-800' : 'bg-white'}">
+                  <h3 className={`font-semibold text-lg ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Choose a field type</h3>
                   <button onClick={() => setShowFieldPicker(false)} className={`p-1 rounded ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}>
                     <X className={`w-5 h-5 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} />
                   </button>
                 </div>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-4 gap-3">
                   {fieldTypes.map(ft => {
                     const Icon = ft.icon;
                     return (
                       <button
                         key={ft.id}
                         onClick={() => addField(ft.id)}
-                        className={`flex items-center gap-2 p-3 text-left rounded-lg border transition-all ${
+                        className={`flex flex-col items-center justify-center gap-2 p-4 rounded-lg border transition-all ${
                           isDarkMode 
                             ? 'border-gray-700 hover:bg-gray-700 hover:border-blue-500' 
-                            : 'border-gray-200 hover:bg-blue-50 hover:border-blue-400'
+                            : 'border-gray-200 hover:bg-gray-50 hover:border-blue-400'
                         }`}
                       >
-                        <Icon className="w-5 h-5" />
-                        <span className={`text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{ft.label}</span>
+                        <Icon className={`w-8 h-8 ${ft.color}`} />
+                        <span className={`text-xs font-medium text-center ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{ft.label}</span>
                       </button>
                     );
                   })}
+                </div>
+                <div className={`mt-4 pt-4 border-t flex justify-end ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+                  <span className={`text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                    Switch Upload
+                  </span>
                 </div>
               </div>
             </>

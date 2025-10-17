@@ -261,12 +261,16 @@ const InterviewResults = ({ interviewId, onClose }) => {
 
           {/* Navigation Tabs */}
           <div className={`${isDarkMode ? 'bg-gray-800 border-b border-gray-700' : 'bg-gray-50 border-b border-gray-200'} p-4`}>
-            <div className="flex space-x-1">
+            <div className="flex space-x-1 overflow-x-auto">
               {[
                 { id: 'overview', label: 'Overview', icon: BarChart3 },
                 { id: 'candidates', label: 'Candidates', icon: Users },
                 { id: 'recordings', label: 'Recordings', icon: Volume2 },
-                { id: 'reports', label: 'Reports', icon: FileText }
+                { id: 'reports', label: 'Reports', icon: FileText },
+                { id: 'formSubmissions', label: 'Form Submissions', icon: FileText },
+                { id: 'fileUploads', label: 'File Upload Rounds', icon: Download },
+                { id: 'systemDesign', label: 'System Design', icon: Code },
+                { id: 'pcbSubmissions', label: 'PCB Submissions', icon: Settings }
               ].map(tab => (
                 <button
                   key={tab.id}
@@ -898,6 +902,198 @@ const InterviewResults = ({ interviewId, onClose }) => {
                         <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                         <p className={`text-lg ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                           Select a candidate to view their detailed report
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+
+              {activeTab === 'formSubmissions' && (
+                <motion.div
+                  key="formSubmissions"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  className="space-y-6"
+                >
+                  <div className={`${isDarkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'} rounded-xl p-6`}>
+                    <h3 className={`text-xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'} mb-4`}>
+                      📝 Form Submissions
+                    </h3>
+                    <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'} mb-6`}>
+                      View all candidate form submissions and responses.
+                    </p>
+                    
+                    {results?.candidates && results.candidates.length > 0 ? (
+                      <div className="space-y-4">
+                        {results.candidates.map((candidate, index) => (
+                          <div key={index} className={`${isDarkMode ? 'bg-gray-700 border border-gray-600' : 'bg-gray-50 border border-gray-200'} rounded-lg p-4`}>
+                            <div className="flex items-center justify-between mb-3">
+                              <h4 className={`font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                                {candidate.candidateName || 'Candidate ' + (index + 1)}
+                              </h4>
+                              <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                                isDarkMode ? 'bg-blue-600 text-white' : 'bg-blue-100 text-blue-800'
+                              }`}>
+                                View Submissions
+                              </span>
+                            </div>
+                            <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                              Email: {candidate.email || 'N/A'}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8">
+                        <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                        <p className={`text-lg ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                          No form submissions yet
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+
+              {activeTab === 'fileUploads' && (
+                <motion.div
+                  key="fileUploads"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  className="space-y-6"
+                >
+                  <div className={`${isDarkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'} rounded-xl p-6`}>
+                    <h3 className={`text-xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'} mb-4`}>
+                      📁 File Upload Rounds
+                    </h3>
+                    <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'} mb-6`}>
+                      View all candidate file uploads and documents.
+                    </p>
+                    
+                    {results?.candidates && results.candidates.length > 0 ? (
+                      <div className="space-y-4">
+                        {results.candidates.map((candidate, index) => (
+                          <div key={index} className={`${isDarkMode ? 'bg-gray-700 border border-gray-600' : 'bg-gray-50 border border-gray-200'} rounded-lg p-4`}>
+                            <div className="flex items-center justify-between mb-3">
+                              <h4 className={`font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                                {candidate.candidateName || 'Candidate ' + (index + 1)}
+                              </h4>
+                              <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                                isDarkMode ? 'bg-purple-600 text-white' : 'bg-purple-100 text-purple-800'
+                              }`}>
+                                View Files
+                              </span>
+                            </div>
+                            <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                              Email: {candidate.email || 'N/A'}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8">
+                        <Download className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                        <p className={`text-lg ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                          No file uploads yet
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+
+              {activeTab === 'systemDesign' && (
+                <motion.div
+                  key="systemDesign"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  className="space-y-6"
+                >
+                  <div className={`${isDarkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'} rounded-xl p-6`}>
+                    <h3 className={`text-xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'} mb-4`}>
+                      🎨 System Design Submissions
+                    </h3>
+                    <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'} mb-6`}>
+                      View all candidate system design diagrams and submissions.
+                    </p>
+                    
+                    {results?.candidates && results.candidates.length > 0 ? (
+                      <div className="space-y-4">
+                        {results.candidates.map((candidate, index) => (
+                          <div key={index} className={`${isDarkMode ? 'bg-gray-700 border border-gray-600' : 'bg-gray-50 border border-gray-200'} rounded-lg p-4`}>
+                            <div className="flex items-center justify-between mb-3">
+                              <h4 className={`font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                                {candidate.candidateName || 'Candidate ' + (index + 1)}
+                              </h4>
+                              <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                                isDarkMode ? 'bg-green-600 text-white' : 'bg-green-100 text-green-800'
+                              }`}>
+                                View Design
+                              </span>
+                            </div>
+                            <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                              Email: {candidate.email || 'N/A'}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8">
+                        <Code className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                        <p className={`text-lg ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                          No system design submissions yet
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+
+              {activeTab === 'pcbSubmissions' && (
+                <motion.div
+                  key="pcbSubmissions"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  className="space-y-6"
+                >
+                  <div className={`${isDarkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'} rounded-xl p-6`}>
+                    <h3 className={`text-xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'} mb-4`}>
+                      🔌 PCB Submissions
+                    </h3>
+                    <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'} mb-6`}>
+                      View all candidate PCB designs and electronic circuit submissions.
+                    </p>
+                    
+                    {results?.candidates && results.candidates.length > 0 ? (
+                      <div className="space-y-4">
+                        {results.candidates.map((candidate, index) => (
+                          <div key={index} className={`${isDarkMode ? 'bg-gray-700 border border-gray-600' : 'bg-gray-50 border border-gray-200'} rounded-lg p-4`}>
+                            <div className="flex items-center justify-between mb-3">
+                              <h4 className={`font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                                {candidate.candidateName || 'Candidate ' + (index + 1)}
+                              </h4>
+                              <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                                isDarkMode ? 'bg-orange-600 text-white' : 'bg-orange-100 text-orange-800'
+                              }`}>
+                                View PCB
+                              </span>
+                            </div>
+                            <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                              Email: {candidate.email || 'N/A'}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8">
+                        <Settings className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                        <p className={`text-lg ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                          No PCB submissions yet
                         </p>
                       </div>
                     )}

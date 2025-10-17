@@ -1,0 +1,620 @@
+[
+  {
+    "id": "usb_power_1",
+    "name": "USB Power Source",
+    "type": "Power Supply",
+    "tags": ["power", "usb", "5v"],
+    "footprint": "USB-A",
+    "icon": "Zap",
+    "voltage": "5V",
+    "current_max": "2A",
+    "description": "5V USB power source for Arduino and other 5V devices",
+    "canvas": {
+      "width_px": 70,
+      "height_px": 60
+    },
+    "pins": [
+      {
+        "id": "VCC",
+        "x_px": 10,
+        "y_px": 15,
+        "type": "Power",
+        "designation": "+5V",
+        "voltage": "5V",
+        "label": "+5V"
+      },
+      {
+        "id": "GND",
+        "x_px": 10,
+        "y_px": 45,
+        "type": "Ground",
+        "designation": "GND",
+        "label": "GND"
+      }
+    ]
+  },
+  {
+    "id": "battery_9v_1",
+    "name": "9V Battery",
+    "type": "Battery",
+    "tags": ["power", "battery", "9v"],
+    "footprint": "9V-BATTERY",
+    "icon": "Battery",
+    "voltage": "9V",
+    "capacity": "500mAh",
+    "description": "9V battery for higher voltage circuits",
+    "canvas": {
+      "width_px": 60,
+      "height_px": 80
+    },
+    "pins": [
+      {
+        "id": "POSITIVE",
+        "x_px": 30,
+        "y_px": 10,
+        "type": "Power",
+        "designation": "+9V",
+        "voltage": "9V",
+        "label": "+"
+      },
+      {
+        "id": "NEGATIVE",
+        "x_px": 30,
+        "y_px": 70,
+        "type": "Ground",
+        "designation": "GND",
+        "label": "-"
+      }
+    ]
+  },
+  {
+    "id": "battery_liion_1",
+    "name": "Li-Ion 3.7V",
+    "type": "Battery",
+    "tags": ["power", "battery", "liion", "rechargeable"],
+    "footprint": "18650",
+    "icon": "BatteryCharging",
+    "voltage": "3.7V",
+    "capacity": "2000mAh",
+    "description": "Rechargeable Li-Ion battery for portable projects",
+    "canvas": {
+      "width_px": 50,
+      "height_px": 90
+    },
+    "pins": [
+      {
+        "id": "POSITIVE",
+        "x_px": 25,
+        "y_px": 10,
+        "type": "Power",
+        "designation": "+3.7V",
+        "voltage": "3.7V",
+        "label": "+"
+      },
+      {
+        "id": "NEGATIVE",
+        "x_px": 25,
+        "y_px": 80,
+        "type": "Ground",
+        "designation": "GND",
+        "label": "-"
+      }
+    ]
+  },
+  {
+    "id": "battery_aa_holder",
+    "name": "4xAA Battery Holder",
+    "type": "Battery",
+    "tags": ["power", "battery", "aa", "holder"],
+    "footprint": "AA-HOLDER-4X",
+    "icon": "Batteries",
+    "voltage": "6V",
+    "capacity": "2500mAh",
+    "description": "4x AA batteries in series = 6V",
+    "canvas": {
+      "width_px": 80,
+      "height_px": 60
+    },
+    "pins": [
+      {
+        "id": "POSITIVE",
+        "x_px": 10,
+        "y_px": 20,
+        "type": "Power",
+        "designation": "+6V",
+        "voltage": "6V",
+        "label": "+"
+      },
+      {
+        "id": "NEGATIVE",
+        "x_px": 10,
+        "y_px": 40,
+        "type": "Ground",
+        "designation": "GND",
+        "label": "-"
+      }
+    ]
+  },
+  {
+    "id": "power_supply_12v",
+    "name": "12V DC Adapter",
+    "type": "Power Supply",
+    "tags": ["power", "12v", "dc", "adapter"],
+    "footprint": "DC-JACK",
+    "icon": "Power",
+    "voltage": "12V",
+    "current_max": "1A",
+    "description": "12V DC power adapter with barrel jack",
+    "canvas": {
+      "width_px": 70,
+      "height_px": 60
+    },
+    "pins": [
+      {
+        "id": "VCC",
+        "x_px": 10,
+        "y_px": 20,
+        "type": "Power",
+        "designation": "+12V",
+        "voltage": "12V",
+        "label": "+12V"
+      },
+      {
+        "id": "GND",
+        "x_px": 10,
+        "y_px": 40,
+        "type": "Ground",
+        "designation": "GND",
+        "label": "GND"
+      }
+    ]
+  },
+  {
+    "id": "resistor_220_ohm",
+    "name": "220Ω Resistor",
+    "type": "Resistor",
+    "tags": ["passive", "resistor", "220ohm"],
+    "footprint": "0805",
+    "icon": "Minus",
+    "resistance": "220Ω",
+    "power_rating": "0.25W",
+    "tolerance": "5%",
+    "color_code": ["Red", "Red", "Brown", "Gold"],
+    "color_hex": ["#FF0000", "#FF0000", "#8B4513", "#FFD700"],
+    "description": "Current limiting for 5V LEDs (20mA)",
+    "canvas": {
+      "width_px": 70,
+      "height_px": 30
+    },
+    "pins": [
+      {
+        "id": "PIN1",
+        "x_px": 5,
+        "y_px": 15,
+        "type": "Passive",
+        "label": "1"
+      },
+      {
+        "id": "PIN2",
+        "x_px": 65,
+        "y_px": 15,
+        "type": "Passive",
+        "label": "2"
+      }
+    ]
+  },
+  {
+    "id": "resistor_330_ohm",
+    "name": "330Ω Resistor",
+    "type": "Resistor",
+    "tags": ["passive", "resistor", "330ohm"],
+    "footprint": "0805",
+    "icon": "Minus",
+    "resistance": "330Ω",
+    "power_rating": "0.25W",
+    "tolerance": "5%",
+    "color_code": ["Orange", "Orange", "Brown", "Gold"],
+    "color_hex": ["#FFA500", "#FFA500", "#8B4513", "#FFD700"],
+    "description": "Current limiting for 5V LEDs (15mA)",
+    "canvas": {
+      "width_px": 70,
+      "height_px": 30
+    },
+    "pins": [
+      {
+        "id": "PIN1",
+        "x_px": 5,
+        "y_px": 15,
+        "type": "Passive",
+        "label": "1"
+      },
+      {
+        "id": "PIN2",
+        "x_px": 65,
+        "y_px": 15,
+        "type": "Passive",
+        "label": "2"
+      }
+    ]
+  },
+  {
+    "id": "resistor_1k_ohm",
+    "name": "1kΩ Resistor",
+    "type": "Resistor",
+    "tags": ["passive", "resistor", "1k"],
+    "footprint": "0805",
+    "icon": "Minus",
+    "resistance": "1kΩ",
+    "power_rating": "0.25W",
+    "tolerance": "5%",
+    "color_code": ["Brown", "Black", "Red", "Gold"],
+    "color_hex": ["#8B4513", "#000000", "#FF0000", "#FFD700"],
+    "description": "General purpose, pull-down resistor",
+    "canvas": {
+      "width_px": 70,
+      "height_px": 30
+    },
+    "pins": [
+      {
+        "id": "PIN1",
+        "x_px": 5,
+        "y_px": 15,
+        "type": "Passive",
+        "label": "1"
+      },
+      {
+        "id": "PIN2",
+        "x_px": 65,
+        "y_px": 15,
+        "type": "Passive",
+        "label": "2"
+      }
+    ]
+  },
+  {
+    "id": "resistor_10k_ohm",
+    "name": "10kΩ Resistor",
+    "type": "Resistor",
+    "tags": ["passive", "resistor", "10k", "pullup"],
+    "footprint": "0805",
+    "icon": "Minus",
+    "resistance": "10kΩ",
+    "power_rating": "0.25W",
+    "tolerance": "5%",
+    "color_code": ["Brown", "Black", "Orange", "Gold"],
+    "color_hex": ["#8B4513", "#000000", "#FFA500", "#FFD700"],
+    "description": "Pull-up resistor for I2C, reset circuits",
+    "canvas": {
+      "width_px": 70,
+      "height_px": 30
+    },
+    "pins": [
+      {
+        "id": "PIN1",
+        "x_px": 5,
+        "y_px": 15,
+        "type": "Passive",
+        "label": "1"
+      },
+      {
+        "id": "PIN2",
+        "x_px": 65,
+        "y_px": 15,
+        "type": "Passive",
+        "label": "2"
+      }
+    ]
+  },
+  {
+    "id": "resistor_100k_ohm",
+    "name": "100kΩ Resistor",
+    "type": "Resistor",
+    "tags": ["passive", "resistor", "100k"],
+    "footprint": "0805",
+    "icon": "Minus",
+    "resistance": "100kΩ",
+    "power_rating": "0.25W",
+    "tolerance": "5%",
+    "color_code": ["Brown", "Black", "Yellow", "Gold"],
+    "color_hex": ["#8B4513", "#000000", "#FFFF00", "#FFD700"],
+    "description": "High impedance applications",
+    "canvas": {
+      "width_px": 70,
+      "height_px": 30
+    },
+    "pins": [
+      {
+        "id": "PIN1",
+        "x_px": 5,
+        "y_px": 15,
+        "type": "Passive",
+        "label": "1"
+      },
+      {
+        "id": "PIN2",
+        "x_px": 65,
+        "y_px": 15,
+        "type": "Passive",
+        "label": "2"
+      }
+    ]
+  },
+  {
+    "id": "resistor_470_ohm",
+    "name": "470Ω Resistor",
+    "type": "Resistor",
+    "tags": ["passive", "resistor", "470ohm"],
+    "footprint": "0805",
+    "icon": "Minus",
+    "resistance": "470Ω",
+    "power_rating": "0.25W",
+    "tolerance": "5%",
+    "color_code": ["Yellow", "Violet", "Brown", "Gold"],
+    "color_hex": ["#FFFF00", "#8B00FF", "#8B4513", "#FFD700"],
+    "description": "LED current limiting (10mA)",
+    "canvas": {
+      "width_px": 70,
+      "height_px": 30
+    },
+    "pins": [
+      {
+        "id": "PIN1",
+        "x_px": 5,
+        "y_px": 15,
+        "type": "Passive",
+        "label": "1"
+      },
+      {
+        "id": "PIN2",
+        "x_px": 65,
+        "y_px": 15,
+        "type": "Passive",
+        "label": "2"
+      }
+    ]
+  },
+  {
+    "id": "capacitor_100nf",
+    "name": "100nF Capacitor",
+    "type": "Capacitor",
+    "tags": ["passive", "capacitor", "ceramic", "decoupling"],
+    "footprint": "0805",
+    "icon": "CircuitBoard",
+    "capacitance": "100nF",
+    "voltage_rating": "50V",
+    "description": "Decoupling capacitor - place near IC power pins",
+    "canvas": {
+      "width_px": 50,
+      "height_px": 40
+    },
+    "pins": [
+      {
+        "id": "PIN1",
+        "x_px": 10,
+        "y_px": 20,
+        "type": "Passive",
+        "label": "1"
+      },
+      {
+        "id": "PIN2",
+        "x_px": 40,
+        "y_px": 20,
+        "type": "Passive",
+        "label": "2"
+      }
+    ]
+  },
+  {
+    "id": "capacitor_10uf",
+    "name": "10µF Electrolytic",
+    "type": "Capacitor",
+    "tags": ["passive", "capacitor", "electrolytic", "polarized"],
+    "footprint": "CAP-RADIAL",
+    "icon": "CircuitBoard",
+    "capacitance": "10µF",
+    "voltage_rating": "25V",
+    "description": "Polarized! Power filtering, smoothing",
+    "polarized": true,
+    "canvas": {
+      "width_px": 50,
+      "height_px": 60
+    },
+    "pins": [
+      {
+        "id": "POSITIVE",
+        "x_px": 25,
+        "y_px": 10,
+        "type": "Passive",
+        "designation": "+",
+        "label": "+"
+      },
+      {
+        "id": "NEGATIVE",
+        "x_px": 25,
+        "y_px": 50,
+        "type": "Passive",
+        "designation": "-",
+        "label": "-"
+      }
+    ]
+  },
+  {
+    "id": "voltage_regulator_7805",
+    "name": "7805 Regulator",
+    "type": "IC",
+    "tags": ["power", "regulator", "5v", "linear"],
+    "footprint": "TO-220",
+    "icon": "Gauge",
+    "input_voltage": "7-35V",
+    "output_voltage": "5V",
+    "current_max": "1.5A",
+    "description": "Convert 7-35V to stable 5V (requires heatsink >500mA)",
+    "canvas": {
+      "width_px": 80,
+      "height_px": 70
+    },
+    "pins": [
+      {
+        "id": "INPUT",
+        "x_px": 10,
+        "y_px": 15,
+        "type": "Power",
+        "designation": "VIN",
+        "label": "IN"
+      },
+      {
+        "id": "GND",
+        "x_px": 10,
+        "y_px": 35,
+        "type": "Ground",
+        "designation": "GND",
+        "label": "GND"
+      },
+      {
+        "id": "OUTPUT",
+        "x_px": 10,
+        "y_px": 55,
+        "type": "Power",
+        "voltage": "5V",
+        "designation": "VOUT",
+        "label": "OUT"
+      }
+    ]
+  },
+  {
+    "id": "voltage_regulator_3v3",
+    "name": "AMS1117-3.3 Regulator",
+    "type": "IC",
+    "tags": ["power", "regulator", "3.3v", "ldo"],
+    "footprint": "SOT-223",
+    "icon": "Gauge",
+    "input_voltage": "4.5-12V",
+    "output_voltage": "3.3V",
+    "current_max": "1A",
+    "description": "Convert 4.5-12V to stable 3.3V for ESP32, sensors",
+    "canvas": {
+      "width_px": 80,
+      "height_px": 70
+    },
+    "pins": [
+      {
+        "id": "GND",
+        "x_px": 10,
+        "y_px": 15,
+        "type": "Ground",
+        "designation": "GND",
+        "label": "GND"
+      },
+      {
+        "id": "OUTPUT",
+        "x_px": 10,
+        "y_px": 35,
+        "type": "Power",
+        "voltage": "3.3V",
+        "designation": "VOUT",
+        "label": "OUT"
+      },
+      {
+        "id": "INPUT",
+        "x_px": 10,
+        "y_px": 55,
+        "type": "Power",
+        "designation": "VIN",
+        "label": "IN"
+      }
+    ]
+  },
+  {
+    "id": "diode_1n4007",
+    "name": "1N4007 Diode",
+    "type": "Diode",
+    "tags": ["passive", "diode", "rectifier", "protection"],
+    "footprint": "DO-41",
+    "icon": "ArrowRight",
+    "forward_voltage": "1V",
+    "current_max": "1A",
+    "description": "Reverse polarity protection, rectification",
+    "canvas": {
+      "width_px": 60,
+      "height_px": 30
+    },
+    "pins": [
+      {
+        "id": "ANODE",
+        "x_px": 5,
+        "y_px": 15,
+        "type": "Passive",
+        "designation": "A",
+        "label": "A"
+      },
+      {
+        "id": "CATHODE",
+        "x_px": 55,
+        "y_px": 15,
+        "type": "Passive",
+        "designation": "K",
+        "label": "K"
+      }
+    ]
+  },
+  {
+    "id": "switch_spst",
+    "name": "SPST Switch",
+    "type": "Switch",
+    "tags": ["switch", "spst", "power", "control"],
+    "footprint": "SWITCH-SPST",
+    "icon": "ToggleLeft",
+    "description": "Simple on/off switch for power control",
+    "canvas": {
+      "width_px": 60,
+      "height_px": 40
+    },
+    "pins": [
+      {
+        "id": "PIN1",
+        "x_px": 5,
+        "y_px": 20,
+        "type": "Passive",
+        "label": "1"
+      },
+      {
+        "id": "PIN2",
+        "x_px": 55,
+        "y_px": 20,
+        "type": "Passive",
+        "label": "2"
+      }
+    ]
+  },
+  {
+    "id": "fuse_1a",
+    "name": "1A Fuse",
+    "type": "Fuse",
+    "tags": ["protection", "fuse", "safety"],
+    "footprint": "FUSE-5X20MM",
+    "icon": "Shield",
+    "current_rating": "1A",
+    "description": "Overcurrent protection - breaks at 1A",
+    "canvas": {
+      "width_px": 50,
+      "height_px": 30
+    },
+    "pins": [
+      {
+        "id": "PIN1",
+        "x_px": 5,
+        "y_px": 15,
+        "type": "Passive",
+        "label": "1"
+      },
+      {
+        "id": "PIN2",
+        "x_px": 45,
+        "y_px": 15,
+        "type": "Passive",
+        "label": "2"
+      }
+    ]
+  }
+]
+

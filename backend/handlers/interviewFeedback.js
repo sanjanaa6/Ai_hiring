@@ -160,12 +160,24 @@ Answer: ${a.answer}
   "strengths": ["only list REAL strengths, max 3"],
   "areasForImprovement": ["be SPECIFIC about what's wrong, list ALL issues"],
   "recommendations": ["CONCRETE steps to improve"],
+  "skillScores": {
+    "codingSkills": 6.5,
+    "salesSkills": 7.0,
+    "pcbDesignSkills": 5.5,
+    "communicationSkills": 8.0,
+    "englishFluency": 7.5
+  },
   "roundWiseFeedback": [
     {
       "roundTitle": "Round name",
       "score": 6.0,
       "performance": "CRITICAL assessment",
-      "keyPoints": ["specific issues found"]
+      "keyPoints": ["specific issues found"],
+      "skillBreakdown": {
+        "technicalSkills": 6.0,
+        "communicationSkills": 7.0,
+        "problemSolving": 5.5
+      }
     }
   ],
   "questionScores": [
@@ -180,9 +192,18 @@ Answer: ${a.answer}
 
 **CRITICAL: You MUST include:**
 - overallScore as a NUMBER (not string)
+- skillScores object with numbers for: codingSkills, salesSkills, pcbDesignSkills, communicationSkills, englishFluency (0-10 scale, use 0 if not applicable)
 - score for EACH round as a NUMBER
+- skillBreakdown for EACH round with relevant skill scores
 - score for EACH question as a NUMBER
 - ALL fields are REQUIRED
+
+**Skill Assessment Guidelines:**
+- Coding Skills: Evaluate programming logic, syntax, algorithms, data structures
+- Sales Skills: Assess persuasion, product knowledge, customer handling, negotiation
+- PCB Design Skills: Judge circuit design, component selection, layout optimization
+- Communication Skills: Rate clarity, articulation, structure, professional language
+- English Fluency: Measure grammar, vocabulary, sentence construction, coherence
 
 **CRITICAL RULES:**
 - DO NOT give participation points
@@ -328,14 +349,26 @@ Answer: ${a.answer}
       Object.keys(feedbackData.skillScores) : 
       ['Technical Skills', 'Communication', 'Problem Solving'];
     
-    // Collect monitoring data if available
+    // Collect monitoring data if available from interview
+    const candidateFeedbackData = interview.candidateFeedbacks.find(
+      f => f.candidateId === candidateId
+    );
+    
     const monitoringData = {
-      profileImage: null,
-      interviewSnapshots: [],
-      cheatAttempts: { flagged: false },
-      eyeTrackingViolations: 0,
-      faceDetectionIssues: 0
+      profileImage: candidateFeedbackData?.monitoringData?.profileImage || null,
+      interviewSnapshots: candidateFeedbackData?.monitoringData?.interviewSnapshots || [],
+      cheatAttempts: candidateFeedbackData?.monitoringData?.cheatAttempts || { flagged: false },
+      eyeTrackingViolations: candidateFeedbackData?.monitoringData?.eyeTrackingViolations || 0,
+      faceDetectionIssues: candidateFeedbackData?.monitoringData?.faceDetectionIssues || 0
     };
+    
+    console.log('📸 [FEEDBACK] Monitoring data:', {
+      hasProfileImage: !!monitoringData.profileImage,
+      snapshotCount: monitoringData.interviewSnapshots.length,
+      cheatFlagged: monitoringData.cheatAttempts.flagged,
+      eyeViolations: monitoringData.eyeTrackingViolations,
+      faceIssues: monitoringData.faceDetectionIssues
+    });
 
     // Generate PDF
     const pdfFileName = `feedback_${candidateId}_${Date.now()}.pdf`;
@@ -483,7 +516,7 @@ const getFeedback = async (req, res) => {
 async function generatePDF(filePath, data) {
   return new Promise((resolve, reject) => {
     try {
-      const doc = new PDFDocument({ margin: 50 });
+      const doc = new PDFDocument({ margin: 50, size: 'A4' });
       const stream = fs.createWriteStream(filePath);
 
       doc.pipe(stream);
@@ -494,11 +527,32 @@ async function generatePDF(filePath, data) {
       doc.fontSize(10).fillColor('#6b7280').text(new Date().toLocaleDateString(), { align: 'center' });
       doc.moveDown(2);
 
-      // Candidate Information
+      // Candidate Information Section with Profile Image
       doc.fontSize(16).fillColor('#1f2937').text('Candidate Information', { underline: true });
       doc.moveDown(0.5);
+      
+      const infoStartY = doc.y;
+      
+      // Profile Image (if available)
+      if (data.monitoringData?.profileImage) {
+        try {
+          const imageX = doc.page.width - 150;
+          const imageY = infoStartY;
+          doc.image(data.monitoringData.profileImage, imageX, imageY, {
+            width: 100,
+            height: 100,
+            fit: [100, 100],
+            align: 'center'
+          });
+          doc.fontSize(8).fillColor('#6b7280').text('Profile Photo', imageX, imageY + 105, { width: 100, align: 'center' });
+        } catch (imgError) {
+          console.warn('⚠️ [PDF] Could not load profile image:', imgError.message);
+        }
+      }
+      
+      // Candidate details
       doc.fontSize(11).fillColor('#374151');
-      doc.text(`Name: ${data.candidateName || 'N/A'}`);
+      doc.text(`Name: ${data.candidateName || 'N/A'}`, 50, infoStartY);
       doc.text(`Email: ${data.candidateEmail || 'N/A'}`);
       doc.text(`Position: ${data.jobTitle || 'N/A'}`);
       doc.text(`Interview: ${data.interviewTitle || 'N/A'}`);
@@ -554,6 +608,108 @@ async function generatePDF(filePath, data) {
       });
       doc.moveDown(2);
 
+      // Skill Scores Section
+      if (data.skillScores) {
+        doc.addPage();
+        doc.fontSize(18).fillColor('#1e40af').text('Skill Assessment', { underline: true, align: 'center' });
+        doc.moveDown(1.5);
+
+        const skills = [
+          { key: 'codingSkills', label: 'Coding Skills', icon: '💻' },
+          { key: 'salesSkills', label: 'Sales Skills', icon: '💼' },
+          { key: 'pcbDesignSkills', label: 'PCB Design Skills', icon: '🔌' },
+          { key: 'communicationSkills', label: 'Communication Skills', icon: '💬' },
+          { key: 'englishFluency', label: 'English Fluency', icon: '🗣️' }
+        ];
+
+        skills.forEach(skill => {
+          const score = data.skillScores[skill.key] || 0;
+          if (score > 0) {
+            const skillColor = score >= 7 ? '#059669' : score >= 5 ? '#f59e0b' : '#dc2626';
+            
+            doc.fontSize(12).fillColor('#1f2937').text(`${skill.icon} ${skill.label}`, { continued: true });
+            doc.fontSize(14).fillColor(skillColor).text(` - ${score}/10`, { align: 'right' });
+            
+            // Progress bar
+            const barWidth = 400;
+            const barHeight = 15;
+            const barX = 80;
+            const barY = doc.y + 5;
+            
+            // Background bar
+            doc.rect(barX, barY, barWidth, barHeight).fillColor('#e5e7eb').fill();
+            
+            // Progress bar
+            const progressWidth = (score / 10) * barWidth;
+            doc.rect(barX, barY, progressWidth, barHeight).fillColor(skillColor).fill();
+            
+            doc.moveDown(2);
+          }
+        });
+      }
+
+      // Monitoring & Integrity Section
+      doc.addPage();
+      doc.fontSize(18).fillColor('#dc2626').text('Interview Monitoring & Integrity', { underline: true, align: 'center' });
+      doc.moveDown(1.5);
+
+      // Cheat Detection
+      doc.fontSize(14).fillColor('#1f2937').text('🔍 Integrity Check', { underline: true });
+      doc.moveDown(0.5);
+      
+      const cheatStatus = data.monitoringData?.cheatAttempts?.flagged ? 'FLAGGED' : 'CLEAR';
+      const cheatColor = data.monitoringData?.cheatAttempts?.flagged ? '#dc2626' : '#059669';
+      
+      doc.fontSize(12).fillColor('#374151').text('Status: ', { continued: true });
+      doc.fontSize(12).fillColor(cheatColor).text(cheatStatus);
+      
+      if (data.monitoringData?.cheatAttempts?.flagged) {
+        doc.fontSize(11).fillColor('#dc2626').text(`Reason: ${data.monitoringData.cheatAttempts.reason || 'Suspicious activity detected'}`, { indent: 20 });
+        doc.fontSize(11).fillColor('#6b7280').text(`Flagged at: ${data.monitoringData.cheatAttempts.flaggedAt ? new Date(data.monitoringData.cheatAttempts.flaggedAt).toLocaleString() : 'N/A'}`, { indent: 20 });
+      } else {
+        doc.fontSize(11).fillColor('#059669').text('No suspicious activity detected during the interview.', { indent: 20 });
+      }
+      doc.moveDown(1);
+
+      // Eye Tracking & Face Detection
+      doc.fontSize(11).fillColor('#374151');
+      doc.text(`Eye Tracking Violations: ${data.monitoringData?.eyeTrackingViolations || 0}`);
+      doc.text(`Face Detection Issues: ${data.monitoringData?.faceDetectionIssues || 0}`);
+      doc.moveDown(2);
+
+      // Interview Snapshots
+      if (data.monitoringData?.interviewSnapshots && data.monitoringData.interviewSnapshots.length > 0) {
+        doc.fontSize(14).fillColor('#1f2937').text('📸 Interview Snapshots', { underline: true });
+        doc.moveDown(0.5);
+        
+        const snapshotsToShow = data.monitoringData.interviewSnapshots.slice(0, 2); // Show max 2 snapshots
+        const snapshotWidth = 200;
+        const snapshotHeight = 150;
+        let snapshotX = 80;
+        const snapshotY = doc.y;
+
+        snapshotsToShow.forEach((snapshot, idx) => {
+          try {
+            if (fs.existsSync(snapshot)) {
+              doc.image(snapshot, snapshotX, snapshotY, {
+                width: snapshotWidth,
+                height: snapshotHeight,
+                fit: [snapshotWidth, snapshotHeight]
+              });
+              doc.fontSize(8).fillColor('#6b7280').text(`Snapshot ${idx + 1}`, snapshotX, snapshotY + snapshotHeight + 5, { width: snapshotWidth, align: 'center' });
+              snapshotX += snapshotWidth + 20;
+            }
+          } catch (imgError) {
+            console.warn(`⚠️ [PDF] Could not load snapshot ${idx + 1}:`, imgError.message);
+          }
+        });
+        
+        doc.moveDown(12); // Move down to account for images
+      } else {
+        doc.fontSize(11).fillColor('#6b7280').text('No interview snapshots available.', { indent: 20 });
+        doc.moveDown(1);
+      }
+
       // Question-by-Question Scores (NEW - STRICT SCORING)
       if (data.questionScores && data.questionScores.length > 0) {
         doc.addPage();
@@ -588,8 +744,8 @@ async function generatePDF(filePath, data) {
       // Round-wise Feedback
       if (data.roundWiseFeedback && data.roundWiseFeedback.length > 0) {
         doc.addPage();
-        doc.fontSize(16).fillColor('#1f2937').text('Round-wise Performance', { underline: true });
-        doc.moveDown(1);
+        doc.fontSize(18).fillColor('#1e40af').text('Round-wise Performance', { underline: true, align: 'center' });
+        doc.moveDown(1.5);
 
         data.roundWiseFeedback.forEach((round, idx) => {
           // Show round score if available
@@ -603,6 +759,22 @@ async function generatePDF(filePath, data) {
           doc.moveDown(0.3);
           doc.fontSize(11).fillColor('#374151').text(round.performance, { align: 'justify' });
           doc.moveDown(0.5);
+          
+          // Skill Breakdown for this round
+          if (round.skillBreakdown && Object.keys(round.skillBreakdown).length > 0) {
+            doc.fontSize(11).fillColor('#6b7280').text('Skill Breakdown:', { underline: true });
+            doc.moveDown(0.3);
+            
+            Object.entries(round.skillBreakdown).forEach(([skill, score]) => {
+              const skillColor = score >= 7 ? '#059669' : score >= 5 ? '#f59e0b' : '#dc2626';
+              const skillLabel = skill.replace(/([A-Z])/g, ' $1').trim();
+              const capitalizedLabel = skillLabel.charAt(0).toUpperCase() + skillLabel.slice(1);
+              
+              doc.fontSize(10).fillColor('#374151').text(`  ${capitalizedLabel}: `, { continued: true });
+              doc.fontSize(10).fillColor(skillColor).text(`${score}/10`);
+            });
+            doc.moveDown(0.5);
+          }
           
           if (round.keyPoints && round.keyPoints.length > 0) {
             doc.fontSize(11).fillColor('#6b7280').text('Key Points:', { underline: true });

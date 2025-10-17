@@ -22,12 +22,31 @@ const LucideIcon = ({ name, getIcon, ...props }) => {
   return <Icon {...props} />;
 };
 
-const ComponentCard = ({ id, name, icon, type, footprint, width_px, height_px, dimensions, pins, tags, isDarkMode, onDragStart, getIcon }) => {
+const ComponentCard = ({ 
+  id, 
+  name, 
+  icon, 
+  type, 
+  footprint, 
+  width_px, 
+  height_px, 
+  dimensions, 
+  pins, 
+  tags, 
+  isDarkMode, 
+  onDragStart, 
+  getIcon,
+  resistance,
+  color_code,
+  color_hex,
+  voltage,
+  description
+}) => {
   const handleDragStart = (event) => {
     // Clear any previous data transfer
     event.dataTransfer.clearData();
     
-    // Create the component data to transfer
+    // Create the component data to transfer - include ALL properties
     const componentData = {
       id,
       name,
@@ -38,7 +57,12 @@ const ComponentCard = ({ id, name, icon, type, footprint, width_px, height_px, d
       height_px,
       dimensions,
       pins,
-      tags
+      tags,
+      resistance,
+      color_code,
+      color_hex,
+      voltage,
+      description
     };
     
     console.log('Sidebar: Dragging component:', componentData);
@@ -71,15 +95,41 @@ const ComponentCard = ({ id, name, icon, type, footprint, width_px, height_px, d
         isDarkMode 
           ? 'bg-zinc-800 hover:bg-zinc-700' 
           : 'bg-gray-100 hover:bg-gray-200'
-      } hover:scale-105 transition-all cursor-pointer text-center`}
-      title={name}
+      } hover:scale-105 transition-all cursor-pointer text-center min-h-[80px]`}
+      title={`${name}${voltage ? ` - ${voltage}` : ''}${resistance ? ` - ${resistance}` : ''}${description ? `\n${description}` : ''}`}
     >
       <LucideIcon 
         name={icon} 
         getIcon={getIcon} 
         className={`w-6 h-6 ${isDarkMode ? 'text-white' : 'text-black'}`} 
       />
-      <p className={`text-xs mt-1 ${isDarkMode ? 'text-white' : 'text-black'} truncate w-full`}>{name}</p>
+      
+      {/* Show color code bands for resistors */}
+      {type === 'Resistor' && color_hex && color_hex.length >= 4 && (
+        <div className="flex gap-0.5 mt-1 mb-1">
+          {color_hex.map((color, index) => (
+            <div
+              key={index}
+              className="w-2 h-5 rounded-sm border border-gray-400"
+              style={{ backgroundColor: color }}
+              title={color_code ? color_code[index] : ''}
+            />
+          ))}
+        </div>
+      )}
+      
+      {/* Show voltage badge for power supplies and batteries */}
+      {voltage && (type === 'Power Supply' || type === 'Battery') && (
+        <div className="px-1.5 py-0.5 mt-1 mb-1 text-[10px] font-bold rounded bg-yellow-500 text-black">
+          {voltage}
+        </div>
+      )}
+      
+      <p className={`mt-1 text-xs ${isDarkMode ? 'text-white' : 'text-black'} truncate w-full px-1`}>{name}</p>
+      {resistance && (
+        <p className={`text-[10px] font-mono ${isDarkMode ? 'text-yellow-400' : 'text-yellow-700'}`}>{resistance}</p>
+      )}
+      <p className={`text-[9px] opacity-60 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'} truncate w-full`}>{type}</p>
     </div>
   );
 };

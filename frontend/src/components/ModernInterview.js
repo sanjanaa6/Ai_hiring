@@ -1308,9 +1308,18 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
       );
 
     case 'pcb-round':
+      console.log('🔧 [PCB ROUND] Passing props:', {
+        interviewId,
+        roundId: currentRound?.roundId || currentRound?._id,
+        candidateInfo,
+        questionId: currentQuestion?.id || currentQuestion?._id
+      });
       return (
         <PCBInterviewInterface
           question={currentQuestion}
+          interviewId={interviewId}
+          roundId={currentRound?.roundId || currentRound?._id}
+          candidateInfo={candidateInfo}
           onNextQuestion={moveToNextQuestion}
           onAnswerSubmit={async (pcbDesignData) => {
             console.log('PCB design submitted:', pcbDesignData);

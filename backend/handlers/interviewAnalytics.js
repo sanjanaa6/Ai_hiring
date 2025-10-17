@@ -375,7 +375,13 @@ const getCandidateDetails = async (req, res) => {
     const allCandidates = getCandidateSummaries(interview.candidateAnswers);
     const candidateRank = allCandidates.findIndex(c => c.candidateId === candidateId) + 1;
 
+    // Get comprehensive feedback data from Interview model
+    const feedbackData = interview.candidateFeedbacks.find(
+      f => f.candidateId === candidateId
+    );
+
     console.log('✅ [CANDIDATE DETAILS] Generated detailed view for candidate:', candidate.candidateName);
+    console.log('📊 [CANDIDATE DETAILS] Feedback data:', feedbackData ? 'Found' : 'Not found');
 
     res.json({
       success: true,
@@ -408,6 +414,20 @@ const getCandidateDetails = async (req, res) => {
         improvements: candidate.improvements,
         roundPerformance,
         answersByRound,
+        // Include comprehensive feedback data
+        feedback: feedbackData ? {
+          overallScore: feedbackData.overallScore,
+          overallPerformance: feedbackData.overallPerformance,
+          strengths: feedbackData.strengths,
+          areasForImprovement: feedbackData.areasForImprovement,
+          recommendations: feedbackData.recommendations,
+          skillScores: feedbackData.skillScores,
+          roundWiseFeedback: feedbackData.roundWiseFeedback,
+          questionScores: feedbackData.questionScores,
+          monitoringData: feedbackData.monitoringData,
+          pdfUrl: feedbackData.pdfUrl,
+          generatedAt: feedbackData.generatedAt
+        } : null,
         interview: {
           interviewId: interview.interviewId,
           title: interview.title,

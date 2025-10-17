@@ -29,15 +29,10 @@ const CodeEditor = ({
   onUploadCode,
 }) => {
   const [isEditorReady, setIsEditorReady] = useState(false);
+  const editorRef = React.useRef(null);
 
-  // Initialize with template if no code is provided
-  useEffect(() => {
-    if (!code) {
-      setCode(ARDUINO_TEMPLATE);
-    }
-  }, [code, setCode]);
-
-  const handleEditorDidMount = () => {
+  const handleEditorDidMount = (editor, monaco) => {
+    editorRef.current = editor;
     setIsEditorReady(true);
   };
 
@@ -94,7 +89,7 @@ const CodeEditor = ({
         <Editor
           height="100%"
           defaultLanguage="cpp"
-          defaultValue={code || ARDUINO_TEMPLATE}
+          value={code || ARDUINO_TEMPLATE}
           theme={isDarkMode ? 'vs-dark' : 'vs-light'}
           onChange={setCode}
           onMount={handleEditorDidMount}

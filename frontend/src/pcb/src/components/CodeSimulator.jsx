@@ -202,6 +202,7 @@ class ArduinoSimulator {
 const CodeSimulator = ({ 
   code, 
   components,
+  wires = [],
   onUpdateComponentStates 
 }) => {
   const [serialOutput, setSerialOutput] = useState([]);
@@ -212,7 +213,7 @@ const CodeSimulator = ({
   useEffect(() => {
     const handlePinChange = (pin, value, type) => {
       // Find components connected to this pin and update their state
-      const affectedComponents = mapPinToComponents(pin, components);
+      const affectedComponents = mapPinToComponents(pin, components, wires);
       onUpdateComponentStates(affectedComponents, value, type);
     };
     
@@ -228,45 +229,113 @@ const CodeSimulator = ({
         sim.stop();
       }
     };
-  }, [components, onUpdateComponentStates]);
+  }, [components, wires, onUpdateComponentStates]);
   
-  // Map pin numbers to components on canvas
-  const mapPinToComponents = (pin, components) => {
-    // This function maps Arduino pin numbers to components in the PCB design
-    // For now, we'll use a simple approach: find LED components and assume they're connected to the pin
+  // Map pin numbers to components on canvas based on wire connections
+  const mapPinToComponents = (pin, components, wires = []) => {
+    console.log(`[Simulator] Mapping pin ${pin} to components...`);
+    console.log(`[Simulator] Available components:`, components.map(c => `${c.name} (${c.type})`));
     
-    // Find LED components that could be connected to this pin
-    const ledComponents = components.filter(comp => 
-      comp.type === 'LED' || comp.type === 'led'
+    // Find Arduino/microcontroller component
+    const arduino = components.find(comp => 
+      comp.name?.toLowerCase().includes('arduino') || 
+      comp.name?.toLowerCase().includes('nano') ||
+      comp.name?.toLowerCase().includes('esp') ||
+      comp.name?.toLowerCase().includes('uno')
     );
     
-    // For demonstration, we'll assume all LEDs are connected to the pin being written to
-    // In a real implementation, this would check actual wire connections
-    if (ledComponents.length > 0) {
-      console.log(`[Simulator] Pin ${pin} change affects ${ledComponents.length} LED components:`, ledComponents.map(c => c.name));
-      return ledComponents.map(comp => ({
+    if (!arduino) {
+      console.warn('[Simulator] No Arduino/microcontroller found on canvas - using simple mode');
+      console.log(`[Simulator] Lighting up all LEDs for pin ${pin}`);
+      // Fallback: For simple circuits without Arduino, light up all LEDs
+      const allLEDs = components.filter(c => c.type === 'LED' || c.type?.toLowerCase() === 'led');
+      console.log(`[Simulator] Found ${allLEDs.length} LEDs:`, allLEDs.map(led => led.name));
+      return allLEDs.map(comp => ({
         instanceId: comp.instanceId,
         type: comp.type,
         name: comp.name
       }));
-    } else {
-      console.log(`[Simulator] No LED components found on canvas. Available components:`, components.map(c => `${c.name} (${c.type})`));
     }
     
-    // Also check for components with explicit Arduino pin mappings
-    return components.filter(comp => {
-      return comp.pins && comp.pins.some(p => 
-        p.arduino_pin === pin.toString() || 
-        p.arduino_pin === parseInt(pin)
-      );
-    }).map(comp => ({
+    // Find the pin on Arduino that matches the digital pin number
+    const arduinoPin = arduino.pins?.find(p => {
+      const pinLabel = p.label || p.id || '';
+      const pinDesignation = p.designation || '';
+      
+      // Match patterns like "D13", "13", "Digital 13", "Pin 13"
+      return pinLabel.includes(`D${pin}`) || 
+             pinLabel.includes(`Pin ${pin}`) ||
+             pinLabel === pin.toString() ||
+             pinDesignation.includes(`D${pin}`) ||
+             pinDesignation === pin.toString();
+    });
+    
+    if (!arduinoPin) {
+      console.warn(`[Simulator] Pin ${pin} not found on Arduino. Available pins:`, arduino.pins?.map(p => p.label || p.id));
+      // Fallback: map to all LEDs
+      return components.filter(c => c.type === 'LED' || c.type?.toLowerCase() === 'led').map(comp => ({
+        instanceId: comp.instanceId,
+        type: comp.type,
+        name: comp.name
+      }));
+    }
+    
+    console.log(`[Simulator] Found Arduino pin:`, arduinoPin);
+    
+    // Now trace wires from this Arduino pin to find connected components
+    const affectedComponents = [];
+    
+    // Trace through wire connections (this is simplified - doesn't handle resistors in between)
+    const connectedComponents = traceWireConnections(arduino.instanceId, arduinoPin.id, components, wires);
+    
+    console.log(`[Simulator] Components connected to pin ${pin}:`, connectedComponents.map(c => c.name));
+    
+    return connectedComponents.map(comp => ({
       instanceId: comp.instanceId,
       type: comp.type,
-      pinIndex: comp.pins.findIndex(p => 
-        p.arduino_pin === pin.toString() || 
-        p.arduino_pin === parseInt(pin)
-      )
+      name: comp.name
     }));
+  };
+  
+  // Helper function to trace wire connections
+  const traceWireConnections = (startCompId, startPinId, components, wires = []) => {
+    const connectedComponents = [];
+    const visited = new Set();
+    
+    const trace = (compId, pinId) => {
+      const key = `${compId}-${pinId}`;
+      if (visited.has(key)) return;
+      visited.add(key);
+      
+      // Find wires connected to this pin
+      wires.forEach(wire => {
+        let targetComp = null;
+        let targetPin = null;
+        
+        if (wire.from.compId === compId && wire.from.pinId === pinId) {
+          // Wire starts from this pin
+          targetComp = components.find(c => c.instanceId === wire.to.compId);
+          targetPin = wire.to.pinId;
+        } else if (wire.to.compId === compId && wire.to.pinId === pinId) {
+          // Wire ends at this pin
+          targetComp = components.find(c => c.instanceId === wire.from.compId);
+          targetPin = wire.from.pinId;
+        }
+        
+        if (targetComp) {
+          // Check if this is an output component (LED, motor, etc.)
+          if (targetComp.type === 'LED' || targetComp.type?.toLowerCase() === 'led') {
+            connectedComponents.push(targetComp);
+          }
+          
+          // Continue tracing through this component (for components like resistors)
+          trace(targetComp.instanceId, targetPin);
+        }
+      });
+    };
+    
+    trace(startCompId, startPinId);
+    return connectedComponents;
   };
   
   // Run code simulation

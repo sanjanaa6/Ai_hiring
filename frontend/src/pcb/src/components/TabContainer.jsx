@@ -1,18 +1,38 @@
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from './ui/tabs';
-import { Play, StopCircle, Download, Terminal, X } from 'lucide-react';
+import { Play, StopCircle, Download, Terminal, X, Award } from 'lucide-react';
 import CodeEditor from './CodeEditor';
 import BlocklyEditor from './BlocklyEditor';
 import CodeSimulator from './CodeSimulator';
+import EvaluationPanel from './EvaluationPanel';
+
+// Arduino template code
+const DEFAULT_ARDUINO_CODE = `// Arduino sketch
+void setup() {
+  // Initialize pins
+  pinMode(13, OUTPUT); // Built-in LED
+  Serial.begin(9600);
+  Serial.println("Setup complete");
+}
+
+void loop() {
+  // Main code that repeats
+  digitalWrite(13, HIGH);  // Turn LED on
+  delay(1000);             // Wait 1 second
+  digitalWrite(13, LOW);   // Turn LED off
+  delay(1000);             // Wait 1 second
+}
+`;
 
 const TabContainer = ({ 
   isDarkMode, 
   components,
+  wires = [],
   onUpdateComponentStates,
   onSimulationStatusChange
 }) => {
   const [activeTab, setActiveTab] = useState('code');
-  const [code, setCode] = useState('');
+  const [code, setCode] = useState(DEFAULT_ARDUINO_CODE);
   const [blocklyXml, setBlocklyXml] = useState('');
   const [showTerminal, setShowTerminal] = useState(false);
   
@@ -20,6 +40,7 @@ const TabContainer = ({
   const simulator = CodeSimulator({
     code,
     components,
+    wires,
     onUpdateComponentStates
   });
   
@@ -131,11 +152,19 @@ const TabContainer = ({
               >
                 Visual
               </TabsTrigger>
+              <TabsTrigger 
+                value="evaluate" 
+                className={`flex-1 ${isDarkMode ? 'data-[state=active]:bg-zinc-700' : 'data-[state=active]:bg-white'} flex items-center gap-1 justify-center`}
+              >
+                <Award size={14} />
+                Evaluate
+              </TabsTrigger>
             </TabsList>
           </div>
           
           <TabsContent value="code" className="flex-1 m-0 overflow-hidden">
             <CodeEditor
+              key="code-editor-persistent"
               isDarkMode={isDarkMode}
               code={code}
               setCode={setCode}
@@ -151,6 +180,17 @@ const TabContainer = ({
               onGenerateCode={handleBlocklyCodeGeneration}
               onRunCode={handleRunCode}
               initialXml={blocklyXml}
+            />
+          </TabsContent>
+          
+          <TabsContent value="evaluate" className="flex-1 m-0 overflow-hidden">
+            <EvaluationPanel
+              components={components}
+              wires={wires}
+              isDarkMode={isDarkMode}
+              onTestComplete={(result) => {
+                console.log('Evaluation complete:', result);
+              }}
             />
           </TabsContent>
         </Tabs>

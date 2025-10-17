@@ -62,6 +62,7 @@ const CanvasWithCode = ({ isDarkMode, canvasState, onCanvasStateChange, onUndo, 
         }
         
         // Special handling for component types
+        console.log(`[CanvasWithCode] Component ${comp.name} type: ${comp.type?.toLowerCase()}`);
         switch (comp.type?.toLowerCase()) {
           case 'led':
           case 'light':
@@ -69,7 +70,9 @@ const CanvasWithCode = ({ isDarkMode, canvasState, onCanvasStateChange, onUndo, 
             newStates[comp.instanceId].states.value = value;
             newStates[comp.instanceId].states.type = type;
             // Also set highlight for immediate visual feedback
-            newStates[comp.instanceId].highlight = value ? (value === 1 ? 'red' : `rgba(255, 0, 0, ${value/255})`) : null;
+            const highlightColor = value ? (value === 1 ? '#ef4444' : `rgba(255, 0, 0, ${value/255})`) : null;
+            newStates[comp.instanceId].highlight = highlightColor;
+            console.log(`[CanvasWithCode] LED ${comp.name} highlight set to:`, highlightColor, 'value:', value);
             break;
           case 'speaker':
             newStates[comp.instanceId].states.value = value;
@@ -160,12 +163,13 @@ const CanvasWithCode = ({ isDarkMode, canvasState, onCanvasStateChange, onUndo, 
       {/* Code Editor Panel */}
       {showCodePanel && (
         <div className={`w-96 h-full border-l ${isDarkMode ? 'border-zinc-800' : 'border-gray-200'}`}>
-          <TabContainer 
-            isDarkMode={isDarkMode} 
-            components={prepareComponentsForSimulation()}
-            onUpdateComponentStates={handleUpdateComponentStates}
-            onSimulationStatusChange={setIsSimulationRunning}
-          />
+                 <TabContainer
+                   isDarkMode={isDarkMode}
+                   components={prepareComponentsForSimulation()}
+                   wires={wires}
+                   onUpdateComponentStates={handleUpdateComponentStates}
+                   onSimulationStatusChange={setIsSimulationRunning}
+                 />
         </div>
       )}
       

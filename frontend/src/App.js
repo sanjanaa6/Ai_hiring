@@ -27,6 +27,7 @@ import Interview from './pages/Interview';
 import RoundAccess from './pages/RoundAccess';
 import ElectronicInterview from './pages/ElectronicInterview';
 import SystemDesignInterview from './pages/SystemDesignInterview';
+import PCBInterview from './pages/PCBInterview';
 import UserDashboard from './user/pages/UserDashboard';
 import StyleTest from './components/StyleTest';
 import OpenRouterTest from './components/OpenRouterTest';
@@ -44,6 +45,7 @@ import CodingChallengePage from './pages/CodingChallengePage';
 import CodingInterviewDemo from './pages/CodingInterviewDemo';
 import TestCaseDemo from './components/TestCaseDemo';
 import LanguageDetectionDemo from './components/LanguageDetectionDemo';
+import FormBuilderDemo from './pages/FormBuilderDemo';
 import NotFound from './pages/NotFound';
 import AdminLoginPage from './pages/AdminLoginPage';
 import RecruiterPCB from './recruiter/pages/RecruiterPCB';
@@ -134,6 +136,7 @@ function AppShell() {
           <Route path="/playground" element={<Playground />} />
           <Route path="/round/:accessLink" element={<RoundAccess />} />
           <Route path="/pcb-round/:accessLink" element={<ElectronicInterview />} />
+          <Route path="/pcb-interview/:accessLink" element={<PCBInterview />} />
           <Route path="/system-design-round/:accessLink" element={<SystemDesignInterview />} />
           <Route path="/pcb" element={<PCBApp />} />
           <Route path="/style-test" element={<StyleTest />} />
@@ -152,6 +155,7 @@ function AppShell() {
           <Route path="/coding-interview-demo" element={<CodingInterviewDemo />} />
           <Route path="/test-case-demo" element={<TestCaseDemo />} />
           <Route path="/language-detection-demo" element={<LanguageDetectionDemo />} />
+          <Route path="/form-builder" element={<FormBuilderDemo />} />
           
           {/* Candidate Profile Route */}
           <Route path="/profile/:profileId" element={<CandidateProfile />} />
