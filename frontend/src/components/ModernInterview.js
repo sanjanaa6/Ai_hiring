@@ -3,6 +3,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useInterviewState } from '../hooks/useInterviewState';
 import { useCamera } from '../hooks/useCamera';
 import { useEyeTracking } from '../hooks/useEyeTracking';
+import useScreenRecording from '../hooks/useScreenRecording';
 import InterviewSetup from './interview/InterviewSetup';
 import RoundSelection from './interview/RoundSelection';
 import InterviewMain from './interview/InterviewMain';
@@ -15,6 +16,7 @@ import EyeTrackingMonitor from './EyeTrackingMonitor';
 import aiLanguageDetectionService from '../services/aiLanguageDetectionService';
 import apiService from '../services/apiService';
 import ttsService from '../services/ttsService';
+import { toast } from 'react-toastify';
 
 // Helper function to determine if a round is a coding round
 const isCodingRound = (roundTitle) => {
@@ -36,6 +38,23 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
   const interviewState = useInterviewState();
   const camera = useCamera();
   const eyeTracking = useEyeTracking(interviewId);
+  
+  // Screen recording hook
+  const screenRecording = useScreenRecording({
+    interviewId,
+    candidateName: candidateInfo?.name || '',
+    candidateEmail: candidateInfo?.email || '',
+    recruiterId: candidateInfo?.recruiterId,
+    jobId: candidateInfo?.jobId,
+    onUploadSuccess: (data) => {
+      console.log('✅ Recording uploaded successfully:', data);
+      toast.success('Interview recording saved successfully!');
+    },
+    onUploadError: (error) => {
+      console.error('❌ Recording upload failed:', error);
+      toast.error('Failed to save interview recording. Please try again.');
+    }
+  });
   
   // Voice recording with Web Speech API (fallback)
   const [isRecording, setIsRecording] = useState(false);
@@ -134,11 +153,18 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
     clearTranscription
   };
   
+  // Use screen recording instead of placeholder
   const interviewRecording = {
-    isSupported: false,
-    isRecording: false,
-    startRecording: () => {},
-    stopRecording: () => {}
+    isSupported: true,
+    isRecording: screenRecording.isRecording,
+    startRecording: screenRecording.startRecording,
+    stopRecording: async () => {
+      try {
+        await screenRecording.stopAndUpload();
+      } catch (error) {
+        console.error('Failed to stop and upload recording:', error);
+      }
+    }
   };
   
   // Ref to track camera initialization

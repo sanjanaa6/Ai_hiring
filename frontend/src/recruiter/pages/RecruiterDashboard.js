@@ -9,6 +9,7 @@ import InterviewAnalyticsDashboard from '../../components/InterviewAnalyticsDash
 import InterviewScheduler from '../components/InterviewScheduler';
 import CandidateManager from '../components/CandidateManager';
 import FormBuilder from '../components/FormBuilder';
+import RecordingsList from '../../components/RecordingsList';
 import { 
   Plus, 
   Users, 
@@ -26,7 +27,8 @@ Target,
   MessageSquare,
   CheckCircle,
   Copy,
-  MonitorPlay
+  MonitorPlay,
+  Video
 } from 'lucide-react';
 
 const RecruiterDashboard = () => {
@@ -779,6 +781,7 @@ The interview should feel natural and relevant to someone applying for this spec
     { id: 'candidate-manager', label: 'Candidate Manager', icon: Users },
     { id: 'candidates', label: 'Candidates', icon: Users },
     { id: 'live-interviews', label: 'Live Interviews', icon: MonitorPlay },
+    { id: 'recordings', label: 'Recordings', icon: Video },
     { id: 'analytics', label: 'Analytics', icon: BarChart3 },
     { id: 'answers', label: 'Results', icon: Award },
     { id: 'messages', label: 'Messages', icon: MessageSquare },
@@ -2837,6 +2840,30 @@ The interview should feel natural and relevant to someone applying for this spec
         </div>
         </div>
       </div>
+        )}
+
+        {activeTab === 'recordings' && (
+          <div className="space-y-6">
+            {/* Recordings Header */}
+            <div className={`${isDarkMode ? 'bg-gradient-to-r from-purple-900/50 to-slate-900/50 border border-purple-500/30 backdrop-blur' : 'bg-gradient-to-r from-purple-600 to-slate-700'} rounded-2xl shadow-2xl p-6`}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-3xl font-bold text-white mb-2">
+                    📹 Interview Recordings
+                  </h2>
+                  <p className="text-purple-100">
+                    View and manage all interview recordings
+                  </p>
+                </div>
+                <Video className="w-12 h-12 text-purple-200" />
+              </div>
+            </div>
+
+            {/* Recordings List */}
+            <div className={`${isDarkMode ? 'bg-gray-800/50 border border-gray-700' : 'bg-white'} rounded-xl shadow-lg p-6`}>
+              <RecordingsList showActions={true} />
+            </div>
+          </div>
         )}
 
         {activeTab === 'settings' && (

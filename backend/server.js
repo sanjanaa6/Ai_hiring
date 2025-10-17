@@ -296,6 +296,13 @@ try {
   console.error('  ❌ Screen Share routes failed:', err.message);
 }
 
+try {
+  app.use('/api/interview-recordings', require('./routes/interviewRecordings'));
+  console.log('  ✅ Interview Recordings routes loaded');
+} catch (err) {
+  console.error('  ❌ Interview Recordings routes failed:', err.message);
+}
+
 console.log('📦 [SERVER] All routes loaded successfully!\n');
 
 // Serve recruiter documents statically for admin review
