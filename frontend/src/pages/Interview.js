@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import ModernInterview from '../components/ModernInterview';
 import WorkingScreenShare from '../components/WorkingScreenShare';
 import apiService from '../services/apiService';
-import { Bot, AlertCircle, ArrowLeft, User, Camera, Mic, Shield } from 'lucide-react';
+import { Bot, AlertCircle, ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const Interview = () => {
@@ -12,7 +12,6 @@ const Interview = () => {
   const [interviewData, setInterviewData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [showCandidateForm, setShowCandidateForm] = useState(false);
   const [showScreenShare, setShowScreenShare] = useState(true); // Auto-enable screen sharing
 
   const loadInterviewData = useCallback(async () => {
@@ -37,14 +36,26 @@ const Interview = () => {
         return;
       }
 
-      // Get candidate info from localStorage or show form
-    const storedInfo = localStorage.getItem('candidateInfo');
-    if (storedInfo) {
-      const parsedInfo = JSON.parse(storedInfo);
-      console.log('Loaded candidate info from localStorage:', parsedInfo);
-      setCandidateInfo(parsedInfo);
-    } else {
-        setShowCandidateForm(true);
+      // Auto-generate anonymous candidate info
+      const storedInfo = localStorage.getItem('candidateInfo');
+      if (storedInfo) {
+        const parsedInfo = JSON.parse(storedInfo);
+        console.log('Loaded candidate info from localStorage:', parsedInfo);
+        setCandidateInfo(parsedInfo);
+      } else {
+        // Generate anonymous candidate info
+        const anonymousInfo = {
+          id: `candidate_${Date.now()}`,
+          name: `Anonymous_${Date.now()}`,
+          email: `anonymous_${Date.now()}@interview.com`,
+          phone: ''
+        };
+        console.log('Generated anonymous candidate info:', anonymousInfo);
+        setCandidateInfo(anonymousInfo);
+        localStorage.setItem('candidateInfo', JSON.stringify(anonymousInfo));
+        localStorage.setItem('candidateId', anonymousInfo.id);
+        localStorage.setItem('candidateName', anonymousInfo.name);
+        localStorage.setItem('candidateEmail', anonymousInfo.email);
       }
     } catch (err) {
       setError('Failed to load interview data');
@@ -58,24 +69,6 @@ const Interview = () => {
     loadInterviewData();
   }, [interviewId, loadInterviewData]);
 
-  const handleCandidateSubmit = (e) => {
-    e.preventDefault();
-    const formData = new FormData(e.target);
-    const info = {
-      id: `candidate_${Date.now()}`, // Generate a unique ID
-      name: formData.get('name'),
-      email: formData.get('email'),
-      phone: formData.get('phone')
-    };
-    console.log('Candidate info set:', info);
-    setCandidateInfo(info);
-    localStorage.setItem('candidateInfo', JSON.stringify(info));
-    // Also store individual fields for easier access
-    localStorage.setItem('candidateId', info.id);
-    localStorage.setItem('candidateName', info.name);
-    localStorage.setItem('candidateEmail', info.email);
-    setShowCandidateForm(false);
-  };
 
   if (loading) {
     return (
@@ -128,87 +121,6 @@ const Interview = () => {
     );
   }
 
-  if (showCandidateForm) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-start justify-center p-4 py-8 overflow-y-auto">
-        <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto">
-          <div className="text-center mb-6">
-            <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center mx-auto mb-4">
-              <User className="h-8 w-8 text-white" />
-            </div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">Voice AI Interview</h1>
-            <p className="text-gray-600">This interview uses voice responses and camera monitoring</p>
-          </div>
-
-          <form onSubmit={handleCandidateSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Full Name *
-              </label>
-              <input
-                type="text"
-                name="name"
-                required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                placeholder="Enter your full name"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Email Address *
-              </label>
-              <input
-                type="email"
-                name="email"
-                required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                placeholder="Enter your email address"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Phone Number
-              </label>
-              <input
-                type="tel"
-                name="phone"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                placeholder="Enter your phone number (optional)"
-              />
-            </div>
-
-            {/* Interview Requirements */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-6">
-              <h3 className="font-medium text-blue-900 mb-2">Interview Requirements:</h3>
-              <div className="space-y-2 text-sm text-blue-800">
-                <div className="flex items-center space-x-2">
-                  <Camera className="h-4 w-4" />
-                  <span>Camera access for identity verification</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Mic className="h-4 w-4" />
-                  <span>Microphone for voice responses</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Shield className="h-4 w-4" />
-                  <span>Environment monitoring (no electronic devices)</span>
-                </div>
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200"
-            >
-              Start Voice Interview
-            </button>
-          </form>
-        </div>
-      </div>
-    );
-  }
 
   if (!interviewData || !candidateInfo) {
     return (
