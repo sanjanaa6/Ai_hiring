@@ -16,6 +16,7 @@ import SuperCoolCodeEditor from '../SuperCoolCodeEditor';
 import SmallCamera from './SmallCamera';
 import CodingRound from './CodingRound';
 import SystemDesignRound from './SystemDesignRound';
+import PCBAppExact from '../PCBAppExact';
 import aiTestCaseService from '../../services/aiTestCaseService';
 
 const InterviewMain = ({
@@ -37,6 +38,7 @@ const InterviewMain = ({
   isLiveCodingRound,
   isSalesRound,
   isSystemDesignRound,
+  isPCBRound,
   isAiQuestioning,
   aiQuestions,
   currentAiQuestionIndex,
@@ -59,6 +61,7 @@ const InterviewMain = ({
 }) => {
   const { isDarkMode } = useTheme();
   const [showSystemDesignCanvas, setShowSystemDesignCanvas] = useState(false); // Add state to show SystemDesignRound inline
+  const [showPCBInterface, setShowPCBInterface] = useState(false); // Add state to show PCB interface inline
   const [isMinimized, setIsMinimized] = useState(false);
   const [showTranscription, setShowTranscription] = useState(true);
 
@@ -88,6 +91,7 @@ const InterviewMain = ({
     if (isLiveCodingRound) return 'text-blue-500';
     if (isSalesRound) return 'text-green-500';
     if (isSystemDesignRound) return 'text-green-500';
+    if (isPCBRound) return 'text-orange-500';
     return 'text-purple-500';
   };
   
@@ -97,10 +101,22 @@ const InterviewMain = ({
     setShowSystemDesignCanvas(true);
   };
   
+  // Handle opening PCB interface
+  const handleOpenPCB = () => {
+    console.log('🔧 [PCB] Opening PCB interface inline');
+    setShowPCBInterface(true);
+  };
+  
   // Handle closing canvas
   const handleCloseCanvas = () => {
     console.log('🎨 [SYSTEM DESIGN] Closing canvas');
     setShowSystemDesignCanvas(false);
+  };
+  
+  // Handle closing PCB interface
+  const handleClosePCB = () => {
+    console.log('🔧 [PCB] Closing PCB interface');
+    setShowPCBInterface(false);
   };
 
   // Render enhanced coding round only for developer interviews with coding rounds
@@ -145,6 +161,26 @@ const InterviewMain = ({
           onNextQuestion();
         }}
         onBack={handleCloseCanvas}
+      />
+    );
+  }
+  
+  // Render PCB Interface when opened - EXACT copy of standalone app
+  if (showPCBInterface && isPCBRound) {
+    return (
+      <PCBAppExact
+        question={currentQuestion}
+        interviewId={interviewId}
+        roundId={currentRound?.roundId || currentRound?._id}
+        candidateInfo={candidateInfo}
+        onComplete={() => {
+          console.log('✅ PCB Design completed');
+          handleClosePCB();
+          onNextQuestion();
+        }}
+        onBack={handleClosePCB}
+        isDarkMode={isDarkMode}
+        timeLimit={currentQuestion?.timeLimit || 30}
       />
     );
   }
@@ -453,7 +489,7 @@ const InterviewMain = ({
                   )}
                 </button>
 
-                {/* Open Canvas Button for System Design OR Submit Answer Button */}
+                {/* Open Canvas Button for System Design OR PCB Design OR Submit Answer Button */}
                 {isSystemDesignRound ? (
                   <div className="flex flex-col gap-3 w-full">
                     <button
@@ -472,6 +508,26 @@ const InterviewMain = ({
                     
                     <div className={`text-center text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                       Design your system, download the diagram, then click Next to continue
+                    </div>
+                  </div>
+                ) : isPCBRound ? (
+                  <div className="flex flex-col gap-3 w-full">
+                    <button
+                      onClick={handleOpenPCB}
+                      className={`flex items-center justify-center space-x-2 px-8 py-4 rounded-2xl font-semibold text-lg transition-all transform hover:scale-105 ${
+                        isDarkMode
+                          ? 'bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white shadow-lg'
+                          : 'bg-gradient-to-r from-orange-600 to-red-700 hover:from-orange-700 hover:to-red-800 text-white shadow-lg'
+                      }`}
+                    >
+                      <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+                      </svg>
+                      <span>Open PCB Design</span>
+                    </button>
+                    
+                    <div className={`text-center text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                      Design your PCB, save your work, then click Next to continue
                     </div>
                   </div>
                 ) : (transcription || codeAnswer) && (

@@ -193,7 +193,7 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
     // questionStartCountdown, setQuestionStartCountdown,
     isLiveCodingRound, setIsLiveCodingRound,
     isSalesRound, setIsSalesRound,
-    setIsPCBRound,
+    isPCBRound, setIsPCBRound,
     isSystemDesignRound, setIsSystemDesignRound,
     codeAnswer, setCodeAnswer,
     selectedLanguage, setSelectedLanguage,
@@ -436,7 +436,7 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
         console.log('🔍 PCB Round Detection Result:', isCurrentRoundPCB);
         
         if (isCurrentRoundPCB) {
-          setStep('pcb-round');
+          setStep('interview');
           setIsPCBRound(true);
         } else {
           setStep('interview');
@@ -702,6 +702,16 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
           const firstQuestion = round.questions[0];
           setCurrentQuestion(firstQuestion);
         }
+      } else if (isPCB) {
+        // PCB rounds work like system-design - embedded in interview flow with PCB interface
+        console.log('🔧 [PCB] Detected PCB round with', round.questions?.length || 0, 'questions');
+        setStep('interview'); // Use regular interview flow
+        setIsPCBRound(true); // Flag to show PCB interface instead of answer input
+        
+        if (round.questions && round.questions.length > 0) {
+          const firstQuestion = round.questions[0];
+          setCurrentQuestion(firstQuestion);
+        }
       } else if (isFileUpload) {
         setStep('file-upload');
       } else if (isFormSubmission) {
@@ -711,15 +721,8 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
         if (round.questions && round.questions.length > 0) {
           const firstQuestion = round.questions[0];
           setCurrentQuestion(firstQuestion);
-          
-          // Check if this is a PCB round (Round 3 is completely PCB)
-          if (isPCB) {
-            setStep('pcb-round');
-            setIsPCBRound(true);
-          } else {
-            setStep('interview');
-            setIsPCBRound(false);
-          }
+          setStep('interview');
+          setIsPCBRound(false);
         } else {
           setStep('interview');
         }
@@ -1190,6 +1193,7 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
             isLiveCodingRound={isLiveCodingRound}
             isSalesRound={isSalesRound}
             isSystemDesignRound={isSystemDesignRound}
+            isPCBRound={isPCBRound}
             isAiQuestioning={false}
             aiQuestions={[]}
             currentAiQuestionIndex={0}
@@ -1330,35 +1334,6 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
           }}
           candidateInfo={candidateInfo}
           isDarkMode={isDarkMode}
-        />
-      );
-
-    case 'pcb-round':
-      console.log('🔧 [PCB ROUND] Passing props:', {
-        interviewId,
-        roundId: currentRound?.roundId || currentRound?._id,
-        candidateInfo,
-        questionId: currentQuestion?.id || currentQuestion?._id
-      });
-      return (
-        <PCBInterviewInterface
-          question={currentQuestion}
-          interviewId={interviewId}
-          roundId={currentRound?.roundId || currentRound?._id}
-          candidateInfo={candidateInfo}
-          onNextQuestion={moveToNextQuestion}
-          onAnswerSubmit={async (pcbDesignData) => {
-            console.log('PCB design submitted:', pcbDesignData);
-            
-            // Submit the current question answer
-            try {
-              await submitCurrentAnswer(pcbDesignData);
-            } catch (error) {
-              console.error('❌ Failed to submit PCB design answer:', error);
-            }
-          }}
-          isDarkMode={isDarkMode}
-          timeLimit={currentQuestion?.timeLimit || 6}
         />
       );
 

@@ -1,9 +1,4313 @@
 {
   "components": [
-    { "id": "resistor", "name": "Resistor 1kΩ", "type": "Passive", "footprint": "0805", "icon": "Layers" },
-    { "id": "capacitor", "name": "Capacitor 100nF", "type": "Passive", "footprint": "0603", "icon": "Layers" },
-    { "id": "led", "name": "LED", "type": "Active", "footprint": "0805", "icon": "Zap" }
+    {
+      "id": "logic_gate_ic_1",
+      "name": "Logic Gate IC 194nH",
+      "type": "IC",
+      "tags": [
+        "passive",
+        "through-hole",
+        "active",
+        "digital",
+        "sensor"
+      ],
+      "footprint": "1206",
+      "icon": "ShieldCheck"
+    },
+    {
+      "id": "potentiometer_2",
+      "name": "Potentiometer 139\u03a9",
+      "type": "Passive",
+      "tags": [
+        "microcontroller",
+        "passive",
+        "through-hole",
+        "smd"
+      ],
+      "footprint": "QFN-32",
+      "icon": "Activity"
+    },
+    {
+      "id": "op-amp_3",
+      "name": "Op-Amp 295V",
+      "type": "IC",
+      "tags": [
+        "communication",
+        "microcontroller",
+        "connector",
+        "passive",
+        "sensor",
+        "through-hole"
+      ],
+      "footprint": "QFN-32",
+      "icon": "Cpu"
+    },
+    {
+      "id": "adc_4",
+      "name": "ADC 355\u03bcF",
+      "type": "IC",
+      "tags": [
+        "passive",
+        "communication",
+        "smd",
+        "input",
+        "output",
+        "through-hole"
+      ],
+      "footprint": "SMD",
+      "icon": "MousePointer"
+    },
+    {
+      "id": "pressure_sensor_5",
+      "name": "Pressure Sensor 879\u03a9",
+      "type": "Sensor",
+      "tags": [
+        "output",
+        "passive",
+        "communication"
+      ],
+      "footprint": "QFN-32",
+      "icon": "Zap"
+    },
+    {
+      "id": "temperature_sensor_6",
+      "name": "Temperature Sensor 889\u03a9",
+      "type": "Sensor",
+      "tags": [
+        "smd",
+        "communication",
+        "power",
+        "connector",
+        "sensor"
+      ],
+      "footprint": "0805",
+      "icon": "Plug"
+    },
+    {
+      "id": "diode_7",
+      "name": "Diode 503V",
+      "type": "Active",
+      "tags": [
+        "output",
+        "signal",
+        "digital",
+        "input"
+      ],
+      "footprint": "0805",
+      "icon": "AlignHorizontalSpaceAround"
+    },
+    {
+      "id": "mosfet_8",
+      "name": "MOSFET 712V",
+      "type": "Active",
+      "tags": [
+        "output",
+        "input",
+        "through-hole",
+        "digital"
+      ],
+      "footprint": "Through-hole",
+      "icon": "AlignHorizontalSpaceAround"
+    },
+    {
+      "id": "ir_sensor_9",
+      "name": "IR Sensor 458V",
+      "type": "Sensor",
+      "tags": [
+        "passive",
+        "power",
+        "analog"
+      ],
+      "footprint": "Through-hole",
+      "icon": "Plug"
+    },
+    {
+      "id": "logic_gate_ic_10",
+      "name": "Logic Gate IC 665V",
+      "type": "IC",
+      "tags": [
+        "output",
+        "power",
+        "input",
+        "passive",
+        "signal",
+        "through-hole"
+      ],
+      "footprint": "1206",
+      "icon": "BatteryFull"
+    },
+    {
+      "id": "switch_11",
+      "name": "Switch 326\u03bcF",
+      "type": "Misc",
+      "tags": [
+        "passive",
+        "sensor",
+        "connector",
+        "microcontroller"
+      ],
+      "footprint": "DIP-8",
+      "icon": "Cpu"
+    },
+    {
+      "id": "pressure_sensor_12",
+      "name": "Pressure Sensor 258mA",
+      "type": "Sensor",
+      "tags": [
+        "analog",
+        "smd",
+        "power",
+        "microcontroller",
+        "input",
+        "through-hole"
+      ],
+      "footprint": "0805",
+      "icon": "Plug"
+    },
+    {
+      "id": "op-amp_13",
+      "name": "Op-Amp 725mA",
+      "type": "IC",
+      "tags": [
+        "ic",
+        "analog",
+        "through-hole",
+        "digital"
+      ],
+      "footprint": "SMD",
+      "icon": "Wifi"
+    },
+    {
+      "id": "ir_sensor_14",
+      "name": "IR Sensor 894mA",
+      "type": "Sensor",
+      "tags": [
+        "microcontroller",
+        "connector",
+        "passive",
+        "power",
+        "ic",
+        "analog"
+      ],
+      "footprint": "SOIC-16",
+      "icon": "Zap"
+    },
+    {
+      "id": "speaker_15",
+      "name": "Speaker 281\u03bcF",
+      "type": "Misc",
+      "tags": [
+        "through-hole",
+        "smd",
+        "input",
+        "digital",
+        "output",
+        "sensor"
+      ],
+      "footprint": "0805",
+      "icon": "Cpu"
+    },
+    {
+      "id": "capacitor_16",
+      "name": "Capacitor 486mA",
+      "type": "Passive",
+      "tags": [
+        "communication",
+        "smd",
+        "output",
+        "passive",
+        "through-hole",
+        "connector"
+      ],
+      "footprint": "QFN-32",
+      "icon": "ShieldCheck"
+    },
+    {
+      "id": "timer_ic_17",
+      "name": "Timer IC 546nH",
+      "type": "IC",
+      "tags": [
+        "power",
+        "ic",
+        "analog"
+      ],
+      "footprint": "0603",
+      "icon": "Thermometer"
+    },
+    {
+      "id": "hdmi_connector_18",
+      "name": "HDMI Connector 700\u03bcF",
+      "type": "Connector",
+      "tags": [
+        "power",
+        "through-hole",
+        "output",
+        "communication"
+      ],
+      "footprint": "SOIC-16",
+      "icon": "Thermometer"
+    },
+    {
+      "id": "mosfet_19",
+      "name": "MOSFET 177\u03a9",
+      "type": "Active",
+      "tags": [
+        "connector",
+        "through-hole",
+        "microcontroller"
+      ],
+      "footprint": "SMD",
+      "icon": "Cpu"
+    },
+    {
+      "id": "logic_gate_ic_20",
+      "name": "Logic Gate IC 752\u03bcF",
+      "type": "IC",
+      "tags": [
+        "output",
+        "smd",
+        "sensor",
+        "analog",
+        "ic"
+      ],
+      "footprint": "1206",
+      "icon": "AlignHorizontalSpaceAround"
+    },
+    {
+      "id": "crystal_21",
+      "name": "Crystal 294V",
+      "type": "Passive",
+      "tags": [
+        "digital",
+        "passive",
+        "output",
+        "active",
+        "through-hole",
+        "smd"
+      ],
+      "footprint": "DIP-8",
+      "icon": "Wifi"
+    },
+    {
+      "id": "switch_22",
+      "name": "Switch 434mA",
+      "type": "Misc",
+      "tags": [
+        "signal",
+        "sensor",
+        "connector",
+        "microcontroller",
+        "input",
+        "analog"
+      ],
+      "footprint": "0805",
+      "icon": "GitBranch"
+    },
+    {
+      "id": "hdmi_connector_23",
+      "name": "HDMI Connector 809\u03bcF",
+      "type": "Connector",
+      "tags": [
+        "analog",
+        "smd",
+        "microcontroller",
+        "power"
+      ],
+      "footprint": "SOIC-16",
+      "icon": "Zap"
+    },
+    {
+      "id": "speaker_24",
+      "name": "Speaker 607V",
+      "type": "Misc",
+      "tags": [
+        "through-hole",
+        "smd",
+        "analog"
+      ],
+      "footprint": "DIP-8",
+      "icon": "BatteryFull"
+    },
+    {
+      "id": "microcontroller_25",
+      "name": "Microcontroller 122nH",
+      "type": "IC",
+      "tags": [
+        "through-hole",
+        "ic",
+        "signal",
+        "output"
+      ],
+      "footprint": "1206",
+      "icon": "Thermometer"
+    },
+    {
+      "id": "crystal_26",
+      "name": "Crystal 535V",
+      "type": "Passive",
+      "tags": [
+        "input",
+        "passive",
+        "through-hole"
+      ],
+      "footprint": "Through-hole",
+      "icon": "Activity"
+    },
+    {
+      "id": "speaker_27",
+      "name": "Speaker 99mA",
+      "type": "Misc",
+      "tags": [
+        "input",
+        "signal",
+        "power",
+        "communication",
+        "microcontroller"
+      ],
+      "footprint": "Through-hole",
+      "icon": "Zap"
+    },
+    {
+      "id": "buzzer_28",
+      "name": "Buzzer 691mA",
+      "type": "Misc",
+      "tags": [
+        "through-hole",
+        "signal",
+        "connector",
+        "smd",
+        "microcontroller",
+        "sensor"
+      ],
+      "footprint": "DIP-8",
+      "icon": "Activity"
+    },
+    {
+      "id": "microcontroller_29",
+      "name": "Microcontroller 783V",
+      "type": "IC",
+      "tags": [
+        "signal",
+        "active",
+        "connector",
+        "power"
+      ],
+      "footprint": "0603",
+      "icon": "Zap"
+    },
+    {
+      "id": "crystal_30",
+      "name": "Crystal 255\u03bcF",
+      "type": "Passive",
+      "tags": [
+        "communication",
+        "smd",
+        "passive",
+        "signal"
+      ],
+      "footprint": "DIP-8",
+      "icon": "Sun"
+    },
+    {
+      "id": "pin_header_31",
+      "name": "Pin Header 229\u03a9",
+      "type": "Connector",
+      "tags": [
+        "input",
+        "active",
+        "connector"
+      ],
+      "footprint": "0603",
+      "icon": "BatteryFull"
+    },
+    {
+      "id": "dc_barrel_jack_32",
+      "name": "DC Barrel Jack 47nH",
+      "type": "Connector",
+      "tags": [
+        "ic",
+        "sensor",
+        "connector",
+        "digital"
+      ],
+      "footprint": "0805",
+      "icon": "Thermometer"
+    },
+    {
+      "id": "diode_33",
+      "name": "Diode 822\u03a9",
+      "type": "Active",
+      "tags": [
+        "digital",
+        "connector",
+        "ic"
+      ],
+      "footprint": "DIP-8",
+      "icon": "GitBranch"
+    },
+    {
+      "id": "inductor_34",
+      "name": "Inductor 681\u03bcF",
+      "type": "Passive",
+      "tags": [
+        "active",
+        "input",
+        "analog"
+      ],
+      "footprint": "SMD",
+      "icon": "Thermometer"
+    },
+    {
+      "id": "hdmi_connector_35",
+      "name": "HDMI Connector 68\u03a9",
+      "type": "Connector",
+      "tags": [
+        "through-hole",
+        "analog",
+        "connector",
+        "input",
+        "ic",
+        "signal"
+      ],
+      "footprint": "0805",
+      "icon": "Activity"
+    },
+    {
+      "id": "capacitor_36",
+      "name": "Capacitor 987\u03a9",
+      "type": "Passive",
+      "tags": [
+        "analog",
+        "active",
+        "input",
+        "output"
+      ],
+      "footprint": "0805",
+      "icon": "Sun"
+    },
+    {
+      "id": "button_37",
+      "name": "Button 390\u03a9",
+      "type": "Misc",
+      "tags": [
+        "sensor",
+        "output",
+        "digital",
+        "microcontroller",
+        "communication"
+      ],
+      "footprint": "QFN-32",
+      "icon": "Zap"
+    },
+    {
+      "id": "op-amp_38",
+      "name": "Op-Amp 881nH",
+      "type": "IC",
+      "tags": [
+        "analog",
+        "smd",
+        "input"
+      ],
+      "footprint": "QFN-32",
+      "icon": "Wifi"
+    },
+    {
+      "id": "triac_39",
+      "name": "Triac 275nH",
+      "type": "Active",
+      "tags": [
+        "analog",
+        "microcontroller",
+        "sensor",
+        "smd",
+        "signal",
+        "through-hole"
+      ],
+      "footprint": "1206",
+      "icon": "Thermometer"
+    },
+    {
+      "id": "logic_gate_ic_40",
+      "name": "Logic Gate IC 394\u03a9",
+      "type": "IC",
+      "tags": [
+        "sensor",
+        "smd",
+        "ic",
+        "analog"
+      ],
+      "footprint": "0603",
+      "icon": "Zap"
+    },
+    {
+      "id": "ir_sensor_41",
+      "name": "IR Sensor 102\u03bcF",
+      "type": "Sensor",
+      "tags": [
+        "microcontroller",
+        "smd",
+        "connector",
+        "signal"
+      ],
+      "footprint": "0603",
+      "icon": "Plug"
+    },
+    {
+      "id": "pin_header_42",
+      "name": "Pin Header 511\u03bcF",
+      "type": "Connector",
+      "tags": [
+        "communication",
+        "output",
+        "through-hole",
+        "microcontroller",
+        "digital",
+        "passive"
+      ],
+      "footprint": "SOIC-16",
+      "icon": "AlignHorizontalSpaceAround"
+    },
+    {
+      "id": "potentiometer_43",
+      "name": "Potentiometer 879V",
+      "type": "Passive",
+      "tags": [
+        "sensor",
+        "analog",
+        "microcontroller",
+        "power"
+      ],
+      "footprint": "Through-hole",
+      "icon": "ShieldCheck"
+    },
+    {
+      "id": "bjt_44",
+      "name": "BJT 306V",
+      "type": "Active",
+      "tags": [
+        "sensor",
+        "active",
+        "passive",
+        "analog"
+      ],
+      "footprint": "0603",
+      "icon": "AlignHorizontalSpaceAround"
+    },
+    {
+      "id": "ultrasonic_sensor_45",
+      "name": "Ultrasonic Sensor 844V",
+      "type": "Sensor",
+      "tags": [
+        "input",
+        "connector",
+        "output"
+      ],
+      "footprint": "QFN-32",
+      "icon": "Zap"
+    },
+    {
+      "id": "accelerometer_46",
+      "name": "Accelerometer 202\u03bcF",
+      "type": "Sensor",
+      "tags": [
+        "microcontroller",
+        "smd",
+        "ic"
+      ],
+      "footprint": "0603",
+      "icon": "Activity"
+    },
+    {
+      "id": "switch_47",
+      "name": "Switch 824\u03bcF",
+      "type": "Misc",
+      "tags": [
+        "sensor",
+        "digital",
+        "input"
+      ],
+      "footprint": "QFN-32",
+      "icon": "Sun"
+    },
+    {
+      "id": "diode_48",
+      "name": "Diode 446mA",
+      "type": "Active",
+      "tags": [
+        "digital",
+        "microcontroller",
+        "sensor",
+        "signal"
+      ],
+      "footprint": "Through-hole",
+      "icon": "Plug"
+    },
+    {
+      "id": "accelerometer_49",
+      "name": "Accelerometer 263mA",
+      "type": "Sensor",
+      "tags": [
+        "through-hole",
+        "connector",
+        "input",
+        "passive",
+        "smd",
+        "sensor"
+      ],
+      "footprint": "0603",
+      "icon": "Wifi"
+    },
+    {
+      "id": "ultrasonic_sensor_50",
+      "name": "Ultrasonic Sensor 517\u03bcF",
+      "type": "Sensor",
+      "tags": [
+        "connector",
+        "sensor",
+        "passive"
+      ],
+      "footprint": "1206",
+      "icon": "Wifi"
+    },
+    {
+      "id": "led_51",
+      "name": "LED 139\u03bcF",
+      "type": "Active",
+      "tags": [
+        "analog",
+        "passive",
+        "sensor"
+      ],
+      "footprint": "QFN-32",
+      "icon": "BatteryFull"
+    },
+    {
+      "id": "pressure_sensor_52",
+      "name": "Pressure Sensor 426nH",
+      "type": "Sensor",
+      "tags": [
+        "microcontroller",
+        "output",
+        "through-hole"
+      ],
+      "footprint": "DIP-8",
+      "icon": "ShieldCheck"
+    },
+    {
+      "id": "pressure_sensor_53",
+      "name": "Pressure Sensor 42\u03bcF",
+      "type": "Sensor",
+      "tags": [
+        "connector",
+        "digital",
+        "sensor",
+        "power",
+        "signal",
+        "through-hole"
+      ],
+      "footprint": "0603",
+      "icon": "ShieldCheck"
+    },
+    {
+      "id": "inductor_54",
+      "name": "Inductor 444mA",
+      "type": "Passive",
+      "tags": [
+        "signal",
+        "active",
+        "analog",
+        "input",
+        "communication"
+      ],
+      "footprint": "1206",
+      "icon": "Activity"
+    },
+    {
+      "id": "speaker_55",
+      "name": "Speaker 753\u03a9",
+      "type": "Misc",
+      "tags": [
+        "smd",
+        "analog",
+        "through-hole",
+        "input",
+        "passive"
+      ],
+      "footprint": "SOIC-16",
+      "icon": "Plug"
+    },
+    {
+      "id": "potentiometer_56",
+      "name": "Potentiometer 818nH",
+      "type": "Passive",
+      "tags": [
+        "passive",
+        "analog",
+        "through-hole",
+        "active"
+      ],
+      "footprint": "0603",
+      "icon": "BatteryFull"
+    },
+    {
+      "id": "resistor_57",
+      "name": "Resistor 882mA",
+      "type": "Passive",
+      "tags": [
+        "smd",
+        "output",
+        "sensor",
+        "input",
+        "active"
+      ],
+      "footprint": "SOIC-16",
+      "icon": "Zap"
+    },
+    {
+      "id": "bjt_58",
+      "name": "BJT 208nH",
+      "type": "Active",
+      "tags": [
+        "microcontroller",
+        "communication",
+        "power",
+        "passive",
+        "sensor",
+        "active"
+      ],
+      "footprint": "SOIC-16",
+      "icon": "Plug"
+    },
+    {
+      "id": "pressure_sensor_59",
+      "name": "Pressure Sensor 378\u03bcF",
+      "type": "Sensor",
+      "tags": [
+        "smd",
+        "active",
+        "sensor"
+      ],
+      "footprint": "DIP-8",
+      "icon": "Sun"
+    },
+    {
+      "id": "mosfet_60",
+      "name": "MOSFET 503mA",
+      "type": "Active",
+      "tags": [
+        "digital",
+        "analog",
+        "active",
+        "sensor"
+      ],
+      "footprint": "DIP-8",
+      "icon": "Thermometer"
+    },
+    {
+      "id": "hdmi_connector_61",
+      "name": "HDMI Connector 33\u03bcF",
+      "type": "Connector",
+      "tags": [
+        "input",
+        "analog",
+        "microcontroller",
+        "smd",
+        "ic",
+        "active"
+      ],
+      "footprint": "Through-hole",
+      "icon": "Wifi"
+    },
+    {
+      "id": "speaker_62",
+      "name": "Speaker 528\u03bcF",
+      "type": "Misc",
+      "tags": [
+        "input",
+        "active",
+        "through-hole",
+        "smd"
+      ],
+      "footprint": "0603",
+      "icon": "MousePointer"
+    },
+    {
+      "id": "ultrasonic_sensor_63",
+      "name": "Ultrasonic Sensor 374\u03a9",
+      "type": "Sensor",
+      "tags": [
+        "active",
+        "passive",
+        "analog",
+        "signal",
+        "output"
+      ],
+      "footprint": "0805",
+      "icon": "BatteryFull"
+    },
+    {
+      "id": "potentiometer_64",
+      "name": "Potentiometer 973mA",
+      "type": "Passive",
+      "tags": [
+        "ic",
+        "input",
+        "active",
+        "signal"
+      ],
+      "footprint": "0805",
+      "icon": "MousePointer"
+    },
+    {
+      "id": "logic_gate_ic_65",
+      "name": "Logic Gate IC 159nH",
+      "type": "IC",
+      "tags": [
+        "output",
+        "passive",
+        "sensor"
+      ],
+      "footprint": "DIP-8",
+      "icon": "GitBranch"
+    },
+    {
+      "id": "jst_connector_66",
+      "name": "JST Connector 77mA",
+      "type": "Connector",
+      "tags": [
+        "input",
+        "analog",
+        "sensor",
+        "through-hole",
+        "signal"
+      ],
+      "footprint": "QFN-32",
+      "icon": "AlignHorizontalSpaceAround"
+    },
+    {
+      "id": "button_67",
+      "name": "Button 711\u03bcF",
+      "type": "Misc",
+      "tags": [
+        "through-hole",
+        "sensor",
+        "microcontroller",
+        "smd",
+        "connector"
+      ],
+      "footprint": "QFN-32",
+      "icon": "Zap"
+    },
+    {
+      "id": "triac_68",
+      "name": "Triac 880mA",
+      "type": "Active",
+      "tags": [
+        "sensor",
+        "active",
+        "power",
+        "input",
+        "communication"
+      ],
+      "footprint": "SOIC-16",
+      "icon": "Wifi"
+    },
+    {
+      "id": "crystal_69",
+      "name": "Crystal 654V",
+      "type": "Passive",
+      "tags": [
+        "microcontroller",
+        "output",
+        "smd"
+      ],
+      "footprint": "0603",
+      "icon": "BatteryFull"
+    },
+    {
+      "id": "hdmi_connector_70",
+      "name": "HDMI Connector 522mA",
+      "type": "Connector",
+      "tags": [
+        "smd",
+        "power",
+        "active"
+      ],
+      "footprint": "DIP-8",
+      "icon": "Wifi"
+    },
+    {
+      "id": "potentiometer_71",
+      "name": "Potentiometer 888nH",
+      "type": "Passive",
+      "tags": [
+        "input",
+        "digital",
+        "sensor",
+        "microcontroller"
+      ],
+      "footprint": "Through-hole",
+      "icon": "AlignHorizontalSpaceAround"
+    },
+    {
+      "id": "switch_72",
+      "name": "Switch 815nH",
+      "type": "Misc",
+      "tags": [
+        "input",
+        "analog",
+        "digital",
+        "output",
+        "ic"
+      ],
+      "footprint": "0805",
+      "icon": "Sun"
+    },
+    {
+      "id": "led_73",
+      "name": "LED 98V",
+      "type": "Active",
+      "tags": [
+        "analog",
+        "input",
+        "smd",
+        "passive",
+        "ic",
+        "output"
+      ],
+      "footprint": "Through-hole",
+      "icon": "Plug"
+    },
+    {
+      "id": "bjt_74",
+      "name": "BJT 970mA",
+      "type": "Active",
+      "tags": [
+        "digital",
+        "smd",
+        "signal",
+        "passive",
+        "through-hole",
+        "sensor"
+      ],
+      "footprint": "Through-hole",
+      "icon": "Zap"
+    },
+    {
+      "id": "jst_connector_75",
+      "name": "JST Connector 654\u03bcF",
+      "type": "Connector",
+      "tags": [
+        "sensor",
+        "signal",
+        "analog",
+        "output"
+      ],
+      "footprint": "QFN-32",
+      "icon": "Activity"
+    },
+    {
+      "id": "switch_76",
+      "name": "Switch 582V",
+      "type": "Misc",
+      "tags": [
+        "analog",
+        "sensor",
+        "smd",
+        "digital"
+      ],
+      "footprint": "1206",
+      "icon": "GitBranch"
+    },
+    {
+      "id": "ir_sensor_77",
+      "name": "IR Sensor 78V",
+      "type": "Sensor",
+      "tags": [
+        "sensor",
+        "passive",
+        "output",
+        "microcontroller"
+      ],
+      "footprint": "DIP-8",
+      "icon": "Thermometer"
+    },
+    {
+      "id": "pin_header_78",
+      "name": "Pin Header 372\u03a9",
+      "type": "Connector",
+      "tags": [
+        "signal",
+        "input",
+        "digital",
+        "output",
+        "sensor",
+        "active"
+      ],
+      "footprint": "Through-hole",
+      "icon": "MousePointer"
+    },
+    {
+      "id": "pressure_sensor_79",
+      "name": "Pressure Sensor 983mA",
+      "type": "Sensor",
+      "tags": [
+        "analog",
+        "ic",
+        "sensor"
+      ],
+      "footprint": "Through-hole",
+      "icon": "Cpu"
+    },
+    {
+      "id": "potentiometer_80",
+      "name": "Potentiometer 341nH",
+      "type": "Passive",
+      "tags": [
+        "microcontroller",
+        "communication",
+        "signal",
+        "active",
+        "sensor"
+      ],
+      "footprint": "0805",
+      "icon": "Zap"
+    },
+    {
+      "id": "microcontroller_81",
+      "name": "Microcontroller 977mA",
+      "type": "IC",
+      "tags": [
+        "signal",
+        "through-hole",
+        "sensor",
+        "communication",
+        "digital",
+        "microcontroller"
+      ],
+      "footprint": "QFN-32",
+      "icon": "BatteryFull"
+    },
+    {
+      "id": "pressure_sensor_82",
+      "name": "Pressure Sensor 148nH",
+      "type": "Sensor",
+      "tags": [
+        "sensor",
+        "connector",
+        "signal"
+      ],
+      "footprint": "Through-hole",
+      "icon": "Cpu"
+    },
+    {
+      "id": "pin_header_83",
+      "name": "Pin Header 700mA",
+      "type": "Connector",
+      "tags": [
+        "connector",
+        "digital",
+        "passive",
+        "ic",
+        "microcontroller",
+        "through-hole"
+      ],
+      "footprint": "Through-hole",
+      "icon": "Plug"
+    },
+    {
+      "id": "timer_ic_84",
+      "name": "Timer IC 244\u03a9",
+      "type": "IC",
+      "tags": [
+        "digital",
+        "connector",
+        "analog",
+        "signal"
+      ],
+      "footprint": "0603",
+      "icon": "Zap"
+    },
+    {
+      "id": "diode_85",
+      "name": "Diode 487V",
+      "type": "Active",
+      "tags": [
+        "input",
+        "microcontroller",
+        "signal"
+      ],
+      "footprint": "QFN-32",
+      "icon": "Sun"
+    },
+    {
+      "id": "button_86",
+      "name": "Button 332\u03bcF",
+      "type": "Misc",
+      "tags": [
+        "analog",
+        "smd",
+        "microcontroller",
+        "input"
+      ],
+      "footprint": "DIP-8",
+      "icon": "Sun"
+    },
+    {
+      "id": "switch_87",
+      "name": "Switch 879nH",
+      "type": "Misc",
+      "tags": [
+        "microcontroller",
+        "ic",
+        "communication",
+        "output"
+      ],
+      "footprint": "Through-hole",
+      "icon": "ShieldCheck"
+    },
+    {
+      "id": "switch_88",
+      "name": "Switch 639mA",
+      "type": "Misc",
+      "tags": [
+        "digital",
+        "input",
+        "active",
+        "microcontroller"
+      ],
+      "footprint": "0603",
+      "icon": "BatteryFull"
+    },
+    {
+      "id": "switch_89",
+      "name": "Switch 483V",
+      "type": "Misc",
+      "tags": [
+        "ic",
+        "analog",
+        "microcontroller",
+        "through-hole",
+        "smd",
+        "passive"
+      ],
+      "footprint": "SOIC-16",
+      "icon": "Activity"
+    },
+    {
+      "id": "led_90",
+      "name": "LED 715\u03a9",
+      "type": "Active",
+      "tags": [
+        "digital",
+        "active",
+        "connector",
+        "through-hole",
+        "ic",
+        "output"
+      ],
+      "footprint": "Through-hole",
+      "icon": "GitBranch"
+    },
+    {
+      "id": "crystal_91",
+      "name": "Crystal 355\u03bcF",
+      "type": "Passive",
+      "tags": [
+        "output",
+        "power",
+        "ic",
+        "passive",
+        "communication"
+      ],
+      "footprint": "SOIC-16",
+      "icon": "Sun"
+    },
+    {
+      "id": "triac_92",
+      "name": "Triac 315mA",
+      "type": "Active",
+      "tags": [
+        "power",
+        "passive",
+        "input",
+        "signal",
+        "communication",
+        "analog"
+      ],
+      "footprint": "1206",
+      "icon": "Activity"
+    },
+    {
+      "id": "accelerometer_93",
+      "name": "Accelerometer 501nH",
+      "type": "Sensor",
+      "tags": [
+        "smd",
+        "digital",
+        "communication",
+        "ic",
+        "sensor",
+        "power"
+      ],
+      "footprint": "SOIC-16",
+      "icon": "ShieldCheck"
+    },
+    {
+      "id": "microcontroller_94",
+      "name": "Microcontroller 573mA",
+      "type": "IC",
+      "tags": [
+        "signal",
+        "passive",
+        "connector",
+        "smd",
+        "output",
+        "input"
+      ],
+      "footprint": "1206",
+      "icon": "MousePointer"
+    },
+    {
+      "id": "buzzer_95",
+      "name": "Buzzer 575nH",
+      "type": "Misc",
+      "tags": [
+        "communication",
+        "analog",
+        "power",
+        "ic",
+        "connector"
+      ],
+      "footprint": "SOIC-16",
+      "icon": "GitBranch"
+    },
+    {
+      "id": "resistor_96",
+      "name": "Resistor 428\u03a9",
+      "type": "Passive",
+      "tags": [
+        "digital",
+        "active",
+        "connector",
+        "through-hole",
+        "input",
+        "sensor"
+      ],
+      "footprint": "Through-hole",
+      "icon": "Wifi"
+    },
+    {
+      "id": "button_97",
+      "name": "Button 228V",
+      "type": "Misc",
+      "tags": [
+        "input",
+        "microcontroller",
+        "connector",
+        "digital"
+      ],
+      "footprint": "SMD",
+      "icon": "ShieldCheck"
+    },
+    {
+      "id": "mosfet_98",
+      "name": "MOSFET 704mA",
+      "type": "Active",
+      "tags": [
+        "smd",
+        "communication",
+        "passive",
+        "power"
+      ],
+      "footprint": "QFN-32",
+      "icon": "GitBranch"
+    },
+    {
+      "id": "buzzer_99",
+      "name": "Buzzer 778V",
+      "type": "Misc",
+      "tags": [
+        "through-hole",
+        "digital",
+        "input",
+        "active"
+      ],
+      "footprint": "0603",
+      "icon": "GitBranch"
+    },
+    {
+      "id": "logic_gate_ic_100",
+      "name": "Logic Gate IC 435\u03a9",
+      "type": "IC",
+      "tags": [
+        "power",
+        "active",
+        "output"
+      ],
+      "footprint": "0805",
+      "icon": "Plug"
+    },
+    {
+      "id": "op-amp_101",
+      "name": "Op-Amp 742V",
+      "type": "IC",
+      "tags": [
+        "passive",
+        "smd",
+        "ic"
+      ],
+      "footprint": "1206",
+      "icon": "Wifi"
+    },
+    {
+      "id": "pressure_sensor_102",
+      "name": "Pressure Sensor 92nH",
+      "type": "Sensor",
+      "tags": [
+        "through-hole",
+        "ic",
+        "digital",
+        "input",
+        "passive"
+      ],
+      "footprint": "SMD",
+      "icon": "MousePointer"
+    },
+    {
+      "id": "op-amp_103",
+      "name": "Op-Amp 504\u03a9",
+      "type": "IC",
+      "tags": [
+        "sensor",
+        "signal",
+        "connector"
+      ],
+      "footprint": "0603",
+      "icon": "Plug"
+    },
+    {
+      "id": "mosfet_104",
+      "name": "MOSFET 938mA",
+      "type": "Active",
+      "tags": [
+        "signal",
+        "digital",
+        "microcontroller",
+        "analog",
+        "through-hole"
+      ],
+      "footprint": "0603",
+      "icon": "ShieldCheck"
+    },
+    {
+      "id": "led_105",
+      "name": "LED 835mA",
+      "type": "Active",
+      "tags": [
+        "signal",
+        "power",
+        "ic",
+        "active",
+        "sensor"
+      ],
+      "footprint": "0805",
+      "icon": "Thermometer"
+    },
+    {
+      "id": "hdmi_connector_106",
+      "name": "HDMI Connector 789nH",
+      "type": "Connector",
+      "tags": [
+        "ic",
+        "communication",
+        "analog"
+      ],
+      "footprint": "1206",
+      "icon": "BatteryFull"
+    },
+    {
+      "id": "capacitor_107",
+      "name": "Capacitor 980\u03bcF",
+      "type": "Passive",
+      "tags": [
+        "communication",
+        "smd",
+        "digital"
+      ],
+      "footprint": "SOIC-16",
+      "icon": "MousePointer"
+    },
+    {
+      "id": "adc_108",
+      "name": "ADC 384V",
+      "type": "IC",
+      "tags": [
+        "signal",
+        "communication",
+        "sensor",
+        "digital",
+        "analog",
+        "through-hole"
+      ],
+      "footprint": "0805",
+      "icon": "Zap"
+    },
+    {
+      "id": "pin_header_109",
+      "name": "Pin Header 43V",
+      "type": "Connector",
+      "tags": [
+        "communication",
+        "ic",
+        "active",
+        "passive",
+        "output",
+        "sensor"
+      ],
+      "footprint": "QFN-32",
+      "icon": "Thermometer"
+    },
+    {
+      "id": "jst_connector_110",
+      "name": "JST Connector 385\u03bcF",
+      "type": "Connector",
+      "tags": [
+        "ic",
+        "smd",
+        "active",
+        "analog"
+      ],
+      "footprint": "0805",
+      "icon": "Zap"
+    },
+    {
+      "id": "potentiometer_111",
+      "name": "Potentiometer 451\u03a9",
+      "type": "Passive",
+      "tags": [
+        "signal",
+        "digital",
+        "sensor"
+      ],
+      "footprint": "1206",
+      "icon": "Plug"
+    },
+    {
+      "id": "ultrasonic_sensor_112",
+      "name": "Ultrasonic Sensor 981mA",
+      "type": "Sensor",
+      "tags": [
+        "active",
+        "microcontroller",
+        "ic",
+        "analog",
+        "input",
+        "through-hole"
+      ],
+      "footprint": "Through-hole",
+      "icon": "BatteryFull"
+    },
+    {
+      "id": "jst_connector_113",
+      "name": "JST Connector 922mA",
+      "type": "Connector",
+      "tags": [
+        "active",
+        "sensor",
+        "connector",
+        "signal",
+        "ic",
+        "input"
+      ],
+      "footprint": "QFN-32",
+      "icon": "ShieldCheck"
+    },
+    {
+      "id": "switch_114",
+      "name": "Switch 252mA",
+      "type": "Misc",
+      "tags": [
+        "signal",
+        "input",
+        "digital"
+      ],
+      "footprint": "SOIC-16",
+      "icon": "MousePointer"
+    },
+    {
+      "id": "dc_barrel_jack_115",
+      "name": "DC Barrel Jack 569nH",
+      "type": "Connector",
+      "tags": [
+        "communication",
+        "signal",
+        "analog",
+        "through-hole",
+        "sensor",
+        "active"
+      ],
+      "footprint": "0603",
+      "icon": "MousePointer"
+    },
+    {
+      "id": "diode_116",
+      "name": "Diode 748V",
+      "type": "Active",
+      "tags": [
+        "digital",
+        "through-hole",
+        "passive",
+        "active",
+        "signal"
+      ],
+      "footprint": "SOIC-16",
+      "icon": "AlignHorizontalSpaceAround"
+    },
+    {
+      "id": "microcontroller_117",
+      "name": "Microcontroller 583\u03bcF",
+      "type": "IC",
+      "tags": [
+        "digital",
+        "sensor",
+        "power"
+      ],
+      "footprint": "SOIC-16",
+      "icon": "Sun"
+    },
+    {
+      "id": "crystal_118",
+      "name": "Crystal 238\u03bcF",
+      "type": "Passive",
+      "tags": [
+        "signal",
+        "communication",
+        "connector",
+        "power",
+        "sensor",
+        "smd"
+      ],
+      "footprint": "1206",
+      "icon": "Plug"
+    },
+    {
+      "id": "ir_sensor_119",
+      "name": "IR Sensor 381V",
+      "type": "Sensor",
+      "tags": [
+        "input",
+        "communication",
+        "connector",
+        "digital"
+      ],
+      "footprint": "0805",
+      "icon": "Zap"
+    },
+    {
+      "id": "resistor_120",
+      "name": "Resistor 32V",
+      "type": "Passive",
+      "tags": [
+        "connector",
+        "power",
+        "sensor"
+      ],
+      "footprint": "QFN-32",
+      "icon": "Sun"
+    },
+    {
+      "id": "diode_121",
+      "name": "Diode 447\u03bcF",
+      "type": "Active",
+      "tags": [
+        "output",
+        "input",
+        "communication",
+        "smd",
+        "digital"
+      ],
+      "footprint": "1206",
+      "icon": "Wifi"
+    },
+    {
+      "id": "relay_122",
+      "name": "Relay 96nH",
+      "type": "Misc",
+      "tags": [
+        "input",
+        "active",
+        "passive",
+        "power"
+      ],
+      "footprint": "0603",
+      "icon": "Sun"
+    },
+    {
+      "id": "button_123",
+      "name": "Button 938V",
+      "type": "Misc",
+      "tags": [
+        "connector",
+        "signal",
+        "communication",
+        "analog",
+        "microcontroller"
+      ],
+      "footprint": "Through-hole",
+      "icon": "MousePointer"
+    },
+    {
+      "id": "mosfet_124",
+      "name": "MOSFET 388\u03a9",
+      "type": "Active",
+      "tags": [
+        "passive",
+        "signal",
+        "connector"
+      ],
+      "footprint": "SMD",
+      "icon": "Cpu"
+    },
+    {
+      "id": "ultrasonic_sensor_125",
+      "name": "Ultrasonic Sensor 620\u03a9",
+      "type": "Sensor",
+      "tags": [
+        "signal",
+        "smd",
+        "active"
+      ],
+      "footprint": "QFN-32",
+      "icon": "Cpu"
+    },
+    {
+      "id": "inductor_126",
+      "name": "Inductor 405nH",
+      "type": "Passive",
+      "tags": [
+        "ic",
+        "passive",
+        "power",
+        "signal",
+        "output",
+        "smd"
+      ],
+      "footprint": "0805",
+      "icon": "Wifi"
+    },
+    {
+      "id": "potentiometer_127",
+      "name": "Potentiometer 380\u03a9",
+      "type": "Passive",
+      "tags": [
+        "analog",
+        "passive",
+        "output",
+        "connector",
+        "smd"
+      ],
+      "footprint": "QFN-32",
+      "icon": "AlignHorizontalSpaceAround"
+    },
+    {
+      "id": "logic_gate_ic_128",
+      "name": "Logic Gate IC 704\u03bcF",
+      "type": "IC",
+      "tags": [
+        "microcontroller",
+        "active",
+        "power"
+      ],
+      "footprint": "DIP-8",
+      "icon": "ShieldCheck"
+    },
+    {
+      "id": "led_129",
+      "name": "LED 97\u03a9",
+      "type": "Active",
+      "tags": [
+        "microcontroller",
+        "connector",
+        "through-hole",
+        "signal",
+        "analog"
+      ],
+      "footprint": "SOIC-16",
+      "icon": "Plug"
+    },
+    {
+      "id": "microcontroller_130",
+      "name": "Microcontroller 842nH",
+      "type": "IC",
+      "tags": [
+        "power",
+        "ic",
+        "passive",
+        "digital",
+        "input"
+      ],
+      "footprint": "QFN-32",
+      "icon": "GitBranch"
+    },
+    {
+      "id": "speaker_131",
+      "name": "Speaker 115\u03bcF",
+      "type": "Misc",
+      "tags": [
+        "power",
+        "active",
+        "through-hole",
+        "analog",
+        "passive"
+      ],
+      "footprint": "SMD",
+      "icon": "Cpu"
+    },
+    {
+      "id": "ultrasonic_sensor_132",
+      "name": "Ultrasonic Sensor 393nH",
+      "type": "Sensor",
+      "tags": [
+        "analog",
+        "ic",
+        "connector",
+        "input",
+        "sensor",
+        "digital"
+      ],
+      "footprint": "SOIC-16",
+      "icon": "BatteryFull"
+    },
+    {
+      "id": "speaker_133",
+      "name": "Speaker 297V",
+      "type": "Misc",
+      "tags": [
+        "passive",
+        "digital",
+        "connector"
+      ],
+      "footprint": "Through-hole",
+      "icon": "BatteryFull"
+    },
+    {
+      "id": "dc_barrel_jack_134",
+      "name": "DC Barrel Jack 826V",
+      "type": "Connector",
+      "tags": [
+        "passive",
+        "input",
+        "communication",
+        "through-hole"
+      ],
+      "footprint": "SOIC-16",
+      "icon": "Plug"
+    },
+    {
+      "id": "logic_gate_ic_135",
+      "name": "Logic Gate IC 464mA",
+      "type": "IC",
+      "tags": [
+        "communication",
+        "through-hole",
+        "connector",
+        "output",
+        "active",
+        "digital"
+      ],
+      "footprint": "0805",
+      "icon": "BatteryFull"
+    },
+    {
+      "id": "mosfet_136",
+      "name": "MOSFET 886mA",
+      "type": "Active",
+      "tags": [
+        "communication",
+        "through-hole",
+        "ic",
+        "input",
+        "output"
+      ],
+      "footprint": "SMD",
+      "icon": "Thermometer"
+    },
+    {
+      "id": "usb_type-c_137",
+      "name": "USB Type-C 285mA",
+      "type": "Connector",
+      "tags": [
+        "signal",
+        "connector",
+        "passive"
+      ],
+      "footprint": "0603",
+      "icon": "AlignHorizontalSpaceAround"
+    },
+    {
+      "id": "ir_sensor_138",
+      "name": "IR Sensor 774\u03bcF",
+      "type": "Sensor",
+      "tags": [
+        "power",
+        "active",
+        "analog",
+        "through-hole",
+        "passive"
+      ],
+      "footprint": "QFN-32",
+      "icon": "Plug"
+    },
+    {
+      "id": "accelerometer_139",
+      "name": "Accelerometer 183V",
+      "type": "Sensor",
+      "tags": [
+        "smd",
+        "digital",
+        "passive",
+        "connector",
+        "analog"
+      ],
+      "footprint": "DIP-8",
+      "icon": "Activity"
+    },
+    {
+      "id": "jst_connector_140",
+      "name": "JST Connector 898\u03bcF",
+      "type": "Connector",
+      "tags": [
+        "ic",
+        "active",
+        "analog"
+      ],
+      "footprint": "0603",
+      "icon": "AlignHorizontalSpaceAround"
+    },
+    {
+      "id": "inductor_141",
+      "name": "Inductor 694mA",
+      "type": "Passive",
+      "tags": [
+        "through-hole",
+        "input",
+        "digital"
+      ],
+      "footprint": "0603",
+      "icon": "Cpu"
+    },
+    {
+      "id": "hdmi_connector_142",
+      "name": "HDMI Connector 509mA",
+      "type": "Connector",
+      "tags": [
+        "passive",
+        "smd",
+        "through-hole",
+        "digital",
+        "power",
+        "analog"
+      ],
+      "footprint": "Through-hole",
+      "icon": "Plug"
+    },
+    {
+      "id": "accelerometer_143",
+      "name": "Accelerometer 966nH",
+      "type": "Sensor",
+      "tags": [
+        "connector",
+        "passive",
+        "output",
+        "active",
+        "analog",
+        "signal"
+      ],
+      "footprint": "Through-hole",
+      "icon": "Plug"
+    },
+    {
+      "id": "led_144",
+      "name": "LED 542\u03a9",
+      "type": "Active",
+      "tags": [
+        "communication",
+        "microcontroller",
+        "input",
+        "passive"
+      ],
+      "footprint": "1206",
+      "icon": "Thermometer"
+    },
+    {
+      "id": "capacitor_145",
+      "name": "Capacitor 462mA",
+      "type": "Passive",
+      "tags": [
+        "sensor",
+        "power",
+        "connector"
+      ],
+      "footprint": "1206",
+      "icon": "BatteryFull"
+    },
+    {
+      "id": "relay_146",
+      "name": "Relay 372nH",
+      "type": "Misc",
+      "tags": [
+        "through-hole",
+        "power",
+        "connector",
+        "passive",
+        "analog"
+      ],
+      "footprint": "0603",
+      "icon": "ShieldCheck"
+    },
+    {
+      "id": "hdmi_connector_147",
+      "name": "HDMI Connector 479\u03a9",
+      "type": "Connector",
+      "tags": [
+        "analog",
+        "through-hole",
+        "passive",
+        "signal",
+        "output",
+        "communication"
+      ],
+      "footprint": "1206",
+      "icon": "Activity"
+    },
+    {
+      "id": "inductor_148",
+      "name": "Inductor 846mA",
+      "type": "Passive",
+      "tags": [
+        "input",
+        "connector",
+        "passive",
+        "power",
+        "communication"
+      ],
+      "footprint": "QFN-32",
+      "icon": "GitBranch"
+    },
+    {
+      "id": "ir_sensor_149",
+      "name": "IR Sensor 483mA",
+      "type": "Sensor",
+      "tags": [
+        "passive",
+        "analog",
+        "digital",
+        "sensor"
+      ],
+      "footprint": "QFN-32",
+      "icon": "ShieldCheck"
+    },
+    {
+      "id": "button_150",
+      "name": "Button 466\u03bcF",
+      "type": "Misc",
+      "tags": [
+        "through-hole",
+        "signal",
+        "analog",
+        "connector",
+        "digital",
+        "ic"
+      ],
+      "footprint": "SMD",
+      "icon": "ShieldCheck"
+    },
+    {
+      "id": "op-amp_151",
+      "name": "Op-Amp 938\u03a9",
+      "type": "IC",
+      "tags": [
+        "communication",
+        "analog",
+        "power",
+        "active",
+        "sensor",
+        "smd"
+      ],
+      "footprint": "Through-hole",
+      "icon": "Plug"
+    },
+    {
+      "id": "timer_ic_152",
+      "name": "Timer IC 825V",
+      "type": "IC",
+      "tags": [
+        "communication",
+        "connector",
+        "power",
+        "analog"
+      ],
+      "footprint": "0805",
+      "icon": "GitBranch"
+    },
+    {
+      "id": "ultrasonic_sensor_153",
+      "name": "Ultrasonic Sensor 163nH",
+      "type": "Sensor",
+      "tags": [
+        "signal",
+        "output",
+        "through-hole",
+        "passive",
+        "communication"
+      ],
+      "footprint": "Through-hole",
+      "icon": "Thermometer"
+    },
+    {
+      "id": "pin_header_154",
+      "name": "Pin Header 496\u03a9",
+      "type": "Connector",
+      "tags": [
+        "connector",
+        "analog",
+        "signal"
+      ],
+      "footprint": "0603",
+      "icon": "BatteryFull"
+    },
+    {
+      "id": "temperature_sensor_155",
+      "name": "Temperature Sensor 674\u03a9",
+      "type": "Sensor",
+      "tags": [
+        "signal",
+        "smd",
+        "digital",
+        "passive",
+        "microcontroller",
+        "connector"
+      ],
+      "footprint": "1206",
+      "icon": "Plug"
+    },
+    {
+      "id": "bjt_156",
+      "name": "BJT 379mA",
+      "type": "Active",
+      "tags": [
+        "ic",
+        "communication",
+        "digital",
+        "through-hole",
+        "output"
+      ],
+      "footprint": "SMD",
+      "icon": "BatteryFull"
+    },
+    {
+      "id": "switch_157",
+      "name": "Switch 42mA",
+      "type": "Misc",
+      "tags": [
+        "passive",
+        "sensor",
+        "microcontroller"
+      ],
+      "footprint": "1206",
+      "icon": "ShieldCheck"
+    },
+    {
+      "id": "inductor_158",
+      "name": "Inductor 833nH",
+      "type": "Passive",
+      "tags": [
+        "microcontroller",
+        "sensor",
+        "power",
+        "digital",
+        "through-hole"
+      ],
+      "footprint": "1206",
+      "icon": "MousePointer"
+    },
+    {
+      "id": "pin_header_159",
+      "name": "Pin Header 637\u03a9",
+      "type": "Connector",
+      "tags": [
+        "input",
+        "active",
+        "output",
+        "digital"
+      ],
+      "footprint": "1206",
+      "icon": "Zap"
+    },
+    {
+      "id": "button_160",
+      "name": "Button 220\u03bcF",
+      "type": "Misc",
+      "tags": [
+        "output",
+        "sensor",
+        "signal",
+        "ic",
+        "power"
+      ],
+      "footprint": "0603",
+      "icon": "Plug"
+    },
+    {
+      "id": "speaker_161",
+      "name": "Speaker 674\u03a9",
+      "type": "Misc",
+      "tags": [
+        "active",
+        "output",
+        "smd",
+        "sensor",
+        "analog"
+      ],
+      "footprint": "SMD",
+      "icon": "Plug"
+    },
+    {
+      "id": "button_162",
+      "name": "Button 256V",
+      "type": "Misc",
+      "tags": [
+        "input",
+        "analog",
+        "ic"
+      ],
+      "footprint": "SMD",
+      "icon": "Cpu"
+    },
+    {
+      "id": "timer_ic_163",
+      "name": "Timer IC 271mA",
+      "type": "IC",
+      "tags": [
+        "power",
+        "communication",
+        "active",
+        "output"
+      ],
+      "footprint": "0603",
+      "icon": "MousePointer"
+    },
+    {
+      "id": "potentiometer_164",
+      "name": "Potentiometer 949\u03a9",
+      "type": "Passive",
+      "tags": [
+        "through-hole",
+        "signal",
+        "analog",
+        "connector",
+        "digital"
+      ],
+      "footprint": "QFN-32",
+      "icon": "MousePointer"
+    },
+    {
+      "id": "button_165",
+      "name": "Button 867mA",
+      "type": "Misc",
+      "tags": [
+        "through-hole",
+        "signal",
+        "active",
+        "smd",
+        "digital",
+        "power"
+      ],
+      "footprint": "DIP-8",
+      "icon": "AlignHorizontalSpaceAround"
+    },
+    {
+      "id": "button_166",
+      "name": "Button 94mA",
+      "type": "Misc",
+      "tags": [
+        "input",
+        "signal",
+        "output",
+        "power"
+      ],
+      "footprint": "SOIC-16",
+      "icon": "MousePointer"
+    },
+    {
+      "id": "ultrasonic_sensor_167",
+      "name": "Ultrasonic Sensor 76nH",
+      "type": "Sensor",
+      "tags": [
+        "digital",
+        "passive",
+        "output",
+        "input",
+        "communication",
+        "microcontroller"
+      ],
+      "footprint": "SMD",
+      "icon": "ShieldCheck"
+    },
+    {
+      "id": "pressure_sensor_168",
+      "name": "Pressure Sensor 427V",
+      "type": "Sensor",
+      "tags": [
+        "active",
+        "through-hole",
+        "power",
+        "microcontroller",
+        "output",
+        "passive"
+      ],
+      "footprint": "SOIC-16",
+      "icon": "Thermometer"
+    },
+    {
+      "id": "hdmi_connector_169",
+      "name": "HDMI Connector 131V",
+      "type": "Connector",
+      "tags": [
+        "ic",
+        "power",
+        "through-hole"
+      ],
+      "footprint": "0603",
+      "icon": "Zap"
+    },
+    {
+      "id": "microcontroller_170",
+      "name": "Microcontroller 508nH",
+      "type": "IC",
+      "tags": [
+        "connector",
+        "smd",
+        "power"
+      ],
+      "footprint": "0805",
+      "icon": "Thermometer"
+    },
+    {
+      "id": "speaker_171",
+      "name": "Speaker 137\u03bcF",
+      "type": "Misc",
+      "tags": [
+        "active",
+        "communication",
+        "through-hole",
+        "input"
+      ],
+      "footprint": "0805",
+      "icon": "BatteryFull"
+    },
+    {
+      "id": "mosfet_172",
+      "name": "MOSFET 647\u03a9",
+      "type": "Active",
+      "tags": [
+        "sensor",
+        "power",
+        "analog"
+      ],
+      "footprint": "QFN-32",
+      "icon": "Sun"
+    },
+    {
+      "id": "buzzer_173",
+      "name": "Buzzer 4nH",
+      "type": "Misc",
+      "tags": [
+        "analog",
+        "power",
+        "passive",
+        "signal",
+        "through-hole",
+        "sensor"
+      ],
+      "footprint": "0805",
+      "icon": "Plug"
+    },
+    {
+      "id": "jst_connector_174",
+      "name": "JST Connector 385\u03bcF",
+      "type": "Connector",
+      "tags": [
+        "ic",
+        "signal",
+        "through-hole",
+        "microcontroller",
+        "analog",
+        "digital"
+      ],
+      "footprint": "0805",
+      "icon": "AlignHorizontalSpaceAround"
+    },
+    {
+      "id": "hdmi_connector_175",
+      "name": "HDMI Connector 676\u03bcF",
+      "type": "Connector",
+      "tags": [
+        "active",
+        "power",
+        "smd",
+        "sensor",
+        "signal",
+        "output"
+      ],
+      "footprint": "SOIC-16",
+      "icon": "Sun"
+    },
+    {
+      "id": "switch_176",
+      "name": "Switch 751nH",
+      "type": "Misc",
+      "tags": [
+        "output",
+        "through-hole",
+        "input",
+        "signal",
+        "connector",
+        "microcontroller"
+      ],
+      "footprint": "SOIC-16",
+      "icon": "ShieldCheck"
+    },
+    {
+      "id": "relay_177",
+      "name": "Relay 364\u03a9",
+      "type": "Misc",
+      "tags": [
+        "smd",
+        "active",
+        "ic",
+        "microcontroller",
+        "sensor",
+        "analog"
+      ],
+      "footprint": "QFN-32",
+      "icon": "Cpu"
+    },
+    {
+      "id": "button_178",
+      "name": "Button 618mA",
+      "type": "Misc",
+      "tags": [
+        "power",
+        "active",
+        "communication"
+      ],
+      "footprint": "1206",
+      "icon": "Activity"
+    },
+    {
+      "id": "hdmi_connector_179",
+      "name": "HDMI Connector 474V",
+      "type": "Connector",
+      "tags": [
+        "smd",
+        "ic",
+        "sensor"
+      ],
+      "footprint": "0805",
+      "icon": "Thermometer"
+    },
+    {
+      "id": "mosfet_180",
+      "name": "MOSFET 873nH",
+      "type": "Active",
+      "tags": [
+        "connector",
+        "digital",
+        "smd"
+      ],
+      "footprint": "Through-hole",
+      "icon": "Activity"
+    },
+    {
+      "id": "button_181",
+      "name": "Button 778\u03a9",
+      "type": "Misc",
+      "tags": [
+        "power",
+        "digital",
+        "signal"
+      ],
+      "footprint": "DIP-8",
+      "icon": "AlignHorizontalSpaceAround"
+    },
+    {
+      "id": "pressure_sensor_182",
+      "name": "Pressure Sensor 797\u03bcF",
+      "type": "Sensor",
+      "tags": [
+        "digital",
+        "through-hole",
+        "communication",
+        "microcontroller"
+      ],
+      "footprint": "SOIC-16",
+      "icon": "Sun"
+    },
+    {
+      "id": "diode_183",
+      "name": "Diode 932\u03a9",
+      "type": "Active",
+      "tags": [
+        "microcontroller",
+        "communication",
+        "signal",
+        "sensor",
+        "through-hole",
+        "active"
+      ],
+      "footprint": "SMD",
+      "icon": "GitBranch"
+    },
+    {
+      "id": "resistor_184",
+      "name": "Resistor 955nH",
+      "type": "Passive",
+      "tags": [
+        "smd",
+        "connector",
+        "signal",
+        "microcontroller"
+      ],
+      "footprint": "0603",
+      "icon": "Thermometer"
+    },
+    {
+      "id": "op-amp_185",
+      "name": "Op-Amp 309\u03bcF",
+      "type": "IC",
+      "tags": [
+        "signal",
+        "through-hole",
+        "smd",
+        "ic"
+      ],
+      "footprint": "SMD",
+      "icon": "Zap"
+    },
+    {
+      "id": "mosfet_186",
+      "name": "MOSFET 961nH",
+      "type": "Active",
+      "tags": [
+        "ic",
+        "power",
+        "digital",
+        "sensor",
+        "analog",
+        "communication"
+      ],
+      "footprint": "SOIC-16",
+      "icon": "Plug"
+    },
+    {
+      "id": "mosfet_187",
+      "name": "MOSFET 257V",
+      "type": "Active",
+      "tags": [
+        "active",
+        "ic",
+        "microcontroller",
+        "passive",
+        "signal",
+        "through-hole"
+      ],
+      "footprint": "QFN-32",
+      "icon": "Activity"
+    },
+    {
+      "id": "buzzer_188",
+      "name": "Buzzer 632nH",
+      "type": "Misc",
+      "tags": [
+        "through-hole",
+        "active",
+        "sensor"
+      ],
+      "footprint": "0603",
+      "icon": "Sun"
+    },
+    {
+      "id": "relay_189",
+      "name": "Relay 925mA",
+      "type": "Misc",
+      "tags": [
+        "digital",
+        "passive",
+        "input",
+        "ic",
+        "through-hole",
+        "communication"
+      ],
+      "footprint": "QFN-32",
+      "icon": "Activity"
+    },
+    {
+      "id": "timer_ic_190",
+      "name": "Timer IC 730\u03bcF",
+      "type": "IC",
+      "tags": [
+        "signal",
+        "digital",
+        "smd",
+        "microcontroller",
+        "output",
+        "communication"
+      ],
+      "footprint": "SOIC-16",
+      "icon": "Activity"
+    },
+    {
+      "id": "mosfet_191",
+      "name": "MOSFET 666\u03a9",
+      "type": "Active",
+      "tags": [
+        "input",
+        "through-hole",
+        "sensor",
+        "digital",
+        "analog",
+        "ic"
+      ],
+      "footprint": "Through-hole",
+      "icon": "Thermometer"
+    },
+    {
+      "id": "diode_192",
+      "name": "Diode 20\u03a9",
+      "type": "Active",
+      "tags": [
+        "input",
+        "sensor",
+        "digital"
+      ],
+      "footprint": "SOIC-16",
+      "icon": "GitBranch"
+    },
+    {
+      "id": "capacitor_193",
+      "name": "Capacitor 219\u03bcF",
+      "type": "Passive",
+      "tags": [
+        "signal",
+        "microcontroller",
+        "analog",
+        "digital",
+        "power"
+      ],
+      "footprint": "Through-hole",
+      "icon": "Plug"
+    },
+    {
+      "id": "logic_gate_ic_194",
+      "name": "Logic Gate IC 411V",
+      "type": "IC",
+      "tags": [
+        "signal",
+        "input",
+        "digital",
+        "output"
+      ],
+      "footprint": "QFN-32",
+      "icon": "MousePointer"
+    },
+    {
+      "id": "potentiometer_195",
+      "name": "Potentiometer 87V",
+      "type": "Passive",
+      "tags": [
+        "digital",
+        "analog",
+        "sensor",
+        "passive",
+        "signal",
+        "smd"
+      ],
+      "footprint": "SOIC-16",
+      "icon": "Thermometer"
+    },
+    {
+      "id": "ir_sensor_196",
+      "name": "IR Sensor 787\u03bcF",
+      "type": "Sensor",
+      "tags": [
+        "passive",
+        "microcontroller",
+        "signal",
+        "smd",
+        "digital"
+      ],
+      "footprint": "0603",
+      "icon": "GitBranch"
+    },
+    {
+      "id": "inductor_197",
+      "name": "Inductor 219nH",
+      "type": "Passive",
+      "tags": [
+        "analog",
+        "ic",
+        "output",
+        "sensor"
+      ],
+      "footprint": "SMD",
+      "icon": "GitBranch"
+    },
+    {
+      "id": "button_198",
+      "name": "Button 257\u03a9",
+      "type": "Misc",
+      "tags": [
+        "digital",
+        "input",
+        "passive",
+        "through-hole",
+        "microcontroller"
+      ],
+      "footprint": "DIP-8",
+      "icon": "AlignHorizontalSpaceAround"
+    },
+    {
+      "id": "usb_type-c_199",
+      "name": "USB Type-C 831\u03bcF",
+      "type": "Connector",
+      "tags": [
+        "passive",
+        "digital",
+        "connector",
+        "power",
+        "active"
+      ],
+      "footprint": "1206",
+      "icon": "Activity"
+    },
+    {
+      "id": "pressure_sensor_200",
+      "name": "Pressure Sensor 698nH",
+      "type": "Sensor",
+      "tags": [
+        "active",
+        "sensor",
+        "ic"
+      ],
+      "footprint": "1206",
+      "icon": "Cpu"
+    },
+    {
+      "id": "capacitor_201",
+      "name": "Capacitor 841V",
+      "type": "Passive",
+      "tags": [
+        "analog",
+        "ic",
+        "communication",
+        "input",
+        "active",
+        "power"
+      ],
+      "footprint": "1206",
+      "icon": "MousePointer"
+    },
+    {
+      "id": "diode_202",
+      "name": "Diode 349\u03bcF",
+      "type": "Active",
+      "tags": [
+        "digital",
+        "power",
+        "analog",
+        "passive",
+        "signal",
+        "sensor"
+      ],
+      "footprint": "0805",
+      "icon": "GitBranch"
+    },
+    {
+      "id": "triac_203",
+      "name": "Triac 8\u03bcF",
+      "type": "Active",
+      "tags": [
+        "connector",
+        "active",
+        "communication",
+        "ic",
+        "through-hole"
+      ],
+      "footprint": "QFN-32",
+      "icon": "Thermometer"
+    },
+    {
+      "id": "buzzer_204",
+      "name": "Buzzer 104V",
+      "type": "Misc",
+      "tags": [
+        "analog",
+        "digital",
+        "connector",
+        "sensor"
+      ],
+      "footprint": "0603",
+      "icon": "Sun"
+    },
+    {
+      "id": "op-amp_205",
+      "name": "Op-Amp 573\u03bcF",
+      "type": "IC",
+      "tags": [
+        "input",
+        "connector",
+        "through-hole",
+        "ic",
+        "output"
+      ],
+      "footprint": "0805",
+      "icon": "Thermometer"
+    },
+    {
+      "id": "led_206",
+      "name": "LED 754\u03bcF",
+      "type": "Active",
+      "tags": [
+        "power",
+        "smd",
+        "digital"
+      ],
+      "footprint": "SMD",
+      "icon": "AlignHorizontalSpaceAround"
+    },
+    {
+      "id": "accelerometer_207",
+      "name": "Accelerometer 876\u03bcF",
+      "type": "Sensor",
+      "tags": [
+        "passive",
+        "ic",
+        "output",
+        "connector",
+        "microcontroller",
+        "signal"
+      ],
+      "footprint": "QFN-32",
+      "icon": "GitBranch"
+    },
+    {
+      "id": "logic_gate_ic_208",
+      "name": "Logic Gate IC 444\u03bcF",
+      "type": "IC",
+      "tags": [
+        "power",
+        "communication",
+        "through-hole",
+        "sensor",
+        "active",
+        "digital"
+      ],
+      "footprint": "QFN-32",
+      "icon": "Zap"
+    },
+    {
+      "id": "triac_209",
+      "name": "Triac 508\u03bcF",
+      "type": "Active",
+      "tags": [
+        "sensor",
+        "passive",
+        "output",
+        "through-hole"
+      ],
+      "footprint": "DIP-8",
+      "icon": "BatteryFull"
+    },
+    {
+      "id": "relay_210",
+      "name": "Relay 583\u03a9",
+      "type": "Misc",
+      "tags": [
+        "signal",
+        "smd",
+        "passive",
+        "microcontroller",
+        "through-hole"
+      ],
+      "footprint": "QFN-32",
+      "icon": "AlignHorizontalSpaceAround"
+    },
+    {
+        "id": "nodemcu_v3",
+        "name": "NodeMCU v3",
+        "type": "Microcontroller",
+        "footprint": "DIP-30",
+        "icon": "Cpu",
+        "tags": [
+          "esp8266",
+          "wifi",
+          "iot",
+          "microcontroller"
+        ],
+        "pins": [
+          {
+            "id": "D1",
+            "x": 20,
+            "y": 0
+          },
+          {
+            "id": "D2",
+            "x": 40,
+            "y": 0
+          },
+          {
+            "id": "D3",
+            "x": 60,
+            "y": 0
+          },
+          {
+            "id": "D4",
+            "x": 80,
+            "y": 0
+          },
+          {
+            "id": "D5",
+            "x": 100,
+            "y": 0
+          },
+          {
+            "id": "D6",
+            "x": 120,
+            "y": 0
+          },
+          {
+            "id": "D7",
+            "x": 140,
+            "y": 0
+          },
+          {
+            "id": "D8",
+            "x": 160,
+            "y": 0
+          },
+          {
+            "id": "D9",
+            "x": 180,
+            "y": 0
+          },
+          {
+            "id": "D10",
+            "x": 200,
+            "y": 0
+          },
+          {
+            "id": "D11",
+            "x": 220,
+            "y": 0
+          },
+          {
+            "id": "D12",
+            "x": 240,
+            "y": 0
+          },
+          {
+            "id": "D13",
+            "x": 260,
+            "y": 0
+          },
+          {
+            "id": "D14",
+            "x": 280,
+            "y": 0
+          },
+          {
+            "id": "D15",
+            "x": 300,
+            "y": 0
+          }
+        ]
+      },
+      {
+        "id": "atmega328p",
+        "name": "ATmega328P",
+        "type": "Microcontroller",
+        "footprint": "DIP-28",
+        "icon": "Cpu",
+        "tags": [
+          "avr",
+          "arduino",
+          "microcontroller",
+          "ic"
+        ],
+        "pins": [
+          {
+            "id": "Pin1",
+            "x": 10,
+            "y": 0
+          },
+          {
+            "id": "Pin2",
+            "x": 20,
+            "y": 0
+          },
+          {
+            "id": "Pin3",
+            "x": 30,
+            "y": 0
+          },
+          {
+            "id": "Pin4",
+            "x": 40,
+            "y": 0
+          },
+          {
+            "id": "Pin5",
+            "x": 50,
+            "y": 0
+          },
+          {
+            "id": "Pin6",
+            "x": 60,
+            "y": 0
+          },
+          {
+            "id": "Pin7",
+            "x": 70,
+            "y": 0
+          },
+          {
+            "id": "Pin8",
+            "x": 80,
+            "y": 0
+          },
+          {
+            "id": "Pin9",
+            "x": 90,
+            "y": 0
+          },
+          {
+            "id": "Pin10",
+            "x": 100,
+            "y": 0
+          },
+          {
+            "id": "Pin11",
+            "x": 110,
+            "y": 0
+          },
+          {
+            "id": "Pin12",
+            "x": 120,
+            "y": 0
+          },
+          {
+            "id": "Pin13",
+            "x": 130,
+            "y": 0
+          },
+          {
+            "id": "Pin14",
+            "x": 140,
+            "y": 0
+          },
+          {
+            "id": "Pin15",
+            "x": 150,
+            "y": 0
+          },
+          {
+            "id": "Pin16",
+            "x": 160,
+            "y": 0
+          },
+          {
+            "id": "Pin17",
+            "x": 170,
+            "y": 0
+          },
+          {
+            "id": "Pin18",
+            "x": 180,
+            "y": 0
+          },
+          {
+            "id": "Pin19",
+            "x": 190,
+            "y": 0
+          },
+          {
+            "id": "Pin20",
+            "x": 200,
+            "y": 0
+          },
+          {
+            "id": "Pin21",
+            "x": 210,
+            "y": 0
+          },
+          {
+            "id": "Pin22",
+            "x": 220,
+            "y": 0
+          },
+          {
+            "id": "Pin23",
+            "x": 230,
+            "y": 0
+          },
+          {
+            "id": "Pin24",
+            "x": 240,
+            "y": 0
+          },
+          {
+            "id": "Pin25",
+            "x": 250,
+            "y": 0
+          },
+          {
+            "id": "Pin26",
+            "x": 260,
+            "y": 0
+          },
+          {
+            "id": "Pin27",
+            "x": 270,
+            "y": 0
+          },
+          {
+            "id": "Pin28",
+            "x": 280,
+            "y": 0
+          }
+        ]
+      },
+      {
+        "id": "raspberry_pi_4",
+        "name": "Raspberry Pi 4",
+        "type": "Embedded Computer",
+        "footprint": "Board",
+        "icon": "Cpu",
+        "tags": [
+          "raspberry",
+          "linux",
+          "gpio",
+          "pi",
+          "computer"
+        ],
+        "pins": [
+          {
+            "id": "GPIO1",
+            "x": 10,
+            "y": 0
+          },
+          {
+            "id": "GPIO2",
+            "x": 20,
+            "y": 0
+          },
+          {
+            "id": "GPIO3",
+            "x": 30,
+            "y": 0
+          },
+          {
+            "id": "GPIO4",
+            "x": 40,
+            "y": 0
+          },
+          {
+            "id": "GPIO5",
+            "x": 50,
+            "y": 0
+          },
+          {
+            "id": "GPIO6",
+            "x": 60,
+            "y": 0
+          },
+          {
+            "id": "GPIO7",
+            "x": 70,
+            "y": 0
+          },
+          {
+            "id": "GPIO8",
+            "x": 80,
+            "y": 0
+          },
+          {
+            "id": "GPIO9",
+            "x": 90,
+            "y": 0
+          },
+          {
+            "id": "GPIO10",
+            "x": 100,
+            "y": 0
+          },
+          {
+            "id": "GPIO11",
+            "x": 110,
+            "y": 0
+          },
+          {
+            "id": "GPIO12",
+            "x": 120,
+            "y": 0
+          },
+          {
+            "id": "GPIO13",
+            "x": 130,
+            "y": 0
+          },
+          {
+            "id": "GPIO14",
+            "x": 140,
+            "y": 0
+          },
+          {
+            "id": "GPIO15",
+            "x": 150,
+            "y": 0
+          },
+          {
+            "id": "GPIO16",
+            "x": 160,
+            "y": 0
+          },
+          {
+            "id": "GPIO17",
+            "x": 170,
+            "y": 0
+          },
+          {
+            "id": "GPIO18",
+            "x": 180,
+            "y": 0
+          },
+          {
+            "id": "GPIO19",
+            "x": 190,
+            "y": 0
+          },
+          {
+            "id": "GPIO20",
+            "x": 0,
+            "y": 20
+          },
+          {
+            "id": "GPIO21",
+            "x": 10,
+            "y": 20
+          },
+          {
+            "id": "GPIO22",
+            "x": 20,
+            "y": 20
+          },
+          {
+            "id": "GPIO23",
+            "x": 30,
+            "y": 20
+          },
+          {
+            "id": "GPIO24",
+            "x": 40,
+            "y": 20
+          },
+          {
+            "id": "GPIO25",
+            "x": 50,
+            "y": 20
+          },
+          {
+            "id": "GPIO26",
+            "x": 60,
+            "y": 20
+          },
+          {
+            "id": "GPIO27",
+            "x": 70,
+            "y": 20
+          },
+          {
+            "id": "GPIO28",
+            "x": 80,
+            "y": 20
+          },
+          {
+            "id": "GPIO29",
+            "x": 90,
+            "y": 20
+          },
+          {
+            "id": "GPIO30",
+            "x": 100,
+            "y": 20
+          },
+          {
+            "id": "GPIO31",
+            "x": 110,
+            "y": 20
+          },
+          {
+            "id": "GPIO32",
+            "x": 120,
+            "y": 20
+          },
+          {
+            "id": "GPIO33",
+            "x": 130,
+            "y": 20
+          },
+          {
+            "id": "GPIO34",
+            "x": 140,
+            "y": 20
+          },
+          {
+            "id": "GPIO35",
+            "x": 150,
+            "y": 20
+          },
+          {
+            "id": "GPIO36",
+            "x": 160,
+            "y": 20
+          },
+          {
+            "id": "GPIO37",
+            "x": 170,
+            "y": 20
+          },
+          {
+            "id": "GPIO38",
+            "x": 180,
+            "y": 20
+          },
+          {
+            "id": "GPIO39",
+            "x": 190,
+            "y": 20
+          },
+          {
+            "id": "GPIO40",
+            "x": 0,
+            "y": 40
+          }
+        ]
+      },
+      {
+        "id": "timer_555",
+        "name": "555 Timer IC",
+        "type": "IC",
+        "footprint": "DIP-8",
+        "icon": "Timer",
+        "tags": [
+          "timer",
+          "analog",
+          "digital",
+          "oscillator"
+        ],
+        "pins": [
+          {
+            "id": "1",
+            "x": 20,
+            "y": 0
+          },
+          {
+            "id": "2",
+            "x": 40,
+            "y": 0
+          },
+          {
+            "id": "3",
+            "x": 60,
+            "y": 0
+          },
+          {
+            "id": "4",
+            "x": 0,
+            "y": 20
+          },
+          {
+            "id": "5",
+            "x": 20,
+            "y": 20
+          },
+          {
+            "id": "6",
+            "x": 40,
+            "y": 20
+          },
+          {
+            "id": "7",
+            "x": 60,
+            "y": 20
+          },
+          {
+            "id": "8",
+            "x": 0,
+            "y": 40
+          }
+        ]
+      },
+      {
+        "id": "esp32_devkit",
+        "name": "ESP32 DevKit",
+        "type": "SoC",
+        "footprint": "DIP-38",
+        "icon": "Wifi",
+        "tags": [
+          "esp32",
+          "wifi",
+          "bluetooth",
+          "soc",
+          "microcontroller"
+        ],
+        "pins": [
+          {
+            "id": "IO1",
+            "x": 15,
+            "y": 0
+          },
+          {
+            "id": "IO2",
+            "x": 30,
+            "y": 0
+          },
+          {
+            "id": "IO3",
+            "x": 45,
+            "y": 0
+          },
+          {
+            "id": "IO4",
+            "x": 60,
+            "y": 0
+          },
+          {
+            "id": "IO5",
+            "x": 75,
+            "y": 0
+          },
+          {
+            "id": "IO6",
+            "x": 90,
+            "y": 0
+          },
+          {
+            "id": "IO7",
+            "x": 105,
+            "y": 0
+          },
+          {
+            "id": "IO8",
+            "x": 120,
+            "y": 0
+          },
+          {
+            "id": "IO9",
+            "x": 135,
+            "y": 0
+          },
+          {
+            "id": "IO10",
+            "x": 150,
+            "y": 0
+          },
+          {
+            "id": "IO11",
+            "x": 165,
+            "y": 0
+          },
+          {
+            "id": "IO12",
+            "x": 180,
+            "y": 0
+          },
+          {
+            "id": "IO13",
+            "x": 195,
+            "y": 0
+          },
+          {
+            "id": "IO14",
+            "x": 210,
+            "y": 0
+          },
+          {
+            "id": "IO15",
+            "x": 225,
+            "y": 0
+          },
+          {
+            "id": "IO16",
+            "x": 240,
+            "y": 0
+          },
+          {
+            "id": "IO17",
+            "x": 255,
+            "y": 0
+          },
+          {
+            "id": "IO18",
+            "x": 270,
+            "y": 0
+          },
+          {
+            "id": "IO19",
+            "x": 0,
+            "y": 20
+          },
+          {
+            "id": "IO20",
+            "x": 15,
+            "y": 20
+          },
+          {
+            "id": "IO21",
+            "x": 30,
+            "y": 20
+          },
+          {
+            "id": "IO22",
+            "x": 45,
+            "y": 20
+          },
+          {
+            "id": "IO23",
+            "x": 60,
+            "y": 20
+          },
+          {
+            "id": "IO24",
+            "x": 75,
+            "y": 20
+          },
+          {
+            "id": "IO25",
+            "x": 90,
+            "y": 20
+          },
+          {
+            "id": "IO26",
+            "x": 105,
+            "y": 20
+          },
+          {
+            "id": "IO27",
+            "x": 120,
+            "y": 20
+          },
+          {
+            "id": "IO28",
+            "x": 135,
+            "y": 20
+          },
+          {
+            "id": "IO29",
+            "x": 150,
+            "y": 20
+          },
+          {
+            "id": "IO30",
+            "x": 165,
+            "y": 20
+          },
+          {
+            "id": "IO31",
+            "x": 180,
+            "y": 20
+          },
+          {
+            "id": "IO32",
+            "x": 195,
+            "y": 20
+          },
+          {
+            "id": "IO33",
+            "x": 210,
+            "y": 20
+          },
+          {
+            "id": "IO34",
+            "x": 225,
+            "y": 20
+          },
+          {
+            "id": "IO35",
+            "x": 240,
+            "y": 20
+          },
+          {
+            "id": "IO36",
+            "x": 255,
+            "y": 20
+          },
+          {
+            "id": "IO37",
+            "x": 270,
+            "y": 20
+          },
+          {
+            "id": "IO38",
+            "x": 0,
+            "y": 40
+          }
+        ]
+      },
+      {
+        "id": "arduino_nano",
+        "name": "Arduino Nano",
+        "type": "Dev Board",
+        "footprint": "DIP-30",
+        "icon": "Microchip",
+        "tags": [
+          "arduino",
+          "nano",
+          "devboard",
+          "microcontroller"
+        ],
+        "pins": [
+          {
+            "id": "Pin1",
+            "x": 10,
+            "y": 0
+          },
+          {
+            "id": "Pin2",
+            "x": 20,
+            "y": 0
+          },
+          {
+            "id": "Pin3",
+            "x": 30,
+            "y": 0
+          },
+          {
+            "id": "Pin4",
+            "x": 40,
+            "y": 0
+          },
+          {
+            "id": "Pin5",
+            "x": 50,
+            "y": 0
+          },
+          {
+            "id": "Pin6",
+            "x": 60,
+            "y": 0
+          },
+          {
+            "id": "Pin7",
+            "x": 70,
+            "y": 0
+          },
+          {
+            "id": "Pin8",
+            "x": 80,
+            "y": 0
+          },
+          {
+            "id": "Pin9",
+            "x": 90,
+            "y": 0
+          },
+          {
+            "id": "Pin10",
+            "x": 100,
+            "y": 0
+          },
+          {
+            "id": "Pin11",
+            "x": 110,
+            "y": 0
+          },
+          {
+            "id": "Pin12",
+            "x": 120,
+            "y": 0
+          },
+          {
+            "id": "Pin13",
+            "x": 130,
+            "y": 0
+          },
+          {
+            "id": "Pin14",
+            "x": 140,
+            "y": 0
+          },
+          {
+            "id": "Pin15",
+            "x": 0,
+            "y": 20
+          },
+          {
+            "id": "Pin16",
+            "x": 10,
+            "y": 20
+          },
+          {
+            "id": "Pin17",
+            "x": 20,
+            "y": 20
+          },
+          {
+            "id": "Pin18",
+            "x": 30,
+            "y": 20
+          },
+          {
+            "id": "Pin19",
+            "x": 40,
+            "y": 20
+          },
+          {
+            "id": "Pin20",
+            "x": 50,
+            "y": 20
+          },
+          {
+            "id": "Pin21",
+            "x": 60,
+            "y": 20
+          },
+          {
+            "id": "Pin22",
+            "x": 70,
+            "y": 20
+          },
+          {
+            "id": "Pin23",
+            "x": 80,
+            "y": 20
+          },
+          {
+            "id": "Pin24",
+            "x": 90,
+            "y": 20
+          },
+          {
+            "id": "Pin25",
+            "x": 100,
+            "y": 20
+          },
+          {
+            "id": "Pin26",
+            "x": 110,
+            "y": 20
+          },
+          {
+            "id": "Pin27",
+            "x": 120,
+            "y": 20
+          },
+          {
+            "id": "Pin28",
+            "x": 130,
+            "y": 20
+          },
+          {
+            "id": "Pin29",
+            "x": 140,
+            "y": 20
+          },
+          {
+            "id": "Pin30",
+            "x": 0,
+            "y": 40
+          }
+        ]
+      },
+      {
+        "id": "stm32f103",
+        "name": "STM32F103",
+        "type": "MCU IC",
+        "footprint": "LQFP-48",
+        "icon": "Cpu",
+        "tags": [
+          "stm32",
+          "arm",
+          "microcontroller",
+          "ic"
+        ],
+        "pins": [
+          {
+            "id": "PA1",
+            "x": 12,
+            "y": 0
+          },
+          {
+            "id": "PA2",
+            "x": 24,
+            "y": 0
+          },
+          {
+            "id": "PA3",
+            "x": 36,
+            "y": 0
+          },
+          {
+            "id": "PA4",
+            "x": 48,
+            "y": 0
+          },
+          {
+            "id": "PA5",
+            "x": 60,
+            "y": 0
+          },
+          {
+            "id": "PA6",
+            "x": 72,
+            "y": 0
+          },
+          {
+            "id": "PA7",
+            "x": 84,
+            "y": 0
+          },
+          {
+            "id": "PA8",
+            "x": 96,
+            "y": 0
+          },
+          {
+            "id": "PA9",
+            "x": 108,
+            "y": 0
+          },
+          {
+            "id": "PA10",
+            "x": 120,
+            "y": 0
+          },
+          {
+            "id": "PA11",
+            "x": 132,
+            "y": 0
+          },
+          {
+            "id": "PA12",
+            "x": 144,
+            "y": 0
+          },
+          {
+            "id": "PA13",
+            "x": 156,
+            "y": 0
+          },
+          {
+            "id": "PA14",
+            "x": 168,
+            "y": 0
+          },
+          {
+            "id": "PA15",
+            "x": 180,
+            "y": 0
+          },
+          {
+            "id": "PA16",
+            "x": 192,
+            "y": 0
+          },
+          {
+            "id": "PA17",
+            "x": 204,
+            "y": 0
+          },
+          {
+            "id": "PA18",
+            "x": 216,
+            "y": 0
+          },
+          {
+            "id": "PA19",
+            "x": 228,
+            "y": 0
+          },
+          {
+            "id": "PA20",
+            "x": 240,
+            "y": 0
+          },
+          {
+            "id": "PA21",
+            "x": 252,
+            "y": 0
+          },
+          {
+            "id": "PA22",
+            "x": 264,
+            "y": 0
+          },
+          {
+            "id": "PA23",
+            "x": 276,
+            "y": 0
+          },
+          {
+            "id": "PA24",
+            "x": 0,
+            "y": 12
+          },
+          {
+            "id": "PA25",
+            "x": 12,
+            "y": 12
+          },
+          {
+            "id": "PA26",
+            "x": 24,
+            "y": 12
+          },
+          {
+            "id": "PA27",
+            "x": 36,
+            "y": 12
+          },
+          {
+            "id": "PA28",
+            "x": 48,
+            "y": 12
+          },
+          {
+            "id": "PA29",
+            "x": 60,
+            "y": 12
+          },
+          {
+            "id": "PA30",
+            "x": 72,
+            "y": 12
+          },
+          {
+            "id": "PA31",
+            "x": 84,
+            "y": 12
+          },
+          {
+            "id": "PA32",
+            "x": 96,
+            "y": 12
+          },
+          {
+            "id": "PA33",
+            "x": 108,
+            "y": 12
+          },
+          {
+            "id": "PA34",
+            "x": 120,
+            "y": 12
+          },
+          {
+            "id": "PA35",
+            "x": 132,
+            "y": 12
+          },
+          {
+            "id": "PA36",
+            "x": 144,
+            "y": 12
+          },
+          {
+            "id": "PA37",
+            "x": 156,
+            "y": 12
+          },
+          {
+            "id": "PA38",
+            "x": 168,
+            "y": 12
+          },
+          {
+            "id": "PA39",
+            "x": 180,
+            "y": 12
+          },
+          {
+            "id": "PA40",
+            "x": 192,
+            "y": 12
+          },
+          {
+            "id": "PA41",
+            "x": 204,
+            "y": 12
+          },
+          {
+            "id": "PA42",
+            "x": 216,
+            "y": 12
+          },
+          {
+            "id": "PA43",
+            "x": 228,
+            "y": 12
+          },
+          {
+            "id": "PA44",
+            "x": 240,
+            "y": 12
+          },
+          {
+            "id": "PA45",
+            "x": 252,
+            "y": 12
+          },
+          {
+            "id": "PA46",
+            "x": 264,
+            "y": 12
+          },
+          {
+            "id": "PA47",
+            "x": 276,
+            "y": 12
+          },
+          {
+            "id": "PA48",
+            "x": 0,
+            "y": 24
+          }
+        ]
+      },
+      {
+        "id": "nrf24l01",
+        "name": "NRF24L01 Wireless Module",
+        "type": "Wireless Module",
+        "footprint": "Module",
+        "icon": "Radio",
+        "tags": [
+          "wireless",
+          "nrf",
+          "rf",
+          "transceiver"
+        ],
+        "pins": [
+          {
+            "id": "VCC",
+            "x": 0,
+            "y": 0
+          },
+          {
+            "id": "GND",
+            "x": 20,
+            "y": 0
+          },
+          {
+            "id": "CE",
+            "x": 40,
+            "y": 0
+          },
+          {
+            "id": "CSN",
+            "x": 60,
+            "y": 0
+          },
+          {
+            "id": "SCK",
+            "x": 80,
+            "y": 0
+          },
+          {
+            "id": "MOSI",
+            "x": 100,
+            "y": 0
+          },
+          {
+            "id": "MISO",
+            "x": 120,
+            "y": 0
+          },
+          {
+            "id": "IRQ",
+            "x": 140,
+            "y": 0
+          }
+        ]
+      },
+      {
+        "id": "uln2003",
+        "name": "ULN2003 Driver IC",
+        "type": "Driver IC",
+        "footprint": "DIP-16",
+        "icon": "AlignHorizontalSpaceAround",
+        "tags": [
+          "driver",
+          "relay",
+          "ic",
+          "uln2003"
+        ],
+        "pins": [
+          {
+            "id": "IN1",
+            "x": 15,
+            "y": 0
+          },
+          {
+            "id": "IN2",
+            "x": 30,
+            "y": 0
+          },
+          {
+            "id": "IN3",
+            "x": 45,
+            "y": 0
+          },
+          {
+            "id": "IN4",
+            "x": 60,
+            "y": 0
+          },
+          {
+            "id": "IN5",
+            "x": 75,
+            "y": 0
+          },
+          {
+            "id": "IN6",
+            "x": 90,
+            "y": 0
+          },
+          {
+            "id": "IN7",
+            "x": 105,
+            "y": 0
+          },
+          {
+            "id": "IN8",
+            "x": 0,
+            "y": 20
+          },
+          {
+            "id": "IN9",
+            "x": 15,
+            "y": 20
+          },
+          {
+            "id": "IN10",
+            "x": 30,
+            "y": 20
+          },
+          {
+            "id": "IN11",
+            "x": 45,
+            "y": 20
+          },
+          {
+            "id": "IN12",
+            "x": 60,
+            "y": 20
+          },
+          {
+            "id": "IN13",
+            "x": 75,
+            "y": 20
+          },
+          {
+            "id": "IN14",
+            "x": 90,
+            "y": 20
+          },
+          {
+            "id": "IN15",
+            "x": 105,
+            "y": 20
+          },
+          {
+            "id": "IN16",
+            "x": 0,
+            "y": 40
+          }
+        ]
+      },
+      {
+        "id": "max232",
+        "name": "MAX232 Serial Driver",
+        "type": "Serial Driver",
+        "footprint": "DIP-16",
+        "icon": "Plug",
+        "tags": [
+          "serial",
+          "driver",
+          "rs232",
+          "ic"
+        ],
+        "pins": [
+          {
+            "id": "Pin1",
+            "x": 15,
+            "y": 0
+          },
+          {
+            "id": "Pin2",
+            "x": 30,
+            "y": 0
+          },
+          {
+            "id": "Pin3",
+            "x": 45,
+            "y": 0
+          },
+          {
+            "id": "Pin4",
+            "x": 60,
+            "y": 0
+          },
+          {
+            "id": "Pin5",
+            "x": 75,
+            "y": 0
+          },
+          {
+            "id": "Pin6",
+            "x": 90,
+            "y": 0
+          },
+          {
+            "id": "Pin7",
+            "x": 105,
+            "y": 0
+          },
+          {
+            "id": "Pin8",
+            "x": 0,
+            "y": 20
+          },
+          {
+            "id": "Pin9",
+            "x": 15,
+            "y": 20
+          },
+          {
+            "id": "Pin10",
+            "x": 30,
+            "y": 20
+          },
+          {
+            "id": "Pin11",
+            "x": 45,
+            "y": 20
+          },
+          {
+            "id": "Pin12",
+            "x": 60,
+            "y": 20
+          },
+          {
+            "id": "Pin13",
+            "x": 75,
+            "y": 20
+          },
+          {
+            "id": "Pin14",
+            "x": 90,
+            "y": 20
+          },
+          {
+            "id": "Pin15",
+            "x": 105,
+            "y": 20
+          },
+          {
+            "id": "Pin16",
+            "x": 0,
+            "y": 40
+          }
+        ]
+      },
+      {
+        "id": "led_red",
+        "name": "Red LED",
+        "type": "LED",
+        "footprint": "0805",
+        "icon": "LED",
+        "tags": [
+          "led",
+          "light",
+          "output",
+          "indicator",
+          "active"
+        ],
+        "pins": [
+          {
+            "id": "Anode",
+            "x": 0,
+            "y": 0
+          },
+          {
+            "id": "Cathode",
+            "x": 20,
+            "y": 0
+          }
+        ]
+      },
+      {
+        "id": "led_green",
+        "name": "Green LED",
+        "type": "LED",
+        "footprint": "0805",
+        "icon": "LED",
+        "tags": [
+          "led",
+          "light",
+          "output",
+          "indicator",
+          "active"
+        ],
+        "pins": [
+          {
+            "id": "Anode",
+            "x": 0,
+            "y": 0
+          },
+          {
+            "id": "Cathode",
+            "x": 20,
+            "y": 0
+          }
+        ]
+      },
+      {
+        "id": "led_blue",
+        "name": "Blue LED",
+        "type": "LED",
+        "footprint": "0805",
+        "icon": "LED",
+        "tags": [
+          "led",
+          "light",
+          "output",
+          "indicator",
+          "active"
+        ],
+        "pins": [
+          {
+            "id": "Anode",
+            "x": 0,
+            "y": 0
+          },
+          {
+            "id": "Cathode",
+            "x": 20,
+            "y": 0
+          }
+        ]
+      }
   ]
 }
-
-

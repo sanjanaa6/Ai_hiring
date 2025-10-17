@@ -1,25 +1,42 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import PCBComponent from './PCBComponent';
-import { Trash2, ZoomIn, ZoomOut, Move, Grid, Layout } from 'lucide-react';
+import { Trash2, ZoomIn, ZoomOut, Move, Grid, Layout, Zap } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
+import { checkComponentPower, getLEDColor } from '../pcb-utils/CircuitPowerAnalysis';
 
 // Grid cell size for snapping (in pixels)
 const GRID_SIZE = 10; // 1mm = 10px
 
-const Canvas = ({ isDarkMode }) => {
-  // State for components placed on the canvas
-  const [components, setComponents] = useState([]);
+const Canvas = ({ 
+  isDarkMode,
+  componentStates = {},
+  components: externalComponents = [],
+  wires: externalWires = [],
+  wireGroups: externalWireGroups = {},
+  onCanvasStateChange,
+  onUndo,
+  onRedo,
+  canUndo,
+  canRedo
+}) => {
+  // Debug: Log when props change
+  console.log('[Canvas] Props received:', {
+    componentCount: externalComponents.length,
+    wireCount: externalWires.length,
+    componentStatesCount: Object.keys(componentStates).length,
+    components: externalComponents.map(c => ({ name: c.name, id: c.instanceId }))
+  });
+  
   // State for loaded component templates from JSON
   const [componentTemplates, setComponentTemplates] = useState([]);
   
+  // Add state for simulation visualization
+  const [showSimulation, setShowSimulation] = useState(false);
+  
   // State for wire drawing
-  const [wires, setWires] = useState([]);
   const [drawingWire, setDrawingWire] = useState(false);
   const [startPin, setStartPin] = useState(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-  
-  // State for wire grouping
-  const [wireGroups, setWireGroups] = useState({});
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [showGroupPanel, setShowGroupPanel] = useState(false);
   const [groupCategories] = useState([
@@ -43,6 +60,11 @@ const Canvas = ({ isDarkMode }) => {
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
   const [lastPanPoint, setLastPanPoint] = useState({ x: 0, y: 0 });
+  const [canvasSize, setCanvasSize] = useState({ width: 5000, height: 5000 }); // Default large canvas size
+  
+  // Zoom limits
+  const MIN_SCALE = 0.1;
+  const MAX_SCALE = 3;
   
   // State for grid snapping
   const [snapToGrid, setSnapToGrid] = useState(true);
@@ -106,6 +128,56 @@ const Canvas = ({ isDarkMode }) => {
     };
   }, [pan, scale]);
   
+  // Helper functions to manage state changes for undo/redo
+  const updateComponents = (newComponentsOrFn) => {
+    const newComponents = typeof newComponentsOrFn === 'function' 
+      ? newComponentsOrFn(externalComponents) 
+      : newComponentsOrFn;
+    console.log('[Canvas] updateComponents called:', {
+      currentCount: externalComponents.length,
+      newCount: newComponents.length,
+      currentComponents: externalComponents.map(c => c.name),
+      newComponents: newComponents.map(c => c.name)
+    });
+    onCanvasStateChange(newComponents, externalWires, externalWireGroups);
+  };
+
+  const updateWires = (newWiresOrFn) => {
+    const newWires = typeof newWiresOrFn === 'function' 
+      ? newWiresOrFn(externalWires) 
+      : newWiresOrFn;
+    onCanvasStateChange(externalComponents, newWires, externalWireGroups);
+  };
+
+  const updateWireGroups = (newWireGroupsOrFn) => {
+    const newWireGroups = typeof newWireGroupsOrFn === 'function' 
+      ? newWireGroupsOrFn(externalWireGroups) 
+      : newWireGroupsOrFn;
+    onCanvasStateChange(externalComponents, externalWires, newWireGroups);
+  };
+
+  const updateAllState = (newComponents, newWires, newWireGroups) => {
+    const finalComponents = newComponents || externalComponents;
+    const finalWires = newWires || externalWires;
+    const finalWireGroups = newWireGroups || externalWireGroups;
+    
+    // CRITICAL SAFETY CHECK: NEVER save empty component array
+    if (!finalComponents || finalComponents.length === 0) {
+      console.error('[Canvas] BLOCKED: Refusing to save empty component array!');
+      return; // DON'T SAVE EMPTY STATE
+    }
+    
+    // Verify all components have required properties
+    const validComponents = finalComponents.every(c => c && c.instanceId && c.name);
+    if (!validComponents) {
+      console.error('[Canvas] BLOCKED: Some components are invalid!');
+      return;
+    }
+    
+    // Save the state
+    onCanvasStateChange(finalComponents, finalWires, finalWireGroups);
+  };
+  
   // Handle component drop from sidebar
   const handleDrop = (e) => {
     e.preventDefault();
@@ -113,42 +185,50 @@ const Canvas = ({ isDarkMode }) => {
     
     // Get component data
     const componentData = e.dataTransfer.getData('component');
-    if (!componentData) return;
+    
+    // If no component data, this might be a component being repositioned (not from sidebar)
+    // In that case, we should ignore this drop event as it's handled by PCBComponent's dragEnd
+    if (!componentData) {
+      console.log('[Canvas] handleDrop: No component data, ignoring (component reposition handled by dragEnd)');
+      return;
+    }
     
     try {
       const componentInfo = JSON.parse(componentData);
       
-      // Look up the component template for additional data
+      // Look up the component template for additional data (fallback if needed)
       const template = componentTemplates.find(t => t.id === componentInfo.id);
       
       // Calculate drop position relative to canvas
       const canvasRect = canvasRef.current.getBoundingClientRect();
       const rawDropX = e.clientX - canvasRect.left;
       const rawDropY = e.clientY - canvasRect.top;
-      
+
       console.log(`Canvas Drop - Raw X: ${rawDropX}, Y: ${rawDropY}`);
-      
+
       // Convert to content coordinates
       const contentCoords = canvasToContent(rawDropX, rawDropY);
-      
+
       // Apply grid snapping
       const dropX = snapToGridValue(contentCoords.x);
       const dropY = snapToGridValue(contentCoords.y);
-      
+
       console.log(`Canvas Drop - Final X: ${dropX}, Y: ${dropY}`);
-      
-      // Get dimensions from template or use defaults
-      const width = template?.canvas?.width_px || template?.dimensions?.width_mm * 10 || 80;
-      const height = template?.canvas?.height_px || template?.dimensions?.height_mm * 10 || 60;
-      
-      // Process pins if available in template
-      const pins = template?.pins?.map(pin => ({
+
+      // Get dimensions - prioritize componentInfo (from drag), then template, then defaults
+      const width = componentInfo.width_px || template?.canvas?.width_px || template?.dimensions?.width_mm * 10 || 80;
+      const height = componentInfo.height_px || template?.canvas?.height_px || template?.dimensions?.height_mm * 10 || 60;
+
+      // Process pins - prioritize componentInfo pins (they have labels!), then template
+      const sourcePins = componentInfo.pins || template?.pins || [];
+      const pins = sourcePins.map(pin => ({
         ...pin,
         // Make sure we have pixel coordinates
         x_px: pin.x_px !== undefined ? pin.x_px : (pin.x_mm * 10),
         y_px: pin.y_px !== undefined ? pin.y_px : (pin.y_mm * 10),
-        // Ensure we have all pin metadata
+        // Ensure we have all pin metadata (keep label for +/- display!)
         id: pin.id || `pin-${Math.random().toString(36).substr(2, 9)}`,
+        label: pin.label || '', // Important for showing +, -, +5V, etc.
         type: pin.type || 'Digital IO',
         designation: pin.designation || '',
         voltage: pin.voltage || '',
@@ -169,7 +249,8 @@ const Canvas = ({ isDarkMode }) => {
       };
       
       console.log('Dropping component:', newComponent);
-      setComponents(prev => [...prev, newComponent]);
+      console.log('[Canvas] Before adding component - current components:', externalComponents.map(c => c.name));
+      updateComponents([...externalComponents, newComponent]);
       // Select the newly added component
       setSelectedComponent(newComponent.instanceId);
       setSelectedWire(null);
@@ -199,7 +280,7 @@ const Canvas = ({ isDarkMode }) => {
   const handlePinClick = (compId, pinId, pinX, pinY, pin) => {
     console.log("Pin clicked:", { compId, pinId, pinX, pinY, pin });
     
-    const component = components.find(comp => comp.instanceId === compId);
+    const component = externalComponents.find(comp => comp.instanceId === compId);
     if (!component) {
       console.error("Component not found:", compId);
       return;
@@ -258,7 +339,7 @@ const Canvas = ({ isDarkMode }) => {
           routingPoints: newWire.routingPoints
         });
         
-        setWires(prevWires => [...prevWires, newWire]);
+        updateWires(prevWires => [...prevWires, newWire]);
       } else {
         console.log("Canceled wire - same pin");
       }
@@ -354,83 +435,69 @@ const Canvas = ({ isDarkMode }) => {
       }));
       
       setLastPanPoint({ x: rawX, y: rawY });
+      
+      // Auto-expand canvas if needed (when approaching edges)
+      const threshold = 200; // pixels from edge to trigger expansion
+      if (Math.abs(pan.x) > canvasSize.width - canvasRect.width - threshold ||
+          Math.abs(pan.y) > canvasSize.height - canvasRect.height - threshold) {
+        setCanvasSize(prev => ({
+          width: prev.width + 1000,
+          height: prev.height + 1000
+        }));
+      }
+      
+      // Use debounced wire update during panning to prevent constant recalculation
+      // This significantly reduces the "floating wire" effect during panning
+      if (!window.wirePanUpdateTimer) {
+        window.wirePanUpdateTimer = setTimeout(() => {
+          window.wirePanUpdateTimer = null;
+          // Only update wire endpoints when panning stops or slows down
+          updateWireEndpoints();
+        }, 50); // Short delay to make wires feel responsive but avoid constant updates
+      }
     } else {
       // Otherwise, update mouse position for wire drawing
       const contentCoords = canvasToContent(rawX, rawY);
       setMousePosition(contentCoords);
     }
   };
-  
-  // Handle mouse down for panning
+
+  // Handle mouse down for panning - make it work with any mouse button
   const handleMouseDown = (e) => {
-    // Only pan with middle mouse button or if space is held while dragging
+    // Only pan when space is held or middle mouse button is pressed
+    // This prevents canvas panning when trying to move components
     if (e.button === 1 || (e.button === 0 && e.getModifierState('Space'))) {
       setIsPanning(true);
       setLastPanPoint({ 
         x: e.clientX - canvasRef.current.getBoundingClientRect().left, 
         y: e.clientY - canvasRef.current.getBoundingClientRect().top 
       });
-      // Prevent default behavior
+      // Prevent default browser behavior
       e.preventDefault();
     }
   };
-  
+
+  // Prevent context menu to allow right-click panning
+  const handleContextMenu = (e) => {
+    e.preventDefault();
+    return false;
+  };
+
+  // Replace wheel handling with scroll handling
+  const handleScroll = (e) => {
+    // No zoom, just scroll the canvas
+    if (!canvasRef.current) return;
+    
+    // Update wire endpoints after scrolling
+    updateWireEndpoints();
+  };
+
   // Handle mouse up to stop panning
   const handleMouseUp = () => {
     if (isPanning) {
       setIsPanning(false);
       setLastPanPoint(null);
     }
-  };
-  
-  // Handle wheel event for zooming - UPDATED to maintain wire connections
-  const handleWheel = (e) => {
-    e.preventDefault();
-    
-    if (!canvasRef.current) return;
-    
-    // Get mouse position in canvas coordinates
-    const canvasRect = canvasRef.current.getBoundingClientRect();
-    const mouseX = e.clientX - canvasRect.left;
-    const mouseY = e.clientY - canvasRect.top;
-    
-    // Convert to content coordinates (point to keep steady during zoom)
-    const contentPoint = canvasToContent(mouseX, mouseY);
-    
-    // Calculate new scale based on wheel delta
-    // Smoother zoom with percentage-based changes
-    const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9; // 10% change per wheel tick
-    const newScale = Math.max(0.1, Math.min(5, scale * zoomFactor));
-    
-    // Apply the zoom while keeping mouse point steady
-    applyZoom(newScale, contentPoint, { x: mouseX, y: mouseY });
-    
-    // Immediately update wire positions to prevent visual disconnection
-    // This is crucial to keep the wires properly attached during zoom
-    updateWireEndpoints();
-  };
-
-  // Apply zoom with better wire connection handling
-  const applyZoom = (newScale, contentPoint, canvasPoint) => {
-    // Calculate new pan to keep the focus point steady
-    const newPanX = canvasPoint.x - contentPoint.x * newScale;
-    const newPanY = canvasPoint.y - contentPoint.y * newScale;
-    
-    // Store the old scale for calculating adjustments
-    const oldScale = scale;
-    
-    // Update state with new scale and pan values
-    setScale(newScale);
-    setPan({ x: newPanX, y: newPanY });
-    
-    // Update wires synchronously for immediate visual coherence
-    // This is important to prevent the momentary disconnection during state updates
-    setTimeout(() => {
-      updateWireEndpoints();
-    }, 0);
-    
-    // Log scale change for debugging
-    console.log(`Zoom: ${oldScale.toFixed(2)} -> ${newScale.toFixed(2)}, Pan: (${newPanX.toFixed(0)}, ${newPanY.toFixed(0)})`);
   };
 
   // Handle component selection
@@ -448,7 +515,7 @@ const Canvas = ({ isDarkMode }) => {
       setSelectedWire(null); // Deselect any wire
     }
   };
-  
+
   // Handle wire selection
   const handleWireClick = (wireId, e) => {
     e.stopPropagation(); // Prevent canvas click from triggering
@@ -462,26 +529,26 @@ const Canvas = ({ isDarkMode }) => {
     // If shift is held, we're doing multi-selection for grouping
     if (e.shiftKey && selectedGroup) {
       // Toggle this wire in the selected group
-      const group = wireGroups[selectedGroup];
+      const group = externalWireGroups[selectedGroup];
       if (group) {
         const wireIds = group.wireIds.includes(wireId)
           ? group.wireIds.filter(id => id !== wireId)
           : [...group.wireIds, wireId];
           
-        setWireGroups({
-          ...wireGroups,
+        updateWireGroups(prev => ({
+          ...prev,
           [selectedGroup]: {
             ...group,
             wireIds
           }
-        });
+        }));
         return;
       }
     }
     
     // Check if wire is part of a group
     let wireGroupId = null;
-    for (const [groupId, group] of Object.entries(wireGroups)) {
+    for (const [groupId, group] of Object.entries(externalWireGroups)) {
       if (group.wireIds.includes(wireId)) {
         wireGroupId = groupId;
         break;
@@ -504,11 +571,16 @@ const Canvas = ({ isDarkMode }) => {
       }
     }
   };
-  
+
   // Cancel wire drawing if clicking on empty canvas
   const handleCanvasClick = (e) => {
-    // Only handle if we actually clicked the canvas itself, not a component
-    if (e.target === canvasRef.current) {
+    // Check if we clicked directly on the canvas or on canvas child elements (grid, wires SVG, etc.)
+    // but NOT on a component (components have their own click handler)
+    const clickedOnCanvas = e.target === canvasRef.current || 
+                           (canvasRef.current && canvasRef.current.contains(e.target) && 
+                            !e.target.closest('[data-component="true"]'));
+    
+    if (clickedOnCanvas) {
       if (drawingWire) {
         setDrawingWire(false);
         setStartPin(null);
@@ -519,7 +591,7 @@ const Canvas = ({ isDarkMode }) => {
       }
     }
   };
-  
+
   // Handle component dragging within the canvas
   const handleComponentDrag = (componentId, newX, newY) => {
     // Apply grid snapping
@@ -527,63 +599,133 @@ const Canvas = ({ isDarkMode }) => {
     const snappedY = snapToGridValue(newY);
     
     // Update component position
-    const updatedComponents = components.map(comp => 
+    console.log('[Canvas] Moving component:', componentId, 'to:', snappedX, snappedY);
+    
+    const updatedComponents = externalComponents.map(comp => 
       comp.instanceId === componentId 
         ? { ...comp, x: snappedX, y: snappedY } 
         : comp
     );
     
-    // Calculate updated wire positions
-    const updatedWires = wires.map(wire => {
-      // Only update wires connected to the moved component
-      if (wire.from.compId === componentId || wire.to.compId === componentId) {
-        // Get components and pins involved in this wire
-        const sourceComp = wire.from.compId === componentId 
-          ? updatedComponents.find(c => c.instanceId === componentId)
-          : updatedComponents.find(c => c.instanceId === wire.from.compId);
-            
-        const targetComp = wire.to.compId === componentId
-          ? updatedComponents.find(c => c.instanceId === componentId)
-          : updatedComponents.find(c => c.instanceId === wire.to.compId);
-        
-        if (!sourceComp || !targetComp) return wire;
-        
-        // Find pins
-        const sourcePin = sourceComp.pins.find(p => p.id === wire.from.pinId);
-        const targetPin = targetComp.pins.find(p => p.id === wire.to.pinId);
-        
-        if (!sourcePin || !targetPin) return wire;
-        
-        // Calculate absolute positions of pins in content space
-        const sourceX = sourceComp.x + sourcePin.x_px;
-        const sourceY = sourceComp.y + sourcePin.y_px;
-        const targetX = targetComp.x + targetPin.x_px;
-        const targetY = targetComp.y + targetPin.y_px;
-        
-        // Return updated wire
-        return {
-          ...wire,
-          from: {
-            ...wire.from,
-            x: sourceX,
-            y: sourceY,
-            pin: sourcePin
-          },
-          to: {
-            ...wire.to,
-            x: targetX,
-            y: targetY,
-            pin: targetPin
-          }
-        };
+    try {
+      
+      // Make sure we still have all components
+      if (updatedComponents.length !== externalComponents.length) {
+        console.error('[Canvas] ERROR: Component count mismatch!');
+        return; // Don't update if we lost components
       }
       
-      return wire;
-    });
-    
-    // Update all state in a single batch operation to prevent desync
-    setComponents(updatedComponents);
-    setWires(updatedWires);
+      // If there are no wires, just update components quickly
+      if (externalWires.length === 0) {
+        updateAllState(updatedComponents, externalWires, externalWireGroups);
+        return;
+      }
+      
+      // Calculate updated wire positions
+      const updatedWires = externalWires.map(wire => {
+        try {
+          // Only update wires connected to the moved component
+          if (wire.from.compId === componentId || wire.to.compId === componentId) {
+            // Get components and pins involved in this wire
+            const sourceComp = wire.from.compId === componentId 
+              ? updatedComponents.find(c => c.instanceId === componentId)
+              : updatedComponents.find(c => c.instanceId === wire.from.compId);
+                
+            const targetComp = wire.to.compId === componentId
+              ? updatedComponents.find(c => c.instanceId === componentId)
+              : updatedComponents.find(c => c.instanceId === wire.to.compId);
+            
+            if (!sourceComp || !targetComp) {
+              console.warn('[Canvas] Could not find components for wire:', wire.id);
+              return wire;
+            }
+            
+            // Find pins with defensive checks
+            if (!sourceComp.pins || !Array.isArray(sourceComp.pins) || 
+                !targetComp.pins || !Array.isArray(targetComp.pins)) {
+              console.warn('[Canvas] Components missing pins array:', {
+                sourceComp: sourceComp.name,
+                targetComp: targetComp.name
+              });
+              return wire;
+            }
+            
+            const sourcePin = sourceComp.pins.find(p => p.id === wire.from.pinId);
+            const targetPin = targetComp.pins.find(p => p.id === wire.to.pinId);
+            
+            if (!sourcePin || !targetPin) {
+              console.warn('[Canvas] Could not find pins for wire:', wire.id);
+              return wire;
+            }
+            
+            // Calculate absolute positions of pins in content space
+            const sourceX = sourceComp.x + (sourcePin.x_px || 0);
+            const sourceY = sourceComp.y + (sourcePin.y_px || 0);
+            const targetX = targetComp.x + (targetPin.x_px || 0);
+            const targetY = targetComp.y + (targetPin.y_px || 0);
+            
+            // Determine if we need to recalculate routing points
+            let newRoutingPoints = [...(wire.routingPoints || [])];
+            
+            // Always ensure first and last points match pin positions
+            if (newRoutingPoints.length >= 2) {
+              newRoutingPoints[0] = { x: sourceX, y: sourceY };
+              newRoutingPoints[newRoutingPoints.length - 1] = { x: targetX, y: targetY };
+            } else {
+              // If no routing points, calculate new ones
+              newRoutingPoints = calculateOrthogonalRoute(sourceX, sourceY, targetX, targetY);
+            }
+            
+            // Return updated wire
+            return {
+              ...wire,
+              from: {
+                ...wire.from,
+                x: sourceX,
+                y: sourceY,
+                pin: sourcePin
+              },
+              to: {
+                ...wire.to,
+                x: targetX,
+                y: targetY,
+                pin: targetPin
+              },
+              routingPoints: newRoutingPoints
+            };
+          }
+          
+          return wire;
+        } catch (wireError) {
+          console.error('[Canvas] Error updating wire:', wireError);
+          return wire; // Return original wire if update fails
+        }
+      });
+      
+      console.log('[Canvas] About to update state with:', {
+        componentsCount: updatedComponents.length,
+        wiresCount: updatedWires.length,
+        componentNames: updatedComponents.map(c => c.name)
+      });
+      
+      // Final verification before updating state
+      if (updatedComponents.length === 0) {
+        console.error('[Canvas] CRITICAL ERROR: About to save empty component array! Aborting!');
+        return;
+      }
+      
+      // Update all state in a single batch operation to prevent desync
+      updateAllState(updatedComponents, updatedWires, externalWireGroups);
+    } catch (error) {
+      console.error('[Canvas] Critical error in handleComponentDrag:', error);
+      // Even if wire updates failed, ALWAYS update component position
+      console.warn('[Canvas] Updating components only, wires may not be synced');
+      try {
+        updateAllState(updatedComponents, externalWires, externalWireGroups);
+      } catch (secondError) {
+        console.error('[Canvas] Failed to update even without wire changes:', secondError);
+      }
+    }
   };
 
   // Better handle component drag start
@@ -593,10 +735,16 @@ const Canvas = ({ isDarkMode }) => {
     setSelectedWire(null);
     
     // Get the component from state
-    const component = components.find(c => c.instanceId === componentId);
+    const component = externalComponents.find(c => c.instanceId === componentId);
     if (component) {
       console.log(`Canvas: Component drag started - ${component.name} (${componentId})`);
     }
+  };
+
+  // Handle component drag end - syncs wire positions after dragging
+  const handleComponentDragEnd = (componentId) => {
+    // Make sure wire endpoints are updated after dragging
+    updateWireEndpoints();
   };
 
   // Update wire positions based on component positions - much more robust implementation
@@ -605,7 +753,7 @@ const Canvas = ({ isDarkMode }) => {
     
     // First create a mapping of components and pins for efficient lookup
     const componentMap = {};
-    components.forEach(comp => {
+    externalComponents.forEach(comp => {
       componentMap[comp.instanceId] = {
         ...comp,
         pinMap: {}
@@ -620,7 +768,7 @@ const Canvas = ({ isDarkMode }) => {
     // Don't update state if no changes are needed
     let hasChanges = false;
     
-    const updatedWires = wires.map(wire => {
+    const updatedWires = externalWires.map(wire => {
       // Use the component map for faster lookups
       const sourceComp = componentMap[wire.from.compId];
       const targetComp = componentMap[wire.to.compId];
@@ -689,9 +837,9 @@ const Canvas = ({ isDarkMode }) => {
     
     // Only update state if something actually changed
     if (hasChanges) {
-      setWires(updatedWires);
+      updateWires(updatedWires);
     }
-  }, [components, wires, calculateOrthogonalRoute]);
+  }, [externalComponents, externalWires, calculateOrthogonalRoute]);
 
   // Add a complete zoom and pan sync handler as a separate function
   const syncWirePositionsAfterZoom = useCallback(() => {
@@ -699,7 +847,7 @@ const Canvas = ({ isDarkMode }) => {
     
     // Get the current component positions and pins first
     const componentMap = {};
-    components.forEach(comp => {
+    externalComponents.forEach(comp => {
       componentMap[comp.instanceId] = {
         ...comp,
         pinMap: {}
@@ -715,7 +863,7 @@ const Canvas = ({ isDarkMode }) => {
     let needsUpdate = false;
     
     // Now update all wire coordinates to match current pin positions precisely
-    const updatedWires = wires.map(wire => {
+    const updatedWires = externalWires.map(wire => {
       const sourceComp = componentMap[wire.from.compId];
       const targetComp = componentMap[wire.to.compId];
       
@@ -773,24 +921,24 @@ const Canvas = ({ isDarkMode }) => {
     
     // Only set state if there are actual changes
     if (needsUpdate) {
-      setWires(updatedWires);
+      updateWires(updatedWires);
     }
-  }, [components, wires, calculateOrthogonalRoute]);
+  }, [externalComponents, externalWires, calculateOrthogonalRoute]);
 
   // Use effect to update wire positions when components change or zoom changes
   useEffect(() => {
-    if (components.length > 0) {
+    if (externalComponents.length > 0) {
       // Debounce wire position updates to prevent excessive updates
       const timer = setTimeout(() => {
         updateWirePositions();
       }, 0);
       return () => clearTimeout(timer);
     }
-  }, [components, updateWirePositions]);
+  }, [externalComponents, updateWirePositions]);
 
   // Add a separate useEffect specifically for zoom and scale to fix disconnection issue
   useEffect(() => {
-    if (components.length > 0 && wires.length > 0) {
+    if (externalComponents.length > 0 && externalWires.length > 0) {
       // Immediate update of wire endpoints during zoom/pan
       const timer = setTimeout(() => {
         updateWireEndpoints();
@@ -799,16 +947,14 @@ const Canvas = ({ isDarkMode }) => {
     }
   }, [scale, pan]);
 
-  // Add a dedicated wire endpoint updater function
+  // Update wire endpoints function - complete rewrite to fix wire snapping issues
   const updateWireEndpoints = () => {
     // Only proceed if we have components and wires
-    if (components.length === 0 || wires.length === 0) return;
-    
-    console.log("Updating wire endpoints to maintain pin connections");
+    if (externalComponents.length === 0 || externalWires.length === 0) return;
     
     // Create a map of components and pins for quick lookups
     const componentMap = {};
-    components.forEach(comp => {
+    externalComponents.forEach(comp => {
       componentMap[comp.instanceId] = {
         ...comp,
         pinMap: {}
@@ -820,8 +966,8 @@ const Canvas = ({ isDarkMode }) => {
       });
     });
     
-    // Update wire coordinates to match current pin positions
-    setWires(prevWires => {
+    // Fix wire coordinates to precisely match pin positions
+    updateWires(prevWires => {
       // Check if any wire needs updates
       let hasChanges = false;
       
@@ -838,20 +984,25 @@ const Canvas = ({ isDarkMode }) => {
         
         if (!sourcePin || !targetPin) return wire;
         
-        // Calculate absolute positions based on current component positions
+        // Calculate absolute positions based on EXACT current component positions
         const sourceX = sourceComp.x + sourcePin.x_px;
         const sourceY = sourceComp.y + sourcePin.y_px;
         const targetX = targetComp.x + targetPin.x_px;
         const targetY = targetComp.y + targetPin.y_px;
         
         // Check if the wire needs updating
-        if (wire.from.x !== sourceX || wire.from.y !== sourceY ||
-            wire.to.x !== targetX || wire.to.y !== targetY) {
-          
+        const needsUpdate = 
+          Math.abs(wire.from.x - sourceX) > 0.1 || 
+          Math.abs(wire.from.y - sourceY) > 0.1 ||
+          Math.abs(wire.to.x - targetX) > 0.1 || 
+          Math.abs(wire.to.y - targetY) > 0.1;
+        
+        if (needsUpdate) {
           hasChanges = true;
           
-          // Create a copy of wire routing points
+          // Always adjust the endpoints in the routingPoints
           let newRoutePoints = wire.routingPoints ? [...wire.routingPoints] : [];
+          
           
           // Ensure we have at least start and end points
           if (newRoutePoints.length < 2) {
@@ -860,33 +1011,91 @@ const Canvas = ({ isDarkMode }) => {
               { x: targetX, y: targetY }
             ];
           } else {
+            // Get the original first and last points for calculating deltas
+            const origFromX = wire.from.x;
+            const origFromY = wire.from.y;
+            const origToX = wire.to.x;
+            const origToY = wire.to.y;
+            
+            // Calculate position deltas from original component positions
+            const deltaFromX = sourceX - origFromX;
+            const deltaFromY = sourceY - origFromY;
+            const deltaToX = targetX - origToX;
+            const deltaToY = targetY - origToY;
+            
             // Update endpoints to match component pins
             newRoutePoints[0] = { x: sourceX, y: sourceY };
             newRoutePoints[newRoutePoints.length - 1] = { x: targetX, y: targetY };
             
             // If there are intermediate points, update adjacent points to maintain orthogonality
             if (newRoutePoints.length > 2) {
-              // Update second point to align with first point
-              const isFirstSegmentHorizontal = Math.abs(newRoutePoints[1].y - newRoutePoints[0].y) < 5;
+              // Update second point (connected to start point)
+              const secondPoint = newRoutePoints[1];
+              const isFirstSegmentHorizontal = Math.abs(secondPoint.y - newRoutePoints[0].y) < 5;
+              
               if (isFirstSegmentHorizontal) {
-                // Keep y-coordinate aligned with start point
-                newRoutePoints[1] = { x: newRoutePoints[1].x, y: sourceY };
+                // If horizontal segment, update Y coordinate to match start point
+                newRoutePoints[1] = { 
+                  x: secondPoint.x, // Keep X position 
+                  y: sourceY // Match source Y position
+                };
               } else {
-                // Keep x-coordinate aligned with start point
-                newRoutePoints[1] = { x: sourceX, y: newRoutePoints[1].y };
+                // If vertical segment, update X coordinate to match start point
+                newRoutePoints[1] = { 
+                  x: sourceX, // Match source X position
+                  y: secondPoint.y // Keep Y position
+                };
               }
               
-              // Update second-to-last point to align with last point
+              // Update second-to-last point (connected to end point)
               const lastIdx = newRoutePoints.length - 1;
               const secondLastIdx = lastIdx - 1;
-              const isLastSegmentHorizontal = Math.abs(newRoutePoints[secondLastIdx].y - newRoutePoints[lastIdx].y) < 5;
+              const secondLastPoint = newRoutePoints[secondLastIdx];
+              const isLastSegmentHorizontal = Math.abs(secondLastPoint.y - newRoutePoints[lastIdx].y) < 5;
               
               if (isLastSegmentHorizontal) {
-                // Keep y-coordinate aligned with end point
-                newRoutePoints[secondLastIdx] = { x: newRoutePoints[secondLastIdx].x, y: targetY };
+                // If horizontal segment, update Y coordinate to match end point
+                newRoutePoints[secondLastIdx] = { 
+                  x: secondLastPoint.x, // Keep X position
+                  y: targetY // Match target Y position
+                };
               } else {
-                // Keep x-coordinate aligned with end point
-                newRoutePoints[secondLastIdx] = { x: targetX, y: newRoutePoints[secondLastIdx].y };
+                // If vertical segment, update X coordinate to match end point
+                newRoutePoints[secondLastIdx] = { 
+                  x: targetX, // Match target X position
+                  y: secondLastPoint.y // Keep Y position
+                };
+              }
+              
+              // For intermediate points (if more than 4 points total), maintain relative positions
+              if (newRoutePoints.length > 4) {
+                for (let i = 2; i < newRoutePoints.length - 2; i++) {
+                  // Determine if this point should be influenced by start or end component
+                  const distanceToStart = i;
+                  const distanceToEnd = newRoutePoints.length - 1 - i;
+                  
+                  // If closer to start, use start component delta
+                  if (distanceToStart < distanceToEnd) {
+                    newRoutePoints[i] = {
+                      x: newRoutePoints[i].x + deltaFromX,
+                      y: newRoutePoints[i].y + deltaFromY
+                    };
+                  } 
+                  // If closer to end, use end component delta
+                  else if (distanceToEnd < distanceToStart) {
+                    newRoutePoints[i] = {
+                      x: newRoutePoints[i].x + deltaToX,
+                      y: newRoutePoints[i].y + deltaToY
+                    };
+                  }
+                  // If equidistant, take the average delta
+                  else {
+                    newRoutePoints[i] = {
+                      x: newRoutePoints[i].x + (deltaFromX + deltaToX) / 2,
+                      y: newRoutePoints[i].y + (deltaFromY + deltaToY) / 2
+                    };
+                  }
+                }
               }
             }
           }
@@ -919,7 +1128,7 @@ const Canvas = ({ isDarkMode }) => {
 
   // Use effect to update wire endpoints when scale or pan changes
   useEffect(() => {
-    if (components.length > 0 && wires.length > 0) {
+    if (externalComponents.length > 0 && externalWires.length > 0) {
       // Use a timeout to prevent excessive updates
       const timer = setTimeout(() => {
         updateWireEndpoints();
@@ -928,63 +1137,13 @@ const Canvas = ({ isDarkMode }) => {
     }
   }, [scale, pan]);
 
-  // Next, modify the zoom event handler to update wires immediately
-  const handleWheel = (e) => {
-    e.preventDefault();
-    
-    if (!canvasRef.current) return;
-    
-    // Get mouse position in canvas coordinates
-    const canvasRect = canvasRef.current.getBoundingClientRect();
-    const mouseX = e.clientX - canvasRect.left;
-    const mouseY = e.clientY - canvasRect.top;
-    
-    // Convert to content coordinates (point to keep steady during zoom)
-    const contentPoint = canvasToContent(mouseX, mouseY);
-    
-    // Calculate new scale based on wheel delta
-    // Smoother zoom with percentage-based changes
-    const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9; // 10% change per wheel tick
-    const newScale = Math.max(0.1, Math.min(5, scale * zoomFactor));
-    
-    // Apply the zoom while keeping mouse point steady
-    applyZoom(newScale, contentPoint, { x: mouseX, y: mouseY });
-    
-    // Immediately update wire positions to prevent visual disconnection
-    // This is crucial to keep the wires properly attached during zoom
-    updateWireEndpoints();
-  };
-
-  // Also, fix the applyZoom function to trigger wire updates directly
-  const applyZoom = (newScale, contentPoint, canvasPoint) => {
-    // Calculate new pan to keep the focus point steady
-    const newPanX = canvasPoint.x - contentPoint.x * newScale;
-    const newPanY = canvasPoint.y - contentPoint.y * newScale;
-    
-    // Store the old scale for calculating adjustments
-    const oldScale = scale;
-    
-    // Update state with new scale and pan values
-    setScale(newScale);
-    setPan({ x: newPanX, y: newPanY });
-    
-    // Update wires synchronously for immediate visual coherence
-    // This is important to prevent the momentary disconnection during state updates
-    setTimeout(() => {
-      updateWireEndpoints();
-    }, 0);
-    
-    // Log scale change for debugging
-    console.log(`Zoom: ${oldScale.toFixed(2)} -> ${newScale.toFixed(2)}, Pan: (${newPanX.toFixed(0)}, ${newPanY.toFixed(0)})`);
-  };
-
   // Now improve the renderWires function to always use the direct component pin locations
   // This ensures that the visual rendering exactly matches the component positions
   const renderWires = () => {
-    return wires.map((wire) => {
+    return externalWires.map((wire) => {
       // Find source and target components for tooltips
-      const sourceComp = components.find(c => c.instanceId === wire.from.compId);
-      const targetComp = components.find(c => c.instanceId === wire.to.compId);
+      const sourceComp = externalComponents.find(c => c.instanceId === wire.from.compId);
+      const targetComp = externalComponents.find(c => c.instanceId === wire.to.compId);
       
       if (!sourceComp || !targetComp) return null;
       
@@ -995,7 +1154,7 @@ const Canvas = ({ isDarkMode }) => {
       if (!sourcePin || !targetPin) return null;
       
       // CRITICAL: Calculate absolute positions of pins based on CURRENT component positions
-      // This ensures wires stay connected regardless of zoom level
+      // This ensures wires stay connected regardless of zoom level - don't use wire.from/to coords
       const startX = sourceComp.x + sourcePin.x_px;
       const startY = sourceComp.y + sourcePin.y_px;
       const endX = targetComp.x + targetPin.x_px;
@@ -1016,6 +1175,7 @@ const Canvas = ({ isDarkMode }) => {
         const routePoints = [...wire.routingPoints];
         
         // Always set first and last points to match component pin positions exactly
+        // This is crucial for maintaining connections during zoom
         routePoints[0] = { x: startX, y: startY };
         routePoints[routePoints.length - 1] = { x: endX, y: endY };
         
@@ -1128,7 +1288,7 @@ const Canvas = ({ isDarkMode }) => {
       
       // Check if wire is in selected group
       const isInSelectedGroup = selectedGroup && 
-        wireGroups[selectedGroup]?.wireIds.includes(wire.id);
+        externalWireGroups[selectedGroup]?.wireIds.includes(wire.id);
       
       // Get wire color based on selection, grouping, and pin types
       const wireColor = getWireColor(wire, isSelected);
@@ -1351,129 +1511,7 @@ const Canvas = ({ isDarkMode }) => {
     });
   };
 
-  // Second, modify the handleWireMouseMove to ensure strictly horizontal/vertical dragging
-  const handleWireMouseMove = (e) => {
-    if (!canvasRef.current) return;
-    
-    // Early exit if we're not dragging anything
-    if (!draggedPoint && !draggedSegment) return;
-    
-    const canvasRect = canvasRef.current.getBoundingClientRect();
-    const rawX = e.clientX - canvasRect.left;
-    const rawY = e.clientY - canvasRect.top;
-    
-    // Convert to content coordinates
-    const contentCoords = canvasToContent(rawX, rawY);
-    
-    // Apply grid snapping if enabled
-    const newX = snapToGrid ? snapToGridValue(contentCoords.x) : contentCoords.x;
-    const newY = snapToGrid ? snapToGridValue(contentCoords.y) : contentCoords.y;
-    
-    // If we're dragging a point, update its position
-    if (draggedPoint) {
-      const { wireId, pointIndex } = draggedPoint;
-      const wire = wires.find(w => w.id === wireId);
-      
-      if (!wire || !wire.routingPoints || pointIndex < 1 || pointIndex >= wire.routingPoints.length - 1) return;
-      
-      // Find the points before and after this point to determine constraints
-      const prevPoint = wire.routingPoints[pointIndex - 1];
-      const nextPoint = pointIndex < wire.routingPoints.length - 1 ? wire.routingPoints[pointIndex + 1] : null;
-      
-      // Determine which axis this point can move along
-      // For strictly orthogonal wires, each point should only move along one axis
-      
-      // If we're at an endpoint, don't allow dragging
-      if (pointIndex === 0 || pointIndex === wire.routingPoints.length - 1) return;
-      
-      // Determine if we're on a horizontal or vertical segment
-      const prevSegmentIsHorizontal = Math.abs(wire.routingPoints[pointIndex].y - prevPoint.y) < 5;
-      const nextSegmentIsHorizontal = nextPoint && Math.abs(wire.routingPoints[pointIndex].y - nextPoint.y) < 5;
-      
-      let updatedPoint = { x: wire.routingPoints[pointIndex].x, y: wire.routingPoints[pointIndex].y };
-      const affectedPoints = [];
-      
-      // Handle different dragging scenarios to maintain strict orthogonality
-      if (prevSegmentIsHorizontal && nextSegmentIsHorizontal) {
-        // Movement is vertical only, keeping x from original point
-        updatedPoint.y = newY;
-        
-        // When we have a horizontal-vertical-horizontal pattern, moving the middle point vertically
-        affectedPoints.push({ index: pointIndex - 1, update: { x: null, y: newY } });
-        if (nextPoint) {
-          affectedPoints.push({ index: pointIndex + 1, update: { x: null, y: newY } });
-        }
-      } 
-      else if (!prevSegmentIsHorizontal && !nextSegmentIsHorizontal) {
-        // Movement is horizontal only, keeping y from original point
-        updatedPoint.x = newX;
-        
-        // When we have a vertical-horizontal-vertical pattern, moving the middle point horizontally
-        affectedPoints.push({ index: pointIndex - 1, update: { x: newX, y: null } });
-        if (nextPoint) {
-          affectedPoints.push({ index: pointIndex + 1, update: { x: newX, y: null } });
-        }
-      }
-      else {
-        // We're at a corner, we need to maintain orthogonality differently
-        // Determine if we're at a corner point
-        const isCorner = (prevSegmentIsHorizontal && !nextSegmentIsHorizontal) || 
-                         (!prevSegmentIsHorizontal && nextSegmentIsHorizontal);
-        
-        if (isCorner) {
-          // For corner points, we can move both x and y, but need to update adjacent points
-          updatedPoint = { x: newX, y: newY };
-          
-          // Update the previous point to maintain the orthogonal connection
-          if (prevSegmentIsHorizontal) {
-            // Previous segment is horizontal, so keep its y but change x
-            affectedPoints.push({ index: pointIndex - 1, update: { x: null, y: newY } });
-          } else {
-            // Previous segment is vertical, so keep its x but change y
-            affectedPoints.push({ index: pointIndex - 1, update: { x: newX, y: null } });
-          }
-          
-          // Update the next point to maintain the orthogonal connection
-          if (nextPoint) {
-            if (nextSegmentIsHorizontal) {
-              // Next segment is horizontal, so keep its y but change x
-              affectedPoints.push({ index: pointIndex + 1, update: { x: null, y: newY } });
-            } else {
-              // Next segment is vertical, so keep its x but change y
-              affectedPoints.push({ index: pointIndex + 1, update: { x: newX, y: null } });
-            }
-          }
-        }
-      }
-      
-      // Apply updates to wire
-      setWires(prevWires => prevWires.map(w => {
-        if (w.id !== wireId) return w;
-        
-        // Create new routing points with the updated point
-        const newPoints = [...w.routingPoints];
-        
-        // Update the dragged point
-        newPoints[pointIndex] = updatedPoint;
-        
-        // Update affected adjacent points to maintain orthogonality
-        affectedPoints.forEach(({ index, update }) => {
-          if (index >= 0 && index < newPoints.length) {
-            if (update.x !== null) {
-              newPoints[index] = { ...newPoints[index], x: update.x };
-            }
-            if (update.y !== null) {
-              newPoints[index] = { ...newPoints[index], y: update.y };
-            }
-          }
-        });
-        
-        return { ...w, routingPoints: newPoints };
-      }));
-    }
-  };
-
-  // Handle mouse down for wire editing
+  // Handle segment click for wire editing with improved bends
   const handleSegmentMouseDown = (wireId, segmentIndex, e) => {
     e.stopPropagation();
     
@@ -1504,73 +1542,182 @@ const Canvas = ({ isDarkMode }) => {
     // Only proceed if we're not already dragging/editing
     if (draggedPoint !== null || draggedSegment !== null) return;
     
-    const wire = wires.find(w => w.id === wireId);
+    const wire = externalWires.find(w => w.id === wireId);
     if (!wire || !wire.routingPoints || wire.routingPoints.length < 2) return;
     
     // Start dragging this segment
     setEditingWire(wireId);
     setDraggedSegment({ wireId, segmentIndex });
     
-    // Handle dragging based on segment orientation (horizontal or vertical)
+    // Get current wire segment points
     const start = wire.routingPoints[segmentIndex];
     const end = wire.routingPoints[segmentIndex + 1];
     
-    // Calculate the initial point for the new turn
-    // For Eagle-style professional routing, we need to determine if this is a horizontal or vertical segment
-    const isHorizontalSegment = Math.abs(end.y - start.y) < 5; // Threshold for detecting horizontal segments
+    // Get the mouse position in canvas content coordinates
+    const canvasRect = canvasRef.current.getBoundingClientRect();
+    const mouseX = (e.clientX - canvasRect.left - pan.x) / scale;
+    const mouseY = (e.clientY - canvasRect.top - pan.y) / scale;
     
-    // Create a new routing points array that respects Eagle-style routing
-    // For horizontal segments, we only allow vertical movement and vice versa
+    // Apply grid snapping if enabled
+    const snappedMouseX = snapToGridValue(mouseX);
+    const snappedMouseY = snapToGridValue(mouseY);
+    
+    // Determine if this is a horizontal or vertical segment
+    const isHorizontalSegment = Math.abs(end.y - start.y) < 5;
+    
+    // Create a new copy of routing points for modification
+    const newPoints = [...wire.routingPoints];
+    
     if (isHorizontalSegment) {
-      // For horizontal segments, we'll insert two points to create a vertical offset
-      const midX = (start.x + end.x) / 2;
-      const newPoints = [...wire.routingPoints];
-      
-      // Insert two new points to create a vertical jog
+      // For horizontal segments:
+      // Insert two new points to create a vertical bend
       newPoints.splice(segmentIndex + 1, 0, 
-        { x: midX, y: start.y },
-        { x: midX, y: start.y } // Y coordinate will be updated when dragging
+        { x: snappedMouseX, y: start.y },  // First new point - same height as segment
+        { x: snappedMouseX, y: snappedMouseY }  // Second new point - at mouse position
       );
-      
-      // Update the wire with the new routing
-      setWires(prevWires => prevWires.map(w => 
-        w.id === wireId 
-          ? { ...w, routingPoints: newPoints }
-          : w
-      ));
-      
-      // Set the second newly created point as the dragged point
-      // This will be the one that moves vertically
-      setDraggedPoint({ wireId, pointIndex: segmentIndex + 2 });
     } else {
-      // For vertical segments, we'll insert two points to create a horizontal offset
-      const midY = (start.y + end.y) / 2;
+      // For vertical segments:
+      // Insert two new points to create a horizontal bend
+      newPoints.splice(segmentIndex + 1, 0, 
+        { x: start.x, y: snappedMouseY },  // First new point - same horizontal position as segment
+        { x: snappedMouseX, y: snappedMouseY }  // Second new point - at mouse position
+      );
+    }
+    
+    // Update the wire with new routing points
+    updateWires(prevWires => prevWires.map(w => 
+      w.id === wireId 
+        ? { ...w, routingPoints: newPoints }
+        : w
+    ));
+    
+    // Set the second newly created point as the dragged point
+    // This will be the one that can be moved to shape the wire
+    setDraggedPoint({ wireId, pointIndex: segmentIndex + 2 });
+  };
+
+  // Improved wire point dragging with better constraints
+  const handleWireMouseMove = (e) => {
+    if (!canvasRef.current) return;
+    
+    // Early exit if we're not dragging anything
+    if (!draggedPoint && !draggedSegment) return;
+    
+    const canvasRect = canvasRef.current.getBoundingClientRect();
+    const rawX = e.clientX - canvasRect.left;
+    const rawY = e.clientY - canvasRect.top;
+    
+    // Convert to content coordinates
+    const contentCoords = canvasToContent(rawX, rawY);
+    
+    // Apply grid snapping if enabled
+    const newX = snapToGrid ? snapToGridValue(contentCoords.x) : contentCoords.x;
+    const newY = snapToGrid ? snapToGridValue(contentCoords.y) : contentCoords.y;
+    
+    // If we're dragging a point, update its position
+    if (draggedPoint) {
+      const { wireId, pointIndex } = draggedPoint;
+      const wire = externalWires.find(w => w.id === wireId);
+      
+      if (!wire || !wire.routingPoints || pointIndex < 1 || pointIndex >= wire.routingPoints.length - 1) return;
+      
+      // Create a copy of the routing points
       const newPoints = [...wire.routingPoints];
       
-      // Insert two new points to create a horizontal jog
-      newPoints.splice(segmentIndex + 1, 0, 
-        { x: start.x, y: midY },
-        { x: start.x, y: midY } // X coordinate will be updated when dragging
-      );
+      // Find the points before and after this point to determine constraints
+      const prevPoint = newPoints[pointIndex - 1];
+      const nextPoint = pointIndex < newPoints.length - 1 ? newPoints[pointIndex + 1] : null;
       
-      // Update the wire with the new routing
-      setWires(prevWires => prevWires.map(w => 
+      // Determine if this is a corner point that connects horizontal and vertical segments
+      const prevSegmentHorizontal = Math.abs(prevPoint.y - newPoints[pointIndex].y) < 5;
+      const nextSegmentHorizontal = nextPoint && Math.abs(nextPoint.y - newPoints[pointIndex].y) < 5;
+      
+      // Maintain orthogonal wiring during dragging
+      if (prevSegmentHorizontal === nextSegmentHorizontal) {
+        // This is a middle point of a straight segment
+        if (prevSegmentHorizontal) {
+          // Horizontal segment - only allow vertical movement
+          newPoints[pointIndex] = { x: newPoints[pointIndex].x, y: newY };
+          
+          // Adjust adjacent points to match
+          if (pointIndex > 0) {
+            newPoints[pointIndex - 1] = { ...newPoints[pointIndex - 1], y: newY };
+          }
+          if (pointIndex < newPoints.length - 1) {
+            newPoints[pointIndex + 1] = { ...newPoints[pointIndex + 1], y: newY };
+          }
+        } else {
+          // Vertical segment - only allow horizontal movement
+          newPoints[pointIndex] = { x: newX, y: newPoints[pointIndex].y };
+          
+          // Adjust adjacent points to match
+          if (pointIndex > 0) {
+            newPoints[pointIndex - 1] = { ...newPoints[pointIndex - 1], x: newX };
+          }
+          if (pointIndex < newPoints.length - 1) {
+            newPoints[pointIndex + 1] = { ...newPoints[pointIndex + 1], x: newX };
+          }
+        }
+      } else {
+        // This is a corner point where direction changes
+        newPoints[pointIndex] = { x: newX, y: newY };
+        
+        // Adjust adjacent points to maintain orthogonality
+        if (prevSegmentHorizontal) {
+          // Previous segment is horizontal, next is vertical
+          newPoints[pointIndex - 1] = { ...newPoints[pointIndex - 1], y: newPoints[pointIndex].y };
+          if (nextPoint) {
+            newPoints[pointIndex + 1] = { ...newPoints[pointIndex + 1], x: newPoints[pointIndex].x };
+          }
+        } else {
+          // Previous segment is vertical, next is horizontal
+          newPoints[pointIndex - 1] = { ...newPoints[pointIndex - 1], x: newPoints[pointIndex].x };
+          if (nextPoint) {
+            newPoints[pointIndex + 1] = { ...newPoints[pointIndex + 1], y: newPoints[pointIndex].y };
+          }
+        }
+      }
+      
+      // Update the wire with the new routing points
+      updateWires(prevWires => prevWires.map(w => 
         w.id === wireId 
           ? { ...w, routingPoints: newPoints }
           : w
       ));
-      
-      // Set the second newly created point as the dragged point
-      // This will be the one that moves horizontally
-      setDraggedPoint({ wireId, pointIndex: segmentIndex + 2 });
     }
   };
 
+  // Enhanced segment hover detection
+  const handleSegmentMouseOver = (wireId, segmentIndex) => {
+    // Only set hover when we're not already dragging
+    if (!draggedPoint && !draggedSegment) {
+      setHoverSegment({ wireId, segmentIndex });
+      
+      // Change cursor to indicate that segments can be clicked to add bends
+      if (canvasRef.current) {
+        canvasRef.current.style.cursor = 'crosshair';
+      }
+    }
+  };
+
+  const handleSegmentMouseOut = () => {
+    // Clear hover state when mouse leaves
+    if (!draggedPoint && !draggedSegment) {
+      setHoverSegment(null);
+      
+      // Reset cursor
+      if (canvasRef.current) {
+        canvasRef.current.style.cursor = isPanning ? 'grabbing' : 'default';
+      }
+    }
+  };
+
+  // Handle mouse down for wire editing
   const handlePointMouseDown = (wireId, pointIndex, e) => {
     e.stopPropagation();
     
     // Only handle interior points (not endpoints)
-    const wire = wires.find(w => w.id === wireId);
+    const wire = externalWires.find(w => w.id === wireId);
     if (!wire || !wire.routingPoints) return;
     
     // Skip endpoints (first and last points)
@@ -1588,20 +1735,6 @@ const Canvas = ({ isDarkMode }) => {
     setDraggedSegment(null);
   };
 
-  const handleSegmentMouseOver = (wireId, segmentIndex) => {
-    // Only set hover when we're not already dragging
-    if (!draggedPoint && !draggedSegment) {
-      setHoverSegment({ wireId, segmentIndex });
-    }
-  };
-
-  const handleSegmentMouseOut = () => {
-    // Clear hover state when mouse leaves
-    if (!draggedPoint && !draggedSegment) {
-      setHoverSegment(null);
-    }
-  };
-
   // Helper function to determine if a wire segment is hovered
   const isSegmentHovered = (wireId, segmentIndex) => {
     return hoverSegment && 
@@ -1613,86 +1746,84 @@ const Canvas = ({ isDarkMode }) => {
   const handleDelete = () => {
     if (selectedComponent) {
       // Delete the component
-      setComponents(prev => prev.filter(comp => comp.instanceId !== selectedComponent));
+      const newComponents = externalComponents.filter(comp => comp.instanceId !== selectedComponent);
 
       // Delete any wires connected to this component
-      setWires(prev => prev.filter(wire => 
+      const newWires = externalWires.filter(wire => 
         wire.from.compId !== selectedComponent && 
         wire.to.compId !== selectedComponent
-      ));
+      );
       
       // Update wire groups
-      setWireGroups(prev => {
-        const updatedGroups = {};
-        let modified = false;
+      const newWireGroups = {};
+      let modified = false;
+      
+      // For each group, filter out wires that are connected to the deleted component
+      Object.entries(externalWireGroups).forEach(([groupId, group]) => {
+        const connectedWires = externalWires.filter(wire => 
+          wire.from.compId === selectedComponent || 
+          wire.to.compId === selectedComponent
+        ).map(wire => wire.id);
         
-        // For each group, filter out wires that are connected to the deleted component
-        Object.entries(prev).forEach(([groupId, group]) => {
-          const connectedWires = wires.filter(wire => 
-            wire.from.compId === selectedComponent || 
-            wire.to.compId === selectedComponent
-          ).map(wire => wire.id);
-          
-          const updatedWireIds = group.wireIds.filter(wireId => 
-            !connectedWires.includes(wireId)
-          );
-          
-          if (updatedWireIds.length !== group.wireIds.length) {
-            modified = true;
-          }
+        const updatedWireIds = group.wireIds.filter(wireId => 
+          !connectedWires.includes(wireId)
+        );
+        
+        if (updatedWireIds.length !== group.wireIds.length) {
+          modified = true;
+        }
+        
+        // Only keep the group if it still has wires
+        if (updatedWireIds.length > 0) {
+          newWireGroups[groupId] = {
+            ...group,
+            wireIds: updatedWireIds
+          };
+        }
+      });
+      
+      // Update all state at once
+      updateAllState(newComponents, newWires, modified ? newWireGroups : externalWireGroups);
+      setSelectedComponent(null);
+    } else if (selectedWire) {
+      // Delete the wire
+      const newWires = externalWires.filter(wire => wire.id !== selectedWire);
+      
+      // Remove wire from any groups
+      const newWireGroups = {};
+      let modified = false;
+      
+      Object.entries(externalWireGroups).forEach(([groupId, group]) => {
+        if (group.wireIds.includes(selectedWire)) {
+          modified = true;
+          const updatedWireIds = group.wireIds.filter(id => id !== selectedWire);
           
           // Only keep the group if it still has wires
           if (updatedWireIds.length > 0) {
-            updatedGroups[groupId] = {
+            newWireGroups[groupId] = {
               ...group,
               wireIds: updatedWireIds
             };
           }
-        });
-        
-        return modified ? updatedGroups : prev;
+        } else {
+          newWireGroups[groupId] = group;
+        }
       });
       
-      setSelectedComponent(null);
-    } else if (selectedWire) {
-      // Delete the wire
-      setWires(prev => prev.filter(wire => wire.id !== selectedWire));
-      
-      // Remove wire from any groups
-      setWireGroups(prev => {
-        const updatedGroups = {};
-        let modified = false;
-        
-        Object.entries(prev).forEach(([groupId, group]) => {
-          if (group.wireIds.includes(selectedWire)) {
-            modified = true;
-            const updatedWireIds = group.wireIds.filter(id => id !== selectedWire);
-            
-            // Only keep the group if it still has wires
-            if (updatedWireIds.length > 0) {
-              updatedGroups[groupId] = {
-                ...group,
-                wireIds: updatedWireIds
-              };
-            }
-          } else {
-            updatedGroups[groupId] = group;
-          }
-        });
-        
-        return modified ? updatedGroups : prev;
-      });
-      
+      // Update all state at once
+      updateAllState(externalComponents, newWires, modified ? newWireGroups : externalWireGroups);
       setSelectedWire(null);
     } else if (selectedGroup) {
       // Delete all wires in the selected group
-      const group = wireGroups[selectedGroup];
+      const group = externalWireGroups[selectedGroup];
       if (group) {
-        setWires(prev => prev.filter(wire => !group.wireIds.includes(wire.id)));
+        const newWires = externalWires.filter(wire => !group.wireIds.includes(wire.id));
         
         // Remove the group
-        const { [selectedGroup]: _, ...rest } = wireGroups;
-        setWireGroups(rest);
+        const { [selectedGroup]: _, ...rest } = externalWireGroups;
+        
+        // Update all state at once
+        updateAllState(externalComponents, newWires, rest);
       }
       setSelectedGroup(null);
     }
@@ -1703,81 +1834,34 @@ const Canvas = ({ isDarkMode }) => {
     setSnapToGrid(prev => !prev);
   };
 
-  // Handle zoom in/out buttons
-  const handleZoomIn = () => {
-    // Get center of canvas for zoom
-    if (canvasRef.current) {
-      const canvasRect = canvasRef.current.getBoundingClientRect();
-      const centerX = canvasRect.width / 2;
-      const centerY = canvasRect.height / 2;
-      
-      // Get content coordinates of center
-      const contentCenter = canvasToContent(centerX, centerY);
-      
-      // Calculate new scale (25% increase, more noticeable)
-      const newScale = Math.min(5, scale * 1.25);
-      
-      // Apply zoom with center as focus point
-      applyZoom(newScale, contentCenter, { x: centerX, y: centerY });
-    } else {
-      setScale(prev => Math.min(5, prev * 1.25));
-    }
-  };
-
-  const handleZoomOut = () => {
-    // Get center of canvas for zoom
-    if (canvasRef.current) {
-      const canvasRect = canvasRef.current.getBoundingClientRect();
-      const centerX = canvasRect.width / 2;
-      const centerY = canvasRect.height / 2;
-      
-      // Get content coordinates of center
-      const contentCenter = canvasToContent(centerX, centerY);
-      
-      // Calculate new scale (25% decrease, more noticeable)
-      const newScale = Math.max(0.1, scale / 1.25);
-      
-      // Apply zoom with center as focus point
-      applyZoom(newScale, contentCenter, { x: centerX, y: centerY });
-    } else {
-      setScale(prev => Math.max(0.1, prev / 1.25));
-    }
-  };
-
-  const handleResetZoom = () => {
-    setScale(1);
-    setPan({ x: 0, y: 0 });
-  };
-
   // Add a function to delete a wire
   const deleteWire = (wireId) => {
     // Delete the wire
-    setWires(prev => prev.filter(wire => wire.id !== wireId));
+    const newWires = externalWires.filter(wire => wire.id !== wireId);
     
     // Remove wire from any groups
-    setWireGroups(prev => {
-      const updatedGroups = {};
-      let modified = false;
-      
-      Object.entries(prev).forEach(([groupId, group]) => {
-        if (group.wireIds.includes(wireId)) {
-          modified = true;
-          const updatedWireIds = group.wireIds.filter(id => id !== wireId);
-          
-          // Only keep the group if it still has wires
-          if (updatedWireIds.length > 0) {
-            updatedGroups[groupId] = {
-              ...group,
-              wireIds: updatedWireIds
-            };
-          }
-        } else {
-          updatedGroups[groupId] = group;
+    const newWireGroups = {};
+    let modified = false;
+    
+    Object.entries(externalWireGroups).forEach(([groupId, group]) => {
+      if (group.wireIds.includes(wireId)) {
+        modified = true;
+        const updatedWireIds = group.wireIds.filter(id => id !== wireId);
+        
+        // Only keep the group if it still has wires
+        if (updatedWireIds.length > 0) {
+          newWireGroups[groupId] = {
+            ...group,
+            wireIds: updatedWireIds
+          };
         }
-      });
-      
-      return modified ? updatedGroups : prev;
+      } else {
+        newWireGroups[groupId] = group;
+      }
     });
+    
+    // Update all state at once
+    updateAllState(externalComponents, newWires, modified ? newWireGroups : externalWireGroups);
     
     // Reset selection if the deleted wire was selected
     if (selectedWire === wireId) {
@@ -1788,9 +1872,51 @@ const Canvas = ({ isDarkMode }) => {
     setDeleteMode(false);
   };
 
+  // Zoom in function
+  const handleZoomIn = useCallback(() => {
+    setScale(prevScale => {
+      const newScale = Math.min(prevScale * 1.2, MAX_SCALE);
+      return newScale;
+    });
+  }, [MAX_SCALE]);
+
+  // Zoom out function
+  const handleZoomOut = useCallback(() => {
+    setScale(prevScale => {
+      const newScale = Math.max(prevScale / 1.2, MIN_SCALE);
+      return newScale;
+    });
+  }, [MIN_SCALE]);
+
+  // Reset view (zoom and pan)
+  const handleResetView = () => {
+    setPan({ x: 0, y: 0 });
+    setScale(1);
+    updateWireEndpoints();
+  };
+
   // Add back the missing handleKeyDown event listener
   useEffect(() => {
     const handleKeyDown = (e) => {
+      // Undo with Ctrl+Z
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        if (canUndo) {
+          onUndo();
+        }
+        return;
+      }
+      
+      // Redo with Ctrl+Y or Ctrl+Shift+Z
+      if (((e.ctrlKey || e.metaKey) && e.key === 'y') || 
+          ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'z')) {
+        e.preventDefault();
+        if (canRedo) {
+          onRedo();
+        }
+        return;
+      }
+      
       // Delete with Delete key
       if (e.key === 'Delete' && (selectedComponent || selectedWire || selectedGroup)) {
         handleDelete();
@@ -1814,17 +1940,21 @@ const Canvas = ({ isDarkMode }) => {
         setDeleteMode(prev => !prev);
       }
       
-      // Zoom with + and -
-      if (e.key === '+' || e.key === '=') {
-        handleZoomIn();
-      }
-      if (e.key === '-' || e.key === '_') {
-        handleZoomOut();
+      // R key to reset view
+      if (e.key === 'r' || e.key === 'R') {
+        handleResetView();
       }
       
-      // Reset zoom with 0
-      if (e.key === '0') {
-        handleResetZoom();
+      // Zoom in with + or =
+      if (e.key === '+' || e.key === '=') {
+        e.preventDefault();
+        handleZoomIn();
+      }
+      
+      // Zoom out with -
+      if (e.key === '-' || e.key === '_') {
+        e.preventDefault();
+        handleZoomOut();
       }
       
       // Toggle grid snap with G
@@ -1835,15 +1965,20 @@ const Canvas = ({ isDarkMode }) => {
     
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedComponent, selectedWire, selectedGroup, drawingWire, deleteMode]);
+  }, [selectedComponent, selectedWire, selectedGroup, drawingWire, deleteMode, canUndo, canRedo, onUndo, onRedo, handleDelete, handleResetView, toggleGridSnap, handleZoomIn, handleZoomOut]);
   
   // Function to handle dropped components and components already on canvas
   const handleDragOverCanvas = (e) => {
     e.preventDefault();
-    e.dataTransfer.dropEffect = 'copy';
+    
+    // Check if this is a component reposition (not from sidebar)
+    const isReposition = e.dataTransfer.types.includes('componentid');
+    const isFromSidebar = e.dataTransfer.types.includes('component');
+    
+    // Set appropriate drop effect
+    e.dataTransfer.dropEffect = isReposition ? 'move' : 'copy';
     
     // Show dragging indicator only when dragging from sidebar
-    const isFromSidebar = e.dataTransfer.types.includes('component');
     if (isFromSidebar && !isDraggingOver) {
       setIsDraggingOver(true);
     }
@@ -1858,7 +1993,7 @@ const Canvas = ({ isDarkMode }) => {
     let wireGroup = null;
     let isInSelectedGroup = false;
     
-    for (const [groupId, group] of Object.entries(wireGroups)) {
+    for (const [groupId, group] of Object.entries(externalWireGroups)) {
       if (group.wireIds.includes(wire.id)) {
         wireGroup = group;
         if (groupId === selectedGroup) {
@@ -1882,31 +2017,141 @@ const Canvas = ({ isDarkMode }) => {
     return determineWireColor(wire.from.pin?.type, wire.to.pin?.type, isDarkMode);
   };
 
+  // Update when componentStates changes
+  useEffect(() => {
+    // If we have active component states, enable simulation view
+    if (Object.keys(componentStates).length > 0) {
+      setShowSimulation(true);
+    }
+  }, [componentStates]);
+
+  // Toggle simulation view
+  const toggleSimulationView = () => {
+    setShowSimulation(!showSimulation);
+  };
+
+
+  // Update the renderComponents function to include simulation state
+  const renderComponents = () => {
+    if (!externalComponents || !Array.isArray(externalComponents)) {
+      console.error('[Canvas] externalComponents is not an array:', externalComponents);
+      return [];
+    }
+    
+    console.log('[Canvas] Rendering components:', {
+      count: externalComponents.length,
+      components: externalComponents.map(c => ({ name: c.name, id: c.instanceId, x: c.x, y: c.y }))
+    });
+    
+    if (externalComponents.length === 0) {
+      console.warn('[Canvas] No components to render!');
+    }
+    
+    return externalComponents.map(component => {
+      const isSelected = selectedComponent === component.instanceId;
+      // Get component state for simulation
+      const componentState = componentStates[component.instanceId] || {};
+      
+      // Add LED-specific glow effect
+      let ledGlowEffect = null;
+      
+      // Check if LED has power from simulation first
+      if (component.type === 'LED' && componentState.states?.value === 1) {
+        const ledColor = getLEDColor(component);
+        ledGlowEffect = {
+          highlight: ledColor,
+          glowIntensity: 0.8
+        };
+        console.log(`[Canvas] LED ${component.name} glowing from simulation:`, ledGlowEffect);
+      } 
+      // If no simulation state, check if LED is connected to battery/power
+      else if (component.type === 'LED') {
+        console.log(`[Canvas POWER CHECK] Checking LED ${component.name}...`);
+        console.log(`[Canvas POWER CHECK] Component:`, component);
+        console.log(`[Canvas POWER CHECK] Wires available:`, externalWires.length);
+        
+        const powerCheck = checkComponentPower(component, externalComponents, externalWires);
+        console.log(`[Canvas POWER CHECK] Power check result:`, powerCheck);
+        
+        if (powerCheck.hasPower) {
+          const ledColor = getLEDColor(component);
+          ledGlowEffect = {
+            highlight: ledColor,
+            glowIntensity: powerCheck.intensity || 0.8
+          };
+          console.log(`[Canvas] ✅ LED ${component.name} glowing from battery (${powerCheck.voltage}):`, ledGlowEffect);
+        } else {
+          console.log(`[Canvas] ❌ LED ${component.name} not powered. Power check details:`, powerCheck);
+        }
+      }
+      
+      return (
+        <PCBComponent
+          key={component.instanceId}
+          id={component.instanceId}
+          name={component.name}
+          type={component.type}
+          icon={component.icon}
+          x={component.x}
+          y={component.y}
+          width_px={component.width_px}
+          height_px={component.height_px}
+          footprint={component.footprint}
+          pins={component.pins}
+          isDarkMode={isDarkMode}
+          isSelected={isSelected}
+          onPinClick={handlePinClick}
+          onClick={handleComponentClick}
+          onDragStart={handleComponentDragStart}
+          onDrag={handleComponentDrag}
+          onDragEnd={handleComponentDragEnd}
+          scale={scale}
+          pan={pan}
+          simulationState={ledGlowEffect || componentState}
+          showSimulation={showSimulation || (ledGlowEffect !== null)}
+        />
+      );
+    });
+  };
+
   return (
     <div className="h-full w-full flex flex-col relative">
       {/* Canvas toolbar */}
       <div className={`p-2 border-b ${isDarkMode ? 'bg-zinc-900 border-zinc-700' : 'bg-white border-gray-200'} flex items-center space-x-2`}>
+        {/* Zoom In Button */}
         <button
           className={`p-1.5 rounded-md ${isDarkMode ? 'hover:bg-zinc-800' : 'hover:bg-gray-100'}`}
           onClick={handleZoomIn}
-          title="Zoom In"
+          disabled={scale >= MAX_SCALE}
+          title={`Zoom In (+) - ${Math.round(scale * 100)}%`}
         >
-          <ZoomIn className={`h-5 w-5 ${isDarkMode ? 'text-white' : 'text-gray-700'}`} />
+          <ZoomIn className={`h-5 w-5 ${scale >= MAX_SCALE ? 'opacity-30' : ''} ${isDarkMode ? 'text-white' : 'text-gray-700'}`} />
         </button>
+        
+        {/* Zoom Out Button */}
         <button
           className={`p-1.5 rounded-md ${isDarkMode ? 'hover:bg-zinc-800' : 'hover:bg-gray-100'}`}
           onClick={handleZoomOut}
-          title="Zoom Out"
+          disabled={scale <= MIN_SCALE}
+          title={`Zoom Out (-) - ${Math.round(scale * 100)}%`}
         >
-          <ZoomOut className={`h-5 w-5 ${isDarkMode ? 'text-white' : 'text-gray-700'}`} />
+          <ZoomOut className={`h-5 w-5 ${scale <= MIN_SCALE ? 'opacity-30' : ''} ${isDarkMode ? 'text-white' : 'text-gray-700'}`} />
         </button>
+        
+        {/* Zoom Level Display */}
+        <span className={`px-2 py-1 text-sm font-mono ${isDarkMode ? 'text-white' : 'text-gray-700'}`}>
+          {Math.round(scale * 100)}%
+        </span>
+        
+        {/* Reset View Button */}
         <button
           className={`p-1.5 rounded-md ${isDarkMode ? 'hover:bg-zinc-800' : 'hover:bg-gray-100'}`}
-          onClick={handleResetZoom}
-          title="Reset View"
+          onClick={handleResetView}
+          title="Reset View (R)"
         >
           <Move className={`h-5 w-5 ${isDarkMode ? 'text-white' : 'text-gray-700'}`} />
         </button>
+        
         <button
           className={`p-1.5 rounded-md ${
             snapToGrid 
@@ -1945,6 +2190,7 @@ const Canvas = ({ isDarkMode }) => {
           <Trash2 className={`h-5 w-5 ${deleteMode ? (isDarkMode ? 'text-red-100' : 'text-red-800') : (isDarkMode ? 'text-white' : 'text-gray-700')}`} />
         </button>
         
+        
         {/* Delete Button - only for components now */}
         {(selectedComponent || selectedGroup) && !deleteMode && (
           <button
@@ -1980,8 +2226,8 @@ const Canvas = ({ isDarkMode }) => {
                         if (!name) return;
                         
                         const groupId = `group-${Date.now()}`;
-                        setWireGroups({
-                          ...wireGroups,
+                        updateWireGroups(prev => ({
+                          ...prev,
                           [groupId]: {
                             id: groupId,
                             name,
@@ -1991,7 +2237,7 @@ const Canvas = ({ isDarkMode }) => {
                             lightColor: category.color,
                             wireIds: [selectedWire]
                           }
-                        });
+                        }));
                         
                         setSelectedGroup(groupId);
                         setSelectedWire(null);
@@ -2006,7 +2252,7 @@ const Canvas = ({ isDarkMode }) => {
             </div>
             
             <div className="flex flex-wrap gap-1 mt-1">
-              {Object.entries(wireGroups).map(([groupId, group]) => (
+              {Object.entries(externalWireGroups).map(([groupId, group]) => (
                 <button
                   key={groupId}
                   className={`px-2 py-1 text-xs rounded flex items-center gap-1 ${
@@ -2033,8 +2279,8 @@ const Canvas = ({ isDarkMode }) => {
                     className="ml-1 text-xs opacity-70 hover:opacity-100"
                     onClick={(e) => {
                       e.stopPropagation();
-                      const { [groupId]: _, ...rest } = wireGroups;
-                      setWireGroups(rest);
+                      const { [groupId]: _, ...rest } = externalWireGroups;
+                      updateWireGroups(rest);
                       if (selectedGroup === groupId) {
                         setSelectedGroup(null);
                       }
@@ -2046,13 +2292,13 @@ const Canvas = ({ isDarkMode }) => {
                 </button>
               ))}
               
-              {Object.keys(wireGroups).length === 0 && !selectedWire && (
+              {Object.keys(externalWireGroups).length === 0 && !selectedWire && (
                 <span className={`text-xs italic ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                   Select a wire first, then create a circuit group
                 </span>
               )}
               
-              {Object.keys(wireGroups).length === 0 && selectedWire && (
+              {Object.keys(externalWireGroups).length === 0 && selectedWire && (
                 <span className={`text-xs italic ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                   Choose a category above to create your first circuit group
                 </span>
@@ -2062,40 +2308,44 @@ const Canvas = ({ isDarkMode }) => {
         </div>
       )}
       
-      {/* Main canvas area */}
+      {/* Main canvas area - make it scrollable with overflow */}
       <div 
         ref={canvasRef}
-        className={`flex-1 overflow-hidden relative ${isDarkMode ? 'bg-zinc-950' : 'bg-gray-50'} ${isDraggingOver ? 'ring-2 ring-blue-500' : ''}`}
-        style={{ height: `calc(100vh - ${showGroupPanel ? '7rem' : '4rem'})`, width: '100%' }}
+        className={`flex-1 overflow-auto relative canvas-container ${isDarkMode ? 'bg-zinc-950' : 'bg-gray-50'} ${isDraggingOver ? 'ring-2 ring-blue-500' : ''}`}
+        data-canvas="true"
+        style={{ 
+          height: `calc(100vh - ${showGroupPanel ? '7rem' : '4rem'})`, 
+          width: '100%',
+          cursor: isPanning ? 'grabbing' : 'default' // Change cursor during panning
+        }}
         onDrop={handleDrop}
         onDragOver={handleDragOverCanvas}
         onDragLeave={handleDragLeave}
         onMouseMove={handleMouseMove}
         onMouseDown={handleMouseDown}
         onMouseUp={handleMouseUp}
-        onWheel={handleWheel}
+        onContextMenu={handleContextMenu}
+        onScroll={handleScroll}
         onClick={handleCanvasClick}
-        tabIndex={0} // Make the canvas focusable
+        tabIndex={0}
       >
         {/* Grid */}
         <div 
           ref={contentRef}
-          className="absolute left-0 top-0 w-full h-full"
+          className="absolute left-0 top-0"
           style={{
             backgroundImage: `${isDarkMode ? 
               'radial-gradient(circle, rgba(64, 64, 64, 0.5) 1px, transparent 1px)' : 
               'radial-gradient(circle, rgba(0, 0, 0, 0.1) 1px, transparent 1px)'}`,
             backgroundSize: `${10 * scale}px ${10 * scale}px`,
             backgroundPosition: `${pan.x % (10 * scale)}px ${pan.y % (10 * scale)}px`,
-            transform: `scale(${scale})`,
-            transformOrigin: '0 0',
-            width: '5000px',
-            height: '5000px'
+            width: `${canvasSize.width}px`,
+            height: `${canvasSize.height}px`
           }}
         />
         
         {/* Empty canvas message */}
-        {components.length === 0 && !isDraggingOver && (
+        {externalComponents.length === 0 && !isDraggingOver && (
           <div className="absolute inset-0 flex flex-col items-center justify-center">
             <p className={`text-xl ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
               Drag components from the sidebar to start designing
@@ -2232,30 +2482,7 @@ const Canvas = ({ isDarkMode }) => {
         </svg>
         
         {/* Render components */}
-        {components.map((component) => (
-          <PCBComponent
-            key={component.instanceId}
-            id={component.instanceId}
-            name={component.name}
-            type={component.type}
-            icon={component.icon}
-            x={component.x}
-            y={component.y}
-            width_px={component.width_px}
-            height_px={component.height_px}
-            footprint={component.footprint}
-            pins={component.pins}
-            isDarkMode={isDarkMode}
-            isSelected={selectedComponent === component.instanceId}
-            onPinClick={handlePinClick}
-            onClick={handleComponentClick}
-            onDragStart={handleComponentDragStart}
-            onDrag={handleComponentDrag}
-            onDragEnd={handleComponentDragEnd}
-            scale={scale}
-            pan={pan}
-          />
-        ))}
+        {renderComponents()}
         
         {/* Drop zone indicator */}
         {isDraggingOver && (
