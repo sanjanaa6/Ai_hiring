@@ -80,17 +80,32 @@ const UserDashboard = () => {
       const pathParts = pathname.split('/');
       const last = pathParts[pathParts.length - 1];
 
-      // Support multiple link types
+      // Extract interview ID and redirect to welcome page first
+      let interviewId = null;
+
       if (pathname.startsWith('/interview/')) {
-        navigate(`${pathname}${url.search}`);
-      } else if (pathname.startsWith('/round/')) {
-        navigate(`${pathname}${url.search}`);
-      } else if (pathname.startsWith('/pcb-round/')) {
-        navigate(`${pathname}${url.search}`);
+        // Extract ID from /interview/interview_xxx
+        interviewId = pathParts[pathParts.length - 1];
       } else if (last && (last.startsWith('interview_') || last.startsWith('electronics_interview_'))) {
-        navigate(`/interview/${last}`);
+        interviewId = last;
+      } else if (pathname.startsWith('/round/')) {
+        // For round links, go directly (no welcome page for rounds)
+        navigate(`${pathname}${url.search}`);
+        return;
+      } else if (pathname.startsWith('/pcb-round/')) {
+        // For PCB round links, go directly
+        navigate(`${pathname}${url.search}`);
+        return;
       } else {
         setError('Invalid interview link format');
+        return;
+      }
+
+      // Navigate to welcome page with interview ID
+      if (interviewId) {
+        navigate(`/interview/welcome?id=${interviewId}`);
+      } else {
+        setError('Could not extract interview ID from link');
       }
     } catch (error) {
       setError('Invalid interview link');

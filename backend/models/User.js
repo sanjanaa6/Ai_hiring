@@ -52,13 +52,47 @@ const userSchema = new mongoose.Schema({
   },
   // Recruiter specific fields
   recruiterProfile: {
-    company: String,
-    companySize: String,
-    industry: String,
+    // Personal Details
     position: String,
     department: String,
+    yearsOfExperience: String,
+    
+    // Organizational Details
+    company: String,
+    companyWebsite: String,
+    companySize: {
+      type: String,
+      enum: ['1-10', '11-50', '51-200', '201-500', '501-1000', '1000+']
+    },
+    industry: String,
+    companyType: {
+      type: String,
+      enum: ['Startup', 'SME', 'Enterprise', 'MNC', 'Government', 'Non-Profit']
+    },
+    foundedYear: String,
+    companyDescription: String,
+    companyLogo: String,
+    
+    // Office Details
+    headquarters: String,
+    officeLocations: [String],
+    preferredLocations: [String],
+    
+    // Hiring Details
     hiringBudget: String,
-    preferredLocations: [String]
+    averageHiresPerMonth: String,
+    primaryRecruitmentAreas: [String], // e.g., ['Engineering', 'Sales', 'Marketing']
+    
+    // Contact & Social
+    workEmail: String,
+    workPhone: String,
+    companyLinkedin: String,
+    companyTwitter: String,
+    
+    // Additional Info
+    teamSize: String,
+    reportingTo: String,
+    certifications: [String] // HR certifications, etc.
   },
   // Recruiter KYC documents (GST/PAN)
   recruiterDocuments: {

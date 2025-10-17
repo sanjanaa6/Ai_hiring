@@ -48,6 +48,22 @@ router.put('/profile', [
     delete updateData.email;
     delete updateData.role;
 
+    // Clean up empty enum values to prevent validation errors
+    if (updateData.recruiterProfile) {
+      if (updateData.recruiterProfile.companySize === '') {
+        delete updateData.recruiterProfile.companySize;
+      }
+      if (updateData.recruiterProfile.companyType === '') {
+        delete updateData.recruiterProfile.companyType;
+      }
+    }
+
+    if (updateData.candidateProfile) {
+      if (updateData.candidateProfile.workPreference === '') {
+        delete updateData.candidateProfile.workPreference;
+      }
+    }
+
     const user = await User.findByIdAndUpdate(
       req.user._id,
       updateData,

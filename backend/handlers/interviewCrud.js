@@ -167,7 +167,10 @@ const getInterviewById = async (req, res) => {
       : { interviewId: req.params.interviewId, createdBy: req.user.id };
     
     console.log('🔍 [GET INTERVIEW] Query:', JSON.stringify(query));
-    const interview = await Interview.findOne(query);
+    const interview = await Interview.findOne(query).populate({
+      path: 'createdBy',
+      select: 'name email profile recruiterProfile recruiterDocuments'
+    });
 
     if (!interview) {
       console.log('❌ [GET INTERVIEW] Interview not found:', req.params.interviewId);
@@ -207,6 +210,7 @@ const getInterviewById = async (req, res) => {
         interviewType: interview.interviewType,
         overallEvaluationCriteria: interview.overallEvaluationCriteria,
         scoringSystem: interview.scoringSystem,
+        createdBy: interview.createdBy, // Include populated recruiter data
         createdAt: interview.createdAt,
         approvedAt: interview.approvedAt,
         rejectedAt: interview.rejectedAt,
@@ -238,6 +242,9 @@ const getPublicInterview = async (req, res) => {
     const interview = await Interview.findOne({
       interviewId: req.params.interviewId,
       approvalStatus: 'approved'
+    }).populate({
+      path: 'createdBy',
+      select: 'name email profile recruiterProfile recruiterDocuments'
     });
 
     if (!interview) {
@@ -278,6 +285,7 @@ const getPublicInterview = async (req, res) => {
         interviewType: interview.interviewType,
         overallEvaluationCriteria: interview.overallEvaluationCriteria,
         scoringSystem: interview.scoringSystem,
+        createdBy: interview.createdBy, // Include populated recruiter data
         createdAt: interview.createdAt,
         approvedAt: interview.approvedAt
       }

@@ -1272,6 +1272,25 @@ class ApiService {
     }
   }
 
+  // Get interview by ID (alias for getInterview for consistency)
+  async getInterviewById(interviewId) {
+    return this.getInterview(interviewId);
+  }
+
+  // Get user by ID
+  async getUserById(userId) {
+    try {
+      const response = await this.client.get(`/users/${userId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching user by ID:', error);
+      return {
+        success: false,
+        error: error.response?.data?.message || 'Failed to fetch user details'
+      };
+    }
+  }
+
 }
 
 const apiService = new ApiService();

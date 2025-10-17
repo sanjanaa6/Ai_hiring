@@ -14,6 +14,7 @@ import { AuthProvider } from './context/AuthContext';
 import Header from './components/layout/Header';
 import { ThemeProvider } from './context/ThemeContext';
 import ProtectedRoute from './components/ProtectedRoute';
+import RecruiterProfileGuard from './components/RecruiterProfileGuard';
 import ConditionalLanding from './components/ConditionalLanding';
 
 // Pages
@@ -23,7 +24,9 @@ import Dashboard from './pages/Dashboard';
 import JobDetails from './pages/JobDetails';
 import Applications from './pages/Applications';
 import Profile from './pages/Profile';
+import CandidateProfileNew from './pages/CandidateProfileNew';
 import Interview from './pages/Interview';
+import InterviewWelcome from './pages/InterviewWelcome';
 import RoundAccess from './pages/RoundAccess';
 import ElectronicInterview from './pages/ElectronicInterview';
 import SystemDesignInterview from './pages/SystemDesignInterview';
@@ -57,6 +60,7 @@ import CandidateProfile from './pages/CandidateProfile';
 // Recruiter components
 import { InterviewReviewer } from './recruiter/components/InterviewReviewer';
 import RecruiterDashboard from './recruiter/pages/RecruiterDashboard';
+import RecruiterProfile from './recruiter/pages/RecruiterProfile';
 import ScreenShareDashboard from './recruiter/pages/ScreenShareDashboard';
 
 // Admin components
@@ -130,6 +134,11 @@ function AppShell() {
           <Route path="/register" element={<Register />} />
           <Route path="/jobs" element={<JobSearch />} />
           <Route path="/jobs/:id" element={<JobDetails />} />
+          <Route path="/interview/welcome" element={
+            <ProtectedRoute>
+              <InterviewWelcome />
+            </ProtectedRoute>
+          } />
           <Route path="/interview/:interviewId" element={
             <ProtectedRoute>
               <Interview />
@@ -172,32 +181,49 @@ function AppShell() {
           {/* Recruiter Routes */}
           <Route path="/recruiter/review/:interviewId" element={
             <ProtectedRoute allowedRoles={["recruiter", "admin"]}>
-              <InterviewReviewer />
+              <RecruiterProfileGuard>
+                <InterviewReviewer />
+              </RecruiterProfileGuard>
             </ProtectedRoute>
           } />
           <Route path="/recruiter" element={
             <ProtectedRoute allowedRoles={["recruiter", "admin"]}>
-              <RecruiterDashboard />
+              <RecruiterProfileGuard>
+                <RecruiterDashboard />
+              </RecruiterProfileGuard>
             </ProtectedRoute>
           } />
           <Route path="/recruiter/screen-share" element={
             <ProtectedRoute allowedRoles={["recruiter", "admin"]}>
-              <ScreenShareDashboard />
+              <RecruiterProfileGuard>
+                <ScreenShareDashboard />
+              </RecruiterProfileGuard>
             </ProtectedRoute>
           } />
           <Route path="/recruiter/pcb" element={
             <ProtectedRoute allowedRoles={["recruiter", "admin"]}>
-              <RecruiterPCB />
+              <RecruiterProfileGuard>
+                <RecruiterPCB />
+              </RecruiterProfileGuard>
+            </ProtectedRoute>
+          } />
+          <Route path="/recruiter/profile" element={
+            <ProtectedRoute allowedRoles={["recruiter", "admin"]}>
+              <RecruiterProfile />
             </ProtectedRoute>
           } />
           <Route path="/recruiter/jobs" element={
             <ProtectedRoute allowedRoles={["recruiter", "admin"]}>
-              <JobManagement />
+              <RecruiterProfileGuard>
+                <JobManagement />
+              </RecruiterProfileGuard>
             </ProtectedRoute>
           } />
           <Route path="/recruiter/create-job" element={
             <ProtectedRoute allowedRoles={["recruiter", "admin"]}>
-              <JobCreate />
+              <RecruiterProfileGuard>
+                <JobCreate />
+              </RecruiterProfileGuard>
             </ProtectedRoute>
           } />
           <Route path="/recruiter/applications" element={
@@ -283,7 +309,7 @@ function AppShell() {
           } />
           <Route path="/profile" element={
             <ProtectedRoute>
-              <Profile />
+              <CandidateProfileNew />
             </ProtectedRoute>
           } />
           
