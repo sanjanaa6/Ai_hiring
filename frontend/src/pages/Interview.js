@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import ModernInterview from '../components/ModernInterview';
+import WorkingScreenShare from '../components/WorkingScreenShare';
 import apiService from '../services/apiService';
 import { Bot, AlertCircle, ArrowLeft, User, Camera, Mic, Shield } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -12,6 +13,7 @@ const Interview = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showCandidateForm, setShowCandidateForm] = useState(false);
+  const [showScreenShare, setShowScreenShare] = useState(true); // Auto-enable screen sharing
 
   const loadInterviewData = useCallback(async () => {
     try {
@@ -220,18 +222,30 @@ const Interview = () => {
   }
 
   return (
-    <ModernInterview 
-      interviewId={interviewId}
-      candidateInfo={candidateInfo}
-      onComplete={(result) => {
-        console.log('Voice interview completed:', result);
-        // Redirect to completion page or show success message
-      }}
-      onError={(error) => {
-        console.error('Voice interview error:', error);
-        setError(error);
-      }}
-    />
+    <>
+      <ModernInterview 
+        interviewId={interviewId}
+        candidateInfo={candidateInfo}
+        onComplete={(result) => {
+          console.log('Voice interview completed:', result);
+          // Redirect to completion page or show success message
+        }}
+        onError={(error) => {
+          console.error('Voice interview error:', error);
+          setError(error);
+        }}
+      />
+      
+      {/* Screen Share Overlay - Auto-starts when interview begins */}
+      {showScreenShare && candidateInfo && (
+        <WorkingScreenShare
+          interviewId={interviewId}
+          role="candidate"
+          candidateInfo={candidateInfo}
+          onClose={() => setShowScreenShare(false)}
+        />
+      )}
+    </>
   );
 };
 

@@ -62,7 +62,11 @@ module.exports = (io) => {
     // ==================== JOIN INTERVIEW ROOM ====================
     socket.on('join-interview', ({ interviewId, role }) => {
       try {
-        console.log(`📥 [JOIN] ${socket.userId} joining interview ${interviewId} as ${role}`);
+        console.log(`\n========================================`);
+        console.log(`📥📥📥 [JOIN] User joining interview`);
+        console.log(`User: ${socket.userId} (${socket.id})`);
+        console.log(`Role: ${role}`);
+        console.log(`Interview: ${interviewId}`);
 
         // Join the interview room
         socket.join(interviewId);
@@ -79,6 +83,10 @@ module.exports = (io) => {
           role: role,
           interviewId: interviewId
         });
+
+        // Check room membership
+        const room = io.sockets.adapter.rooms.get(interviewId);
+        console.log(`Room ${interviewId} now has ${room ? room.size : 0} members:`, room ? Array.from(room) : []);
 
         // Notify others in the room
         socket.to(interviewId).emit('user-joined', {
@@ -97,7 +105,8 @@ module.exports = (io) => {
           participants
         });
 
-        console.log(`✅ [JOIN] ${socket.userId} joined ${interviewId}. Total participants: ${activeConnections.get(interviewId).size}`);
+        console.log(`✅ [JOIN] ${socket.userId} successfully joined. Total: ${activeConnections.get(interviewId).size}`);
+        console.log(`========================================\n`);
       } catch (error) {
         console.error('❌ [JOIN] Error:', error);
         socket.emit('error', { message: 'Failed to join interview' });
@@ -136,22 +145,30 @@ module.exports = (io) => {
       }
     });
 
-    // Recruiter sends answer to candidate
+    // Candidate sends answer to recruiter
     socket.on('answer', ({ interviewId, answer, targetUserId }) => {
       try {
-        console.log(`📤 [ANSWER] From ${socket.userId} to ${targetUserId} in ${interviewId}`);
+        console.log(`\n========================================`);
+        console.log(`📤📤📤 [ANSWER] RECEIVED FROM CANDIDATE`);
+        console.log(`Interview ID: ${interviewId}`);
+        console.log(`From: ${socket.userId} (${socket.id})`);
+        console.log(`Has answer: ${!!answer}`);
+        
+        // Get everyone in the room
+        const room = io.sockets.adapter.rooms.get(interviewId);
+        console.log(`Room ${interviewId} has ${room ? room.size : 0} members:`, room ? Array.from(room) : []);
 
-        const targetSocketId = userSockets.get(targetUserId);
-        if (targetSocketId) {
-          io.to(targetSocketId).emit('answer', {
-            answer,
-            from: socket.userId,
-            fromSocketId: socket.id
-          });
-          console.log(`✅ [ANSWER] Sent to ${targetUserId}`);
-        } else {
-          console.log(`⚠️ [ANSWER] Target user ${targetUserId} not connected`);
-        }
+        const payload = {
+          answer,
+          from: socket.userId,
+          fromSocketId: socket.id
+        };
+
+        // ALWAYS broadcast to entire room (simple and works)
+        io.to(interviewId).emit('answer', payload);
+        console.log(`✅ [ANSWER] Broadcast to ENTIRE room ${interviewId}`);
+        console.log(`========================================\n`);
+        
       } catch (error) {
         console.error('❌ [ANSWER] Error:', error);
       }
@@ -277,7 +294,7 @@ module.exports = (io) => {
     });
 
     // ==================== DISCONNECT ====================
-    socket.on('disconnect', () => {
+    socket.on('disconnect', async () => {
       try {
         console.log(`🔌 [DISCONNECT] ${socket.id} (User: ${socket.userId})`);
 
@@ -285,6 +302,48 @@ module.exports = (io) => {
         
         if (userData) {
           const { interviewId, role } = userData;
+
+          // If CANDIDATE disconnected, end their screen share session in database
+          if (role === 'candidate' && interviewId) {
+            try {
+              const ScreenShareSession = require('../models/ScreenShareSession');
+              
+              // Extract base interview ID and candidate ID from the unique room ID
+              // Format: interview_XXX_yrt5pgjvx_candidate_YYY
+              const parts = interviewId.split('_');
+              const baseInterviewId = parts.slice(0, 3).join('_'); // interview_XXX_yrt5pgjvx
+              const candidateId = parts.slice(3).join('_'); // candidate_YYY
+              
+              console.log(`🔍 [DISCONNECT] Looking for session - Interview: ${baseInterviewId}, Candidate: ${candidateId}`);
+              
+              // Find session by base interview ID and candidate ID
+              const session = await ScreenShareSession.findOne({
+                interviewId: baseInterviewId,
+                candidateId: candidateId,
+                status: 'active'
+              });
+              
+              if (session) {
+                session.status = 'ended';
+                session.endedAt = new Date();
+                session.duration = Math.floor((session.endedAt - session.startedAt) / 1000);
+                await session.save();
+                
+                console.log(`✅ [DISCONNECT] Ended session ${session._id} for candidate ${session.candidateId}`);
+                
+                // Notify dashboard to refresh immediately
+                io.emit('session-ended', {
+                  sessionId: session._id,
+                  interviewId: session.interviewId,
+                  candidateId: session.candidateId
+                });
+              } else {
+                console.log(`⚠️ [DISCONNECT] No active session found for ${baseInterviewId} / ${candidateId}`);
+              }
+            } catch (error) {
+              console.error('❌ [DISCONNECT] Error ending session:', error);
+            }
+          }
 
           // Notify others in the room
           if (interviewId) {

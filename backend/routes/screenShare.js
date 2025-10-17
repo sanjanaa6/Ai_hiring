@@ -4,18 +4,42 @@ const { auth } = require('../middleware/auth');
 const ScreenShareSession = require('../models/ScreenShareSession');
 
 // ==================== START SCREEN SHARE SESSION ====================
-router.post('/start', auth, async (req, res) => {
+// Allow unauthenticated access for candidates (they might not be logged in via link)
+router.post('/start', async (req, res) => {
   try {
-    const { interviewId, candidateName, candidateEmail } = req.body;
+    const { interviewId, candidateId, candidateName, candidateEmail } = req.body;
 
     console.log(`🎬 [SCREEN SHARE] Starting session for interview ${interviewId}`);
+    console.log(`📋 [SCREEN SHARE] Candidate: ${candidateName} (${candidateEmail}), ID: ${candidateId}`);
+
+    // Check if THIS CANDIDATE already has an active session for THIS INTERVIEW
+    const existingSession = await ScreenShareSession.findOne({
+      interviewId: interviewId,
+      candidateId: candidateId || `guest_${Date.now()}`,
+      status: 'active'
+    });
+
+    if (existingSession) {
+      console.log(`⚠️ [SCREEN SHARE] Active session already exists for this candidate in this interview: ${existingSession._id}`);
+      return res.json({
+        success: true,
+        session: {
+          id: existingSession._id,
+          interviewId: existingSession.interviewId,
+          candidateId: existingSession.candidateId,
+          status: existingSession.status,
+          startedAt: existingSession.startedAt
+        },
+        message: 'Using existing active session'
+      });
+    }
 
     // Create new session
     const session = new ScreenShareSession({
       interviewId,
-      candidateId: req.user.id,
-      candidateName: candidateName || req.user.name,
-      candidateEmail: candidateEmail || req.user.email,
+      candidateId: candidateId || `guest_${Date.now()}`,
+      candidateName: candidateName || 'Anonymous Candidate',
+      candidateEmail: candidateEmail || 'no-email@provided.com',
       status: 'active',
       permissionGranted: true,
       permissionGrantedAt: new Date(),
@@ -24,7 +48,7 @@ router.post('/start', auth, async (req, res) => {
 
     await session.save();
 
-    console.log(`✅ [SCREEN SHARE] Session created: ${session._id}`);
+    console.log(`✅ [SCREEN SHARE] New session created: ${session._id}`);
 
     res.json({
       success: true,
@@ -37,17 +61,20 @@ router.post('/start', auth, async (req, res) => {
     });
   } catch (error) {
     console.error('❌ [SCREEN SHARE START] Error:', error);
+    console.error('🔍 [SCREEN SHARE START] Error details:', error.stack);
     res.status(500).json({
       success: false,
-      error: 'Failed to start screen share session'
+      error: 'Failed to start screen share session',
+      details: error.message
     });
   }
 });
 
 // ==================== END SCREEN SHARE SESSION ====================
-router.post('/end', auth, async (req, res) => {
+// Allow unauthenticated access for candidates
+router.post('/end', async (req, res) => {
   try {
-    const { sessionId, interviewId } = req.body;
+    const { sessionId, interviewId, candidateId } = req.body;
 
     console.log(`🛑 [SCREEN SHARE] Ending session ${sessionId || `for interview ${interviewId}`}`);
 
@@ -56,14 +83,16 @@ router.post('/end', auth, async (req, res) => {
     if (sessionId) {
       session = await ScreenShareSession.findById(sessionId);
     } else if (interviewId) {
+      // Find by interviewId and candidateId (or any active session for that interview)
       session = await ScreenShareSession.findOne({
         interviewId,
-        candidateId: req.user.id,
+        ...(candidateId ? { candidateId } : {}),
         status: 'active'
-      });
+      }).sort({ startedAt: -1 }); // Get most recent
     }
 
     if (!session) {
+      console.log(`⚠️ [SCREEN SHARE] No active session found for interview ${interviewId}`);
       return res.status(404).json({
         success: false,
         error: 'Session not found'
@@ -104,7 +133,7 @@ router.get('/session/:interviewId', auth, async (req, res) => {
       success: true,
       sessions: sessions.map(s => ({
         id: s._id,
-        candidateId: s.candidateId?._id,
+        candidateId: s.candidateId, // Already a string!
         candidateName: s.candidateName,
         candidateEmail: s.candidateEmail,
         recruiterId: s.recruiterId?._id,
@@ -128,9 +157,11 @@ router.get('/session/:interviewId', auth, async (req, res) => {
 });
 
 // ==================== GET ACTIVE SESSIONS (FOR RECRUITERS) ====================
-router.get('/active', auth, async (req, res) => {
+// Temporarily allow without auth for testing
+router.get('/active', async (req, res) => {
   try {
-    console.log(`📊 [SCREEN SHARE] Fetching active sessions for recruiter ${req.user.id}`);
+    const token = req.header('Authorization')?.replace('Bearer ', '');
+    console.log(`📊 [SCREEN SHARE] Fetching active sessions${token ? ' (authenticated)' : ' (guest mode)'}`);
 
     // Get all active sessions (recruiters can see all)
     const sessions = await ScreenShareSession.getActiveSessions();
@@ -140,7 +171,7 @@ router.get('/active', auth, async (req, res) => {
       sessions: sessions.map(s => ({
         id: s._id,
         interviewId: s.interviewId,
-        candidateId: s.candidateId?._id,
+        candidateId: s.candidateId, // Don't use ._id, it's already a string!
         candidateName: s.candidateName,
         candidateEmail: s.candidateEmail,
         status: s.status,
@@ -221,6 +252,69 @@ router.post('/flag', auth, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to flag session'
+    });
+  }
+});
+
+// ==================== CLEANUP OLD SESSIONS ====================
+router.post('/cleanup', async (req, res) => {
+  try {
+    console.log('🧹 [SCREEN SHARE] Cleaning up old sessions...');
+    
+    // End all sessions that have been active for more than 2 hours
+    const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
+    
+    const result = await ScreenShareSession.updateMany(
+      {
+        status: 'active',
+        startedAt: { $lt: twoHoursAgo }
+      },
+      {
+        status: 'ended',
+        endedAt: new Date()
+      }
+    );
+
+    console.log(`✅ [SCREEN SHARE] Cleaned up ${result.modifiedCount} old sessions`);
+
+    res.json({
+      success: true,
+      message: `Cleaned up ${result.modifiedCount} old sessions`
+    });
+  } catch (error) {
+    console.error('❌ [SCREEN SHARE CLEANUP] Error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to cleanup sessions'
+    });
+  }
+});
+
+// ==================== FORCE END ALL ACTIVE SESSIONS ====================
+router.post('/force-cleanup', async (req, res) => {
+  try {
+    console.log('🧹 [SCREEN SHARE] Force ending ALL active sessions...');
+    
+    const result = await ScreenShareSession.updateMany(
+      { status: 'active' },
+      { 
+        status: 'ended',
+        endedAt: new Date()
+      }
+    );
+
+    console.log(`✅ [SCREEN SHARE] Force ended ${result.modifiedCount} sessions`);
+
+    res.json({
+      success: true,
+      message: `Force ended ${result.modifiedCount} active sessions`,
+      count: result.modifiedCount
+    });
+  } catch (error) {
+    console.error('❌ [SCREEN SHARE FORCE CLEANUP] Error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to force cleanup sessions'
     });
   }
 });

@@ -7,8 +7,7 @@ const screenShareSessionSchema = new mongoose.Schema({
     index: true
   },
   candidateId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+    type: mongoose.Schema.Types.Mixed, // Allow both ObjectId and String for guest users
     required: true,
     index: true
   },
@@ -21,7 +20,7 @@ const screenShareSessionSchema = new mongoose.Schema({
     required: true
   },
   recruiterId: {
-    type: mongoose.Schema.Types.ObjectId,
+    type: mongoose.Schema.Types.Mixed, // Allow both ObjectId and String for guest users
     ref: 'User',
     index: true
   },

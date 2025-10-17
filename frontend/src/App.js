@@ -29,6 +29,7 @@ import ElectronicInterview from './pages/ElectronicInterview';
 import SystemDesignInterview from './pages/SystemDesignInterview';
 import PCBInterview from './pages/PCBInterview';
 import UserDashboard from './user/pages/UserDashboard';
+import UserInterview from './user/pages/UserInterview';
 import StyleTest from './components/StyleTest';
 import OpenRouterTest from './components/OpenRouterTest';
 import InteractiveCodingTutor from './components/InteractiveCodingTutor';
@@ -45,17 +46,18 @@ import CodingChallengePage from './pages/CodingChallengePage';
 import CodingInterviewDemo from './pages/CodingInterviewDemo';
 import TestCaseDemo from './components/TestCaseDemo';
 import LanguageDetectionDemo from './components/LanguageDetectionDemo';
-import FormBuilderDemo from './pages/FormBuilderDemo';
+// import FormBuilderDemo from './pages/FormBuilderDemo'; // File doesn't exist
 import NotFound from './pages/NotFound';
 import AdminLoginPage from './pages/AdminLoginPage';
 import RecruiterPCB from './recruiter/pages/RecruiterPCB';
-import PCBApp from './pcb/src/App';
+// import PCBApp from './pcb/src/App'; // Commented out - path issue
 import Playground from './pages/Playground';
 import CandidateProfile from './pages/CandidateProfile';
 
 // Recruiter components
 import { InterviewReviewer } from './recruiter/components/InterviewReviewer';
 import RecruiterDashboard from './recruiter/pages/RecruiterDashboard';
+import ScreenShareDashboard from './recruiter/pages/ScreenShareDashboard';
 
 // Admin components
 import AdminDashboard from './admin/pages/AdminDashboard';
@@ -138,7 +140,7 @@ function AppShell() {
           <Route path="/pcb-round/:accessLink" element={<ElectronicInterview />} />
           <Route path="/pcb-interview/:accessLink" element={<PCBInterview />} />
           <Route path="/system-design-round/:accessLink" element={<SystemDesignInterview />} />
-          <Route path="/pcb" element={<PCBApp />} />
+          {/* <Route path="/pcb" element={<PCBApp />} /> */}
           <Route path="/style-test" element={<StyleTest />} />
           <Route path="/openrouter-test" element={<OpenRouterTest />} />
           <Route path="/coding-tutor" element={<InteractiveCodingTutor />} />
@@ -155,7 +157,7 @@ function AppShell() {
           <Route path="/coding-interview-demo" element={<CodingInterviewDemo />} />
           <Route path="/test-case-demo" element={<TestCaseDemo />} />
           <Route path="/language-detection-demo" element={<LanguageDetectionDemo />} />
-          <Route path="/form-builder" element={<FormBuilderDemo />} />
+          {/* <Route path="/form-builder" element={<FormBuilderDemo />} /> */}
           
           {/* Candidate Profile Route */}
           <Route path="/profile/:profileId" element={<CandidateProfile />} />
@@ -176,6 +178,11 @@ function AppShell() {
           <Route path="/recruiter" element={
             <ProtectedRoute allowedRoles={["recruiter", "admin"]}>
               <RecruiterDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/recruiter/screen-share" element={
+            <ProtectedRoute allowedRoles={["recruiter", "admin"]}>
+              <ScreenShareDashboard />
             </ProtectedRoute>
           } />
           <Route path="/recruiter/pcb" element={
@@ -213,6 +220,11 @@ function AppShell() {
           <Route path="/user" element={
             <ProtectedRoute allowedRoles={["candidate", "user"]}>
               <UserDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/user/interview" element={
+            <ProtectedRoute allowedRoles={["candidate", "user"]}>
+              <UserInterview />
             </ProtectedRoute>
           } />
           <Route path="/user/jobs" element={

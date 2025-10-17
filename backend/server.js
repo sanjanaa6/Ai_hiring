@@ -1,14 +1,54 @@
 const express = require('express');
+const http = require('http');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const path = require('path');
+const { Server } = require('socket.io');
 
 // Load environment variables
 dotenv.config();
 
 const app = express();
+const server = http.createServer(app);
 const PORT = process.env.PORT || 5000;
+
+// Initialize Socket.IO with CORS
+const io = new Server(server, {
+  cors: {
+    origin: function (origin, callback) {
+      // Allow requests with no origin (mobile apps, curl, etc.)
+      if (!origin) return callback(null, true);
+      
+      const normalizedOrigin = origin.replace(/\/$/, '');
+      const isDev = (process.env.NODE_ENV || 'development') !== 'production';
+      
+      if (isDev && /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(normalizedOrigin)) {
+        return callback(null, true);
+      }
+      
+      const allowedOrigins = [
+        process.env.FRONTEND_URL || 'http://localhost:3000',
+        'http://localhost:3001',
+        'http://localhost:5000',
+        'https://aihiring.eval8.xyz',
+        'https://aihire.eval8.xyz',
+        'https://www.aihiring.eval8.xyz',
+        'https://www.aihire.eval8.xyz'
+      ];
+      
+      if (allowedOrigins.indexOf(normalizedOrigin) !== -1) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
+    credentials: true,
+    methods: ['GET', 'POST']
+  }
+});
+
+console.log('✅ [SOCKET.IO] Initialized successfully');
 
 // Middleware
 app.use(cors({
@@ -249,6 +289,13 @@ try {
   console.error('  ❌ PCB Design routes failed:', err.message);
 }
 
+try {
+  app.use('/api/screen-share', require('./routes/screenShare'));
+  console.log('  ✅ Screen Share routes loaded');
+} catch (err) {
+  console.error('  ❌ Screen Share routes failed:', err.message);
+}
+
 console.log('📦 [SERVER] All routes loaded successfully!\n');
 
 // Serve recruiter documents statically for admin review
@@ -416,13 +463,23 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-app.listen(PORT, () => {
+// Initialize Screen Share Socket.IO handlers
+try {
+  const screenShareSocket = require('./socket/screenShareSocket');
+  screenShareSocket(io);
+  console.log('✅ [SOCKET.IO] Screen share handlers initialized');
+} catch (err) {
+  console.error('❌ [SOCKET.IO] Failed to initialize screen share handlers:', err.message);
+}
+
+server.listen(PORT, () => {
   console.log('\n' + '='.repeat(60));
   console.log('🚀 [SERVER] AI HIRING BACKEND SERVER');
   console.log('='.repeat(60));
   console.log(`🌐 Server URL:        http://localhost:${PORT}`);
   console.log(`🔗 API Base URL:      http://localhost:${PORT}/api`);
   console.log(`🏥 Health Check:      http://localhost:${PORT}/api/health`);
+  console.log(`🔌 Socket.IO:         ws://localhost:${PORT}`);
   console.log(`📊 Environment:       ${process.env.NODE_ENV || 'development'}`);
   console.log(`📅 Started At:        ${new Date().toLocaleString()}`);
   console.log('='.repeat(60));
@@ -434,6 +491,8 @@ app.listen(PORT, () => {
   console.log('  • /api/jobs           - Job Management');
   console.log('  • /api/ai             - AI Services');
   console.log('  • /api/admin          - Admin Panel');
+  console.log('  • /api/screen-share   - Screen Share (WebRTC)');
+  console.log('  • Socket.IO           - Real-time WebRTC Signaling');
   console.log('='.repeat(60));
   console.log('✅ [SERVER] Server is ready to accept connections!\n');
 });

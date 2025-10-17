@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import apiService from '../../services/apiService';
@@ -24,12 +25,14 @@ Target,
   FileText,
   MessageSquare,
   CheckCircle,
-  Copy
+  Copy,
+  MonitorPlay
 } from 'lucide-react';
 
 const RecruiterDashboard = () => {
   const { user } = useAuth();
   const { isDarkMode } = useTheme();
+  const navigate = useNavigate();
   const [showCreateJob, setShowCreateJob] = useState(false);
   const [loading, setLoading] = useState(false);
   const [generatedInterview, setGeneratedInterview] = useState(null);
@@ -775,6 +778,7 @@ The interview should feel natural and relevant to someone applying for this spec
     { id: 'scheduler', label: 'Scheduler', icon: Calendar },
     { id: 'candidate-manager', label: 'Candidate Manager', icon: Users },
     { id: 'candidates', label: 'Candidates', icon: Users },
+    { id: 'live-interviews', label: 'Live Interviews', icon: MonitorPlay },
     { id: 'analytics', label: 'Analytics', icon: BarChart3 },
     { id: 'answers', label: 'Results', icon: Award },
     { id: 'messages', label: 'Messages', icon: MessageSquare },
@@ -840,7 +844,11 @@ The interview should feel natural and relevant to someone applying for this spec
               <button
                 key={item.id}
                 onClick={() => {
-                  setActiveTab(item.id);
+                  if (item.id === 'live-interviews') {
+                    navigate('/recruiter/screen-share');
+                  } else {
+                    setActiveTab(item.id);
+                  }
                   setMobileSidebarOpen(false);
                 }}
                 className={`

@@ -10,7 +10,8 @@ import {
   Menu, 
   X, 
   Home,
-  BarChart3
+  BarChart3,
+  MonitorPlay
 } from 'lucide-react';
 
 const RecruiterNavbar = () => {
@@ -52,6 +53,7 @@ const RecruiterNavbar = () => {
             <NavLink to="/recruiter/jobs">My Jobs</NavLink>
             <NavLink to="/recruiter/applications">Applications</NavLink>
             <NavLink to="/recruiter/candidates">Candidates</NavLink>
+            <NavLink to="/recruiter/screen-share">Live Interviews</NavLink>
             <NavLink to="/recruiter/analytics">Analytics</NavLink>
             
             <div className="flex items-center space-x-2 ml-4">
@@ -103,6 +105,10 @@ const RecruiterNavbar = () => {
               <NavLink to="/recruiter/candidates" onClick={() => setIsMenuOpen(false)}>
                 <Users className="h-4 w-4 inline mr-2" />
                 Candidates
+              </NavLink>
+              <NavLink to="/recruiter/screen-share" onClick={() => setIsMenuOpen(false)}>
+                <MonitorPlay className="h-4 w-4 inline mr-2" />
+                Live Interviews
               </NavLink>
               <NavLink to="/recruiter/analytics" onClick={() => setIsMenuOpen(false)}>
                 <BarChart3 className="h-4 w-4 inline mr-2" />

@@ -1,0 +1,132 @@
+================================================================================
+AI HIRING INTERVIEW PLATFORM - QUICK START GUIDE
+================================================================================
+
+STEP 1: INSTALL MONGODB
+-------------------------
+Download and install MongoDB Community Server:
+https://www.mongodb.com/try/download/community
+
+Windows: Install as Windows Service (it will auto-start)
+Mac/Linux: Follow installation instructions
+
+
+STEP 2: SETUP ENVIRONMENT
+---------------------------
+Navigate to backend folder and create a .env file:
+
+cd backend
+
+Create a file named ".env" with this content:
+
+PORT=5000
+NODE_ENV=development
+MONGODB_URI=mongodb://localhost:27017/ai-hiring
+JWT_SECRET=your-secret-key-change-in-production
+FRONTEND_URL=http://localhost:3000
+CLIENT_URL=http://localhost:3000
+OPENAI_API_KEY=
+GEMINI_API_KEY=
+EMAIL_USER=
+EMAIL_PASS=
+
+
+STEP 3: INSTALL DEPENDENCIES
+------------------------------
+Backend:
+  cd backend
+  npm install
+
+Frontend:
+  cd frontend
+  npm install
+
+
+STEP 4: CREATE ADMIN USER
+---------------------------
+cd backend
+node scripts/seedAdmin.js
+
+Default admin credentials:
+Email: admin@gmail.com
+Password: admin123
+
+
+STEP 5: START THE APPLICATION
+-------------------------------
+Option A - Easy Way:
+  Double-click: start-project.bat
+
+Option B - Manual Way:
+  Terminal 1:
+    cd backend
+    npm start
+
+  Terminal 2:
+    cd frontend
+    npm start
+
+
+STEP 6: ACCESS THE APPLICATION
+--------------------------------
+Open browser and go to:
+http://localhost:3000
+
+Login with:
+Email: admin@gmail.com
+Password: admin123
+
+
+================================================================================
+FEATURES
+================================================================================
+✓ Real-time screen sharing during interviews
+✓ Multiple interview types (coding, design, technical)
+✓ AI-powered question generation
+✓ Live interview monitoring
+✓ Comprehensive analytics
+✓ Candidate management
+
+
+================================================================================
+TROUBLESHOOTING
+================================================================================
+
+Problem: MongoDB connection error
+Solution: Check if MongoDB is running in Windows Services
+
+Problem: Port 5000 or 3000 already in use
+Solution: Close other applications using these ports
+
+Problem: Screen sharing not working
+Solution: Use http://localhost:3000 (not 127.0.0.1)
+         Allow camera/microphone permissions in browser
+
+
+================================================================================
+TESTING WITH MULTIPLE USERS
+================================================================================
+
+1. Open Chrome - Login as Admin
+2. Open Firefox/Incognito - Register as Candidate 1
+3. Open Edge/Incognito - Register as Candidate 2
+
+Test screen sharing:
+- Candidate starts interview
+- Admin monitors via "Live Interviews" in sidebar
+
+
+================================================================================
+NEED HELP?
+================================================================================
+
+Check the full documentation in:
+- README.md (complete guide)
+- SETUP_INSTRUCTIONS.md (detailed setup)
+- TESTING_GUIDE.md (testing scenarios)
+
+
+================================================================================
+Happy Interviewing! 🚀
+================================================================================
+
