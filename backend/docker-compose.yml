@@ -43,11 +43,13 @@ services:
     volumes:
       - ./:/app
       - /app/node_modules
+      - uploads_data:/app/uploads
     networks:
       - backend-network
 
 volumes:
   mongodb_data:
+  uploads_data:
 
 networks:
   backend-network:

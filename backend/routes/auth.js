@@ -10,14 +10,32 @@ const { auth } = require('../middleware/auth');
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key_here';
 
+// Ensure uploads directory exists at startup
+const uploadsDir = path.join(__dirname, '..', 'uploads', 'recruiter-docs');
+try {
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true, mode: 0o755 });
+    console.log('✅ [AUTH] Created uploads directory:', uploadsDir);
+  }
+} catch (err) {
+  console.error('⚠️  [AUTH] Could not create uploads directory:', err.message);
+  console.error('⚠️  [AUTH] File uploads may fail. Check Docker volume permissions.');
+}
+
 // Multer for recruiter docs during registration
 const recruiterRegStorage = multer.diskStorage({
   destination: (req, file, cb) => {
     const uploadPath = path.join(__dirname, '..', 'uploads', 'recruiter-docs');
-    if (!fs.existsSync(uploadPath)) {
-      fs.mkdirSync(uploadPath, { recursive: true });
+    // Try to create directory if it doesn't exist
+    try {
+      if (!fs.existsSync(uploadPath)) {
+        fs.mkdirSync(uploadPath, { recursive: true, mode: 0o755 });
+      }
+      cb(null, uploadPath);
+    } catch (err) {
+      console.error('❌ [AUTH] Failed to create upload directory:', err.message);
+      cb(err);
     }
-    cb(null, uploadPath);
   },
   filename: (req, file, cb) => {
     const ext = path.extname(file.originalname).toLowerCase();
@@ -38,16 +56,44 @@ const uploadRecruiterOnRegister = multer({
   limits: { fileSize: 5 * 1024 * 1024 }
 });
 
+// Multer error handler middleware
+const handleMulterError = (err, req, res, next) => {
+  if (err instanceof multer.MulterError) {
+    console.error('❌ [MULTER] Error:', err.message);
+    return res.status(400).json({ message: `File upload error: ${err.message}` });
+  } else if (err) {
+    console.error('❌ [UPLOAD] Error:', err.message);
+    // For permission errors, allow registration to continue without files
+    if (err.code === 'EACCES' || err.code === 'EPERM') {
+      console.log('⚠️  [UPLOAD] Permission error, continuing registration without files');
+      return next();
+    }
+    return res.status(400).json({ message: err.message });
+  }
+  next();
+};
+
 // Register (supports multipart for recruiter docs)
-router.post('/register', uploadRecruiterOnRegister.fields([
-  { name: 'gstFile', maxCount: 1 },
-  { name: 'panFile', maxCount: 1 }
-]), [
-  body('name').trim().isLength({ min: 2 }).withMessage('Name must be at least 2 characters'),
-  body('email').isEmail().withMessage('Please enter a valid email'),
-  body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
-  body('role').optional().isIn(['candidate', 'recruiter']).withMessage('Invalid role')
-], async (req, res) => {
+router.post('/register', 
+  (req, res, next) => {
+    // Use multer middleware with error handling
+    uploadRecruiterOnRegister.fields([
+      { name: 'gstFile', maxCount: 1 },
+      { name: 'panFile', maxCount: 1 }
+    ])(req, res, (err) => {
+      if (err) {
+        return handleMulterError(err, req, res, next);
+      }
+      next();
+    });
+  },
+  [
+    body('name').trim().isLength({ min: 2 }).withMessage('Name must be at least 2 characters'),
+    body('email').isEmail().withMessage('Please enter a valid email'),
+    body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
+    body('role').optional().isIn(['candidate', 'recruiter']).withMessage('Invalid role')
+  ], 
+  async (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {

@@ -23,10 +23,13 @@ RUN mkdir -p /app/uploads/recruiter-docs \
     /app/uploads/interviews \
     /app/uploads/recordings \
     /app/uploads/stt-audio \
-    /app/uploads/reference-audio
+    /app/uploads/reference-audio && \
+    chmod -R 755 /app/uploads
 
 # Change ownership of the app directory
 RUN chown -R backend:nodejs /app
+
+# Switch to non-root user
 USER backend
 
 # Expose port
