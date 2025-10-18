@@ -2,7 +2,24 @@ import React, { useState, useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 import io from 'socket.io-client';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+// Get Socket.IO server URL (without /api path)
+const getSocketUrl = () => {
+  if (process.env.REACT_APP_API_URL) {
+    return process.env.REACT_APP_API_URL.replace(/\/api$/, '');
+  }
+  
+  if (process.env.NODE_ENV === 'production' && typeof window !== 'undefined') {
+    const { protocol, hostname } = window.location;
+    if (hostname.includes('eval8.ai')) {
+      return 'https://aihiring.eval8.ai';
+    }
+    return `${protocol}//${hostname}:5000`;
+  }
+  
+  return 'http://localhost:5000';
+};
+
+const API_URL = getSocketUrl();
 
 /**
  * SIMPLIFIED Recruiter Screen Share Viewer

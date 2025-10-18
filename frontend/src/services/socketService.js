@@ -12,7 +12,23 @@ class SocketService {
       return;
     }
 
-    const serverUrl = process.env.REACT_APP_SOCKET_URL || 'http://localhost:5000';
+    // Get Socket.IO server URL (without /api path)
+    let serverUrl = process.env.REACT_APP_SOCKET_URL;
+    
+    if (!serverUrl) {
+      if (process.env.REACT_APP_API_URL) {
+        serverUrl = process.env.REACT_APP_API_URL.replace(/\/api$/, '');
+      } else if (process.env.NODE_ENV === 'production' && typeof window !== 'undefined') {
+        const { protocol, hostname } = window.location;
+        if (hostname.includes('eval8.ai')) {
+          serverUrl = 'https://aihiring.eval8.ai';
+        } else {
+          serverUrl = `${protocol}//${hostname}:5000`;
+        }
+      } else {
+        serverUrl = 'http://localhost:5000';
+      }
+    }
     
     console.log('🔌 [SOCKET] Connecting to:', serverUrl);
 
