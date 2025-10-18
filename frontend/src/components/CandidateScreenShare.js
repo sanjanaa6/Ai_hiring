@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Monitor, Video, VideoOff, Mic, MicOff, X, AlertCircle, Minus } from 'lucide-react';
 import socketService from '../services/socketService';
 import webrtcService from '../services/webrtcService';
+import apiService from '../services/apiService';
 
 // Get Socket.IO server URL (without /api path)
 const getSocketUrl = () => {
