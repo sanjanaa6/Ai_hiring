@@ -134,8 +134,8 @@ const generateSignedUrl = async (s3Key, expiresIn = SIGNED_URL_EXPIRY) => {
       
       return signedUrl;
     } else {
-      // For local storage, return the local URL
-      const localUrl = `http://localhost:${process.env.PORT || 5000}/uploads/recordings/${s3Key}`;
+      // For local storage, return the local URL (relative path for frontend proxy)
+      const localUrl = `/uploads/recordings/${s3Key}`;
       console.log('🔐 [LOCAL URL] Generated for:', s3Key);
       return localUrl;
     }
@@ -146,24 +146,35 @@ const generateSignedUrl = async (s3Key, expiresIn = SIGNED_URL_EXPIRY) => {
 };
 
 /**
- * Delete recording from S3
+ * Delete recording from S3 or local storage
  */
 const deleteRecording = async (s3Key) => {
   try {
-    console.log('🗑️ [S3 DELETE] Deleting:', s3Key);
+    console.log('🗑️ [DELETE] Deleting:', s3Key);
 
-    const command = new DeleteObjectCommand({
-      Bucket: BUCKET_NAME,
-      Key: s3Key
-    });
+    if (AWS_CONFIGURED) {
+      // Delete from S3
+      const command = new DeleteObjectCommand({
+        Bucket: BUCKET_NAME,
+        Key: s3Key
+      });
 
-    await s3Client.send(command);
-    
-    console.log('✅ [S3 DELETE] Deleted successfully:', s3Key);
+      await s3Client.send(command);
+      console.log('✅ [S3 DELETE] Deleted successfully:', s3Key);
+    } else {
+      // Delete from local file system
+      const localPath = path.join(LOCAL_STORAGE_PATH, s3Key);
+      if (fs.existsSync(localPath)) {
+        fs.unlinkSync(localPath);
+        console.log('✅ [LOCAL DELETE] Deleted successfully:', localPath);
+      } else {
+        console.warn('⚠️ [LOCAL DELETE] File not found:', localPath);
+      }
+    }
     
     return true;
   } catch (error) {
-    console.error('❌ [S3 DELETE] Deletion failed:', error);
+    console.error('❌ [DELETE] Deletion failed:', error);
     throw new Error(`Failed to delete recording: ${error.message}`);
   }
 };

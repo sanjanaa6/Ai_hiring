@@ -21,12 +21,35 @@ const upload = multer({
   }
 });
 
+// Multer error handler middleware
+const handleMulterError = (err, req, res, next) => {
+  if (err instanceof multer.MulterError) {
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(413).json({
+        success: false,
+        message: 'File too large. Maximum file size is 500MB.',
+        error: 'FILE_TOO_LARGE'
+      });
+    }
+    return res.status(400).json({
+      success: false,
+      message: err.message,
+      error: err.code
+    });
+  }
+  next(err);
+};
+
 /**
  * @route   OPTIONS /api/interview-recordings/upload
  * @desc    Handle CORS preflight for upload
  * @access  Public
  */
 router.options('/upload', (req, res) => {
+  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+  res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.header('Access-Control-Max-Age', '86400');
   res.status(204).send();
 });
 
@@ -35,7 +58,7 @@ router.options('/upload', (req, res) => {
  * @desc    Upload interview recording to S3
  * @access  Private (Candidate)
  */
-router.post('/upload', auth, upload.single('recording'), async (req, res) => {
+router.post('/upload', auth, upload.single('recording'), handleMulterError, async (req, res) => {
   try {
     console.log('📥 [RECORDING UPLOAD] Request received');
     console.log('User:', req.user.id);
@@ -108,46 +131,6 @@ router.post('/upload', auth, upload.single('recording'), async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to upload recording',
-      error: error.message
-    });
-  }
-});
-
-/**
- * @route   GET /api/interview-recordings/:recordingId
- * @desc    Get recording details with signed URL
- * @access  Private (Recruiter/Admin)
- */
-router.get('/:recordingId', auth, async (req, res) => {
-  try {
-    const { recordingId } = req.params;
-
-    console.log('📥 [GET RECORDING] Request:', recordingId, 'by user:', req.user.id);
-
-    const recording = await recordingService.getRecordingWithSignedUrl(recordingId, req.user.id);
-
-    // Check access permissions
-    const isRecruiter = req.user.role === 'recruiter' || req.user.role === 'admin';
-    const isOwner = recording.candidateId._id.toString() === req.user.id;
-
-    if (!isRecruiter && !isOwner) {
-      return res.status(403).json({
-        success: false,
-        message: 'Access denied'
-      });
-    }
-
-    console.log('✅ [GET RECORDING] Success:', recordingId);
-
-    res.json({
-      success: true,
-      data: recording
-    });
-  } catch (error) {
-    console.error('❌ [GET RECORDING] Error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to get recording',
       error: error.message
     });
   }
@@ -271,44 +254,6 @@ router.get('/candidate/:candidateId', auth, async (req, res) => {
 });
 
 /**
- * @route   DELETE /api/interview-recordings/:recordingId
- * @desc    Delete recording (soft delete)
- * @access  Private (Recruiter/Admin)
- */
-router.delete('/:recordingId', auth, async (req, res) => {
-  try {
-    const { recordingId } = req.params;
-
-    console.log('🗑️ [DELETE RECORDING] Request:', recordingId, 'by user:', req.user.id);
-
-    // Check if user is recruiter or admin
-    if (req.user.role !== 'recruiter' && req.user.role !== 'admin') {
-      return res.status(403).json({
-        success: false,
-        message: 'Access denied. Only recruiters and admins can delete recordings.'
-      });
-    }
-
-    const recording = await recordingService.removeRecording(recordingId, req.user.id);
-
-    console.log('✅ [DELETE RECORDING] Success:', recordingId);
-
-    res.json({
-      success: true,
-      message: 'Recording deleted successfully',
-      data: recording
-    });
-  } catch (error) {
-    console.error('❌ [DELETE RECORDING] Error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to delete recording',
-      error: error.message
-    });
-  }
-});
-
-/**
  * @route   GET /api/interview-recordings/stats/overview
  * @desc    Get recording statistics
  * @access  Private (Admin)
@@ -361,6 +306,84 @@ router.get('/stats/overview', auth, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to get recording stats',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * @route   GET /api/interview-recordings/:recordingId
+ * @desc    Get recording details with signed URL
+ * @access  Private (Recruiter/Admin)
+ */
+router.get('/:recordingId', auth, async (req, res) => {
+  try {
+    const { recordingId } = req.params;
+
+    console.log('📥 [GET RECORDING] Request:', recordingId, 'by user:', req.user.id);
+
+    const recording = await recordingService.getRecordingWithSignedUrl(recordingId, req.user.id);
+
+    // Check access permissions
+    const isRecruiter = req.user.role === 'recruiter' || req.user.role === 'admin';
+    const isOwner = recording.candidateId._id.toString() === req.user.id;
+
+    if (!isRecruiter && !isOwner) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied'
+      });
+    }
+
+    console.log('✅ [GET RECORDING] Success:', recordingId);
+
+    res.json({
+      success: true,
+      data: recording
+    });
+  } catch (error) {
+    console.error('❌ [GET RECORDING] Error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get recording',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * @route   DELETE /api/interview-recordings/:recordingId
+ * @desc    Delete recording (soft delete)
+ * @access  Private (Recruiter/Admin)
+ */
+router.delete('/:recordingId', auth, async (req, res) => {
+  try {
+    const { recordingId } = req.params;
+
+    console.log('🗑️ [DELETE RECORDING] Request:', recordingId, 'by user:', req.user.id);
+
+    // Check if user is recruiter or admin
+    if (req.user.role !== 'recruiter' && req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. Only recruiters and admins can delete recordings.'
+      });
+    }
+
+    const recording = await recordingService.removeRecording(recordingId, req.user.id);
+
+    console.log('✅ [DELETE RECORDING] Success:', recordingId);
+
+    res.json({
+      success: true,
+      message: 'Recording deleted successfully',
+      data: recording
+    });
+  } catch (error) {
+    console.error('❌ [DELETE RECORDING] Error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete recording',
       error: error.message
     });
   }
