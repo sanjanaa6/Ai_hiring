@@ -430,23 +430,45 @@ const WorkingScreenShare = ({ interviewId, role, candidateInfo, candidateId, onC
   
   // ==================== RENDER ====================
   
-  // Render minimized floating indicator
+  // Render minimized floating indicator (draggable)
   if (isMinimized) {
     return (
-      <div className="fixed bottom-6 right-6 z-50">
-        <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg shadow-2xl p-4 flex items-center space-x-4">
-          <div className="flex items-center space-x-3">
-            <div className="w-3 h-3 rounded-full bg-red-500 animate-pulse" />
-            <div>
-              <p className="text-white font-semibold text-sm">Screen Sharing Active</p>
-              <p className="text-blue-100 text-xs">{status}</p>
-            </div>
-          </div>
+      <div 
+        className="fixed bottom-6 right-6 z-50 cursor-move select-none"
+        draggable="true"
+        onDragStart={(e) => {
+          const rect = e.currentTarget.getBoundingClientRect();
+          e.dataTransfer.setData('text/plain', JSON.stringify({
+            offsetX: e.clientX - rect.left,
+            offsetY: e.clientY - rect.top
+          }));
+        }}
+        onDragEnd={(e) => {
+          const data = JSON.parse(e.dataTransfer.getData('text/plain') || '{}');
+          const newX = e.clientX - (data.offsetX || 0);
+          const newY = e.clientY - (data.offsetY || 0);
+          
+          // Keep within viewport bounds
+          const maxX = window.innerWidth - e.currentTarget.offsetWidth;
+          const maxY = window.innerHeight - e.currentTarget.offsetHeight;
+          
+          e.currentTarget.style.left = Math.max(0, Math.min(newX, maxX)) + 'px';
+          e.currentTarget.style.top = Math.max(0, Math.min(newY, maxY)) + 'px';
+          e.currentTarget.style.right = 'auto';
+          e.currentTarget.style.bottom = 'auto';
+        }}
+      >
+        <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-full shadow-lg p-2 flex items-center space-x-2 hover:shadow-xl transition-all">
+          <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+          <span className="text-white font-medium text-xs px-1">Sharing</span>
           <button
             onClick={() => setIsMinimized(false)}
-            className="px-4 py-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded text-white text-sm font-medium transition"
+            className="p-1 bg-white bg-opacity-20 hover:bg-opacity-40 rounded-full text-white transition"
+            title="Expand controls"
           >
-            Expand
+            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M3 4a1 1 0 011-1h4a1 1 0 010 2H6.414l2.293 2.293a1 1 0 11-1.414 1.414L5 6.414V8a1 1 0 01-2 0V4zm9 1a1 1 0 010-2h4a1 1 0 011 1v4a1 1 0 01-2 0V6.414l-2.293 2.293a1 1 0 11-1.414-1.414L13.586 5H12z" clipRule="evenodd" />
+            </svg>
           </button>
           <button
             onClick={() => {
@@ -455,9 +477,12 @@ const WorkingScreenShare = ({ interviewId, role, candidateInfo, candidateId, onC
                 onClose();
               }
             }}
-            className="px-4 py-2 bg-red-500 hover:bg-red-600 rounded text-white text-sm font-medium transition"
+            className="p-1 bg-red-500 hover:bg-red-600 rounded-full text-white transition"
+            title="Stop sharing"
           >
-            Stop Share
+            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+            </svg>
           </button>
         </div>
       </div>
