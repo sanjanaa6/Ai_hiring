@@ -432,36 +432,18 @@ const WorkingScreenShare = ({ interviewId, role, candidateInfo, candidateId, onC
           </h2>
           <p className="text-sm text-blue-100">{status}</p>
         </div>
-        <div className="flex items-center space-x-2">
-          {/* Close button (minimizes like Google Meet) */}
-          <button
-            onClick={onMinimize || (() => {
-              // If no minimize handler, just hide the interface but keep sharing
-              const element = document.querySelector('.fixed.inset-0.bg-black.bg-opacity-95');
-              if (element) element.style.display = 'none';
-            })}
-            className="p-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg text-white transition-all duration-200 hover:scale-105"
-            title="Close window (screen sharing continues in background)"
-          >
-            ✕
-          </button>
-          
-          {/* End Session button (more explicit) */}
-          <div className="ml-2 pl-2 border-l border-white border-opacity-30">
-            <button
-              onClick={() => {
-                if (window.confirm('⚠️ Are you sure you want to END the screen sharing session?\n\nThis will:\n• Stop screen sharing\n• End the session\n• Disconnect from the interview\n\nClick "Cancel" to just minimize the window instead.')) {
-                  onClose();
-                }
-              }}
-              className="px-4 py-2 bg-red-500 hover:bg-red-600 rounded-lg text-white text-sm font-medium transition flex items-center space-x-1 shadow-lg"
-              title="⚠️ END screen sharing session"
-            >
-              <span>🛑</span>
-              <span>End Session</span>
-            </button>
-          </div>
-        </div>
+        <button
+          onClick={() => {
+            if (window.confirm('⚠️ Are you sure you want to END the screen sharing session?\n\nThis will:\n• Stop screen sharing\n• End the session\n• Disconnect from the interview')) {
+              onClose();
+            }
+          }}
+          className="px-4 py-2 bg-red-500 hover:bg-red-600 rounded text-white transition flex items-center space-x-1"
+          title="End screen sharing session"
+        >
+          <span>✕</span>
+          <span>End Session</span>
+        </button>
       </div>
       
       {/* Video Area */}
