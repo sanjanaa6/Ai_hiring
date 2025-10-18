@@ -15,19 +15,7 @@ class SocketService {
     // Get Socket.IO server URL (without /api path)
     let serverUrl = process.env.REACT_APP_SOCKET_URL;
     
-    if (!serverUrl) {
-      const envUrl = process.env.REACT_APP_API_URL;
-      const isProd = process.env.NODE_ENV === 'production';
-      const { protocol, hostname } = typeof window !== 'undefined' ? window.location : {};
-
-      serverUrl =
-        envUrl?.replace(/\/api$/, '') ||
-        (isProd
-          ? hostname?.includes('eval8.ai')
-            ? 'https://aihire.eval8.xyz'
-            : `${protocol}//${hostname}:5000`
-          : 'http://localhost:5000');
-    }
+    
 
     console.log('🔌 [SOCKET] Connecting to:', serverUrl);
 
