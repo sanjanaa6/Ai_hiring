@@ -1,8 +1,33 @@
 import axios from 'axios';
 
+// Dynamic API base URL configuration
+const getApiBaseUrl = () => {
+  // If environment variable is set, use it
+  if (process.env.REACT_APP_API_URL) {
+    return process.env.REACT_APP_API_URL.endsWith('/api') 
+      ? process.env.REACT_APP_API_URL 
+      : `${process.env.REACT_APP_API_URL}/api`;
+  }
+  
+  // For production deployment
+  if (process.env.NODE_ENV === 'production') {
+    if (typeof window !== 'undefined') {
+      const { protocol, hostname } = window.location;
+      if (hostname.includes('eval8.ai')) {
+        return 'https://aihiring.eval8.ai/api';
+      }
+      return `${protocol}//${hostname}:5000/api`;
+    }
+    return 'https://aihiring.eval8.ai/api';
+  }
+  
+  // For development
+  return 'http://localhost:5000/api';
+};
+
 class STTService {
   constructor() {
-    this.apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+    this.apiUrl = getApiBaseUrl();
     this.isRecording = false;
     this.mediaRecorder = null;
     this.audioChunks = [];
