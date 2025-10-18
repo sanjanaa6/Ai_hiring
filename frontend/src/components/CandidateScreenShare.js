@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Video, VideoOff, Mic, MicOff, Monitor, X, AlertCircle } from 'lucide-react';
+import { Monitor, Video, VideoOff, Mic, MicOff, X, AlertCircle, Minus } from 'lucide-react';
 import socketService from '../services/socketService';
 import webrtcService from '../services/webrtcService';
 
@@ -268,6 +268,15 @@ const CandidateScreenShare = ({ interviewId, candidateId, candidateName, candida
 
       // Start session in database
       await startSession();
+      
+      // Auto-minimize after successful screen sharing (like Google Meet)
+      setTimeout(() => {
+        console.log('📱 [CANDIDATE] Auto-minimizing screen share window for better UX');
+        setStatusMessage('Screen sharing active - Interview in progress');
+        if (onMinimize) {
+          onMinimize();
+        }
+      }, 2000); // Give user 2 seconds to see it's working, then minimize
 
     } catch (error) {
       console.error('❌ Screen share error:', error);
@@ -409,10 +418,14 @@ const CandidateScreenShare = ({ interviewId, candidateId, candidateName, candida
             Expand
           </button>
           <button
-            onClick={onEndInterview}
+            onClick={() => {
+              if (window.confirm('⚠️ Stop screen sharing?\n\nThis will stop sharing your screen but keep the interview active.')) {
+                stopScreenShare();
+              }
+            }}
             className="px-4 py-2 bg-red-500 hover:bg-red-600 rounded text-white text-sm font-medium transition"
           >
-            End
+            Stop Share
           </button>
         </div>
       </div>
@@ -433,20 +446,22 @@ const CandidateScreenShare = ({ interviewId, candidateId, candidateName, candida
             </div>
           </div>
           <div className="flex items-center space-x-2">
+            {/* Close button (minimizes like Google Meet) */}
             <button
               onClick={onMinimize}
-              className="px-4 py-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg text-white text-sm font-medium transition"
-              title="Minimize (screen sharing continues)"
+              className="p-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg text-white transition-all duration-200 hover:scale-105"
+              title="Close window (screen sharing continues in background)"
             >
-              Minimize
+              <X className="w-5 h-5" />
             </button>
+            
+            {/* Minimize button (alternative option) */}
             <button
-              onClick={onEndInterview}
-              className="px-4 py-2 bg-red-500 hover:bg-red-600 rounded-lg text-white text-sm font-medium transition flex items-center space-x-1"
-              title="End interview and stop sharing"
+              onClick={onMinimize}
+              className="px-3 py-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg text-white text-sm font-medium transition"
+              title="Minimize to floating indicator"
             >
-              <X className="w-4 h-4" />
-              <span>End Interview</span>
+              <Minus className="w-4 h-4" />
             </button>
           </div>
         </div>
@@ -515,7 +530,11 @@ const CandidateScreenShare = ({ interviewId, candidateId, candidateName, candida
                 </button>
 
                 <button
-                  onClick={stopScreenShare}
+                  onClick={() => {
+                    if (window.confirm('⚠️ Stop screen sharing?\n\nThis will stop sharing your screen but keep the interview active.\n\nYou can restart sharing anytime.')) {
+                      stopScreenShare();
+                    }
+                  }}
                   className="px-8 py-3 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 flex items-center space-x-2"
                 >
                   <VideoOff className="w-5 h-5" />
