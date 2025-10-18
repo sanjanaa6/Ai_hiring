@@ -17,6 +17,14 @@ COPY . .
 RUN addgroup -g 1001 -S nodejs
 RUN adduser -S backend -u 1001
 
+# Create uploads directory and subdirectories with proper permissions
+RUN mkdir -p /app/uploads/recruiter-docs \
+    /app/uploads/form-submissions \
+    /app/uploads/interviews \
+    /app/uploads/recordings \
+    /app/uploads/stt-audio \
+    /app/uploads/reference-audio
+
 # Change ownership of the app directory
 RUN chown -R backend:nodejs /app
 USER backend
