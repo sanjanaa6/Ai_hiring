@@ -22,6 +22,15 @@ const upload = multer({
 });
 
 /**
+ * @route   OPTIONS /api/interview-recordings/upload
+ * @desc    Handle CORS preflight for upload
+ * @access  Public
+ */
+router.options('/upload', (req, res) => {
+  res.status(204).send();
+});
+
+/**
  * @route   POST /api/interview-recordings/upload
  * @desc    Upload interview recording to S3
  * @access  Private (Candidate)

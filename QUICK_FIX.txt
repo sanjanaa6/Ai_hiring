@@ -1,0 +1,62 @@
+=== QUICK FIX FOR 405 ERROR ===
+
+PROBLEM: 405 Method Not Allowed on recording upload
+CAUSE: Nginx blocking CORS preflight (OPTIONS request)
+
+=== SOLUTION ===
+
+1. UPDATE NGINX CONFIG (on production server):
+   
+   sudo nano /etc/nginx/sites-available/aihiring.eval8.ai
+   
+   Add this BEFORE the "location /api/" block:
+   
+   location /api/ {
+       # Handle OPTIONS for CORS
+       if ($request_method = 'OPTIONS') {
+           add_header 'Access-Control-Allow-Origin' '$http_origin' always;
+           add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS, PATCH' always;
+           add_header 'Access-Control-Allow-Headers' 'Content-Type, Authorization, X-Requested-With, Accept, Origin' always;
+           add_header 'Access-Control-Allow-Credentials' 'true' always;
+           return 204;
+       }
+       
+       proxy_pass http://localhost:5000;
+       # ... rest of config
+   }
+   
+   Save and test:
+   sudo nginx -t
+   sudo systemctl reload nginx
+
+2. DEPLOY BACKEND (with OPTIONS handler):
+   
+   cd /path/to/AI_hiring/backend
+   git pull origin main
+   docker-compose restart
+
+3. TEST:
+   
+   curl -X OPTIONS https://aihiring.eval8.ai/api/interview-recordings/upload \
+     -H "Origin: https://aihiring.eval8.ai" \
+     -H "Access-Control-Request-Method: POST" \
+     -v
+   
+   Should return: 204 No Content
+
+=== WHAT I FIXED ===
+
+✅ Added explicit OPTIONS handler in backend route
+✅ Created nginx config with CORS preflight handling
+✅ All frontend services use correct dynamic URLs
+
+=== FILES CHANGED ===
+
+- backend/routes/interviewRecordings.js (added OPTIONS handler)
+- nginx-fix.conf (complete nginx config)
+
+=== DEPLOY NOW ===
+
+Backend: git pull + docker-compose restart
+Nginx: Update config + reload
+Frontend: Already has new build hash (main.ddb5299a.js)
