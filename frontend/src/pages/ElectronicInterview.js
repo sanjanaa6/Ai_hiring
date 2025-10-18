@@ -4,7 +4,7 @@ import { useParams } from 'react-router-dom';
 const ElectronicInterview = () => {
   const { accessLink } = useParams();
   const query = accessLink ? `?accessLink=${encodeURIComponent(accessLink)}` : '';
-  const pcbUrl = `https://pcb1.eval8.xyz/${query}`;
+  const pcbUrl = `https://pcb1.eval8.in/${query}`;
 
   return (
     <div className="w-screen h-screen">

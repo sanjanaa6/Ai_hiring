@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import ModernInterview from '../components/ModernInterview';
 import WorkingScreenShare from '../components/WorkingScreenShare';
 import apiService from '../services/apiService';
-import { Bot, AlertCircle, ArrowLeft } from 'lucide-react';
+import { Bot, AlertCircle, ArrowLeft, CheckCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const Interview = () => {
@@ -13,9 +13,40 @@ const Interview = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showScreenShare, setShowScreenShare] = useState(true); // Auto-enable screen sharing
+  const [isCompleted, setIsCompleted] = useState(false);
 
   const loadInterviewData = useCallback(async () => {
     try {
+      // First, check if candidate has already completed this interview
+      const candidateId = localStorage.getItem('candidateId') || '';
+      const candidateEmail = localStorage.getItem('candidateEmail') || '';
+      
+      if (candidateId || candidateEmail) {
+        try {
+          const apiBaseUrl = process.env.REACT_APP_API_URL || 
+            (process.env.NODE_ENV === 'production' 
+              ? `${window.location.origin.replace(/\/$/, '')}/api` 
+              : 'http://localhost:5000/api');
+          
+          const params = new URLSearchParams();
+          if (candidateId) params.append('candidateId', candidateId);
+          if (candidateEmail) params.append('candidateEmail', candidateEmail);
+          
+          const checkUrl = `${apiBaseUrl}/interviews/${interviewId}/check-completion?${params.toString()}`;
+          const checkResponse = await fetch(checkUrl);
+          const checkResult = await checkResponse.json();
+          
+          if (checkResult.completed) {
+            setIsCompleted(true);
+            setError('You have already completed this interview. You cannot retake it.');
+            setLoading(false);
+            return;
+          }
+        } catch (checkErr) {
+          console.log('Completion check failed, continuing with interview load:', checkErr);
+        }
+      }
+      
       let result;
       
       // Check if this is an Electronics interview by ID pattern
@@ -85,9 +116,27 @@ const Interview = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 overflow-y-auto p-4">
         <div className="text-center max-w-md mx-auto px-4">
-          <AlertCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Interview Not Found</h1>
-          <p className="text-gray-600 mb-6">{error}</p>
+          {isCompleted ? (
+            <>
+              <CheckCircle className="h-20 w-20 text-green-500 mx-auto mb-4" />
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">Interview Already Completed</h1>
+              <p className="text-lg text-gray-700 mb-4">
+                You have successfully completed this interview.
+              </p>
+              <div className="inline-block px-4 py-2 rounded-lg mb-4 bg-green-100 text-green-700">
+                <p className="font-medium">✓ Submission Recorded</p>
+              </div>
+              <p className="text-sm text-gray-600 mb-6">
+                You cannot retake this interview. Please wait for the recruiter to review your submission.
+              </p>
+            </>
+          ) : (
+            <>
+              <AlertCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
+              <h1 className="text-2xl font-bold text-gray-900 mb-2">Interview Not Found</h1>
+              <p className="text-gray-600 mb-6">{error}</p>
+            </>
+          )}
           <Link
             to="/"
             className="inline-flex items-center space-x-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"

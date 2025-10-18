@@ -1,0 +1,61 @@
+================================================================================
+MANUAL UPDATE REQUIRED - Gitignored Files
+================================================================================
+
+You have 2 gitignored files that contain .xyz references.
+Please update them manually:
+
+================================================================================
+FILE 1: backend\test-cors.js
+================================================================================
+
+FIND (Line 10):
+const BACKEND_URL = 'https://aihire.eval8.xyz/api';
+
+REPLACE WITH:
+const BACKEND_URL = 'https://aihire.eval8.in/api';
+
+---
+
+FIND (Line 11):
+const FRONTEND_ORIGIN = 'https://aihiring.eval8.xyz';
+
+REPLACE WITH:
+const FRONTEND_ORIGIN = 'https://aihiring.eval8.in';
+
+================================================================================
+FILE 2: frontend\.env.systemdesign
+================================================================================
+
+FIND (Line 9):
+# REACT_APP_SYSTEM_DESIGN_URL=https://systemdesign.eval8.xyz
+
+REPLACE WITH:
+# REACT_APP_SYSTEM_DESIGN_URL=https://systemdesign.eval8.in
+
+================================================================================
+HOW TO UPDATE
+================================================================================
+
+Option 1: Use Find & Replace in your IDE
+1. Open each file
+2. Press Ctrl+H (Find & Replace)
+3. Find: eval8.xyz
+4. Replace: eval8.in
+5. Click Replace All
+
+Option 2: Manual Edit
+1. Open each file
+2. Navigate to the line numbers shown above
+3. Change .xyz to .in
+
+================================================================================
+VERIFICATION
+================================================================================
+
+After updating, search for any remaining .xyz:
+- Press Ctrl+Shift+F in your IDE
+- Search for: eval8.xyz
+- Should return 0 results in code files
+
+================================================================================

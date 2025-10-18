@@ -852,7 +852,7 @@ const InterviewResults = ({ interviewId, onClose }) => {
                                                     </button>
                                                     <button
                                                       onClick={() => {
-                                                        window.open('https://pcb1.eval8.xyz/', '_blank');
+                                                        window.open('https://pcb1.eval8.in/', '_blank');
                                                       }}
                                                       className={`px-2 py-1 rounded text-xs font-medium flex items-center gap-1 transition-colors ${
                                                         isDarkMode 

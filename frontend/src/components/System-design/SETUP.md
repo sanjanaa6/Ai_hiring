@@ -75,7 +75,7 @@ http://localhost:5174/?interviewId=INT123&roundId=round_1&duration=30&candidateI
 
 ### Option 2: Deploy as Subdomain
 
-Deploy to a subdomain like `https://systemdesign.eval8.xyz` and update the environment variable accordingly.
+Deploy to a subdomain like `https://systemdesign.eval8.in` and update the environment variable accordingly.
 
 ## 🔧 Configuration
 

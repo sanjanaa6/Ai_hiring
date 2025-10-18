@@ -606,6 +606,10 @@ router.get('/round/:accessLink', auth, async (req, res) => {
     const { accessLink } = req.params;
     const candidateId = req.user?.id;
     
+    // Get candidate info from query params (for anonymous users)
+    const anonymousCandidateId = req.query.candidateId;
+    const anonymousCandidateEmail = req.query.candidateEmail;
+    
     // First try to find by schedule (if scheduled)
     let schedule = await InterviewSchedule.findByAccessLink(accessLink);
     let interview = null;
@@ -615,6 +619,52 @@ router.get('/round/:accessLink', auth, async (req, res) => {
     if (schedule) {
       // Round is scheduled - validate access based on schedule
       interview = await Interview.findOne({ interviewId: schedule.interviewId });
+      
+      // Check if candidate has already completed this interview/round
+      // Check for both authenticated and anonymous users
+      if (interview) {
+        let hasCompleted = false;
+        
+        if (candidateId) {
+          // Authenticated user
+          const candidate = await User.findById(candidateId);
+          if (candidate) {
+            hasCompleted = interview.hasCandidateCompleted(
+              candidateId, 
+              candidate.email, 
+              accessLink
+            );
+          }
+        } else if (anonymousCandidateId || anonymousCandidateEmail) {
+          // Anonymous user - check by ID or email
+          hasCompleted = interview.hasCandidateCompleted(
+            anonymousCandidateId || 'anonymous',
+            anonymousCandidateEmail || '',
+            accessLink
+          );
+        }
+        
+        if (hasCompleted) {
+          return res.status(403).json({
+            success: false,
+            message: 'You have already completed this interview',
+            reason: 'already_completed',
+            alreadyCompleted: true,
+            data: {
+              schedule: {
+                _id: schedule._id,
+                roundName: schedule.roundName,
+                roundNumber: schedule.roundNumber,
+                startDateTime: schedule.startDateTime,
+                endDateTime: schedule.endDateTime,
+                duration: schedule.duration
+              },
+              currentTime: new Date().toISOString()
+            }
+          });
+        }
+      }
+      
       accessValidation = schedule.validateAccess();
       
       // Check candidate status if user is authenticated

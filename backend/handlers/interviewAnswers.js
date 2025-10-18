@@ -409,7 +409,7 @@ const completeInterview = async (req, res) => {
   console.log('🔍 [COMPLETE INTERVIEW] Request body:', JSON.stringify(req.body, null, 2));
   
   try {
-    const { candidateInfo, totalTimeSpent, completionNotes } = req.body;
+    const { candidateInfo, totalTimeSpent, completionNotes, accessLink, roundId, roundNumber } = req.body;
     
     // Find the interview
     const interview = await Interview.findOne({
@@ -425,28 +425,60 @@ const completeInterview = async (req, res) => {
       });
     }
 
-    // Mark interview as completed
-    interview.status = 'completed';
-    interview.completedAt = new Date();
-    interview.candidateInfo = candidateInfo || {};
-    interview.totalTimeSpent = totalTimeSpent || 0;
-    interview.completionNotes = completionNotes || '';
+    // Extract candidate details
+    const candidateId = candidateInfo?.candidateId || candidateInfo?.id || 'anonymous';
+    const candidateEmail = candidateInfo?.candidateEmail || candidateInfo?.email || 'anonymous@example.com';
+    const candidateName = candidateInfo?.candidateName || candidateInfo?.name || 'Anonymous';
+
+    // Check if candidate has already completed this interview/round
+    const alreadyCompleted = interview.hasCandidateCompleted(candidateId, candidateEmail, accessLink);
+    
+    if (alreadyCompleted) {
+      console.log('⚠️ [COMPLETE INTERVIEW] Candidate has already completed this interview');
+      return res.status(400).json({
+        success: false,
+        error: 'You have already completed this interview',
+        alreadyCompleted: true
+      });
+    }
+
+    // Get total answers for this candidate
+    const candidateAnswers = interview.candidateAnswers?.filter(
+      ans => ans.candidateId === candidateId || ans.candidateEmail === candidateEmail
+    ) || [];
+
+    // Mark candidate as completed
+    const marked = interview.markCandidateCompleted({
+      candidateId,
+      candidateEmail,
+      candidateName,
+      roundId,
+      roundNumber,
+      accessLink,
+      totalTimeSpent: totalTimeSpent || 0,
+      totalAnswers: candidateAnswers.length
+    });
+
+    if (!marked) {
+      console.log('⚠️ [COMPLETE INTERVIEW] Candidate was already marked as completed');
+    }
 
     await interview.save();
 
     console.log('✅ [COMPLETE INTERVIEW] Interview completed successfully');
-    console.log('📊 [COMPLETE INTERVIEW] Completed at:', interview.completedAt);
-    console.log('📊 [COMPLETE INTERVIEW] Total candidate answers:', interview.candidateAnswers?.length || 0);
+    console.log('📊 [COMPLETE INTERVIEW] Candidate:', candidateEmail);
+    console.log('📊 [COMPLETE INTERVIEW] Total answers:', candidateAnswers.length);
 
     res.json({
       success: true,
       message: 'Interview completed successfully',
       data: {
         interviewId: interview.interviewId,
-        status: interview.status,
-        completedAt: interview.completedAt,
-        totalAnswers: interview.candidateAnswers?.length || 0,
-        totalTimeSpent: interview.totalTimeSpent
+        candidateId,
+        completedAt: new Date(),
+        totalAnswers: candidateAnswers.length,
+        totalTimeSpent: totalTimeSpent || 0,
+        canRetake: false
       }
     });
 

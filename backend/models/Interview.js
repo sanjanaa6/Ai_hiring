@@ -231,6 +231,17 @@ const interviewSchema = new mongoose.Schema({
     isScheduled: { type: Boolean, default: false },
     scheduleId: { type: mongoose.Schema.Types.ObjectId, ref: 'InterviewSchedule' }
   }],
+  completedCandidates: [{
+    candidateId: { type: String, required: true },
+    candidateEmail: { type: String, required: true },
+    candidateName: { type: String },
+    roundId: { type: String },
+    roundNumber: { type: Number },
+    accessLink: { type: String },
+    completedAt: { type: Date, default: Date.now },
+    totalTimeSpent: { type: Number, default: 0 },
+    totalAnswers: { type: Number, default: 0 }
+  }],
   candidateAnswers: [candidateAnswerSchema],
   fileUploads: [fileUploadSchema],
   formSubmissions: [formSubmissionSchema],
@@ -321,6 +332,58 @@ interviewSchema.statics.findByAccessLink = function(accessLink) {
 // Get access link info for a specific round
 interviewSchema.methods.getAccessLinkInfo = function(roundNumber) {
   return this.accessLinks.find(link => link.roundNumber === roundNumber);
+};
+
+// Check if candidate has completed the interview/round
+interviewSchema.methods.hasCandidateCompleted = function(candidateId, candidateEmail, accessLink = null) {
+  if (!this.completedCandidates || this.completedCandidates.length === 0) {
+    return false;
+  }
+  
+  // Check by candidateId and email, optionally filter by accessLink
+  return this.completedCandidates.some(completed => {
+    const matchesCandidate = completed.candidateId === candidateId || completed.candidateEmail === candidateEmail;
+    const matchesLink = !accessLink || completed.accessLink === accessLink;
+    return matchesCandidate && matchesLink;
+  });
+};
+
+// Mark candidate as completed
+interviewSchema.methods.markCandidateCompleted = function(candidateData) {
+  const {
+    candidateId,
+    candidateEmail,
+    candidateName,
+    roundId,
+    roundNumber,
+    accessLink,
+    totalTimeSpent,
+    totalAnswers
+  } = candidateData;
+  
+  // Check if already marked as completed
+  if (this.hasCandidateCompleted(candidateId, candidateEmail, accessLink)) {
+    return false; // Already completed
+  }
+  
+  // Add to completed candidates
+  if (!this.completedCandidates) {
+    this.completedCandidates = [];
+  }
+  
+  this.completedCandidates.push({
+    candidateId: candidateId || 'anonymous',
+    candidateEmail: candidateEmail || 'anonymous@example.com',
+    candidateName: candidateName || 'Anonymous',
+    roundId,
+    roundNumber,
+    accessLink,
+    completedAt: new Date(),
+    totalTimeSpent: totalTimeSpent || 0,
+    totalAnswers: totalAnswers || 0
+  });
+  
+  return true; // Successfully marked as completed
 };
 
 module.exports = mongoose.model('Interview', interviewSchema);

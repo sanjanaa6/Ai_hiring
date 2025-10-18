@@ -25,6 +25,7 @@ const RoundAccess = () => {
   const [error, setError] = useState(null);
   const [timeRemaining, setTimeRemaining] = useState(null);
   const [isStarting, setIsStarting] = useState(false);
+  const [isCompleted, setIsCompleted] = useState(false);
 
   // Fetch round data and validate access
   const fetchRoundData = useCallback(async () => {
@@ -34,12 +35,31 @@ const RoundAccess = () => {
         ? `${window.location.origin.replace(/\/$/, '')}/api` 
         : 'http://localhost:5000/api');
       
-      const response = await fetch(`${apiBaseUrl}/interviews/round/${accessLink}`);
+      // Get candidate info from localStorage to check completion
+      const candidateId = localStorage.getItem('candidateId') || '';
+      const candidateEmail = localStorage.getItem('candidateEmail') || '';
+      
+      // Build URL with query params for anonymous completion check
+      let url = `${apiBaseUrl}/interviews/round/${accessLink}`;
+      if (candidateId || candidateEmail) {
+        const params = new URLSearchParams();
+        if (candidateId) params.append('candidateId', candidateId);
+        if (candidateEmail) params.append('candidateEmail', candidateEmail);
+        url += `?${params.toString()}`;
+      }
+      
+      const response = await fetch(url);
       const result = await response.json();
       
       if (response.status === 403) {
         // Access denied - show error with schedule info
-        setError(result.details || result.message || 'Access denied');
+        if (result.alreadyCompleted) {
+          setIsCompleted(true);
+          setError('You have already completed this interview. You cannot retake it.');
+        } else {
+          setError(result.details || result.message || 'Access denied');
+        }
+        
         setRoundData(result.data); // Still set round data to show schedule info
         setAccessValidation(result.data?.accessValidation);
         return;
@@ -123,6 +143,9 @@ const RoundAccess = () => {
       const result = await response.json();
       
       if (result.success) {
+        // Store access link in localStorage for completion tracking
+        localStorage.setItem('currentAccessLink', accessLink);
+        
         // Navigate to the interview round
         navigate(`/interview/round/${accessLink}`, { 
           state: { 
@@ -176,13 +199,35 @@ const RoundAccess = () => {
           } shadow-lg`}
         >
           <div className="text-center">
-            <XCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-            <h2 className={`text-xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-              Access Denied
-            </h2>
-            <p className={`mb-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-              {error}
-            </p>
+            {isCompleted ? (
+              <>
+                <CheckCircle className="w-20 h-20 text-green-500 mx-auto mb-4" />
+                <h2 className={`text-2xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                  Interview Already Completed
+                </h2>
+                <p className={`text-lg mb-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  You have successfully completed this interview.
+                </p>
+                <div className={`inline-block px-4 py-2 rounded-lg mb-4 ${
+                  isDarkMode ? 'bg-green-900/30 text-green-400' : 'bg-green-100 text-green-700'
+                }`}>
+                  <p className="font-medium">✓ Submission Recorded</p>
+                </div>
+                <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                  You cannot retake this interview. Please wait for the recruiter to review your submission.
+                </p>
+              </>
+            ) : (
+              <>
+                <XCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+                <h2 className={`text-xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                  Access Denied
+                </h2>
+                <p className={`mb-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                  {error}
+                </p>
+              </>
+            )}
             
             {/* Show schedule information if available */}
             {roundData && (

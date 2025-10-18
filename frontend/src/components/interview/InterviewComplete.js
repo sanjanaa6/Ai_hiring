@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { CheckCircle, Trophy, Clock, Users, Award, Download, FileText } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import apiService from '../../services/apiService';
@@ -19,6 +19,7 @@ const InterviewComplete = ({
   const [feedbackGenerated, setFeedbackGenerated] = useState(false);
   const [feedbackPdfUrl, setFeedbackPdfUrl] = useState(null);
   const [feedbackError, setFeedbackError] = useState(null);
+  const [completionMarked, setCompletionMarked] = useState(false);
 
   // Debug logging
   console.log('🎉 InterviewComplete component rendered');
@@ -26,6 +27,69 @@ const InterviewComplete = ({
   console.log('📊 All Rounds:', allRounds);
   console.log('📊 Completed Rounds:', completedRounds);
   console.log('📊 User Progress:', userProgress);
+
+  // Mark interview as completed when component mounts
+  useEffect(() => {
+    const markInterviewCompleted = async () => {
+      if (completionMarked || !interviewId) return;
+
+      try {
+        console.log('🏁 Marking interview as completed...');
+        
+        // Get candidate info
+        const candidateId = userProgress?.candidateId || localStorage.getItem('candidateId') || `anon_${Date.now()}`;
+        const candidateName = userProgress?.candidateName || localStorage.getItem('candidateName') || 'Anonymous Candidate';
+        const candidateEmail = userProgress?.candidateEmail || localStorage.getItem('candidateEmail') || 'anonymous@example.com';
+        
+        // Get access link from URL or localStorage
+        const urlParams = new URLSearchParams(window.location.search);
+        const accessLink = urlParams.get('accessLink') || localStorage.getItem('currentAccessLink') || '';
+        
+        // Calculate total time spent
+        const totalTimeSpent = userProgress?.rounds?.reduce((total, round) => {
+          return total + (round.timeSpent || 0);
+        }, 0) || 0;
+
+        const completionData = {
+          candidateInfo: {
+            candidateId,
+            candidateName,
+            candidateEmail
+          },
+          totalTimeSpent,
+          accessLink,
+          roundId: allRounds?.[0]?.roundId || '',
+          roundNumber: allRounds?.[0]?.roundNumber || 1
+        };
+
+        console.log('📤 Sending completion data:', completionData);
+
+        const response = await fetch(`${apiService.client.defaults.baseURL}/interviews/${interviewId}/complete`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(completionData)
+        });
+
+        const result = await response.json();
+        
+        if (result.success) {
+          console.log('✅ Interview marked as completed successfully');
+          setCompletionMarked(true);
+        } else if (result.alreadyCompleted) {
+          console.log('ℹ️ Interview was already marked as completed');
+          setCompletionMarked(true);
+        } else {
+          console.warn('⚠️ Failed to mark interview as completed:', result.error);
+        }
+      } catch (error) {
+        console.error('❌ Error marking interview as completed:', error);
+      }
+    };
+
+    markInterviewCompleted();
+  }, [interviewId, userProgress, allRounds, completionMarked]);
 
   const getCompletionStats = () => {
     const totalRounds = allRounds.length;

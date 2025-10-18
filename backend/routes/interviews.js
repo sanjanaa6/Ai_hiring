@@ -158,6 +158,39 @@ router.get('/:interviewId/performance', auth, getPerformanceAnalytics);
 // Get comprehensive interview analytics
 router.get('/:interviewId/analytics', auth, getInterviewAnalytics);
 
+// Check if candidate has completed the interview
+router.get('/:interviewId/check-completion', async (req, res) => {
+  try {
+    const { interviewId } = req.params;
+    const { candidateId, candidateEmail } = req.query;
+    
+    if (!candidateId && !candidateEmail) {
+      return res.json({ completed: false });
+    }
+    
+    const Interview = require('../models/Interview');
+    const interview = await Interview.findOne({ interviewId });
+    
+    if (!interview) {
+      return res.json({ completed: false });
+    }
+    
+    const hasCompleted = interview.hasCandidateCompleted(
+      candidateId || 'anonymous',
+      candidateEmail || '',
+      null // Check all access links
+    );
+    
+    res.json({ 
+      completed: hasCompleted,
+      message: hasCompleted ? 'Interview already completed' : 'Interview not completed'
+    });
+  } catch (error) {
+    console.error('Error checking completion:', error);
+    res.json({ completed: false });
+  }
+});
+
 // Feedback routes
 router.post('/:interviewId/feedback/generate', generateFeedback);
 router.get('/:interviewId/feedback/:candidateId', getFeedback);
