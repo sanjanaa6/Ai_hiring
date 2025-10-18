@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import axios from 'axios';
+import apiService from '../services/apiService';
 
 /**
  * Custom hook for screen recording with automatic upload to backend
@@ -198,41 +198,52 @@ const useScreenRecording = (options = {}) => {
   }, [startTimer]);
 
   /**
-   * Upload recording to backend
+   * Upload recording to backend (S3-only mode)
    */
   const uploadRecording = useCallback(async (blob = recordingBlob) => {
+    console.log('🚀 [HOOK S3] Starting S3 upload process...');
+    
     if (!blob) {
-      console.error('❌ [UPLOAD] No recording blob available');
+      console.error('❌ [HOOK S3] No recording blob available');
       setError('No recording available to upload');
       return;
     }
 
     if (!interviewId || !candidateName || !candidateEmail) {
-      console.error('❌ [UPLOAD] Missing required fields');
+      console.error('❌ [HOOK S3] Missing required fields:', {
+        interviewId: !!interviewId,
+        candidateName: !!candidateName,
+        candidateEmail: !!candidateEmail
+      });
       setError('Missing required interview information');
       return;
     }
 
     try {
-      console.log('📤 [UPLOAD] Starting upload...', {
-        size: blob.size,
-        type: blob.type,
-        interviewId
+      console.log('📋 [HOOK S3] Upload parameters:', {
+        blobSize: blob.size,
+        blobType: blob.type,
+        interviewId,
+        candidateName,
+        candidateEmail,
+        recruiterId,
+        jobId,
+        recordingTime,
+        startTime: startTimeRef.current?.toISOString(),
+        endTime: endTimeRef.current?.toISOString()
       });
 
       setIsUploading(true);
       setUploadProgress(0);
       setError(null);
 
-      // Get auth token
-      const token = localStorage.getItem('token');
-      if (!token) {
-        throw new Error('Authentication token not found');
-      }
+      // Auth token is handled automatically by apiService interceptor
+      console.log('🔐 [HOOK S3] Using apiService with automatic auth handling...');
 
       // Prepare form data
+      const fileName = `interview_${interviewId}_${Date.now()}.webm`;
       const formData = new FormData();
-      formData.append('recording', blob, `interview_${interviewId}_${Date.now()}.webm`);
+      formData.append('recording', blob, fileName);
       formData.append('interviewId', interviewId);
       formData.append('candidateName', candidateName);
       formData.append('candidateEmail', candidateEmail);
@@ -248,49 +259,108 @@ const useScreenRecording = (options = {}) => {
       const metadata = {
         screenResolution: `${window.screen.width}x${window.screen.height}`,
         browserInfo: navigator.userAgent,
-        deviceInfo: navigator.platform
+        deviceInfo: navigator.platform,
+        uploadTimestamp: new Date().toISOString(),
+        fileName
       };
       formData.append('metadata', JSON.stringify(metadata));
+      
+      console.log('📦 [HOOK S3] FormData prepared:', {
+        fileName,
+        fileSize: blob.size,
+        duration: recordingTime,
+        metadata
+      });
 
-      // Upload to backend
-      const response = await axios.post(
-        '/api/interview-recordings/upload',
+      // Upload to backend using centralized apiService
+      console.log('🌐 [HOOK S3] Sending upload request via apiService...');
+      const uploadStartTime = Date.now();
+      
+      const response = await apiService.post(
+        '/interview-recordings/upload',
         formData,
         {
           headers: {
-            'Content-Type': 'multipart/form-data',
-            'Authorization': `Bearer ${token}`
+            'Content-Type': 'multipart/form-data'
+            // Authorization is handled automatically by apiService interceptor
           },
           onUploadProgress: (progressEvent) => {
             const percentCompleted = Math.round(
               (progressEvent.loaded * 100) / progressEvent.total
             );
+            const uploadSpeed = (progressEvent.loaded / ((Date.now() - uploadStartTime) / 1000) / 1024 / 1024).toFixed(2);
+            const eta = progressEvent.total > progressEvent.loaded 
+              ? ((progressEvent.total - progressEvent.loaded) / (progressEvent.loaded / ((Date.now() - uploadStartTime) / 1000)) / 1000).toFixed(0)
+              : 0;
+            
             setUploadProgress(percentCompleted);
-            console.log('📊 [UPLOAD] Progress:', percentCompleted + '%');
-          }
+            console.log('📊 [HOOK S3] Upload progress:', {
+              percent: percentCompleted + '%',
+              loaded: `${(progressEvent.loaded / 1024 / 1024).toFixed(2)} MB`,
+              total: `${(progressEvent.total / 1024 / 1024).toFixed(2)} MB`,
+              speed: `${uploadSpeed} MB/s`,
+              eta: `${eta}s`
+            });
+          },
+          timeout: 600000 // 10 minutes timeout for large files
         }
       );
 
-      console.log('✅ [UPLOAD] Upload successful:', response.data);
+      const totalUploadTime = Date.now() - uploadStartTime;
+      console.log('✅ [HOOK S3] Upload completed successfully!');
+      console.log('📈 [HOOK S3] Upload statistics:', {
+        totalTime: `${(totalUploadTime / 1000).toFixed(2)}s`,
+        averageSpeed: `${(blob.size / (totalUploadTime / 1000) / 1024 / 1024).toFixed(2)} MB/s`,
+        responseStatus: response.status,
+        responseData: response.data,
+        viaApiService: true
+      });
 
       setIsUploading(false);
       setUploadProgress(100);
 
       // Call success callback
       if (onUploadSuccess) {
+        console.log('🔔 [HOOK S3] Calling success callback...');
         onUploadSuccess(response.data);
       }
 
       return response.data;
     } catch (err) {
-      console.error('❌ [UPLOAD] Upload failed:', err);
+      console.error('❌ [HOOK S3] Upload failed with error:', {
+        errorName: err.name,
+        errorMessage: err.message,
+        errorCode: err.code,
+        responseStatus: err.response?.status,
+        responseData: err.response?.data,
+        requestUrl: err.config?.url,
+        timeout: err.config?.timeout
+      });
       
-      const errorMessage = err.response?.data?.message || err.message || 'Upload failed';
+      // Enhanced error analysis
+      let errorMessage = 'Upload failed';
+      if (err.code === 'ECONNABORTED') {
+        errorMessage = 'Upload timeout - file too large or slow connection';
+        console.error('⏰ [HOOK S3] Upload timeout detected');
+      } else if (err.response?.status === 413) {
+        errorMessage = 'File too large - exceeds server limits';
+        console.error('📏 [HOOK S3] File size limit exceeded');
+      } else if (err.response?.status === 401) {
+        errorMessage = 'Authentication failed - please login again';
+        console.error('🔐 [HOOK S3] Authentication error');
+      } else if (err.response?.status === 500) {
+        errorMessage = 'Server error - S3 configuration issue';
+        console.error('🔧 [HOOK S3] Server/S3 configuration error');
+      } else {
+        errorMessage = err.response?.data?.message || err.message || 'Upload failed';
+      }
+      
       setError(errorMessage);
       setIsUploading(false);
 
       // Call error callback
       if (onUploadError) {
+        console.log('🔔 [HOOK S3] Calling error callback...');
         onUploadError(err);
       }
 
@@ -299,31 +369,46 @@ const useScreenRecording = (options = {}) => {
   }, [recordingBlob, interviewId, candidateName, candidateEmail, recruiterId, jobId, recordingTime, onUploadSuccess, onUploadError]);
 
   /**
-   * Stop recording and upload automatically
+   * Stop recording and upload automatically to S3
    */
   const stopAndUpload = useCallback(async () => {
-    console.log('🎬 [RECORDING] Stopping and uploading...');
+    console.log('🎬 [HOOK S3] Stopping recording and uploading to S3...');
     
     return new Promise((resolve, reject) => {
       if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+        console.log('🔴 [HOOK S3] MediaRecorder state:', mediaRecorderRef.current.state);
+        
         // Set up one-time handler for when recording stops
         const handleStop = async () => {
           try {
+            console.log('⏹️ [HOOK S3] Recording stopped, processing...');
             stopTimer();
             setIsRecording(false);
             setIsPaused(false);
 
             // Wait a bit for the blob to be created
+            console.log('⏳ [HOOK S3] Waiting for blob creation...');
             await new Promise(resolve => setTimeout(resolve, 500));
 
-            // Upload the recording
+            // Create blob from recorded chunks
             const blob = new Blob(chunksRef.current, { 
               type: mediaRecorderRef.current.mimeType 
             });
             
+            console.log('📦 [HOOK S3] Blob created for S3 upload:', {
+              size: blob.size,
+              type: blob.type,
+              chunks: chunksRef.current.length
+            });
+            
+            // Upload the recording to S3
+            console.log('🚀 [HOOK S3] Starting S3 upload...');
             const result = await uploadRecording(blob);
+            
+            console.log('✅ [HOOK S3] Stop and upload completed successfully!');
             resolve(result);
           } catch (err) {
+            console.error('❌ [HOOK S3] Stop and upload failed:', err);
             reject(err);
           }
         };
@@ -331,7 +416,9 @@ const useScreenRecording = (options = {}) => {
         mediaRecorderRef.current.addEventListener('stop', handleStop, { once: true });
         mediaRecorderRef.current.stop();
       } else {
-        reject(new Error('No active recording'));
+        const error = new Error('No active recording to stop and upload');
+        console.error('❌ [HOOK S3]', error.message);
+        reject(error);
       }
     });
   }, [stopTimer, uploadRecording]);
