@@ -12,76 +12,44 @@ dotenv.config();
 const app = express();
 const server = http.createServer(app);
 const PORT = process.env.PORT || 5000;
+const isDev = (process.env.NODE_ENV || 'development') !== 'production';
 
-// Initialize Socket.IO with CORS
-const io = new Server(server, {
-  cors: {
-    origin: function (origin, callback) {
-      // Allow requests with no origin (mobile apps, curl, etc.)
-      if (!origin) return callback(null, true);
-      
-      const normalizedOrigin = origin.replace(/\/$/, '');
-      const isDev = (process.env.NODE_ENV || 'development') !== 'production';
-      
-      if (isDev && /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(normalizedOrigin)) {
-        return callback(null, true);
-      }
-      
-      const allowedOrigins = [
-        process.env.FRONTEND_URL || 'http://localhost:3000',
-        'http://localhost:3001',
-        'http://localhost:5000',
-        'https://aihiring.eval8.ai',
-        'https://aihire.eval8.ai',
-        'https://www.aihiring.eval8.ai',
-        'https://www.aihire.eval8.ai'
-      ];
-      
-      if (allowedOrigins.indexOf(normalizedOrigin) !== -1) {
-        callback(null, true);
-      } else {
-        callback(new Error('Not allowed by CORS'));
-      }
-    },
-    credentials: true,
-    methods: ['GET', 'POST']
-  }
-});
+// ============================================================================
+// CORS CONFIGURATION
+// ============================================================================
+const allowedOrigins = [
+  process.env.FRONTEND_URL || 'http://localhost:3000',
+  'http://localhost:3001',
+  'http://localhost:5000',
+  'https://aihiring.eval8.ai',
+  'https://aihire.eval8.ai',
+  'https://www.aihiring.eval8.ai',
+  'https://www.aihire.eval8.ai',
+  'https://aihiring.eval8.xyz',
+  'https://aihire.eval8.xyz',
+  'https://www.aihiring.eval8.xyz',
+  'https://www.aihire.eval8.xyz'
+];
 
-console.log('✅ [SOCKET.IO] Initialized successfully');
-
-// Middleware
-app.use(cors({
+const corsOptions = {
   origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
+    // Allow requests with no origin (mobile apps, curl, Postman, etc.)
     if (!origin) return callback(null, true);
 
-    // Normalize origin (strip trailing slash)
     const normalizedOrigin = origin.replace(/\/$/, '');
 
-    // In development, allow all localhost origins to ease integration
-    const isDev = (process.env.NODE_ENV || 'development') !== 'production';
+    // In development, allow all localhost origins
     if (isDev && /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(normalizedOrigin)) {
+      console.log('✅ [CORS] Dev mode - Allowed origin:', normalizedOrigin);
       return callback(null, true);
     }
 
-    // List of allowed origins (production safelist)
-    const allowedOrigins = [
-      process.env.FRONTEND_URL || 'http://localhost:3000',
-      'http://localhost:3001',
-      'http://localhost:5000',
-      'https://aihiring.eval8.ai',
-      'https://aihire.eval8.ai',
-      'https://www.aihiring.eval8.ai',
-      'https://www.aihire.eval8.ai'
-    ];
-
-    if (allowedOrigins.indexOf(normalizedOrigin) !== -1) {
+    // Check against allowed origins
+    if (allowedOrigins.includes(normalizedOrigin)) {
       console.log('✅ [CORS] Allowed origin:', normalizedOrigin);
       callback(null, true);
     } else {
-      console.log('❌ [CORS] Blocked origin:', origin);
-      console.log('🔍 [CORS] Normalized origin:', normalizedOrigin);
+      console.log('❌ [CORS] Blocked origin:', normalizedOrigin);
       console.log('📋 [CORS] Allowed origins:', allowedOrigins);
       callback(new Error('Not allowed by CORS'));
     }
@@ -89,38 +57,64 @@ app.use(cors({
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
-  exposedHeaders: ['Content-Disposition']
-}));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+  exposedHeaders: ['Content-Disposition'],
+  maxAge: 86400 // 24 hours
+};
+
+// ============================================================================
+// SOCKET.IO INITIALIZATION
+// ============================================================================
+const io = new Server(server, {
+  cors: corsOptions,
+  transports: ['websocket', 'polling']
+});
+
+console.log('✅ [SOCKET.IO] Initialized successfully');
+
+// ============================================================================
+// MIDDLEWARE SETUP
+// ============================================================================
+// CORS middleware (must be first)
+app.use(cors(corsOptions));
+
+// Body parsing middleware
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Request logging middleware
 app.use((req, res, next) => {
   const timestamp = new Date().toISOString();
-  console.log(`📨 [${timestamp}] ${req.method} ${req.path}`);
+  console.log(`📨 [${timestamp}] ${req.method} ${req.path} - Origin: ${req.headers.origin || 'none'}`);
   
-  // Log query params if present
   if (Object.keys(req.query).length > 0) {
     console.log(`   Query:`, req.query);
   }
   
-  // Log body for POST/PUT/PATCH (but not for file uploads)
   if (['POST', 'PUT', 'PATCH'].includes(req.method) && !req.path.includes('/upload')) {
     if (req.body && Object.keys(req.body).length > 0) {
-      console.log(`   Body:`, JSON.stringify(req.body).substring(0, 200));
+      const bodyStr = JSON.stringify(req.body);
+      console.log(`   Body:`, bodyStr.length > 200 ? bodyStr.substring(0, 200) + '...' : bodyStr);
     }
   }
   
   next();
 });
 
+// Global OPTIONS handler (must be early in middleware chain)
+app.options('*', cors(corsOptions));
+
+// ============================================================================
+// DATABASE CONNECTION
+// ============================================================================
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/ai-hiring';
 
 console.log('🔗 [SERVER] Attempting to connect to MongoDB...');
-console.log('🌐 [SERVER] MongoDB URI:', MONGODB_URI.replace(/\/\/.*@/, '//***:***@')); // Hide credentials
+console.log('🌐 [SERVER] MongoDB URI:', MONGODB_URI.replace(/\/\/.*@/, '//***:***@'));
 
 mongoose.connect(MONGODB_URI, {
-  family: 4
+  family: 4,
+  serverSelectionTimeoutMS: 5000,
+  socketTimeoutMS: 45000,
 })
 .then(() => {
   console.log('✅ [SERVER] MongoDB connected successfully');
@@ -128,349 +122,178 @@ mongoose.connect(MONGODB_URI, {
 })
 .catch(err => {
   console.error('❌ [SERVER] MongoDB connection error:', err.message);
-  console.error('🔍 [SERVER] MongoDB error details:', {
+  console.error('🔍 [SERVER] Error details:', {
     name: err.name,
-    code: err.code,
-    errno: err.errno,
-    syscall: err.syscall
+    code: err.code
   });
 });
 
-// Routes
+// MongoDB connection event handlers
+mongoose.connection.on('disconnected', () => {
+  console.log('⚠️  [SERVER] MongoDB disconnected');
+});
+
+mongoose.connection.on('reconnected', () => {
+  console.log('✅ [SERVER] MongoDB reconnected');
+});
+
+// ============================================================================
+// STATIC FILE SERVING
+// ============================================================================
+app.use('/uploads/recruiter-docs', express.static(path.join(__dirname, 'uploads', 'recruiter-docs')));
+app.use('/uploads/form-submissions', express.static(path.join(__dirname, 'uploads', 'form-submissions')));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// ============================================================================
+// ROUTES SETUP
+// ============================================================================
 console.log('📦 [SERVER] Loading routes...');
 
-try {
-  app.use('/api/dashboard', require('./routes/dashboard'));
-  console.log('  ✅ Dashboard routes loaded');
-} catch (err) {
-  console.error('  ❌ Dashboard routes failed:', err.message);
-}
+const routes = [
+  { path: '/api/dashboard', file: './routes/dashboard', name: 'Dashboard' },
+  { path: '/api/jobs', file: './routes/jobs', name: 'Jobs' },
+  { path: '/api/applications', file: './routes/applications', name: 'Applications' },
+  { path: '/api/users', file: './routes/users', name: 'Users' },
+  { path: '/api/sessions', file: './routes/sessions', name: 'Session Management' },
+  { path: '/api/recordings', file: './routes/recordings', name: 'Recording Management' },
+  { path: '/api/interviews', file: './routes/interviewScheduling', name: 'Interview Scheduling' },
+  { path: '/api/interviews', file: './routes/formSubmission', name: 'Form Submission' },
+  { path: '/api/interviews', file: './routes/interviews', name: 'Interviews' },
+  { path: '/api/ai', file: './routes/ai', name: 'AI Services' },
+  { path: '/api/ai', file: './routes/aiEvaluation', name: 'AI Evaluation' },
+  { path: '/api/ai', file: './routes/aiLanguageDetection', name: 'AI Language Detection' },
+  { path: '/api/ai', file: './routes/salesInterviewService', name: 'Sales Interview' },
+  { path: '/api/electronics', file: './routes/electronicsInterviewService', name: 'Electronics Interview' },
+  { path: '/api/coding-tutor', file: './routes/codingTutor', name: 'Coding Tutor' },
+  { path: '/api/admin', file: './routes/admin', name: 'Admin' },
+  { path: '/api/admin', file: './routes/adminAuth', name: 'Admin Auth' },
+  { path: '/api/tts', file: './routes/tts', name: 'TTS' },
+  { path: '/api/stt', file: './routes/stt', name: 'STT' },
+  { path: '/api/interviews', file: './routes/systemDesign', name: 'System Design' },
+  { path: '/api/interviews', file: './routes/pcbDesign', name: 'PCB Design' },
+  { path: '/api/screen-share', file: './routes/screenShare', name: 'Screen Share' },
+  { path: '/api/interview-recordings', file: './routes/interviewRecordings', name: 'Interview Recordings' },
+  { path: '/api/eye-tracking', file: './routes/eyeTracking', name: 'Eye Tracking' },
+  { path: '/api/judge0', file: './routes/judge0', name: 'Judge0' }
+];
 
-try {
-  app.use('/api/jobs', require('./routes/jobs'));
-  console.log('  ✅ Jobs routes loaded');
-} catch (err) {
-  console.error('  ❌ Jobs routes failed:', err.message);
-}
+// Load routes with error handling
+routes.forEach(route => {
+  try {
+    app.use(route.path, require(route.file));
+    console.log(`  ✅ ${route.name} routes loaded`);
+  } catch (err) {
+    console.error(`  ❌ ${route.name} routes failed:`, err.message);
+  }
+});
 
-try {
-  app.use('/api/applications', require('./routes/applications'));
-  console.log('  ✅ Applications routes loaded');
-} catch (err) {
-  console.error('  ❌ Applications routes failed:', err.message);
-}
+// Auth routes with explicit CORS
+app.use('/api/auth', cors(corsOptions), require('./routes/auth'));
+console.log('  ✅ Auth routes loaded');
 
-try {
-  app.use('/api/users', require('./routes/users'));
-  console.log('  ✅ Users routes loaded');
-} catch (err) {
-  console.error('  ❌ Users routes failed:', err.message);
-}
-
-// Session management routes
-try {
-  app.use('/api/sessions', require('./routes/sessions'));
-  console.log('  ✅ Session management routes loaded');
-} catch (err) {
-  console.error('  ❌ Session routes failed:', err.message);
-}
-
-// Recording management routes
-try {
-  app.use('/api/recordings', require('./routes/recordings'));
-  console.log('  ✅ Recording management routes loaded');
-} catch (err) {
-  console.error('  ❌ Recording routes failed:', err.message);
-}
-
-// Interview scheduling routes must come BEFORE main interviews routes to avoid conflicts
-try {
-  app.use('/api/interviews', require('./routes/interviewScheduling'));
-  console.log('  ✅ Interview scheduling routes loaded');
-} catch (err) {
-  console.error('  ❌ Interview scheduling routes failed:', err.message);
-}
-
-try {
-  app.use('/api/interviews', require('./routes/formSubmission'));
-  console.log('  ✅ Form submission routes loaded');
-} catch (err) {
-  console.error('  ❌ Form submission routes failed:', err.message);
-}
-
-try {
-  app.use('/api/interviews', require('./routes/interviews'));
-  console.log('  ✅ Interview routes loaded');
-} catch (err) {
-  console.error('  ❌ Interview routes failed:', err.message);
-}
-
-try {
-  app.use('/api/ai', require('./routes/ai'));
-  console.log('  ✅ AI routes loaded');
-} catch (err) {
-  console.error('  ❌ AI routes failed:', err.message);
-}
-
-try {
-  app.use('/api/ai', require('./routes/aiEvaluation'));
-  console.log('  ✅ AI evaluation routes loaded');
-} catch (err) {
-  console.error('  ❌ AI evaluation routes failed:', err.message);
-}
-
-try {
-  app.use('/api/ai', require('./routes/aiLanguageDetection'));
-  console.log('  ✅ AI language detection routes loaded');
-} catch (err) {
-  console.error('  ❌ AI language detection routes failed:', err.message);
-}
-
-try {
-  app.use('/api/ai', require('./routes/salesInterviewService'));
-  console.log('  ✅ Sales interview service routes loaded');
-} catch (err) {
-  console.error('  ❌ Sales interview service routes failed:', err.message);
-}
-
-try {
-  app.use('/api/electronics', require('./routes/electronicsInterviewService'));
-  console.log('  ✅ Electronics interview service routes loaded');
-} catch (err) {
-  console.error('  ❌ Electronics interview service routes failed:', err.message);
-}
-
-try {
-  app.use('/api/coding-tutor', require('./routes/codingTutor'));
-  console.log('  ✅ Coding tutor routes loaded');
-} catch (err) {
-  console.error('  ❌ Coding tutor routes failed:', err.message);
-}
-
-try {
-  app.use('/api/admin', require('./routes/admin'));
-  console.log('  ✅ Admin routes loaded');
-} catch (err) {
-  console.error('  ❌ Admin routes failed:', err.message);
-}
-
-try {
-  app.use('/api/admin', require('./routes/adminAuth'));
-  console.log('  ✅ Admin auth routes loaded');
-} catch (err) {
-  console.error('  ❌ Admin auth routes failed:', err.message);
-}
-
-try {
-  app.use('/api/tts', require('./routes/tts'));
-  console.log('  ✅ TTS routes loaded');
-} catch (err) {
-  console.error('  ❌ TTS routes failed:', err.message);
-}
-
-try {
-  app.use('/api/stt', require('./routes/stt'));
-  console.log('  ✅ STT routes loaded');
-} catch (err) {
-  console.error('  ❌ STT routes failed:', err.message);
-}
-
-try {
-  app.use('/api/interviews', require('./routes/systemDesign'));
-  console.log('  ✅ System Design routes loaded');
-} catch (err) {
-  console.error('  ❌ System Design routes failed:', err.message);
-}
-
-try {
-  app.use('/api/interviews', require('./routes/pcbDesign'));
-  console.log('  ✅ PCB Design routes loaded');
-} catch (err) {
-  console.error('  ❌ PCB Design routes failed:', err.message);
-}
-
-try {
-  app.use('/api/screen-share', require('./routes/screenShare'));
-  console.log('  ✅ Screen Share routes loaded');
-} catch (err) {
-  console.error('  ❌ Screen Share routes failed:', err.message);
-}
-
-try {
-  app.use('/api/interview-recordings', require('./routes/interviewRecordings'));
-  console.log('  ✅ Interview Recordings routes loaded');
-} catch (err) {
-  console.error('  ❌ Interview Recordings routes failed:', err.message);
-}
+// File upload routes with explicit CORS
+app.use('/api/files', cors(corsOptions), require('./routes/fileUpload'));
+console.log('  ✅ File Upload routes loaded');
 
 console.log('📦 [SERVER] All routes loaded successfully!\n');
 
-// Serve recruiter documents statically for admin review
-app.use('/uploads/recruiter-docs', express.static(path.join(__dirname, 'uploads', 'recruiter-docs')));
-// Serve form submission files statically
-app.use('/uploads/form-submissions', express.static(path.join(__dirname, 'uploads', 'form-submissions')));
-// Serve feedback PDFs statically
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
-// Add specific CORS handling for auth routes to ensure headers on all responses
-app.use('/api/auth', (req, res, next) => {
-  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.header('Access-Control-Expose-Headers', 'Content-Disposition');
-
-  if (req.method === 'OPTIONS') {
-    res.sendStatus(200);
-    return;
-  }
-  next();
-}, require('./routes/auth'));
-// Add specific CORS handling for file upload routes
-app.use('/api/files', (req, res, next) => {
-  // Set CORS headers for file upload routes
-  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.header('Access-Control-Expose-Headers', 'Content-Disposition');
-  
-  // Handle preflight requests
-  if (req.method === 'OPTIONS') {
-    res.sendStatus(200);
-    return;
-  }
-  
-  next();
-}, require('./routes/fileUpload'));
-app.use('/api/eye-tracking', require('./routes/eyeTracking'));
-app.use('/api/judge0', require('./routes/judge0'));
-
-// Global OPTIONS handler to guarantee preflight success across all routes
-app.options('*', (req, res) => {
-  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.header('Access-Control-Expose-Headers', 'Content-Disposition');
-  res.sendStatus(200);
-});
-
-
-
-// Basic route
+// ============================================================================
+// API ENDPOINTS
+// ============================================================================
 app.get('/api', (req, res) => {
   console.log('🏠 [API] Health check endpoint accessed');
-  res.json({ message: 'AI Hiring Backend API is running!' });
-});
-
-// CORS test endpoint
-app.get('/api/cors-test', (req, res) => {
-  console.log('🌐 [CORS] Test endpoint accessed from origin:', req.headers.origin);
   res.json({ 
-    message: 'CORS is working!', 
-    origin: req.headers.origin,
+    message: 'AI Hiring Backend API is running!',
+    version: '1.0.0',
     timestamp: new Date().toISOString()
   });
 });
 
-// Serve frontend static files in production
-if (process.env.NODE_ENV === 'production') {
-  // Serve static files from the React app build directory with proper cache headers
-  app.use(express.static(path.join(__dirname, '../frontend/build'), {
-    // Cache static assets (JS, CSS, images) for 1 year
-    maxAge: '1y',
-    // Don't cache HTML files to ensure users get the latest version
-    setHeaders: (res, path) => {
-      if (path.endsWith('.html')) {
-        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-        res.setHeader('Pragma', 'no-cache');
-        res.setHeader('Expires', '0');
-      } else if (path.match(/\.(js|css|png|jpg|jpeg|gif|ico|svg)$/)) {
-        // Cache static assets with versioning
-        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
-      }
-    }
-  }));
-  
-  // Handle React routing, but ONLY for non-API routes
-  app.get('*', (req, res, next) => {
-    // Skip API routes - let them be handled by API middleware
-    if (req.path.startsWith('/api/')) {
-      return next();
-    }
-    
-    // For all other routes, serve the React app with no-cache headers
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-    res.setHeader('Pragma', 'no-cache');
-    res.setHeader('Expires', '0');
-    res.sendFile(path.join(__dirname, '../frontend/build', 'index.html'));
-  });
-  
-  // 404 handler for API routes that don't exist
-  app.use('/api/*', (req, res) => {
-    res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
-    res.header('Access-Control-Allow-Credentials', 'true');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
-    res.header('Access-Control-Expose-Headers', 'Content-Disposition');
-    res.status(404).json({ message: 'API endpoint not found' });
-  });
-} else {
-  // 404 handler for development (API routes only)
-  app.use((req, res, next) => {
-    res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
-    res.header('Access-Control-Allow-Credentials', 'true');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
-    res.header('Access-Control-Expose-Headers', 'Content-Disposition');
-    res.status(404).json({ message: 'Not Found' });
-  });
-}
-
-// Request logging middleware
-app.use((req, res, next) => {
-  console.log(`📡 [REQUEST] ${req.method} ${req.path} - ${new Date().toISOString()}`);
-  console.log('👤 [REQUEST] User-Agent:', req.get('User-Agent'));
-  console.log('🌐 [REQUEST] IP:', req.ip);
-  next();
-});
-
-// Error handling middleware
-app.use((err, req, res, next) => {
-  console.error('❌ [ERROR] Unhandled error occurred:', err.message);
-  console.error('🔍 [ERROR] Error stack:', err.stack);
-  console.error('📡 [ERROR] Request details:', {
-    method: req.method,
-    path: req.path,
-    body: req.body,
-    query: req.query,
-    params: req.params
-  });
-  // Ensure CORS headers are present even on error responses
-  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
-  res.header('Access-Control-Expose-Headers', 'Content-Disposition');
-
-  res.status(500).json({ 
-    message: 'Something went wrong!',
-    error: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error'
-  });
-});
-
-// Health check endpoint
 app.get('/api/health', (req, res) => {
   res.json({
     status: 'ok',
     timestamp: new Date().toISOString(),
     mongodb: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
-    environment: process.env.NODE_ENV || 'development'
+    environment: process.env.NODE_ENV || 'development',
+    uptime: process.uptime()
   });
 });
 
-// Initialize Screen Share Socket.IO handlers
+app.get('/api/cors-test', (req, res) => {
+  console.log('🌐 [CORS] Test endpoint accessed from origin:', req.headers.origin);
+  res.json({ 
+    message: 'CORS is working!', 
+    origin: req.headers.origin,
+    allowedOrigins: allowedOrigins,
+    timestamp: new Date().toISOString()
+  });
+});
+
+// ============================================================================
+// PRODUCTION FRONTEND SERVING
+// ============================================================================
+if (process.env.NODE_ENV === 'production') {
+  const buildPath = path.join(__dirname, '../frontend/build');
+  
+  // Serve static files with caching
+  app.use(express.static(buildPath, {
+    maxAge: '1y',
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith('.html')) {
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+      } else if (filePath.match(/\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$/)) {
+        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      }
+    }
+  }));
+  
+  // Handle React routing for non-API routes
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api/')) {
+      return next();
+    }
+    
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    res.sendFile(path.join(buildPath, 'index.html'));
+  });
+}
+
+// ============================================================================
+// ERROR HANDLING
+// ============================================================================
+// 404 handler for API routes
+app.use('/api/*', (req, res) => {
+  console.log('❌ [404] API endpoint not found:', req.path);
+  res.status(404).json({ 
+    error: 'API endpoint not found',
+    path: req.path,
+    method: req.method
+  });
+});
+
+// Global error handler
+app.use((err, req, res, next) => {
+  console.error('❌ [ERROR] Unhandled error:', err.message);
+  console.error('🔍 [ERROR] Stack:', err.stack);
+  console.error('📡 [ERROR] Request:', {
+    method: req.method,
+    path: req.path,
+    origin: req.headers.origin
+  });
+
+  res.status(err.status || 500).json({ 
+    error: isDev ? err.message : 'Internal server error',
+    ...(isDev && { stack: err.stack })
+  });
+});
+
+// ============================================================================
+// SOCKET.IO HANDLERS
+// ============================================================================
 try {
   const screenShareSocket = require('./socket/screenShareSocket');
   screenShareSocket(io);
@@ -479,27 +302,56 @@ try {
   console.error('❌ [SOCKET.IO] Failed to initialize screen share handlers:', err.message);
 }
 
+// ============================================================================
+// SERVER STARTUP
+// ============================================================================
 server.listen(PORT, () => {
-  console.log('\n' + '='.repeat(60));
-  console.log('🚀 [SERVER] AI HIRING BACKEND SERVER');
-  console.log('='.repeat(60));
-  console.log(`🌐 Server URL:        http://localhost:${PORT}`);
-  console.log(`🔗 API Base URL:      http://localhost:${PORT}/api`);
-  console.log(`🏥 Health Check:      http://localhost:${PORT}/api/health`);
-  console.log(`🔌 Socket.IO:         ws://localhost:${PORT}`);
-  console.log(`📊 Environment:       ${process.env.NODE_ENV || 'development'}`);
-  console.log(`📅 Started At:        ${new Date().toLocaleString()}`);
-  console.log('='.repeat(60));
-  console.log('\n📋 Available Endpoints:');
+  console.log('\n' + '='.repeat(70));
+  console.log('🚀 AI HIRING BACKEND SERVER');
+  console.log('='.repeat(70));
+  console.log(`🌐 Server URL:          http://localhost:${PORT}`);
+  console.log(`🔗 API Base URL:        http://localhost:${PORT}/api`);
+  console.log(`🏥 Health Check:        http://localhost:${PORT}/api/health`);
+  console.log(`🧪 CORS Test:           http://localhost:${PORT}/api/cors-test`);
+  console.log(`🔌 Socket.IO:           ws://localhost:${PORT}`);
+  console.log(`📊 Environment:         ${process.env.NODE_ENV || 'development'}`);
+  console.log(`📅 Started At:          ${new Date().toLocaleString()}`);
+  console.log(`🔒 CORS Allowed:        ${allowedOrigins.length} origins`);
+  console.log('='.repeat(70));
+  console.log('\n📋 Key Endpoints:');
+  console.log('  • /api/auth           - Authentication');
   console.log('  • /api/sessions       - Session Management');
-  console.log('  • /api/recordings     - Recording Management (NEW)');
+  console.log('  • /api/recordings     - Recording Management');
   console.log('  • /api/interviews     - Interview Management');
   console.log('  • /api/users          - User Management');
   console.log('  • /api/jobs           - Job Management');
   console.log('  • /api/ai             - AI Services');
   console.log('  • /api/admin          - Admin Panel');
   console.log('  • /api/screen-share   - Screen Share (WebRTC)');
-  console.log('  • Socket.IO           - Real-time WebRTC Signaling');
-  console.log('='.repeat(60));
-  console.log('✅ [SERVER] Server is ready to accept connections!\n');
+  console.log('  • /api/files          - File Upload');
+  console.log('='.repeat(70));
+  console.log('✅ Server is ready to accept connections!\n');
+});
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('⚠️  SIGTERM received, shutting down gracefully...');
+  server.close(() => {
+    console.log('✅ Server closed');
+    mongoose.connection.close(false, () => {
+      console.log('✅ MongoDB connection closed');
+      process.exit(0);
+    });
+  });
+});
+
+process.on('SIGINT', () => {
+  console.log('⚠️  SIGINT received, shutting down gracefully...');
+  server.close(() => {
+    console.log('✅ Server closed');
+    mongoose.connection.close(false, () => {
+      console.log('✅ MongoDB connection closed');
+      process.exit(0);
+    });
+  });
 });
