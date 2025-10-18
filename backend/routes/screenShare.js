@@ -76,23 +76,53 @@ router.post('/end', async (req, res) => {
   try {
     const { sessionId, interviewId, candidateId } = req.body;
 
-    console.log(`🛑 [SCREEN SHARE] Ending session ${sessionId || `for interview ${interviewId}`}`);
+    console.log(`🛑 [SCREEN SHARE] Ending session request:`, {
+      sessionId,
+      interviewId,
+      candidateId,
+      body: req.body
+    });
 
     let session;
     
     if (sessionId) {
+      console.log(`🔍 [SCREEN SHARE] Looking for session by ID: ${sessionId}`);
       session = await ScreenShareSession.findById(sessionId);
     } else if (interviewId) {
       // Find by interviewId and candidateId (or any active session for that interview)
-      session = await ScreenShareSession.findOne({
+      const query = {
         interviewId,
         ...(candidateId ? { candidateId } : {}),
         status: 'active'
-      }).sort({ startedAt: -1 }); // Get most recent
+      };
+      console.log(`🔍 [SCREEN SHARE] Looking for session with query:`, query);
+      
+      session = await ScreenShareSession.findOne(query).sort({ startedAt: -1 }); // Get most recent
+      
+      if (session) {
+        console.log(`✅ [SCREEN SHARE] Found session:`, {
+          id: session._id,
+          interviewId: session.interviewId,
+          candidateId: session.candidateId,
+          status: session.status,
+          startedAt: session.startedAt
+        });
+      }
     }
 
     if (!session) {
-      console.log(`⚠️ [SCREEN SHARE] No active session found for interview ${interviewId}`);
+      console.log(`⚠️ [SCREEN SHARE] No active session found`);
+      console.log(`🔍 [SCREEN SHARE] Checking all sessions for interview: ${interviewId}`);
+      
+      const allSessions = await ScreenShareSession.find({ interviewId }).sort({ startedAt: -1 });
+      console.log(`📊 [SCREEN SHARE] All sessions for this interview:`, allSessions.map(s => ({
+        id: s._id,
+        candidateId: s.candidateId,
+        status: s.status,
+        startedAt: s.startedAt,
+        endedAt: s.endedAt
+      })));
+      
       return res.status(404).json({
         success: false,
         error: 'Session not found'

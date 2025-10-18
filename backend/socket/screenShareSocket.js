@@ -302,17 +302,41 @@ module.exports = (io) => {
         
         if (userData) {
           const { interviewId, role } = userData;
+          
+          console.log(`🔍 [DISCONNECT] User data:`, {
+            interviewId,
+            role,
+            userId: socket.userId
+          });
 
           // If CANDIDATE disconnected, end their screen share session in database
           if (role === 'candidate' && interviewId) {
             try {
               const ScreenShareSession = require('../models/ScreenShareSession');
               
-              // Extract base interview ID and candidate ID from the unique room ID
-              // Format: interview_XXX_yrt5pgjvx_candidate_YYY
-              const parts = interviewId.split('_');
-              const baseInterviewId = parts.slice(0, 3).join('_'); // interview_XXX_yrt5pgjvx
-              const candidateId = parts.slice(3).join('_'); // candidate_YYY
+              // The interviewId might be either:
+              // 1. Base interview ID: "electronics_interview_1760260892562"
+              // 2. Unique room ID: "interview_XXX_candidate_YYY"
+              
+              let baseInterviewId = interviewId;
+              let candidateId = socket.userId;
+              
+              // Check if it's a unique room ID (contains "candidate_")
+              if (interviewId.includes('_candidate_')) {
+                const parts = interviewId.split('_candidate_');
+                baseInterviewId = parts[0];
+                candidateId = 'candidate_' + parts[1];
+                console.log(`🔍 [DISCONNECT] Parsed unique room ID:`, {
+                  original: interviewId,
+                  baseInterviewId,
+                  candidateId
+                });
+              } else {
+                console.log(`🔍 [DISCONNECT] Using base interview ID:`, {
+                  interviewId,
+                  candidateId
+                });
+              }
               
               console.log(`🔍 [DISCONNECT] Looking for session - Interview: ${baseInterviewId}, Candidate: ${candidateId}`);
               
