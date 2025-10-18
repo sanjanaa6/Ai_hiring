@@ -10,6 +10,7 @@ import CandidateScreenShare from '../../components/CandidateScreenShare';
 const UserInterview = () => {
   const { user } = useAuth();
   const [showScreenShare, setShowScreenShare] = useState(false);
+  const [isMinimized, setIsMinimized] = useState(false);
   const [interviewId, setInterviewId] = useState('');
 
   const handleStartInterview = () => {
@@ -18,10 +19,22 @@ const UserInterview = () => {
       return;
     }
     setShowScreenShare(true);
+    setIsMinimized(false);
   };
 
-  const handleClose = () => {
-    setShowScreenShare(false);
+  const handleMinimize = () => {
+    setIsMinimized(true);
+  };
+
+  const handleMaximize = () => {
+    setIsMinimized(false);
+  };
+
+  const handleEndInterview = () => {
+    if (window.confirm('Are you sure you want to end the interview? This will stop screen sharing.')) {
+      setShowScreenShare(false);
+      setIsMinimized(false);
+    }
   };
 
   // For testing: Generate a random interview ID
@@ -161,7 +174,12 @@ const UserInterview = () => {
         <CandidateScreenShare
           interviewId={interviewId}
           candidateId={user?.id || user?._id}
-          onClose={handleClose}
+          candidateName={user?.name || user?.fullName}
+          candidateEmail={user?.email}
+          onMinimize={handleMinimize}
+          onMaximize={handleMaximize}
+          onEndInterview={handleEndInterview}
+          isMinimized={isMinimized}
           token={user?.token}
         />
       )}

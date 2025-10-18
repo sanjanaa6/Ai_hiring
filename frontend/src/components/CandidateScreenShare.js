@@ -28,7 +28,7 @@ const API_URL = getSocketUrl();
  * - Two-way audio communication
  * - Real-time connection status
  */
-const CandidateScreenShare = ({ interviewId, candidateId, candidateName, candidateEmail, onClose, token }) => {
+const CandidateScreenShare = ({ interviewId, candidateId, candidateName, candidateEmail, onMinimize, onMaximize, onEndInterview, isMinimized, token }) => {
   const [isSharing, setIsSharing] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
@@ -390,6 +390,36 @@ const CandidateScreenShare = ({ interviewId, candidateId, candidateName, candida
     socketService.disconnect();
   };
 
+  // Render minimized floating indicator
+  if (isMinimized) {
+    return (
+      <div className="fixed bottom-6 right-6 z-50">
+        <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg shadow-2xl p-4 flex items-center space-x-4 animate-pulse">
+          <div className="flex items-center space-x-3">
+            <div className="w-3 h-3 rounded-full bg-red-500 animate-pulse" />
+            <div>
+              <p className="text-white font-semibold text-sm">Screen Sharing Active</p>
+              <p className="text-blue-100 text-xs">{statusMessage}</p>
+            </div>
+          </div>
+          <button
+            onClick={onMaximize}
+            className="px-4 py-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded text-white text-sm font-medium transition"
+          >
+            Expand
+          </button>
+          <button
+            onClick={onEndInterview}
+            className="px-4 py-2 bg-red-500 hover:bg-red-600 rounded text-white text-sm font-medium transition"
+          >
+            End
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Render full screen share modal
   return (
     <div className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center">
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl w-full max-w-6xl mx-4 overflow-hidden">
@@ -402,12 +432,23 @@ const CandidateScreenShare = ({ interviewId, candidateId, candidateName, candida
               <p className="text-sm text-blue-100">{statusMessage}</p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-white hover:bg-opacity-20 rounded-lg transition"
-          >
-            <X className="w-6 h-6 text-white" />
-          </button>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={onMinimize}
+              className="px-4 py-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg text-white text-sm font-medium transition"
+              title="Minimize (screen sharing continues)"
+            >
+              Minimize
+            </button>
+            <button
+              onClick={onEndInterview}
+              className="px-4 py-2 bg-red-500 hover:bg-red-600 rounded-lg text-white text-sm font-medium transition flex items-center space-x-1"
+              title="End interview and stop sharing"
+            >
+              <X className="w-4 h-4" />
+              <span>End Interview</span>
+            </button>
+          </div>
         </div>
 
         {/* Status Bar */}
