@@ -14,11 +14,11 @@ const getApiBaseUrl = () => {
     if (typeof window !== 'undefined') {
       const { protocol, hostname } = window.location;
       if (hostname.includes('eval8.ai')) {
-        return 'https://aihiring.eval8.ai/api';
+        return 'https://aihire.eval8.xyz/api';  // Backend domain
       }
       return `${protocol}//${hostname}:5000/api`;
     }
-    return 'https://aihiring.eval8.ai/api';
+    return 'https://aihire.eval8.xyz/api';  // Backend domain
   }
   
   // For development

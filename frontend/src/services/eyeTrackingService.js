@@ -1,7 +1,32 @@
 import axios from 'axios';
 import { axiosConfig } from '../utils/axiosConfig';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || `${window.location.origin.replace(/\/$/, '')}/api`;
+// Dynamic API base URL configuration
+const getApiBaseUrl = () => {
+  // If environment variable is set, use it
+  if (process.env.REACT_APP_API_URL) {
+    return process.env.REACT_APP_API_URL.endsWith('/api') 
+      ? process.env.REACT_APP_API_URL 
+      : `${process.env.REACT_APP_API_URL}/api`;
+  }
+  
+  // For production deployment
+  if (process.env.NODE_ENV === 'production') {
+    if (typeof window !== 'undefined') {
+      const { protocol, hostname } = window.location;
+      if (hostname.includes('eval8.ai')) {
+        return 'https://aihire.eval8.xyz/api';  // Backend domain
+      }
+      return `${protocol}//${hostname}:5000/api`;
+    }
+    return 'https://aihire.eval8.xyz/api';  // Backend domain
+  }
+  
+  // For development
+  return 'http://localhost:5000/api';
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 class EyeTrackingService {
   // Track a violation

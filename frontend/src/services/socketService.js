@@ -21,7 +21,7 @@ class SocketService {
       } else if (process.env.NODE_ENV === 'production' && typeof window !== 'undefined') {
         const { protocol, hostname } = window.location;
         if (hostname.includes('eval8.ai')) {
-          serverUrl = 'https://aihiring.eval8.ai';
+          serverUrl = 'https://aihire.eval8.xyz';  // Backend domain
         } else {
           serverUrl = `${protocol}//${hostname}:5000`;
         }

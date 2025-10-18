@@ -11,7 +11,7 @@ const getSocketUrl = () => {
   if (process.env.NODE_ENV === 'production' && typeof window !== 'undefined') {
     const { protocol, hostname } = window.location;
     if (hostname.includes('eval8.ai')) {
-      return 'https://aihiring.eval8.ai';
+      return 'https://aihire.eval8.xyz';  // Backend domain
     }
     return `${protocol}//${hostname}:5000`;
   }
@@ -154,6 +154,10 @@ const WorkingScreenShare = ({ interviewId, role, candidateInfo, candidateId, onC
         });
         const data = await response.json();
         console.log('✅ [CANDIDATE] Session saved to database:', data);
+        
+        // Add a small delay to ensure connection is stable before proceeding
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        console.log('⏳ [CANDIDATE] Connection stabilized, ready for interview');
       } catch (error) {
         console.error('❌ [CANDIDATE] Failed to save session:', error);
       }
@@ -376,19 +380,44 @@ const WorkingScreenShare = ({ interviewId, role, candidateInfo, candidateId, onC
     
     // End session in database if candidate
     if (role === 'candidate') {
-      try {
-        await fetch(`${API_URL}/api/screen-share/end`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            interviewId: interviewId, // Use ORIGINAL interview ID
-            candidateId: myCandidateId
-          })
-        });
-        console.log('✅ [CANDIDATE] Session ended in database for:', myCandidateId);
-      } catch (error) {
-        console.error('❌ [CANDIDATE] Failed to end session:', error);
-      }
+      const endSession = async (retryCount = 0) => {
+        try {
+          console.log(`🛑 [CANDIDATE] Ending session (attempt ${retryCount + 1})...`);
+          
+          const response = await fetch(`${API_URL}/api/screen-share/end`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+              interviewId: interviewId, // Use ORIGINAL interview ID
+              candidateId: myCandidateId
+            })
+          });
+          
+          if (response.ok) {
+            console.log('✅ [CANDIDATE] Session ended in database for:', myCandidateId);
+          } else if (response.status === 404 && retryCount < 2) {
+            // Session might not be found due to timing - retry after a short delay
+            console.log(`⏳ [CANDIDATE] Session not found, retrying in 1 second... (attempt ${retryCount + 1})`);
+            setTimeout(() => endSession(retryCount + 1), 1000);
+          } else {
+            const errorData = await response.json().catch(() => ({}));
+            console.log(`⚠️ [CANDIDATE] Session end failed:`, {
+              status: response.status,
+              error: errorData.error || 'Unknown error'
+            });
+          }
+        } catch (error) {
+          console.error('❌ [CANDIDATE] Failed to end session:', error);
+          
+          // Retry on network errors
+          if (retryCount < 2) {
+            console.log(`🔄 [CANDIDATE] Retrying session end in 1 second... (attempt ${retryCount + 1})`);
+            setTimeout(() => endSession(retryCount + 1), 1000);
+          }
+        }
+      };
+      
+      endSession();
     }
   };
   

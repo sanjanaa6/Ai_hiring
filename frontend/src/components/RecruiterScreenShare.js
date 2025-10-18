@@ -13,7 +13,7 @@ const getSocketUrl = () => {
   if (process.env.NODE_ENV === 'production' && typeof window !== 'undefined') {
     const { protocol, hostname } = window.location;
     if (hostname.includes('eval8.ai')) {
-      return 'https://aihiring.eval8.ai';
+      return 'https://aihire.eval8.xyz';  // Backend domain
     }
     return `${protocol}//${hostname}:5000`;
   }

@@ -348,19 +348,27 @@ module.exports = (io) => {
               });
               
               if (session) {
-                session.status = 'ended';
-                session.endedAt = new Date();
-                session.duration = Math.floor((session.endedAt - session.startedAt) / 1000);
-                await session.save();
+                // Check if session is very recent (less than 30 seconds)
+                const sessionAge = (new Date() - session.startedAt) / 1000;
                 
-                console.log(`✅ [DISCONNECT] Ended session ${session._id} for candidate ${session.candidateId}`);
-                
-                // Notify dashboard to refresh immediately
-                io.emit('session-ended', {
-                  sessionId: session._id,
-                  interviewId: session.interviewId,
-                  candidateId: session.candidateId
-                });
+                if (sessionAge < 30) {
+                  console.log(`⏳ [DISCONNECT] Session is very recent (${sessionAge}s), keeping it active for potential reconnection`);
+                  // Don't end the session immediately - give frontend a chance to properly end it
+                } else {
+                  session.status = 'ended';
+                  session.endedAt = new Date();
+                  session.duration = Math.floor((session.endedAt - session.startedAt) / 1000);
+                  await session.save();
+                  
+                  console.log(`✅ [DISCONNECT] Ended session ${session._id} for candidate ${session.candidateId} (age: ${sessionAge}s)`);
+                  
+                  // Notify dashboard to refresh immediately
+                  io.emit('session-ended', {
+                    sessionId: session._id,
+                    interviewId: session.interviewId,
+                    candidateId: session.candidateId
+                  });
+                }
               } else {
                 console.log(`⚠️ [DISCONNECT] No active session found for ${baseInterviewId} / ${candidateId}`);
               }
