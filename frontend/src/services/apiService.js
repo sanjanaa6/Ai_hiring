@@ -15,14 +15,14 @@ const getApiBaseUrl = () => {
     if (typeof window !== 'undefined') {
       const { protocol, hostname } = window.location;
       // If we're on the deployed domain, use the backend URL
-      if (hostname.includes('eval8.in')) {
-        return 'https://aihiring.eval8.in/api';
+      if (hostname.includes('eval8.ai')) {
+        return 'https://aihiring.eval8.ai/api';
       }
       // For other production deployments, try to use the same domain with port 5000
       return `${protocol}//${hostname}:5000/api`;
     }
     // Fallback for server-side rendering
-    return 'https://aihiring.eval8.in/api';
+    return 'https://aihiring.eval8.ai/api';
   }
   
   // For development, use localhost backend port

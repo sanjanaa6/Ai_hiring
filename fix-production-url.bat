@@ -10,7 +10,7 @@ echo.
 cd frontend
 
 (
-echo REACT_APP_API_URL=https://aihiring.eval8.in
+echo REACT_APP_API_URL=https://aihiring.eval8.ai
 echo NODE_ENV=production
 ) > .env.production
 

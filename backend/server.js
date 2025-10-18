@@ -31,10 +31,10 @@ const io = new Server(server, {
         process.env.FRONTEND_URL || 'http://localhost:3000',
         'http://localhost:3001',
         'http://localhost:5000',
-        'https://aihiring.eval8.in',
-        'https://aihire.eval8.in',
-        'https://www.aihiring.eval8.in',
-        'https://www.aihire.eval8.in'
+        'https://aihiring.eval8.ai',
+        'https://aihire.eval8.ai',
+        'https://www.aihiring.eval8.ai',
+        'https://www.aihire.eval8.ai'
       ];
       
       if (allowedOrigins.indexOf(normalizedOrigin) !== -1) {
@@ -70,10 +70,10 @@ app.use(cors({
       process.env.FRONTEND_URL || 'http://localhost:3000',
       'http://localhost:3001',
       'http://localhost:5000',
-      'https://aihiring.eval8.in',
-      'https://aihire.eval8.in',
-      'https://www.aihiring.eval8.in',
-      'https://www.aihire.eval8.in'
+      'https://aihiring.eval8.ai',
+      'https://aihire.eval8.ai',
+      'https://www.aihiring.eval8.ai',
+      'https://www.aihire.eval8.ai'
     ];
 
     if (allowedOrigins.indexOf(normalizedOrigin) !== -1) {

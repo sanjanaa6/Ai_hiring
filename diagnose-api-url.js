@@ -50,9 +50,9 @@ if (fs.existsSync(apiServicePath)) {
   
   // Check for hardcoded URLs
   const urlPatterns = [
-    /aihire\.eval8\.in/g,
-    /aihiring\.eval8\.in/g,
-    /eval8\.in/g
+    /aihire\.eval8\.ai/g,
+    /aihiring\.eval8\.ai/g,
+    /eval8\.ai/g
   ];
   
   urlPatterns.forEach(pattern => {
@@ -79,8 +79,8 @@ console.log('\n========================================');
 console.log('📊 Analysis:');
 console.log('========================================\n');
 
-console.log('The error shows requests going to: aihire.eval8.in');
-console.log('Expected production URL should be: aihiring.eval8.in\n');
+console.log('The error shows requests going to: aihire.eval8.ai');
+console.log('Expected production URL should be: aihiring.eval8.ai\n');
 
 console.log('Possible causes:');
 console.log('1. Wrong .env.production file during build');

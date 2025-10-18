@@ -8,7 +8,7 @@ echo This script will rebuild your application with the new .in domain.
 echo.
 echo Changes:
 echo   - Old: eval8.xyz (replaced)
-echo   - New: eval8.in (current)
+echo   - New: eval8.ai (current)
 echo.
 
 pause
@@ -26,7 +26,7 @@ if exist .env.production (
 )
 
 (
-echo REACT_APP_API_URL=https://aihiring.eval8.in
+echo REACT_APP_API_URL=https://aihiring.eval8.ai
 echo NODE_ENV=production
 ) > .env.production
 
@@ -90,16 +90,16 @@ echo    - Check environment variables
 echo.
 echo 2. FRONTEND DEPLOYMENT:
 echo    - Upload frontend/build/* to your web server
-echo    - Configure HTTPS for https://aihiring.eval8.in
+echo    - Configure HTTPS for https://aihiring.eval8.ai
 echo    - Clear CDN cache if applicable
 echo.
 echo 3. DNS CONFIGURATION:
-echo    - Point aihiring.eval8.in to your server IP
-echo    - Point pcb1.eval8.in to PCB app (if separate)
-echo    - Point systemdesign.eval8.in to system design app (if separate)
+echo    - Point aihiring.eval8.ai to your server IP
+echo    - Point pcb1.eval8.ai to PCB app (if separate)
+echo    - Point systemdesign.eval8.ai to system design app (if separate)
 echo.
 echo 4. VERIFICATION:
-echo    - Visit https://aihiring.eval8.in
+echo    - Visit https://aihiring.eval8.ai
 echo    - Check browser console for errors
 echo    - Test login/registration
 echo    - Test profile updates
