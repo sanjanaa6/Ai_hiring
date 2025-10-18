@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Video, VideoOff, Mic, MicOff, Monitor, X, AlertCircle } from 'lucide-react';
+import { Monitor, Video, VideoOff, Mic, MicOff, X, AlertCircle, Minus } from 'lucide-react';
 import socketService from '../services/socketService';
 import webrtcService from '../services/webrtcService';
+import apiService from '../services/apiService';
 
 // Get Socket.IO server URL (without /api path)
 const getSocketUrl = () => {
@@ -268,6 +269,15 @@ const CandidateScreenShare = ({ interviewId, candidateId, candidateName, candida
 
       // Start session in database
       await startSession();
+      
+      // Auto-minimize after successful screen sharing (like Google Meet)
+      setTimeout(() => {
+        console.log('📱 [CANDIDATE] Auto-minimizing screen share window for better UX');
+        setStatusMessage('Screen sharing active - Interview in progress');
+        if (onMinimize) {
+          onMinimize();
+        }
+      }, 2000); // Give user 2 seconds to see it's working, then minimize
 
     } catch (error) {
       console.error('❌ Screen share error:', error);
@@ -339,46 +349,43 @@ const CandidateScreenShare = ({ interviewId, candidateId, candidateName, candida
         candidateEmail 
       });
       
-      const response = await fetch(`${API_URL}/api/screen-share/start`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ 
-          interviewId,
-          candidateId: candidateId || `guest_${Date.now()}`,
-          candidateName: candidateName || 'Anonymous Candidate',
-          candidateEmail: candidateEmail || 'no-email@provided.com'
-        })
+      const response = await apiService.post('/screen-share/start', {
+        interviewId,
+        candidateId: candidateId || `guest_${Date.now()}`,
+        candidateName: candidateName || 'Anonymous Candidate',
+        candidateEmail: candidateEmail || 'no-email@provided.com'
       });
       
-      if (!response.ok) {
-        console.error('Failed to start session in database');
-        sessionStartedRef.current = false; // Reset on failure
+      if (response.status === 200 || response.status === 201) {
+        console.log('✅ [CANDIDATE API] Session created in backend:', response.data);
       } else {
-        console.log('✅ [SCREEN SHARE] Session created in backend');
+        console.error('❌ [CANDIDATE API] Failed to start session in database');
+        sessionStartedRef.current = false; // Reset on failure
       }
     } catch (error) {
-      console.error('❌ [SCREEN SHARE] Error starting session:', error);
+      console.error('❌ [CANDIDATE API] Error starting session:', {
+        errorMessage: error.message,
+        responseStatus: error.response?.status,
+        responseData: error.response?.data
+      });
       sessionStartedRef.current = false; // Reset on error
     }
   };
 
   const endSession = async () => {
     try {
-      console.log('📤 [SCREEN SHARE] Ending session in backend...', { interviewId, candidateId });
-      await fetch(`${API_URL}/api/screen-share/end`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ 
-          interviewId,
-          candidateId: candidateId || `guest_${Date.now()}`
-        })
+      console.log('📤 [CANDIDATE API] Ending session in backend...', { interviewId, candidateId });
+      const response = await apiService.post('/screen-share/end', {
+        interviewId,
+        candidateId: candidateId || `guest_${Date.now()}`
       });
+      console.log('✅ [CANDIDATE API] Session ended successfully:', response.data);
     } catch (error) {
-      console.error('Error ending session:', error);
+      console.error('❌ [CANDIDATE API] Error ending session:', {
+        errorMessage: error.message,
+        responseStatus: error.response?.status,
+        responseData: error.response?.data
+      });
     }
   };
 
@@ -390,29 +397,58 @@ const CandidateScreenShare = ({ interviewId, candidateId, candidateName, candida
     socketService.disconnect();
   };
 
-  // Render minimized floating indicator
+  // Render minimized floating indicator (draggable)
   if (isMinimized) {
     return (
-      <div className="fixed bottom-6 right-6 z-50">
-        <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg shadow-2xl p-4 flex items-center space-x-4 animate-pulse">
-          <div className="flex items-center space-x-3">
-            <div className="w-3 h-3 rounded-full bg-red-500 animate-pulse" />
-            <div>
-              <p className="text-white font-semibold text-sm">Screen Sharing Active</p>
-              <p className="text-blue-100 text-xs">{statusMessage}</p>
-            </div>
-          </div>
+      <div 
+        className="fixed bottom-6 right-6 z-50 cursor-move select-none"
+        draggable="true"
+        onDragStart={(e) => {
+          const rect = e.currentTarget.getBoundingClientRect();
+          e.dataTransfer.setData('text/plain', JSON.stringify({
+            offsetX: e.clientX - rect.left,
+            offsetY: e.clientY - rect.top
+          }));
+        }}
+        onDragEnd={(e) => {
+          const data = JSON.parse(e.dataTransfer.getData('text/plain') || '{}');
+          const newX = e.clientX - (data.offsetX || 0);
+          const newY = e.clientY - (data.offsetY || 0);
+          
+          // Keep within viewport bounds
+          const maxX = window.innerWidth - e.currentTarget.offsetWidth;
+          const maxY = window.innerHeight - e.currentTarget.offsetHeight;
+          
+          e.currentTarget.style.left = Math.max(0, Math.min(newX, maxX)) + 'px';
+          e.currentTarget.style.top = Math.max(0, Math.min(newY, maxY)) + 'px';
+          e.currentTarget.style.right = 'auto';
+          e.currentTarget.style.bottom = 'auto';
+        }}
+      >
+        <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-full shadow-lg p-2 flex items-center space-x-2 hover:shadow-xl transition-all">
+          <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+          <span className="text-white font-medium text-xs px-1">Sharing</span>
           <button
             onClick={onMaximize}
-            className="px-4 py-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded text-white text-sm font-medium transition"
+            className="p-1 bg-white bg-opacity-20 hover:bg-opacity-40 rounded-full text-white transition"
+            title="Expand controls"
           >
-            Expand
+            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M3 4a1 1 0 011-1h4a1 1 0 010 2H6.414l2.293 2.293a1 1 0 11-1.414 1.414L5 6.414V8a1 1 0 01-2 0V4zm9 1a1 1 0 010-2h4a1 1 0 011 1v4a1 1 0 01-2 0V6.414l-2.293 2.293a1 1 0 11-1.414-1.414L13.586 5H12z" clipRule="evenodd" />
+            </svg>
           </button>
           <button
-            onClick={onEndInterview}
-            className="px-4 py-2 bg-red-500 hover:bg-red-600 rounded text-white text-sm font-medium transition"
+            onClick={() => {
+              if (window.confirm('⚠️ Stop screen sharing?\n\nThis will stop sharing your screen but keep the interview active.')) {
+                stopScreenShare();
+              }
+            }}
+            className="p-1 bg-red-500 hover:bg-red-600 rounded-full text-white transition"
+            title="Stop sharing"
           >
-            End
+            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+            </svg>
           </button>
         </div>
       </div>
@@ -433,20 +469,22 @@ const CandidateScreenShare = ({ interviewId, candidateId, candidateName, candida
             </div>
           </div>
           <div className="flex items-center space-x-2">
+            {/* Close button (minimizes like Google Meet) */}
             <button
               onClick={onMinimize}
-              className="px-4 py-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg text-white text-sm font-medium transition"
-              title="Minimize (screen sharing continues)"
+              className="p-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg text-white transition-all duration-200 hover:scale-105"
+              title="Close window (screen sharing continues in background)"
             >
-              Minimize
+              <X className="w-5 h-5" />
             </button>
+            
+            {/* Minimize button (alternative option) */}
             <button
-              onClick={onEndInterview}
-              className="px-4 py-2 bg-red-500 hover:bg-red-600 rounded-lg text-white text-sm font-medium transition flex items-center space-x-1"
-              title="End interview and stop sharing"
+              onClick={onMinimize}
+              className="px-3 py-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg text-white text-sm font-medium transition"
+              title="Minimize to floating indicator"
             >
-              <X className="w-4 h-4" />
-              <span>End Interview</span>
+              <Minus className="w-4 h-4" />
             </button>
           </div>
         </div>
@@ -515,7 +553,11 @@ const CandidateScreenShare = ({ interviewId, candidateId, candidateName, candida
                 </button>
 
                 <button
-                  onClick={stopScreenShare}
+                  onClick={() => {
+                    if (window.confirm('⚠️ Stop screen sharing?\n\nThis will stop sharing your screen but keep the interview active.\n\nYou can restart sharing anytime.')) {
+                      stopScreenShare();
+                    }
+                  }}
                   className="px-8 py-3 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 flex items-center space-x-2"
                 >
                   <VideoOff className="w-5 h-5" />

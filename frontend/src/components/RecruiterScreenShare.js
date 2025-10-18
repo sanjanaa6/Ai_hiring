@@ -3,6 +3,7 @@ import io from 'socket.io-client';
 import { Video, Mic, MicOff, X, Play, Pause, Flag, FileText, AlertCircle, Check } from 'lucide-react';
 import socketService from '../services/socketService';
 import webrtcService from '../services/webrtcService';
+import apiService from '../services/apiService';
 
 // Get Socket.IO server URL (without /api path)
 const getSocketUrl = () => {
@@ -263,26 +264,25 @@ const RecruiterScreenShare = ({ interviewId, candidateId, candidateName, onClose
 
   const togglePause = async () => {
     try {
+      console.log('⏸️ [RECRUITER API] Toggling interview pause status...');
       const newStatus = isPaused ? 'active' : 'paused';
       
-      const response = await fetch(`${API_URL}/api/screen-share/status`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          sessionId: sessionIdRef.current,
-          status: newStatus
-        })
+      const response = await apiService.put('/screen-share/status', {
+        sessionId: sessionIdRef.current,
+        status: newStatus
       });
 
-      if (response.ok) {
+      if (response.status === 200) {
         setIsPaused(!isPaused);
         setStatusMessage(isPaused ? 'Interview resumed' : 'Interview paused');
+        console.log('✅ [RECRUITER API] Interview status updated:', newStatus);
       }
     } catch (error) {
-      console.error('❌ Toggle pause error:', error);
+      console.error('❌ [RECRUITER API] Toggle pause error:', {
+        errorMessage: error.message,
+        responseStatus: error.response?.status,
+        responseData: error.response?.data
+      });
     }
   };
 
@@ -290,25 +290,26 @@ const RecruiterScreenShare = ({ interviewId, candidateId, candidateName, onClose
     if (!note.trim() || !sessionIdRef.current) return;
 
     try {
-      const response = await fetch(`${API_URL}/api/screen-share/note`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          sessionId: sessionIdRef.current,
-          note: note.trim()
-        })
+      console.log('📝 [RECRUITER API] Adding interview note...');
+      
+      const response = await apiService.post('/screen-share/note', {
+        sessionId: sessionIdRef.current,
+        note: note.trim()
       });
 
-      if (response.ok) {
-        setNotes([...notes, { text: note.trim(), timestamp: new Date() }]);
+      if (response.status === 200 || response.status === 201) {
+        const newNote = { text: note.trim(), timestamp: new Date() };
+        setNotes([...notes, newNote]);
         setNote('');
         setShowNoteInput(false);
+        console.log('✅ [RECRUITER API] Note added successfully:', newNote.text);
       }
     } catch (error) {
-      console.error('❌ Add note error:', error);
+      console.error('❌ [RECRUITER API] Add note error:', {
+        errorMessage: error.message,
+        responseStatus: error.response?.status,
+        responseData: error.response?.data
+      });
     }
   };
 
@@ -317,19 +318,27 @@ const RecruiterScreenShare = ({ interviewId, candidateId, candidateName, onClose
     if (!reason || !sessionIdRef.current) return;
 
     try {
-      await fetch(`${API_URL}/api/screen-share/flag`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          sessionId: sessionIdRef.current,
-          reason
-        })
+      console.log('🚩 [RECRUITER API] Flagging session...', { reason });
+      
+      const response = await apiService.post('/screen-share/flag', {
+        sessionId: sessionIdRef.current,
+        reason
       });
+      
+      if (response.status === 200 || response.status === 201) {
+        console.log('✅ [RECRUITER API] Session flagged successfully');
+        // Show success feedback to user
+        setStatusMessage('Session flagged successfully');
+        setTimeout(() => {
+          setStatusMessage(isConnected ? 'Connected - Viewing candidate screen' : 'Waiting for candidate...');
+        }, 2000);
+      }
     } catch (error) {
-      console.error('❌ Flag session error:', error);
+      console.error('❌ [RECRUITER API] Flag session error:', {
+        errorMessage: error.message,
+        responseStatus: error.response?.status,
+        responseData: error.response?.data
+      });
     }
   };
 

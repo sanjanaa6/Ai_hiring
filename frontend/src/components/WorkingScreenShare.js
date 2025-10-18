@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import io from 'socket.io-client';
+import apiService from '../services/apiService';
 
 // Get Socket.IO server URL (without /api path)
 const getSocketUrl = () => {
@@ -29,6 +30,7 @@ const API_URL = getSocketUrl();
 const WorkingScreenShare = ({ interviewId, role, candidateInfo, candidateId, onClose }) => {
   const [status, setStatus] = useState('Initializing...');
   const [hasVideo, setHasVideo] = useState(false);
+  const [isMinimized, setIsMinimized] = useState(false);
   
   // Use the REAL candidate ID - no random generation
   // This prevents duplicate sessions from the same user
@@ -135,6 +137,13 @@ const WorkingScreenShare = ({ interviewId, role, candidateInfo, candidateId, onC
       setStatus('Screen shared - Waiting for recruiter to join');
       setHasVideo(true);
       
+      // Auto-minimize after 2 seconds like Google Meet
+      setTimeout(() => {
+        console.log('📱 [CANDIDATE] Auto-minimizing after screen share success');
+        setStatus('Screen sharing active - Interview in progress');
+        setIsMinimized(true);
+      }, 2000);
+      
       // Save session to database with REAL candidate info
       // Store ORIGINAL interview ID and candidate ID separately
       try {
@@ -147,19 +156,18 @@ const WorkingScreenShare = ({ interviewId, role, candidateInfo, candidateId, onC
         
         console.log('💾 [CANDIDATE] Saving session with real data:', candidateData);
         
-        const response = await fetch(`${API_URL}/api/screen-share/start`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(candidateData)
-        });
-        const data = await response.json();
-        console.log('✅ [CANDIDATE] Session saved to database:', data);
+        const response = await apiService.post('/screen-share/start', candidateData);
+        console.log('✅ [CANDIDATE] Session saved to database:', response.data);
         
         // Add a small delay to ensure connection is stable before proceeding
         await new Promise(resolve => setTimeout(resolve, 2000));
         console.log('⏳ [CANDIDATE] Connection stabilized, ready for interview');
       } catch (error) {
-        console.error('❌ [CANDIDATE] Failed to save session:', error);
+        console.error('❌ [CANDIDATE API] Failed to save session:', {
+          errorMessage: error.message,
+          responseStatus: error.response?.status,
+          responseData: error.response?.data
+        });
       }
       
     } catch (error) {
@@ -382,36 +390,35 @@ const WorkingScreenShare = ({ interviewId, role, candidateInfo, candidateId, onC
     if (role === 'candidate') {
       const endSession = async (retryCount = 0) => {
         try {
-          console.log(`🛑 [CANDIDATE] Ending session (attempt ${retryCount + 1})...`);
+          console.log(`🛑 [CANDIDATE API] Ending session (attempt ${retryCount + 1})...`);
           
-          const response = await fetch(`${API_URL}/api/screen-share/end`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-              interviewId: interviewId, // Use ORIGINAL interview ID
-              candidateId: myCandidateId
-            })
+          const response = await apiService.post('/screen-share/end', {
+            interviewId: interviewId, // Use ORIGINAL interview ID
+            candidateId: myCandidateId
           });
           
-          if (response.ok) {
-            console.log('✅ [CANDIDATE] Session ended in database for:', myCandidateId);
+          if (response.status === 200 || response.status === 201) {
+            console.log('✅ [CANDIDATE API] Session ended in database for:', myCandidateId);
           } else if (response.status === 404 && retryCount < 2) {
             // Session might not be found due to timing - retry after a short delay
-            console.log(`⏳ [CANDIDATE] Session not found, retrying in 1 second... (attempt ${retryCount + 1})`);
+            console.log(`⏳ [CANDIDATE API] Session not found, retrying in 1 second... (attempt ${retryCount + 1})`);
             setTimeout(() => endSession(retryCount + 1), 1000);
           } else {
-            const errorData = await response.json().catch(() => ({}));
-            console.log(`⚠️ [CANDIDATE] Session end failed:`, {
+            console.log(`⚠️ [CANDIDATE API] Session end failed:`, {
               status: response.status,
-              error: errorData.error || 'Unknown error'
+              error: response.data?.error || 'Unknown error'
             });
           }
         } catch (error) {
-          console.error('❌ [CANDIDATE] Failed to end session:', error);
+          console.error('❌ [CANDIDATE API] Failed to end session:', {
+            errorMessage: error.message,
+            responseStatus: error.response?.status,
+            responseData: error.response?.data
+          });
           
           // Retry on network errors
           if (retryCount < 2) {
-            console.log(`🔄 [CANDIDATE] Retrying session end in 1 second... (attempt ${retryCount + 1})`);
+            console.log(`🔄 [CANDIDATE API] Retrying session end in 1 second... (attempt ${retryCount + 1})`);
             setTimeout(() => endSession(retryCount + 1), 1000);
           }
         }
@@ -422,6 +429,66 @@ const WorkingScreenShare = ({ interviewId, role, candidateInfo, candidateId, onC
   };
   
   // ==================== RENDER ====================
+  
+  // Render minimized floating indicator (draggable)
+  if (isMinimized) {
+    return (
+      <div 
+        className="fixed bottom-6 right-6 z-50 cursor-move select-none"
+        draggable="true"
+        onDragStart={(e) => {
+          const rect = e.currentTarget.getBoundingClientRect();
+          e.dataTransfer.setData('text/plain', JSON.stringify({
+            offsetX: e.clientX - rect.left,
+            offsetY: e.clientY - rect.top
+          }));
+        }}
+        onDragEnd={(e) => {
+          const data = JSON.parse(e.dataTransfer.getData('text/plain') || '{}');
+          const newX = e.clientX - (data.offsetX || 0);
+          const newY = e.clientY - (data.offsetY || 0);
+          
+          // Keep within viewport bounds
+          const maxX = window.innerWidth - e.currentTarget.offsetWidth;
+          const maxY = window.innerHeight - e.currentTarget.offsetHeight;
+          
+          e.currentTarget.style.left = Math.max(0, Math.min(newX, maxX)) + 'px';
+          e.currentTarget.style.top = Math.max(0, Math.min(newY, maxY)) + 'px';
+          e.currentTarget.style.right = 'auto';
+          e.currentTarget.style.bottom = 'auto';
+        }}
+      >
+        <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-full shadow-lg p-2 flex items-center space-x-2 hover:shadow-xl transition-all">
+          <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+          <span className="text-white font-medium text-xs px-1">Sharing</span>
+          <button
+            onClick={() => setIsMinimized(false)}
+            className="p-1 bg-white bg-opacity-20 hover:bg-opacity-40 rounded-full text-white transition"
+            title="Expand controls"
+          >
+            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M3 4a1 1 0 011-1h4a1 1 0 010 2H6.414l2.293 2.293a1 1 0 11-1.414 1.414L5 6.414V8a1 1 0 01-2 0V4zm9 1a1 1 0 010-2h4a1 1 0 011 1v4a1 1 0 01-2 0V6.414l-2.293 2.293a1 1 0 11-1.414-1.414L13.586 5H12z" clipRule="evenodd" />
+            </svg>
+          </button>
+          <button
+            onClick={() => {
+              if (window.confirm('⚠️ Stop screen sharing?\n\nThis will stop sharing your screen but keep the interview active.')) {
+                cleanup();
+                onClose();
+              }
+            }}
+            className="p-1 bg-red-500 hover:bg-red-600 rounded-full text-white transition"
+            title="Stop sharing"
+          >
+            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    );
+  }
+  
   return (
     <div className="fixed inset-0 bg-black bg-opacity-95 z-50 flex flex-col">
       {/* Header */}
@@ -433,10 +500,15 @@ const WorkingScreenShare = ({ interviewId, role, candidateInfo, candidateId, onC
           <p className="text-sm text-blue-100">{status}</p>
         </div>
         <button
-          onClick={onClose}
-          className="px-4 py-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded text-white"
+          onClick={() => {
+            console.log('📱 [SCREEN SHARE] Minimizing to continue interview...');
+            setIsMinimized(true);
+          }}
+          className="px-4 py-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded text-white transition flex items-center space-x-1"
+          title="Minimize (screen sharing continues in background)"
         >
-          ✕ Close
+          <span>✕</span>
+          <span>Close</span>
         </button>
       </div>
       
