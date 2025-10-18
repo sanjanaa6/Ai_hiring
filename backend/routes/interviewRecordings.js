@@ -60,15 +60,43 @@ router.options('/upload', (req, res) => {
  */
 router.post('/upload', auth, upload.single('recording'), handleMulterError, async (req, res) => {
   try {
-    console.log('📥 [RECORDING UPLOAD] Request received');
-    console.log('User:', req.user.id);
-    console.log('Body:', req.body);
-    console.log('File:', req.file ? `${req.file.size} bytes` : 'No file');
+    console.log('🚀 [ROUTE S3] Recording upload request received (S3-only mode)');
+    console.log('👤 [ROUTE S3] User details:', {
+      userId: req.user.id,
+      userRole: req.user.role,
+      userEmail: req.user.email
+    });
+    console.log('📋 [ROUTE S3] Request body:', {
+      interviewId: req.body.interviewId,
+      candidateName: req.body.candidateName,
+      candidateEmail: req.body.candidateEmail,
+      recruiterId: req.body.recruiterId,
+      jobId: req.body.jobId,
+      duration: req.body.duration,
+      recordingType: req.body.recordingType,
+      hasMetadata: !!req.body.metadata
+    });
+    console.log('📦 [ROUTE S3] File details:', req.file ? {
+      originalName: req.file.originalname,
+      mimeType: req.file.mimetype,
+      size: req.file.size,
+      sizeInMB: (req.file.size / 1024 / 1024).toFixed(2) + ' MB',
+      bufferLength: req.file.buffer?.length
+    } : 'No file received');
 
     if (!req.file) {
+      console.error('❌ [ROUTE S3] No recording file provided in request');
       return res.status(400).json({
         success: false,
         message: 'No recording file provided'
+      });
+    }
+    
+    if (!req.file.buffer || req.file.buffer.length === 0) {
+      console.error('❌ [ROUTE S3] File buffer is empty or invalid');
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid file buffer received'
       });
     }
 
@@ -87,6 +115,11 @@ router.post('/upload', auth, upload.single('recording'), handleMulterError, asyn
 
     // Validate required fields
     if (!interviewId || !candidateName || !candidateEmail) {
+      console.error('❌ [ROUTE S3] Missing required fields:', {
+        hasInterviewId: !!interviewId,
+        hasCandidateName: !!candidateName,
+        hasCandidateEmail: !!candidateEmail
+      });
       return res.status(400).json({
         success: false,
         message: 'Missing required fields: interviewId, candidateName, candidateEmail'
@@ -94,6 +127,7 @@ router.post('/upload', auth, upload.single('recording'), handleMulterError, asyn
     }
 
     // Prepare recording data
+    const parsedMetadata = metadata ? JSON.parse(metadata) : {};
     const recordingData = {
       interviewId,
       candidateId: req.user.id,
@@ -107,31 +141,88 @@ router.post('/upload', auth, upload.single('recording'), handleMulterError, asyn
       recordingType: recordingType || 'screen',
       recordingStartedAt: recordingStartedAt ? new Date(recordingStartedAt) : new Date(),
       recordingEndedAt: recordingEndedAt ? new Date(recordingEndedAt) : new Date(),
-      metadata: metadata ? JSON.parse(metadata) : {}
+      metadata: parsedMetadata
     };
+    
+    console.log('📋 [ROUTE S3] Prepared recording data for S3 upload:', {
+      ...recordingData,
+      fileSize: `${recordingData.fileSize} bytes (${(recordingData.fileSize / 1024 / 1024).toFixed(2)} MB)`,
+      duration: `${recordingData.duration}s`,
+      recordingStartedAt: recordingData.recordingStartedAt.toISOString(),
+      recordingEndedAt: recordingData.recordingEndedAt.toISOString(),
+      metadataKeys: Object.keys(parsedMetadata)
+    });
 
     // Save recording to S3 and database
+    console.log('🚀 [ROUTE S3] Initiating S3 upload via recordingService...');
+    const uploadStartTime = Date.now();
+    
     const recording = await recordingService.saveRecording(recordingData, req.file.buffer);
+    
+    const uploadDuration = Date.now() - uploadStartTime;
+    console.log('✅ [ROUTE S3] S3 upload and database save completed successfully!');
+    console.log('📈 [ROUTE S3] Upload performance:', {
+      recordingId: recording._id,
+      totalTime: `${(uploadDuration / 1000).toFixed(2)}s`,
+      uploadSpeed: `${(req.file.size / (uploadDuration / 1000) / 1024 / 1024).toFixed(2)} MB/s`,
+      s3Key: recording.s3Key,
+      s3Bucket: recording.s3Bucket,
+      finalStatus: recording.status
+    });
 
-    console.log('✅ [RECORDING UPLOAD] Success:', recording._id);
-
-    res.status(201).json({
+    const responseData = {
       success: true,
-      message: 'Recording uploaded successfully',
+      message: 'Recording uploaded successfully to S3',
       data: {
         recordingId: recording._id,
         s3Url: recording.s3Url,
+        s3Key: recording.s3Key,
+        s3Bucket: recording.s3Bucket,
+        s3Region: recording.s3Region,
         status: recording.status,
         duration: recording.duration,
-        fileSize: recording.fileSize
+        fileSize: recording.fileSize,
+        uploadedAt: recording.uploadedAt,
+        uploadProgress: recording.uploadProgress
       }
-    });
+    };
+    
+    console.log('🎉 [ROUTE S3] Sending success response to frontend:', responseData);
+    res.status(201).json(responseData);
   } catch (error) {
-    console.error('❌ [RECORDING UPLOAD] Error:', error);
-    res.status(500).json({
+    console.error('❌ [ROUTE S3] Recording upload failed with error:', {
+      errorName: error.name,
+      errorMessage: error.message,
+      errorStack: error.stack,
+      userId: req.user?.id,
+      interviewId: req.body?.interviewId,
+      fileSize: req.file?.size
+    });
+    
+    // Enhanced error response based on error type
+    let statusCode = 500;
+    let errorMessage = 'Failed to upload recording to S3';
+    
+    if (error.message.includes('S3')) {
+      statusCode = 503;
+      errorMessage = 'S3 storage service unavailable';
+      console.error('🔧 [ROUTE S3] S3-specific error detected');
+    } else if (error.message.includes('credentials')) {
+      statusCode = 500;
+      errorMessage = 'S3 configuration error';
+      console.error('🔐 [ROUTE S3] S3 credentials error detected');
+    } else if (error.message.includes('timeout')) {
+      statusCode = 408;
+      errorMessage = 'Upload timeout - file too large';
+      console.error('⏰ [ROUTE S3] Upload timeout detected');
+    }
+    
+    res.status(statusCode).json({
       success: false,
-      message: 'Failed to upload recording',
-      error: error.message
+      message: errorMessage,
+      error: error.message,
+      errorCode: error.name,
+      timestamp: new Date().toISOString()
     });
   }
 });
