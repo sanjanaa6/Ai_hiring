@@ -22,6 +22,7 @@ module.exports = {
         }
         
         return rule;
+        
       });
       
       // Ignore all source map related warnings and errors
