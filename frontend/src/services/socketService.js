@@ -16,21 +16,21 @@ class SocketService {
     let serverUrl = process.env.REACT_APP_SOCKET_URL;
     
     if (!serverUrl) {
-      if (process.env.REACT_APP_API_URL) {
-        serverUrl = process.env.REACT_APP_API_URL.replace(/\/api$/, '');
-      } else if (process.env.NODE_ENV === 'production' && typeof window !== 'undefined') {
-        const { protocol, hostname } = window.location;
-        if (hostname.includes('eval8.ai')) {
-          serverUrl = 'https://aihire.eval8.xyz';  // Backend domain
-        } else {
-          serverUrl = `${protocol}//${hostname}:5000`;
-        }
-      } else {
-        serverUrl = 'http://localhost:5000';
-      }
+      const envUrl = process.env.REACT_APP_API_URL;
+      const isProd = process.env.NODE_ENV === 'production';
+      const { protocol, hostname } = typeof window !== 'undefined' ? window.location : {};
+
+      serverUrl =
+        envUrl?.replace(/\/api$/, '') ||
+        (isProd
+          ? hostname?.includes('eval8.ai')
+            ? 'https://aihire.eval8.xyz'
+            : `${protocol}//${hostname}:5000`
+          : 'http://localhost:5000');
     }
-    
+
     console.log('🔌 [SOCKET] Connecting to:', serverUrl);
+
 
     this.socket = io(serverUrl, {
       auth: { token },
