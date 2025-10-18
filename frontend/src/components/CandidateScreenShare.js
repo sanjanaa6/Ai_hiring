@@ -348,46 +348,43 @@ const CandidateScreenShare = ({ interviewId, candidateId, candidateName, candida
         candidateEmail 
       });
       
-      const response = await fetch(`${API_URL}/api/screen-share/start`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ 
-          interviewId,
-          candidateId: candidateId || `guest_${Date.now()}`,
-          candidateName: candidateName || 'Anonymous Candidate',
-          candidateEmail: candidateEmail || 'no-email@provided.com'
-        })
+      const response = await apiService.post('/screen-share/start', {
+        interviewId,
+        candidateId: candidateId || `guest_${Date.now()}`,
+        candidateName: candidateName || 'Anonymous Candidate',
+        candidateEmail: candidateEmail || 'no-email@provided.com'
       });
       
-      if (!response.ok) {
-        console.error('Failed to start session in database');
-        sessionStartedRef.current = false; // Reset on failure
+      if (response.status === 200 || response.status === 201) {
+        console.log('✅ [CANDIDATE API] Session created in backend:', response.data);
       } else {
-        console.log('✅ [SCREEN SHARE] Session created in backend');
+        console.error('❌ [CANDIDATE API] Failed to start session in database');
+        sessionStartedRef.current = false; // Reset on failure
       }
     } catch (error) {
-      console.error('❌ [SCREEN SHARE] Error starting session:', error);
+      console.error('❌ [CANDIDATE API] Error starting session:', {
+        errorMessage: error.message,
+        responseStatus: error.response?.status,
+        responseData: error.response?.data
+      });
       sessionStartedRef.current = false; // Reset on error
     }
   };
 
   const endSession = async () => {
     try {
-      console.log('📤 [SCREEN SHARE] Ending session in backend...', { interviewId, candidateId });
-      await fetch(`${API_URL}/api/screen-share/end`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ 
-          interviewId,
-          candidateId: candidateId || `guest_${Date.now()}`
-        })
+      console.log('📤 [CANDIDATE API] Ending session in backend...', { interviewId, candidateId });
+      const response = await apiService.post('/screen-share/end', {
+        interviewId,
+        candidateId: candidateId || `guest_${Date.now()}`
       });
+      console.log('✅ [CANDIDATE API] Session ended successfully:', response.data);
     } catch (error) {
-      console.error('Error ending session:', error);
+      console.error('❌ [CANDIDATE API] Error ending session:', {
+        errorMessage: error.message,
+        responseStatus: error.response?.status,
+        responseData: error.response?.data
+      });
     }
   };
 

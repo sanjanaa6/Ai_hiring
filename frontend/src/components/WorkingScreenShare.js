@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import io from 'socket.io-client';
+import apiService from '../services/apiService';
 
 // Get Socket.IO server URL (without /api path)
 const getSocketUrl = () => {
@@ -29,6 +30,7 @@ const API_URL = getSocketUrl();
 const WorkingScreenShare = ({ interviewId, role, candidateInfo, candidateId, onClose }) => {
   const [status, setStatus] = useState('Initializing...');
   const [hasVideo, setHasVideo] = useState(false);
+  const [isMinimized, setIsMinimized] = useState(false);
   
   // Use the REAL candidate ID - no random generation
   // This prevents duplicate sessions from the same user
@@ -135,6 +137,13 @@ const WorkingScreenShare = ({ interviewId, role, candidateInfo, candidateId, onC
       setStatus('Screen shared - Waiting for recruiter to join');
       setHasVideo(true);
       
+      // Auto-minimize after 2 seconds like Google Meet
+      setTimeout(() => {
+        console.log('📱 [CANDIDATE] Auto-minimizing after screen share success');
+        setStatus('Screen sharing active - Interview in progress');
+        setIsMinimized(true);
+      }, 2000);
+      
       // Save session to database with REAL candidate info
       // Store ORIGINAL interview ID and candidate ID separately
       try {
@@ -147,19 +156,18 @@ const WorkingScreenShare = ({ interviewId, role, candidateInfo, candidateId, onC
         
         console.log('💾 [CANDIDATE] Saving session with real data:', candidateData);
         
-        const response = await fetch(`${API_URL}/api/screen-share/start`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(candidateData)
-        });
-        const data = await response.json();
-        console.log('✅ [CANDIDATE] Session saved to database:', data);
+        const response = await apiService.post('/screen-share/start', candidateData);
+        console.log('✅ [CANDIDATE] Session saved to database:', response.data);
         
         // Add a small delay to ensure connection is stable before proceeding
         await new Promise(resolve => setTimeout(resolve, 2000));
         console.log('⏳ [CANDIDATE] Connection stabilized, ready for interview');
       } catch (error) {
-        console.error('❌ [CANDIDATE] Failed to save session:', error);
+        console.error('❌ [CANDIDATE API] Failed to save session:', {
+          errorMessage: error.message,
+          responseStatus: error.response?.status,
+          responseData: error.response?.data
+        });
       }
       
     } catch (error) {
@@ -382,36 +390,35 @@ const WorkingScreenShare = ({ interviewId, role, candidateInfo, candidateId, onC
     if (role === 'candidate') {
       const endSession = async (retryCount = 0) => {
         try {
-          console.log(`🛑 [CANDIDATE] Ending session (attempt ${retryCount + 1})...`);
+          console.log(`🛑 [CANDIDATE API] Ending session (attempt ${retryCount + 1})...`);
           
-          const response = await fetch(`${API_URL}/api/screen-share/end`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-              interviewId: interviewId, // Use ORIGINAL interview ID
-              candidateId: myCandidateId
-            })
+          const response = await apiService.post('/screen-share/end', {
+            interviewId: interviewId, // Use ORIGINAL interview ID
+            candidateId: myCandidateId
           });
           
-          if (response.ok) {
-            console.log('✅ [CANDIDATE] Session ended in database for:', myCandidateId);
+          if (response.status === 200 || response.status === 201) {
+            console.log('✅ [CANDIDATE API] Session ended in database for:', myCandidateId);
           } else if (response.status === 404 && retryCount < 2) {
             // Session might not be found due to timing - retry after a short delay
-            console.log(`⏳ [CANDIDATE] Session not found, retrying in 1 second... (attempt ${retryCount + 1})`);
+            console.log(`⏳ [CANDIDATE API] Session not found, retrying in 1 second... (attempt ${retryCount + 1})`);
             setTimeout(() => endSession(retryCount + 1), 1000);
           } else {
-            const errorData = await response.json().catch(() => ({}));
-            console.log(`⚠️ [CANDIDATE] Session end failed:`, {
+            console.log(`⚠️ [CANDIDATE API] Session end failed:`, {
               status: response.status,
-              error: errorData.error || 'Unknown error'
+              error: response.data?.error || 'Unknown error'
             });
           }
         } catch (error) {
-          console.error('❌ [CANDIDATE] Failed to end session:', error);
+          console.error('❌ [CANDIDATE API] Failed to end session:', {
+            errorMessage: error.message,
+            responseStatus: error.response?.status,
+            responseData: error.response?.data
+          });
           
           // Retry on network errors
           if (retryCount < 2) {
-            console.log(`🔄 [CANDIDATE] Retrying session end in 1 second... (attempt ${retryCount + 1})`);
+            console.log(`🔄 [CANDIDATE API] Retrying session end in 1 second... (attempt ${retryCount + 1})`);
             setTimeout(() => endSession(retryCount + 1), 1000);
           }
         }
@@ -422,6 +429,41 @@ const WorkingScreenShare = ({ interviewId, role, candidateInfo, candidateId, onC
   };
   
   // ==================== RENDER ====================
+  
+  // Render minimized floating indicator
+  if (isMinimized) {
+    return (
+      <div className="fixed bottom-6 right-6 z-50">
+        <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg shadow-2xl p-4 flex items-center space-x-4">
+          <div className="flex items-center space-x-3">
+            <div className="w-3 h-3 rounded-full bg-red-500 animate-pulse" />
+            <div>
+              <p className="text-white font-semibold text-sm">Screen Sharing Active</p>
+              <p className="text-blue-100 text-xs">{status}</p>
+            </div>
+          </div>
+          <button
+            onClick={() => setIsMinimized(false)}
+            className="px-4 py-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded text-white text-sm font-medium transition"
+          >
+            Expand
+          </button>
+          <button
+            onClick={() => {
+              if (window.confirm('⚠️ Stop screen sharing?\n\nThis will stop sharing your screen but keep the interview active.')) {
+                cleanup();
+                onClose();
+              }
+            }}
+            className="px-4 py-2 bg-red-500 hover:bg-red-600 rounded text-white text-sm font-medium transition"
+          >
+            Stop Share
+          </button>
+        </div>
+      </div>
+    );
+  }
+  
   return (
     <div className="fixed inset-0 bg-black bg-opacity-95 z-50 flex flex-col">
       {/* Header */}
@@ -434,15 +476,14 @@ const WorkingScreenShare = ({ interviewId, role, candidateInfo, candidateId, onC
         </div>
         <button
           onClick={() => {
-            if (window.confirm('⚠️ Are you sure you want to END the screen sharing session?\n\nThis will:\n• Stop screen sharing\n• End the session\n• Disconnect from the interview')) {
-              onClose();
-            }
+            console.log('📱 [SCREEN SHARE] Minimizing to continue interview...');
+            setIsMinimized(true);
           }}
-          className="px-4 py-2 bg-red-500 hover:bg-red-600 rounded text-white transition flex items-center space-x-1"
-          title="End screen sharing session"
+          className="px-4 py-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded text-white transition flex items-center space-x-1"
+          title="Minimize (screen sharing continues in background)"
         >
           <span>✕</span>
-          <span>End Session</span>
+          <span>Close</span>
         </button>
       </div>
       
