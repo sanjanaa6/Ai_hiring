@@ -269,7 +269,7 @@ const InterviewComplete = ({
           </div>
 
           {/* Stats Grid */}
-          <div className="grid md:grid-cols-3 gap-6 mb-8">
+          <div className="grid md:grid-cols-2 gap-6 mb-8">
             
             {/* Completion Rate */}
             <div className={`p-6 rounded-2xl text-center ${
@@ -310,27 +310,6 @@ const InterviewComplete = ({
                 isDarkMode ? 'text-gray-300' : 'text-gray-600'
               }`}>
                 Rounds Completed
-              </p>
-            </div>
-
-            {/* Time Spent */}
-            <div className={`p-6 rounded-2xl text-center ${
-              isDarkMode 
-                ? 'bg-purple-500/20 border border-purple-500/30' 
-                : 'bg-purple-50 border border-purple-200'
-            }`}>
-              <div className="w-16 h-16 bg-purple-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Clock className="h-8 w-8 text-white" />
-              </div>
-              <h3 className={`text-2xl font-bold mb-2 ${
-                isDarkMode ? 'text-white' : 'text-gray-900'
-              }`}>
-                {formatTime(totalTime)}
-              </h3>
-              <p className={`text-sm ${
-                isDarkMode ? 'text-gray-300' : 'text-gray-600'
-              }`}>
-                Total Time
               </p>
             </div>
           </div>

@@ -109,7 +109,7 @@ const RoundSelection = ({
                   <div className={`text-2xl font-bold ${
                     isDarkMode ? 'text-white' : 'text-gray-900'
                   }`}>
-                    {completedRounds.size}/{allRounds.length}
+                    {Math.min(completedRounds.size, allRounds.length)}/{allRounds.length}
                 </div>
                   <div className={`text-xs font-medium ${
                     isDarkMode ? 'text-gray-400' : 'text-gray-600'
@@ -154,7 +154,7 @@ const RoundSelection = ({
                           : 'bg-gradient-to-r from-blue-500 to-purple-500 shadow-blue-400/40'
                       }`}>
                         <span className="text-white font-bold text-lg">
-                          {completedRounds.size}/{allRounds.length}
+                          {Math.min(completedRounds.size, allRounds.length)}/{allRounds.length}
                         </span>
                       </div>
                     </div>
@@ -166,7 +166,7 @@ const RoundSelection = ({
                       }`}>
                         <div
                           className="bg-gradient-to-r from-blue-500 via-purple-500 to-indigo-500 h-4 rounded-full transition-all duration-1000 shadow-lg relative overflow-hidden"
-                          style={{ width: `${allRounds.length > 0 ? (completedRounds.size / allRounds.length) * 100 : 0}%` }}
+                          style={{ width: `${allRounds.length > 0 ? Math.min((completedRounds.size / allRounds.length) * 100, 100) : 0}%` }}
                         >
                           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-pulse"></div>
                         </div>
@@ -175,12 +175,12 @@ const RoundSelection = ({
                         <span className={`font-medium ${
                           isDarkMode ? 'text-gray-300' : 'text-gray-600'
                         }`}>
-                          {allRounds.length > 0 ? Math.round((completedRounds.size / allRounds.length) * 100) : 0}% Complete
+                          {allRounds.length > 0 ? Math.min(Math.round((completedRounds.size / allRounds.length) * 100), 100) : 0}% Complete
                         </span>
                         <span className={`font-medium ${
                           isDarkMode ? 'text-blue-400' : 'text-blue-600'
                         }`}>
-                          {allRounds.length - completedRounds.size} rounds remaining
+                          {Math.max(allRounds.length - completedRounds.size, 0)} rounds remaining
                         </span>
                       </div>
                     </div>
@@ -199,7 +199,7 @@ const RoundSelection = ({
                           <div className={`text-lg font-bold ${
                             isDarkMode ? 'text-emerald-300' : 'text-emerald-700'
                           }`}>
-                            {completedRounds.size}
+                            {Math.min(completedRounds.size, allRounds.length)}
                           </div>
                           <div className={`text-xs ${
                             isDarkMode ? 'text-emerald-400' : 'text-emerald-600'
@@ -221,7 +221,7 @@ const RoundSelection = ({
                           <div className={`text-lg font-bold ${
                             isDarkMode ? 'text-blue-300' : 'text-blue-700'
                           }`}>
-                            {allRounds.length - completedRounds.size}
+                            {Math.max(allRounds.length - completedRounds.size, 0)}
                           </div>
                           <div className={`text-xs ${
                             isDarkMode ? 'text-blue-400' : 'text-blue-600'

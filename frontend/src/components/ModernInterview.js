@@ -56,6 +56,12 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
     }
   });
   
+  // Time tracking
+  const [roundStartTime, setRoundStartTime] = useState(null);
+  const [totalInterviewTime, setTotalInterviewTime] = useState(0);
+  const interviewStartTimeRef = useRef(null);
+  const roundTimeTrackerRef = useRef(null);
+  
   // Voice recording with Web Speech API (fallback)
   const [isRecording, setIsRecording] = useState(false);
   const [transcription, setTranscription] = useState('');
@@ -343,24 +349,84 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
   const markRoundCompleted = useCallback(async (roundId) => {
     try {
       console.log('🏁 Marking round as completed in backend:', roundId);
+      
+      // Calculate time spent on this round
+      const roundTimeSpent = roundStartTime ? Math.floor((Date.now() - roundStartTime) / 1000) : 0;
+      console.log(`⏱️ Round time spent: ${roundTimeSpent} seconds`);
+      
       const isAuthenticated = localStorage.getItem('token') || sessionStorage.getItem('token');
       if (!isAuthenticated) {
-        console.log('🔒 User not authenticated, skipping round completion');
+        console.log('🔒 User not authenticated, skipping backend update');
         // For anonymous users, just update local state
         setCompletedRounds(prev => new Set([...prev, roundId]));
+        
+        // Update localStorage
+        const storageKey = `completedRounds_${interviewId}`;
+        const storedRounds = JSON.parse(localStorage.getItem(storageKey) || '[]');
+        if (!storedRounds.includes(roundId)) {
+          storedRounds.push(roundId);
+          localStorage.setItem(storageKey, JSON.stringify(storedRounds));
+        }
         return;
       }
 
-      // Mark all questions in the round as answered to trigger round completion
+      // Mark all questions in the round as answered to trigger round completion in backend
       const currentRound = allRounds.find(r => (r._id || r.id || r.roundId) === roundId);
       if (currentRound && currentRound.questions) {
+        // CRITICAL: Use the correct roundId format that backend expects
+        const backendRoundId = currentRound.roundId || currentRound.id || currentRound._id;
+        console.log(`📝 Marking ${currentRound.questions.length} questions as answered for round:`, backendRoundId);
+        console.log(`🔍 Round details:`, {
+          frontendRoundId: roundId,
+          backendRoundId: backendRoundId,
+          roundTitle: currentRound.title
+        });
+        
         // Mark each question as answered
         for (const question of currentRound.questions) {
-          await apiService.updateInterviewProgress(interviewId, {
-            roundId,
-            questionId: question._id || question.id,
+          const questionId = question.id || question._id;
+          console.log(`  ➡️ Updating question ${questionId}...`);
+          
+          const result = await apiService.updateInterviewProgress(interviewId, {
+            roundId: backendRoundId, // Use the correct roundId format
+            questionId,
             status: 'answered',
-            timeSpent: 0
+            timeSpent: Math.floor(roundTimeSpent / currentRound.questions.length) // Distribute time across questions
+          });
+          
+          if (result.success) {
+            console.log(`  ✅ Question ${questionId} marked as answered`);
+          } else {
+            console.error(`  ❌ Failed to update question ${questionId}:`, result.error);
+          }
+        }
+        
+        console.log('✅ All questions marked as answered in backend');
+      } else {
+        console.warn('⚠️ No questions found for round:', roundId);
+      }
+      
+      // Reload user progress from backend to get updated status
+      console.log('🔄 Reloading user progress from backend...');
+      const progressResult = await apiService.getUserProgress();
+      
+      if (progressResult.success && progressResult.data && progressResult.data.interviewProgress) {
+        const thisInterviewProgress = progressResult.data.interviewProgress.find(
+          p => p.interviewId === interviewId
+        );
+        
+        if (thisInterviewProgress) {
+          setUserProgress(thisInterviewProgress);
+          console.log('✅ User progress reloaded:', {
+            completedRounds: thisInterviewProgress.rounds?.filter(r => r.status === 'completed').length || 0,
+            totalRounds: thisInterviewProgress.rounds?.length || 0,
+            roundsDetails: thisInterviewProgress.rounds?.map(r => ({
+              roundId: r.roundId,
+              roundTitle: r.roundTitle,
+              status: r.status,
+              answeredQuestions: r.questions?.filter(q => q.status === 'answered').length,
+              totalQuestions: r.questions?.length
+            }))
           });
         }
       }
@@ -376,13 +442,13 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
         localStorage.setItem(storageKey, JSON.stringify(storedRounds));
       }
       
-      console.log('✅ Round marked as completed');
+      console.log('✅ Round marked as completed with time:', roundTimeSpent);
     } catch (error) {
       console.error('❌ Failed to mark round as completed:', error);
       // Even if backend fails, update local state to prevent UI issues
       setCompletedRounds(prev => new Set([...prev, roundId]));
     }
-  }, [interviewId, allRounds, setCompletedRounds]);
+  }, [interviewId, allRounds, setCompletedRounds, roundStartTime, setUserProgress]);
 
   // Speak question
   const speakQuestion = useCallback(async (questionText) => {
@@ -612,6 +678,11 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
   const handleSelectRound = useCallback(async (round) => {
     try {
       console.log('🎯 Selected round:', round);
+      
+      // Reset round start time for new round
+      setRoundStartTime(Date.now());
+      console.log('⏱️ Round timer reset for new round');
+      
       setCurrentRound(round);
       setQuestionIndex(0);
       
@@ -979,6 +1050,111 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
     console.log('🚨 Person detection warning state changed:', personDetectionWarning);
   }, [personDetectionWarning]);
 
+  // Start tracking time when interview begins
+  useEffect(() => {
+    if (step === 'interview' && !interviewStartTimeRef.current) {
+      interviewStartTimeRef.current = Date.now();
+      console.log('⏱️ Interview timer started');
+    }
+  }, [step]);
+
+  // Start tracking time when a round begins
+  useEffect(() => {
+    if (step === 'interview' && currentRound && !roundStartTime) {
+      const startTime = Date.now();
+      setRoundStartTime(startTime);
+      console.log(`⏱️ Round timer started for: ${currentRound.title}`);
+      
+      // Clear previous timer if exists
+      if (roundTimeTrackerRef.current) {
+        clearInterval(roundTimeTrackerRef.current);
+      }
+      
+      // Update total interview time every second
+      roundTimeTrackerRef.current = setInterval(() => {
+        if (interviewStartTimeRef.current) {
+          const elapsed = Math.floor((Date.now() - interviewStartTimeRef.current) / 1000);
+          setTotalInterviewTime(elapsed);
+        }
+      }, 1000);
+      
+      return () => {
+        if (roundTimeTrackerRef.current) {
+          clearInterval(roundTimeTrackerRef.current);
+        }
+      };
+    }
+  }, [step, currentRound, roundStartTime]);
+
+  // Load user progress from backend on mount
+  useEffect(() => {
+    const loadUserProgress = async () => {
+      if (!interviewId) {
+        console.log('⚠️ No interviewId, skipping progress load');
+        return;
+      }
+      
+      try {
+        const isAuthenticated = localStorage.getItem('token') || sessionStorage.getItem('token');
+        if (!isAuthenticated) {
+          console.log('🔒 User not authenticated, will use localStorage fallback');
+          setUserProgress({ rounds: [] });
+          return;
+        }
+
+        console.log('📥 Loading user progress from backend for interview:', interviewId);
+        const result = await apiService.getUserProgress();
+        
+        console.log('📦 getUserProgress result:', result);
+        
+        if (result.success && result.data && result.data.interviewProgress) {
+          console.log('📊 All interview progress:', result.data.interviewProgress.map(p => ({
+            id: p.interviewId,
+            status: p.status,
+            rounds: p.rounds?.length
+          })));
+          
+          // Find progress for this specific interview
+          const thisInterviewProgress = result.data.interviewProgress.find(
+            p => p.interviewId === interviewId
+          );
+          
+          if (thisInterviewProgress) {
+            setUserProgress(thisInterviewProgress);
+            console.log('✅ User progress loaded for this interview:', {
+              interviewId: thisInterviewProgress.interviewId,
+              status: thisInterviewProgress.status,
+              totalRounds: thisInterviewProgress.rounds?.length,
+              completedRounds: thisInterviewProgress.rounds?.filter(r => r.status === 'completed').length || 0,
+              rounds: thisInterviewProgress.rounds?.map(r => ({
+                roundId: r.roundId,
+                title: r.roundTitle,
+                status: r.status
+              }))
+            });
+          } else {
+            console.log('ℹ️ No existing progress found for this interview, starting fresh');
+            setUserProgress({ rounds: [] });
+          }
+        } else {
+          console.log('ℹ️ No progress data available, starting fresh');
+          setUserProgress({ rounds: [] });
+        }
+      } catch (error) {
+        console.error('❌ Failed to load user progress:', error);
+        // Start fresh if we can't load progress
+        setUserProgress({ rounds: [] });
+      }
+    };
+
+    // Add a small delay to ensure interviewId is set
+    const timer = setTimeout(() => {
+      loadUserProgress();
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, [interviewId, setUserProgress]);
+
   // Load interview data on mount
   useEffect(() => {
     if (interviewId) {
@@ -1027,7 +1203,8 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
     }
   }, [currentQuestion, setSelectedLanguage, setIsLanguageLocked]);
 
-  // Load rounds when interview data is available
+  // Load rounds
+  //  when interview data is available
   useEffect(() => {
     if (interviewData && interviewData.rounds) {
       loadInterviewRounds();
@@ -1039,26 +1216,61 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
     if (allRounds.length > 0) {
       const completedRoundIds = new Set();
       
-      // Check user progress first
-      if (userProgress && userProgress.rounds) {
+      // Get valid round IDs from allRounds
+      const validRoundIds = new Set(allRounds.map(r => r._id || r.id || r.roundId));
+      
+      // Check user progress first (primary source of truth from backend)
+      if (userProgress && userProgress.rounds && Array.isArray(userProgress.rounds)) {
+        console.log('📊 Syncing from backend userProgress...');
+        console.log('🔍 Backend rounds data:', userProgress.rounds.map(r => ({
+          roundId: r.roundId,
+          status: r.status,
+          title: r.roundTitle
+        })));
+        console.log('🔍 Valid frontend round IDs:', Array.from(validRoundIds));
+        
         userProgress.rounds.forEach(progressRound => {
-          if (progressRound.status === 'completed') {
-            completedRoundIds.add(progressRound.roundId);
+          console.log(`🔍 Checking round: ${progressRound.roundId} (${progressRound.status})`);
+          console.log(`  - Is completed? ${progressRound.status === 'completed'}`);
+          console.log(`  - Is valid? ${validRoundIds.has(progressRound.roundId)}`);
+          
+          // Match by roundId - backend uses 'round_1', frontend uses MongoDB _id
+          // We need to find the matching round in allRounds
+          const matchingRound = allRounds.find(r => r.roundId === progressRound.roundId);
+          if (matchingRound && progressRound.status === 'completed') {
+            const frontendRoundId = matchingRound._id || matchingRound.id || matchingRound.roundId;
+            completedRoundIds.add(frontendRoundId);
+            console.log(`✅ Round ${progressRound.roundTitle || progressRound.roundId} marked as completed (frontend ID: ${frontendRoundId})`);
           }
         });
+        
+        // Sync to localStorage (overwrite any stale data)
+        const storageKey = `completedRounds_${interviewId}`;
+        localStorage.setItem(storageKey, JSON.stringify(Array.from(completedRoundIds)));
+        console.log('💾 Synced completed rounds to localStorage from backend');
+      } else if (!userProgress || !userProgress.rounds) {
+        // Only use localStorage if we don't have userProgress yet (fallback for anonymous users or during load)
+        const storageKey = `completedRounds_${interviewId}`;
+        const storedRounds = JSON.parse(localStorage.getItem(storageKey) || '[]');
+        storedRounds.forEach(roundId => {
+          if (validRoundIds.has(roundId)) {
+            completedRoundIds.add(roundId);
+          }
+        });
+        console.log('⚠️ Using localStorage as fallback (userProgress not loaded yet)');
       }
-      
-      // Also check localStorage as fallback
-      const storageKey = `completedRounds_${interviewId}`;
-      const storedRounds = JSON.parse(localStorage.getItem(storageKey) || '[]');
-      storedRounds.forEach(roundId => completedRoundIds.add(roundId));
       
       console.log('🔄 Syncing completed rounds:', Array.from(completedRoundIds));
+      console.log('🔄 Valid round IDs:', Array.from(validRoundIds));
       if (userProgress && userProgress.rounds) {
-        console.log('🔄 User progress rounds:', userProgress.rounds.map(r => ({ roundId: r.roundId, status: r.status })));
+        console.log('🔄 User progress rounds:', userProgress.rounds.map(r => ({ 
+          roundId: r.roundId, 
+          roundTitle: r.roundTitle,
+          status: r.status 
+        })));
       }
       console.log('🔄 All rounds:', allRounds.map(r => ({ id: r._id || r.id || r.roundId, title: r.title })));
-      console.log('🔄 Stored rounds from localStorage:', storedRounds);
+      console.log('🔄 Final completed count:', completedRoundIds.size, '/', allRounds.length);
       setCompletedRounds(completedRoundIds);
     }
   }, [userProgress, allRounds, setCompletedRounds, interviewId]);

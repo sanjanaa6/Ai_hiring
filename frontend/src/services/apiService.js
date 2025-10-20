@@ -652,6 +652,34 @@ class ApiService {
     }
   }
 
+  async startInterview(interviewId) {
+    try {
+      const response = await this.client.post(`/interviews/${interviewId}/start`);
+      return response.data;
+    } catch (error) {
+      console.error('Start interview error:', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to start interview'
+      };
+    }
+  }
+
+  async startInterviewAnonymous(interviewId, candidateInfo) {
+    try {
+      const response = await this.client.post(`/interviews/${interviewId}/start-anonymous`, {
+        candidateInfo
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Start anonymous interview error:', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to start anonymous interview'
+      };
+    }
+  }
+
   async getUserProgress() {
     try {
       const response = await this.client.get('/interviews/progress');
