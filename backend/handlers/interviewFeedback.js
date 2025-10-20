@@ -615,11 +615,11 @@ async function generatePDF(filePath, data) {
         doc.moveDown(1.5);
 
         const skills = [
-          { key: 'codingSkills', label: 'Coding Skills', icon: '💻' },
-          { key: 'salesSkills', label: 'Sales Skills', icon: '💼' },
-          { key: 'pcbDesignSkills', label: 'PCB Design Skills', icon: '🔌' },
-          { key: 'communicationSkills', label: 'Communication Skills', icon: '💬' },
-          { key: 'englishFluency', label: 'English Fluency', icon: '🗣️' }
+          { key: 'codingSkills', label: 'Coding Skills', icon: '[CODE]' },
+          { key: 'salesSkills', label: 'Sales Skills', icon: '[SALES]' },
+          { key: 'pcbDesignSkills', label: 'PCB Design Skills', icon: '[PCB]' },
+          { key: 'communicationSkills', label: 'Communication Skills', icon: '[COMM]' },
+          { key: 'englishFluency', label: 'English Fluency', icon: '[ENG]' }
         ];
 
         skills.forEach(skill => {
@@ -627,7 +627,7 @@ async function generatePDF(filePath, data) {
           if (score > 0) {
             const skillColor = score >= 7 ? '#059669' : score >= 5 ? '#f59e0b' : '#dc2626';
             
-            doc.fontSize(12).fillColor('#1f2937').text(`${skill.icon} ${skill.label}`, { continued: true });
+            doc.fontSize(12).fillColor('#1f2937').text(`${skill.label}`, { continued: true });
             doc.fontSize(14).fillColor(skillColor).text(` - ${score}/10`, { align: 'right' });
             
             // Progress bar
@@ -654,7 +654,7 @@ async function generatePDF(filePath, data) {
       doc.moveDown(1.5);
 
       // Cheat Detection
-      doc.fontSize(14).fillColor('#1f2937').text('🔍 Integrity Check', { underline: true });
+      doc.fontSize(14).fillColor('#1f2937').text('Integrity Check', { underline: true });
       doc.moveDown(0.5);
       
       const cheatStatus = data.monitoringData?.cheatAttempts?.flagged ? 'FLAGGED' : 'CLEAR';
@@ -679,7 +679,7 @@ async function generatePDF(filePath, data) {
 
       // Interview Snapshots
       if (data.monitoringData?.interviewSnapshots && data.monitoringData.interviewSnapshots.length > 0) {
-        doc.fontSize(14).fillColor('#1f2937').text('📸 Interview Snapshots', { underline: true });
+        doc.fontSize(14).fillColor('#1f2937').text('Interview Snapshots', { underline: true });
         doc.moveDown(0.5);
         
         const snapshotsToShow = data.monitoringData.interviewSnapshots.slice(0, 2); // Show max 2 snapshots
