@@ -126,6 +126,20 @@ router.post('/upload', auth, upload.single('recording'), handleMulterError, asyn
       });
     }
 
+    // Fetch interview to get interviewer name
+    const Interview = require('../models/Interview');
+    let interviewerName = 'AI Interviewer';
+    
+    try {
+      const interview = await Interview.findOne({ interviewId }).populate('createdBy', 'name');
+      if (interview && interview.createdBy && interview.createdBy.name) {
+        interviewerName = interview.createdBy.name;
+        console.log(`👤 [ROUTE S3] Interviewer found: ${interviewerName}`);
+      }
+    } catch (err) {
+      console.log('⚠️ [ROUTE S3] Could not fetch interviewer name:', err.message);
+    }
+
     // Prepare recording data
     const parsedMetadata = metadata ? JSON.parse(metadata) : {};
     const recordingData = {
@@ -133,8 +147,9 @@ router.post('/upload', auth, upload.single('recording'), handleMulterError, asyn
       candidateId: req.user.id,
       candidateName,
       candidateEmail,
-      recruiterId: recruiterId || null,
-      jobId: jobId || null,
+      recruiterId,
+      jobId,
+      interviewerName,
       duration: parseInt(duration) || 0,
       fileSize: req.file.size,
       mimeType: req.file.mimetype,

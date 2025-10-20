@@ -40,7 +40,7 @@ const Login = () => {
       const result = await login(formData.email, formData.password);
       
       if (result.success) {
-        toast.success('Login successful!');
+        toast.success('Login successful! Welcome back.');
         // Redirect based on user role instead of 'from' path
         const userRole = result.user?.role;
         if (userRole === 'admin') {
@@ -53,12 +53,56 @@ const Login = () => {
           navigate(from, { replace: true });
         }
       } else {
-        // Recruiters can now login without approval
-        // Removed approval status checks
-        toast.error(result.message);
+        // Show user-friendly error messages
+        const errorMessage = result.message || 'Login failed';
+        
+        // Convert technical errors to user-friendly messages
+        if (errorMessage.includes('403') || errorMessage.includes('Forbidden')) {
+          toast.error('❌ Invalid email or password. Please try again.');
+        } else if (errorMessage.includes('401') || errorMessage.includes('Unauthorized')) {
+          toast.error('❌ Invalid email or password. Please check your credentials.');
+        } else if (errorMessage.includes('404') || errorMessage.includes('not found')) {
+          toast.error('❌ Account not found. Please check your email or sign up.');
+        } else if (errorMessage.includes('Network') || errorMessage.includes('network')) {
+          toast.error('⚠️ Network error. Please check your internet connection.');
+        } else if (errorMessage.includes('timeout')) {
+          toast.error('⏱️ Request timeout. Please try again.');
+        } else if (errorMessage.toLowerCase().includes('password')) {
+          toast.error('❌ Incorrect password. Please try again.');
+        } else if (errorMessage.toLowerCase().includes('email')) {
+          toast.error('❌ Email not found. Please check your email or sign up.');
+        } else {
+          // Show the original message if it's already user-friendly
+          toast.error(errorMessage);
+        }
       }
     } catch (error) {
-      toast.error('An error occurred during login');
+      console.error('Login error:', error);
+      
+      // Handle different error types
+      if (error.response) {
+        // Server responded with error
+        const status = error.response.status;
+        const message = error.response.data?.message;
+        
+        if (status === 401 || status === 403) {
+          toast.error('❌ Invalid email or password. Please try again.');
+        } else if (status === 404) {
+          toast.error('❌ Account not found. Please sign up first.');
+        } else if (status === 500) {
+          toast.error('⚠️ Server error. Please try again later.');
+        } else if (message) {
+          toast.error(message);
+        } else {
+          toast.error('❌ Login failed. Please try again.');
+        }
+      } else if (error.request) {
+        // Request made but no response
+        toast.error('⚠️ Cannot connect to server. Please check your internet connection.');
+      } else {
+        // Something else happened
+        toast.error('❌ An unexpected error occurred. Please try again.');
+      }
     } finally {
       setLoading(false);
     }

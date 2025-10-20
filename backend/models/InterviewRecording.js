@@ -25,6 +25,10 @@ const interviewRecordingSchema = new mongoose.Schema({
     ref: 'User',
     index: true
   },
+  interviewerName: {
+    type: String,
+    default: 'AI Interviewer'
+  },
   jobId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Job'

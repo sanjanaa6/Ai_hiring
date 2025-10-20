@@ -176,9 +176,16 @@ const RecordingsList = ({ interviewId, candidateId, showActions = true }) => {
                   </span>
                 </div>
 
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                  {recording.candidateEmail}
-                </p>
+                <div className="space-y-1 mb-3">
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    📧 {recording.candidateEmail}
+                  </p>
+                  {recording.interviewerName && (
+                    <p className="text-sm text-purple-600 dark:text-purple-400 font-medium">
+                      👤 Interviewer: {recording.interviewerName}
+                    </p>
+                  )}
+                </div>
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                   <div className="flex items-center space-x-2 text-gray-600 dark:text-gray-400">

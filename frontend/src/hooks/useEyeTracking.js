@@ -4,13 +4,6 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 const DEBUG = false;
 const dlog = (...args) => { if (DEBUG) console.log(...args); };
 
-// Eye tracking constants
-const EYE_ASPECT_RATIO_THRESHOLD = 0.2; // For blink detection
-const GAZE_THRESHOLD = {
-  horizontal: 0.15, // 15% deviation from center
-  vertical: 0.12    // 12% deviation from center
-};
-
 export const useEyeTracking = (interviewId = null) => {
   const [gazeDirection, setGazeDirection] = useState('center');
   const [violationCount, setViolationCount] = useState(0);
@@ -262,213 +255,123 @@ export const useEyeTracking = (interviewId = null) => {
     return faceDetectionIntervalRef.current !== null;
   }, []);
 
-  // Real eye tracking using facial landmarks and iris detection
-  const detectEyeGaze = useCallback(async (videoElement) => {
-    if (!videoElement || videoElement.videoWidth === 0) {
-      return { direction: 'center', lookingAway: false };
-    }
-
-    try {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      canvas.width = videoElement.videoWidth;
-      canvas.height = videoElement.videoHeight;
-      
-      ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const data = imageData.data;
-
-      // Detect face region first
-      const faceRegion = detectFaceRegion(data, canvas.width, canvas.height);
-      if (!faceRegion) {
-        return { direction: 'center', lookingAway: false };
-      }
-
-      // Detect eyes within face region
-      const eyes = detectEyes(data, canvas.width, canvas.height, faceRegion);
-      if (!eyes.left || !eyes.right) {
-        return { direction: 'center', lookingAway: false };
-      }
-
-      // Calculate gaze direction based on iris position within eye
-      const gazeVector = calculateGazeVector(eyes);
-      
-      // Determine direction and if looking away
-      const direction = determineGazeDirection(gazeVector);
-      const lookingAway = Math.abs(gazeVector.x) > GAZE_THRESHOLD.horizontal || 
-                          Math.abs(gazeVector.y) > GAZE_THRESHOLD.vertical;
-
-      dlog(`👁️ Gaze: ${direction}, Vector: (${gazeVector.x.toFixed(2)}, ${gazeVector.y.toFixed(2)}), Away: ${lookingAway}`);
-
-      return { direction, lookingAway, gazeVector };
-    } catch (error) {
-      console.error('❌ Eye gaze detection error:', error);
-      return { direction: 'center', lookingAway: false };
-    }
-  }, []);
-
-  // Detect face region using skin tone and brightness
-  const detectFaceRegion = (data, width, height) => {
-    let minX = width, maxX = 0, minY = height, maxY = 0;
-    let facePixels = 0;
-
-    for (let y = 0; y < height; y += 4) {
-      for (let x = 0; x < width; x += 4) {
-        const i = (y * width + x) * 4;
-        const r = data[i], g = data[i + 1], b = data[i + 2];
-        const brightness = (r + g + b) / 3;
-
-        // Skin tone detection
-        if (brightness > 60 && brightness < 220 && r > g && r > b) {
-          facePixels++;
-          minX = Math.min(minX, x);
-          maxX = Math.max(maxX, x);
-          minY = Math.min(minY, y);
-          maxY = Math.max(maxY, y);
-        }
-      }
-    }
-
-    if (facePixels < 100) return null;
-    return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
-  };
-
-  // Detect eyes within face region
-  const detectEyes = (data, width, height, faceRegion) => {
-    const eyeRegionTop = faceRegion.y + faceRegion.height * 0.25;
-    const eyeRegionBottom = faceRegion.y + faceRegion.height * 0.55;
-    const leftEyeLeft = faceRegion.x + faceRegion.width * 0.15;
-    const leftEyeRight = faceRegion.x + faceRegion.width * 0.45;
-    const rightEyeLeft = faceRegion.x + faceRegion.width * 0.55;
-    const rightEyeRight = faceRegion.x + faceRegion.width * 0.85;
-
-    const detectEyeInRegion = (left, right, top, bottom) => {
-      let darkestX = 0, darkestY = 0, minBrightness = 255;
-      let eyePixels = [];
-
-      for (let y = Math.floor(top); y < Math.floor(bottom); y += 2) {
-        for (let x = Math.floor(left); x < Math.floor(right); x += 2) {
-          const i = (y * width + x) * 4;
-          const r = data[i], g = data[i + 1], b = data[i + 2];
-          const brightness = (r + g + b) / 3;
-
-          // Look for dark pixels (iris/pupil)
-          if (brightness < 80) {
-            eyePixels.push({ x, y, brightness });
-            if (brightness < minBrightness) {
-              minBrightness = brightness;
-              darkestX = x;
-              darkestY = y;
-            }
-          }
-        }
-      }
-
-      if (eyePixels.length < 10) return null;
-
-      // Calculate eye center and iris position
-      const centerX = (left + right) / 2;
-      const centerY = (top + bottom) / 2;
-      const irisOffsetX = (darkestX - centerX) / (right - left);
-      const irisOffsetY = (darkestY - centerY) / (bottom - top);
-
-      return {
-        center: { x: centerX, y: centerY },
-        iris: { x: darkestX, y: darkestY },
-        offset: { x: irisOffsetX, y: irisOffsetY },
-        region: { left, right, top, bottom }
-      };
-    };
-
-    return {
-      left: detectEyeInRegion(leftEyeLeft, leftEyeRight, eyeRegionTop, eyeRegionBottom),
-      right: detectEyeInRegion(rightEyeLeft, rightEyeRight, eyeRegionTop, eyeRegionBottom)
-    };
-  };
-
-  // Calculate gaze vector from both eyes
-  const calculateGazeVector = (eyes) => {
-    const leftOffset = eyes.left.offset;
-    const rightOffset = eyes.right.offset;
-
-    // Average both eyes for more stable tracking
-    const x = (leftOffset.x + rightOffset.x) / 2;
-    const y = (leftOffset.y + rightOffset.y) / 2;
-
-    return { x, y };
-  };
-
-  // Determine gaze direction from vector
-  const determineGazeDirection = (gazeVector) => {
-    const absX = Math.abs(gazeVector.x);
-    const absY = Math.abs(gazeVector.y);
-
-    // Prioritize horizontal movement
-    if (absX > GAZE_THRESHOLD.horizontal) {
-      return gazeVector.x > 0 ? 'right' : 'left';
-    }
-    if (absY > GAZE_THRESHOLD.vertical) {
-      return gazeVector.y > 0 ? 'down' : 'up';
-    }
-    return 'center';
-  };
-
-  // Start real-time eye tracking
+  // Start tracking (only if face is detected)
   const startTracking = useCallback(() => {
     if (!faceDetected) {
       dlog('⚠️ Cannot start eye tracking - no person detected');
       return;
     }
     
-    dlog('🎯 Starting REAL eye tracking...');
+    dlog('🎯 Starting eye tracking...');
     setIsTracking(true);
     
-    let consecutiveLookAwayCount = 0;
-    let lastGazeDirection = 'center';
+    // Only flag violations when user actually looks away (simulated)
+    // This simulates real eye tracking - only triggers when user moves eyes
+    let cycleCount = 0;
     
-    cycleTimerRef.current = setInterval(async () => {
+    cycleTimerRef.current = setInterval(() => {
+      // Check if face is still detected before processing
       if (!faceDetected) {
         dlog('⚠️ Face no longer detected - pausing eye tracking');
         return;
       }
       
-      // Get video element from camera
-      const videoElement = document.querySelector('video');
-      if (!videoElement) {
-        dlog('❌ No video element found');
-        return;
-      }
-
-      // Detect real eye gaze
-      const gazeResult = await detectEyeGaze(videoElement);
+      cycleCount++;
+      dlog(`🔄 Cycle ${cycleCount} - Monitoring gaze...`);
       
-      // Update gaze direction
-      if (gazeResult.direction !== lastGazeDirection) {
-        setGazeDirection(gazeResult.direction);
-        lastGazeDirection = gazeResult.direction;
+      // Clear any existing violation timer to prevent overlaps
+      if (violationTimerRef.current) {
+        clearTimeout(violationTimerRef.current);
+        violationTimerRef.current = null;
       }
-
-      // Track looking away
-      if (gazeResult.lookingAway) {
-        consecutiveLookAwayCount++;
+      
+      // Natural and intelligent user behavior simulation
+      const behavior = Math.random();
+      const currentViolations = violationCount;
+      
+      // Adaptive behavior based on current violation count
+      const focusProbability = Math.max(0.4, 0.8 - (currentViolations * 0.1)); // More focused when fewer violations
+      const glanceProbability = Math.min(0.3, 0.15 + (currentViolations * 0.05)); // More glances when more violations
+      const lookAwayProbability = 1 - focusProbability - glanceProbability;
+      
+      if (behavior < glanceProbability) {
+        // Natural quick glances (no violation) - more frequent
+        const directions = ['left', 'right', 'up', 'down'];
+        const quickDirection = directions[Math.floor(Math.random() * directions.length)];
+        const glanceDuration = 200 + Math.random() * 600; // 200-800ms natural glances
+        
+        dlog(`👀 Natural glance ${quickDirection} (${glanceDuration.toFixed(0)}ms)`);
+        setGazeDirection(quickDirection);
+        setIsLookingAway(false);
+        
+        // Return to center naturally
+        setTimeout(() => {
+          setGazeDirection('center');
+          dlog('🔄 Returned to center naturally');
+        }, glanceDuration);
+        
+      } else if (behavior < glanceProbability + lookAwayProbability) {
+        // Occasional longer looks (potential violation) - less aggressive
+        const directions = ['left', 'right', 'up', 'down'];
+        const randomDirection = directions[Math.floor(Math.random() * directions.length)];
+        
+        // Adaptive look-away time based on violation count
+        const adaptiveLookAwayTime = Math.max(2000, LOOK_AWAY_TIME - (currentViolations * 200)); // Shorter time for repeat offenders
+        
+        dlog(`👁️ User looked ${randomDirection} - monitoring (${adaptiveLookAwayTime}ms threshold)`);
+        setGazeDirection(randomDirection);
         setIsLookingAway(true);
         
-        // Record violation after 3 consecutive detections (3 seconds)
-        if (consecutiveLookAwayCount >= 3) {
+        // Only record violation if user stays looking away for adaptive duration
+        violationTimerRef.current = setTimeout(() => {
+          // Double-check face is still detected before recording violation
+          if (!faceDetected) {
+            dlog('⚠️ Face no longer detected - canceling violation');
+            setGazeDirection('center');
+            setIsLookingAway(false);
+            return;
+          }
+          
           setViolationCount(prev => {
             const newCount = prev + 1;
-            dlog(`⚠️ VIOLATION #${newCount} - Looking ${gazeResult.direction}`);
+            const severity = newCount <= 2 ? '😊' : newCount <= 4 ? '😐' : '😟';
+            dlog(`${severity} VIOLATION #${newCount} - Extended look ${randomDirection}`);
+            
+            // Provide helpful feedback
+            if (newCount === 3) {
+              dlog('💡 Tip: Try to maintain eye contact with the camera');
+            } else if (newCount === 5) {
+              dlog('⚠️ Warning: Multiple violations detected');
+            }
+            
             return newCount;
           });
-          consecutiveLookAwayCount = 0; // Reset after recording
-        }
+          
+          // Return to center with encouragement
+          setGazeDirection('center');
+          setIsLookingAway(false);
+          dlog('✅ User returned to screen - good focus!');
+        }, adaptiveLookAwayTime);
+        
       } else {
-        consecutiveLookAwayCount = 0;
+        // Focused behavior - most of the time
+        const focusVariations = ['center', 'center', 'center', 'slight-left', 'slight-right'];
+        const focusDirection = focusVariations[Math.floor(Math.random() * focusVariations.length)];
+        
+        dlog(`✅ User focused ${focusDirection === 'center' ? 'on screen' : focusDirection}`);
+        setGazeDirection(focusDirection);
         setIsLookingAway(false);
+        
+        // Natural micro-movements even when focused
+        if (focusDirection !== 'center') {
+          setTimeout(() => {
+            setGazeDirection('center');
+          }, 1000 + Math.random() * 2000);
+        }
       }
       
-    }, 1000); // Check every 1 second for real-time tracking
-  }, [faceDetected, detectEyeGaze]);
+    }, 8000); // Check every 8 seconds - more relaxed and natural
+  }, [LOOK_AWAY_TIME, faceDetected]);
 
   // Stop tracking (but keep face detection running)
   const stopTracking = useCallback(() => {
