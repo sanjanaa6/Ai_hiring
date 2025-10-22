@@ -153,9 +153,13 @@ const UserInterview = () => {
             <div className="text-center">
               <p className="text-sm text-gray-500 dark:text-gray-400">
                 Having issues?{' '}
-                <a href="#" className="text-blue-600 dark:text-blue-400 hover:underline">
+                <button 
+                  type="button"
+                  onClick={() => window.location.href = 'mailto:support@aihiring.com'}
+                  className="text-blue-600 dark:text-blue-400 hover:underline cursor-pointer bg-transparent border-none p-0"
+                >
                   Contact Support
-                </a>
+                </button>
               </p>
             </div>
           </div>

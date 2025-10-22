@@ -7,7 +7,28 @@ const submitAnswer = async (req, res) => {
   console.log('🔍 [SUBMIT ANSWER] Request body:', JSON.stringify(req.body, null, 2));
   
   try {
-    const { questionId, answer, roundId, timeSpent, candidateId, candidateName, candidateEmail, question } = req.body;
+    const { 
+      questionId, 
+      answer, 
+      roundId, 
+      timeSpent, 
+      candidateId, 
+      candidateName, 
+      candidateEmail, 
+      question,
+      answerType,
+      // Additional data for different answer types
+      testResults,
+      executionTime,
+      testStats,
+      pcbDesignData,
+      designNotes,
+      submittedAt
+    } = req.body;
+    
+    console.log('📝 [SUBMIT ANSWER] Answer type:', answerType);
+    console.log('📝 [SUBMIT ANSWER] Has test results:', !!testResults);
+    console.log('📝 [SUBMIT ANSWER] Has PCB data:', !!pcbDesignData);
     
     if (!questionId || !answer) {
       console.log('❌ [SUBMIT ANSWER] Missing required fields');
@@ -49,8 +70,21 @@ const submitAnswer = async (req, res) => {
       questionId,
       question: question || 'Question not provided',
       answer,
+      answerType: answerType || 'text', // Store answer type (code, voice, pcb_design, etc.)
       timeTaken: timeSpent || 0,
       timestamp: new Date(),
+      // Store additional metadata based on answer type
+      metadata: {
+        // For coding answers
+        testResults: testResults || null,
+        executionTime: executionTime || null,
+        testStats: testStats || null,
+        // For PCB design answers
+        pcbDesignData: pcbDesignData || null,
+        designNotes: designNotes || null,
+        // General
+        submittedAt: submittedAt || new Date()
+      },
       aiEvaluation: {
         score: Math.floor(Math.random() * 4) + 1, // Temporary random score (1-4)
         feedback: 'AI evaluation pending - will be implemented with proper AI service',
@@ -58,6 +92,12 @@ const submitAnswer = async (req, res) => {
         improvements: ['Could provide more detail', 'Consider examples']
       }
     };
+    
+    console.log('✅ [SUBMIT ANSWER] Storing answer with metadata:', {
+      answerType: answerData.answerType,
+      hasTestResults: !!answerData.metadata.testResults,
+      hasPCBData: !!answerData.metadata.pcbDesignData
+    });
 
     if (existingAnswerIndex >= 0) {
       // Update existing answer
@@ -283,15 +323,18 @@ const getAnswers = async (req, res) => {
         };
       }
       
-      // Add answer to candidate
+      // Add answer to candidate with all metadata
       answersByCandidate[key].answers.push({
         ...answer,
         roundId: answer.roundId,
         questionId: answer.questionId,
         question: answer.question,
         answer: answer.answer,
+        answerType: answer.answerType || 'text', // Include answer type
         timeTaken: answer.timeTaken,
         timestamp: answer.timestamp,
+        // Include metadata (test results, PCB data, etc.)
+        metadata: answer.metadata || {},
         aiEvaluation: answer.aiEvaluation || {
           score: 0,
           feedback: 'No evaluation available',

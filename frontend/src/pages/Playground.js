@@ -7,7 +7,7 @@ export default function Playground() {
   const [js, setJs] = useState('document.getElementById("app").addEventListener("click",()=>alert("Hi"))');
   const iframeRef = useRef(null);
 
-  const srcDoc = useMemo(() => `<!doctype html><html><head><style>${css}</style></head><body>${html}<script>${js}<\/script></body></html>`, [html, css, js]);
+  const srcDoc = useMemo(() => `<!doctype html><html><head><style>${css}</style></head><body>${html}<script>${js}</script></body></html>`, [html, css, js]);
 
   useEffect(() => {
     const iframe = iframeRef.current;

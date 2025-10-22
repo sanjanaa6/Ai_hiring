@@ -302,7 +302,7 @@ const FormBuilderInterface = ({ round, onUpdate, isDarkMode }) => {
               <div className={`fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl max-h-[80vh] overflow-y-auto rounded-xl shadow-2xl p-6 z-50 border-2 ${
                 isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
               }`}>
-                <div className="flex items-center justify-between mb-4 sticky top-0 pb-4 ${isDarkMode ? 'bg-gray-800' : 'bg-white'}">
+                <div className={`flex items-center justify-between mb-4 sticky top-0 pb-4 ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`}>
                   <h3 className={`font-semibold text-lg ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Choose a field type</h3>
                   <button onClick={() => setShowFieldPicker(false)} className={`p-1 rounded ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}>
                     <X className={`w-5 h-5 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} />

@@ -776,7 +776,6 @@ The interview should feel natural and relevant to someone applying for this spec
   const sidebarItems = [
     { id: 'jobs', label: 'Jobs', icon: Briefcase },
     { id: 'manage-jobs', label: 'Job Management', icon: Settings },
-    { id: 'form-builder', label: 'Form Builder', icon: FileText },
     { id: 'scheduler', label: 'Scheduler', icon: Calendar },
     { id: 'candidate-manager', label: 'Candidate Manager', icon: Users },
     { id: 'candidates', label: 'Candidates', icon: Users },
@@ -2320,9 +2319,15 @@ The interview should feel natural and relevant to someone applying for this spec
                                               {answer.roundTitle || 'Round'}
                                             </span>
                                             <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                              answer.type === 'voice' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'
+                                              answer.answerType === 'code' ? 'bg-blue-100 text-blue-800' :
+                                              answer.answerType === 'voice' ? 'bg-purple-100 text-purple-800' :
+                                              answer.answerType === 'pcb_design' ? 'bg-orange-100 text-orange-800' :
+                                              'bg-green-100 text-green-800'
                                             }`}>
-                                              {answer.type?.toUpperCase() || 'TEXT'}
+                                              {answer.answerType === 'code' ? '💻 CODE' :
+                                               answer.answerType === 'voice' ? '🎤 VOICE' :
+                                               answer.answerType === 'pcb_design' ? '🔌 PCB' :
+                                               '📝 TEXT'}
                                             </span>
                                           </div>
                                           <div className="text-sm text-gray-500">
@@ -2337,6 +2342,57 @@ The interview should feel natural and relevant to someone applying for this spec
                                           <p className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'} whitespace-pre-wrap`}>
                                             A: {answer.answer}
                                           </p>
+                                          
+                                          {/* Display metadata for different answer types */}
+                                          {answer.metadata && (
+                                            <div className="mt-3 space-y-2">
+                                              {/* Code answer metadata */}
+                                              {answer.answerType === 'code' && answer.metadata.testResults && (
+                                                <div className={`${isDarkMode ? 'bg-blue-900/30 border border-blue-500/30' : 'bg-blue-50 border border-blue-200'} rounded-lg p-3`}>
+                                                  <h6 className={`text-sm font-semibold ${isDarkMode ? 'text-blue-300' : 'text-blue-900'} mb-2`}>
+                                                    💻 Test Results
+                                                  </h6>
+                                                  {answer.metadata.testStats && (
+                                                    <div className="flex items-center space-x-4 mb-2">
+                                                      <span className={`text-xs ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                                                        Passed: <span className="font-bold text-green-600">{answer.metadata.testStats.passed || 0}</span>
+                                                      </span>
+                                                      <span className={`text-xs ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                                                        Total: <span className="font-bold">{answer.metadata.testStats.total || 0}</span>
+                                                      </span>
+                                                      <span className={`text-xs ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                                                        Score: <span className="font-bold text-blue-600">{answer.metadata.testStats.percentage || 0}%</span>
+                                                      </span>
+                                                    </div>
+                                                  )}
+                                                  {answer.metadata.executionTime && (
+                                                    <span className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                                                      Execution Time: {answer.metadata.executionTime}ms
+                                                    </span>
+                                                  )}
+                                                </div>
+                                              )}
+                                              
+                                              {/* PCB Design metadata */}
+                                              {answer.answerType === 'pcb_design' && (
+                                                <div className={`${isDarkMode ? 'bg-purple-900/30 border border-purple-500/30' : 'bg-purple-50 border border-purple-200'} rounded-lg p-3`}>
+                                                  <h6 className={`text-sm font-semibold ${isDarkMode ? 'text-purple-300' : 'text-purple-900'} mb-2`}>
+                                                    🔌 PCB Design Submission
+                                                  </h6>
+                                                  {answer.metadata.pcbDesignData && (
+                                                    <span className={`text-xs ${isDarkMode ? 'text-green-400' : 'text-green-700'} font-medium`}>
+                                                      ✓ PCB JSON Data Uploaded
+                                                    </span>
+                                                  )}
+                                                  {answer.metadata.designNotes && (
+                                                    <p className={`text-xs ${isDarkMode ? 'text-gray-300' : 'text-gray-700'} mt-2`}>
+                                                      <span className="font-semibold">Design Notes:</span> {answer.metadata.designNotes}
+                                                    </p>
+                                                  )}
+                                                </div>
+                                              )}
+                                            </div>
+                                          )}
                                         </div>
 
                                         {answer.aiEvaluation && (
