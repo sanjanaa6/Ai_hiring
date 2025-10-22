@@ -43,6 +43,59 @@ class Judge0Service {
     return this.supportedLanguages[languageName.toLowerCase()] || null;
   }
 
+  // Submit code directly (proxy raw Judge0 API request)
+  async submitCodeDirect(submissionData) {
+    try {
+      console.log('🚀 [JUDGE0 DIRECT] Proxying submission to Judge0...');
+      
+      const response = await axios.post(`${this.baseURL}/submissions`, submissionData, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        timeout: 30000
+      });
+
+      console.log('✅ [JUDGE0 DIRECT] Submission created:', response.data.token);
+
+      return {
+        success: true,
+        token: response.data.token
+      };
+
+    } catch (error) {
+      console.error('❌ [JUDGE0 DIRECT] Submit error:', error.message);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+
+  // Get result directly (proxy raw Judge0 API request)
+  async getResultDirect(token) {
+    try {
+      console.log('🔍 [JUDGE0 DIRECT] Proxying result request for token:', token);
+
+      const response = await axios.get(`${this.baseURL}/submissions/${token}`, {
+        timeout: 30000
+      });
+
+      console.log('✅ [JUDGE0 DIRECT] Result received');
+
+      return {
+        success: true,
+        data: response.data
+      };
+
+    } catch (error) {
+      console.error('❌ [JUDGE0 DIRECT] Get result error:', error.message);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+
   // Submit code for execution
   async submitCode(code, language, input = '', expectedOutput = '') {
     try {

@@ -219,7 +219,8 @@ const SuperCoolCodeEditor = ({
         isConversationComplete: conversationStep === 3
       });
     }
-  }, [conversationStep, isCodeDone, onConversationStateChange]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conversationStep, isCodeDone]);
 
   const generateBasicTestCases = useCallback(() => {
     console.log('🔄 [FRONTEND] Generating frontend fallback test cases for:', question);
@@ -379,7 +380,8 @@ const SuperCoolCodeEditor = ({
     if (question && selectedLanguage) {
       generateTestCases();
     }
-  }, [question, selectedLanguage, generateTestCases]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [question, selectedLanguage]);
 
   // Reset everything when question changes (for next question)
   useEffect(() => {

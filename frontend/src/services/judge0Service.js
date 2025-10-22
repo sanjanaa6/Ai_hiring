@@ -1,7 +1,12 @@
 // Judge0 Code Execution Service
 class Judge0Service {
   constructor() {
-    this.baseURL = 'http://51.21.187.99:2358';
+    // Use backend proxy instead of direct connection to avoid mixed content issues
+    const apiBaseUrl = process.env.REACT_APP_API_URL || 
+                      (window.location.hostname.includes('eval8.ai') 
+                        ? 'https://aihire.eval8.xyz/api' 
+                        : 'http://localhost:5000/api');
+    this.baseURL = `${apiBaseUrl}/judge0`;
     this.supportedLanguages = {
       // Popular languages for interviews
       'javascript': { id: 63, name: 'JavaScript (Node.js 12.14.0)', extension: 'js' },
@@ -63,12 +68,22 @@ class Judge0Service {
         wall_time_limit: '10.0'
       };
 
-      console.log('📤 [JUDGE0] Sending submission...');
-      const response = await fetch(`${this.baseURL}/submissions`, {
+      const url = `${this.baseURL}/submissions`;
+      console.log('📤 [JUDGE0] Sending submission to:', url);
+      console.log('📤 [JUDGE0] Base URL:', this.baseURL);
+      
+      // Get auth token for backend proxy
+      const token = localStorage.getItem('token');
+      const headers = {
+        'Content-Type': 'application/json',
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      
+      const response = await fetch(url, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: headers,
         body: JSON.stringify(submissionData)
       });
 
@@ -97,9 +112,17 @@ class Judge0Service {
   // Get execution result
   async getResult(token) {
     try {
-      console.log('🔍 [JUDGE0] Getting result for token:', token);
+      const url = `${this.baseURL}/submissions/${token}`;
+      console.log('🔍 [JUDGE0] Getting result from:', url);
 
-      const response = await fetch(`${this.baseURL}/submissions/${token}`);
+      // Get auth token for backend proxy
+      const authToken = localStorage.getItem('token');
+      const headers = {};
+      if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`;
+      }
+
+      const response = await fetch(url, { headers });
       
       if (!response.ok) {
         throw new Error(`Judge0 API error: ${response.status} ${response.statusText}`);

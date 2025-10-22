@@ -235,6 +235,73 @@ router.get('/starter-code/:language', async (req, res) => {
   }
 });
 
+// Proxy endpoint for direct Judge0 submissions (matches Judge0 API format)
+router.post('/submissions', async (req, res) => {
+  try {
+    console.log('📤 [JUDGE0 PROXY] Proxying submission to Judge0...');
+    console.log('📤 [JUDGE0 PROXY] Request body:', req.body);
+    
+    // Set CORS headers
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    
+    const result = await judge0Service.submitCodeDirect(req.body);
+    
+    if (result.success) {
+      console.log('✅ [JUDGE0 PROXY] Submission successful, token:', result.token);
+      res.json({ token: result.token });
+    } else {
+      console.error('❌ [JUDGE0 PROXY] Submission failed:', result.error);
+      res.status(400).json({ error: result.error });
+    }
+  } catch (error) {
+    console.error('❌ [JUDGE0 PROXY] Submission error:', error);
+    res.status(500).json({ error: 'Failed to submit code' });
+  }
+});
+
+// Proxy endpoint for getting Judge0 submission results (matches Judge0 API format)
+router.get('/submissions/:token', async (req, res) => {
+  try {
+    console.log('🔍 [JUDGE0 PROXY] Proxying result request to Judge0...');
+    console.log('🔍 [JUDGE0 PROXY] Token:', req.params.token);
+    
+    // Set CORS headers
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    
+    const result = await judge0Service.getResultDirect(req.params.token);
+    
+    if (result.success) {
+      console.log('✅ [JUDGE0 PROXY] Result retrieved successfully');
+      res.json(result.data);
+    } else {
+      console.error('❌ [JUDGE0 PROXY] Get result failed:', result.error);
+      res.status(400).json({ error: result.error });
+    }
+  } catch (error) {
+    console.error('❌ [JUDGE0 PROXY] Get result error:', error);
+    res.status(500).json({ error: 'Failed to get result' });
+  }
+});
+
+// OPTIONS handler for CORS preflight
+router.options('/submissions', (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.status(204).send();
+});
+
+router.options('/submissions/:token', (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.status(204).send();
+});
+
 // Health check
 router.get('/health', async (req, res) => {
   try {
