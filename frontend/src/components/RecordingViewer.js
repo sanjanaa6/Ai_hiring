@@ -149,6 +149,15 @@ const RecordingViewer = ({ recording, onClose }) => {
     return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
   };
 
+  const formatCandidateName = (name) => {
+    // Convert "Anonymous_176076148721" to "Anonymous Candidate #8721"
+    if (name && name.match(/^Anonymous_\d+$/)) {
+      const userId = name.replace('Anonymous_', '');
+      return `Anonymous Candidate #${userId.slice(-4)}`;
+    }
+    return name;
+  };
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
       <div 
@@ -162,7 +171,7 @@ const RecordingViewer = ({ recording, onClose }) => {
               Interview Recording
             </h2>
             <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-              {recording.candidateName} • {new Date(recording.recordingStartedAt).toLocaleDateString()}
+              {formatCandidateName(recording.candidateName)} • {new Date(recording.recordingStartedAt).toLocaleDateString()}
             </p>
           </div>
           <button

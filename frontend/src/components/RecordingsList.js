@@ -111,6 +111,15 @@ const RecordingsList = ({ interviewId, candidateId, showActions = true }) => {
     });
   };
 
+  const formatCandidateName = (name) => {
+    // Convert "Anonymous_176076148721" to "Anonymous Candidate #8721"
+    if (name && name.match(/^Anonymous_\d+$/)) {
+      const userId = name.replace('Anonymous_', '');
+      return `Anonymous Candidate #${userId.slice(-4)}`;
+    }
+    return name;
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -161,7 +170,7 @@ const RecordingsList = ({ interviewId, candidateId, showActions = true }) => {
               <div className="flex-1">
                 <div className="flex items-center space-x-3 mb-2">
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                    {recording.candidateName}
+                    {formatCandidateName(recording.candidateName)}
                   </h3>
                   <span
                     className={`px-2 py-1 text-xs font-medium rounded-full ${

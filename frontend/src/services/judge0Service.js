@@ -1,7 +1,11 @@
 // Judge0 Code Execution Service
+import apiService from './apiService';
+
 class Judge0Service {
   constructor() {
-    this.baseURL = 'http://51.21.187.99:2358';
+    // Use backend API proxy instead of direct Judge0 connection
+    // This avoids mixed content errors (HTTP from HTTPS) in production
+    this.baseURL = '/judge0'; // Will be proxied through apiService
     this.supportedLanguages = {
       // Popular languages for interviews
       'javascript': { id: 63, name: 'JavaScript (Node.js 12.14.0)', extension: 'js' },
@@ -48,40 +52,21 @@ class Judge0Service {
       console.log('🔍 [JUDGE0] Language:', language);
       console.log('🔍 [JUDGE0] Code length:', code.length);
 
-      const languageId = this.getLanguageId(language);
-      if (!languageId) {
-        throw new Error(`Unsupported language: ${language}`);
-      }
-
       const submissionData = {
-        source_code: code,
-        language_id: languageId,
-        stdin: input,
-        expected_output: expectedOutput,
-        cpu_time_limit: '5.0',
-        memory_limit: 128000,
-        wall_time_limit: '10.0'
+        code,
+        language,
+        input,
+        expectedOutput
       };
 
-      console.log('📤 [JUDGE0] Sending submission...');
-      const response = await fetch(`${this.baseURL}/submissions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(submissionData)
-      });
+      console.log('📤 [JUDGE0] Sending submission via backend proxy...');
+      const response = await apiService.post(`${this.baseURL}/submit`, submissionData);
 
-      if (!response.ok) {
-        throw new Error(`Judge0 API error: ${response.status} ${response.statusText}`);
-      }
-
-      const result = await response.json();
-      console.log('✅ [JUDGE0] Submission created:', result.token);
+      console.log('✅ [JUDGE0] Submission created:', response.data.data.token);
 
       return {
         success: true,
-        token: result.token,
+        token: response.data.data.token,
         message: 'Code submitted successfully'
       };
 
@@ -99,18 +84,13 @@ class Judge0Service {
     try {
       console.log('🔍 [JUDGE0] Getting result for token:', token);
 
-      const response = await fetch(`${this.baseURL}/submissions/${token}`);
+      const response = await apiService.get(`${this.baseURL}/result/${token}`);
       
-      if (!response.ok) {
-        throw new Error(`Judge0 API error: ${response.status} ${response.statusText}`);
-      }
-
-      const result = await response.json();
-      console.log('📊 [JUDGE0] Result received:', result);
+      console.log('📊 [JUDGE0] Result received:', response.data);
 
       return {
         success: true,
-        data: this.formatResult(result)
+        data: response.data.data
       };
 
     } catch (error) {
@@ -125,54 +105,30 @@ class Judge0Service {
   // Execute code and wait for result
   async executeCode(code, language, input = '', expectedOutput = '') {
     try {
-      console.log('🚀 [JUDGE0] Executing code...');
+      console.log('🚀 [JUDGE0] Executing code via backend proxy...');
 
-      // Submit code
-      const submitResult = await this.submitCode(code, language, input, expectedOutput);
-      if (!submitResult.success) {
-        return submitResult;
-      }
+      const executionData = {
+        code,
+        language,
+        input,
+        expectedOutput
+      };
 
-      // Poll for result
-      const token = submitResult.token;
-      let attempts = 0;
-      const maxAttempts = 30; // 30 seconds timeout
+      // Use backend's execute endpoint which handles polling internally
+      const response = await apiService.post(`${this.baseURL}/execute`, executionData);
 
-      while (attempts < maxAttempts) {
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
-        
-        const result = await this.getResult(token);
-        if (!result.success) {
-          return result;
-        }
+      console.log('✅ [JUDGE0] Execution completed:', response.data);
 
-        const status = result.data.status;
-        console.log(`🔄 [JUDGE0] Status: ${status.description} (${status.id})`);
-
-        // Check if execution is complete
-        if (status.id <= 2) { // 1: In Queue, 2: Processing
-          attempts++;
-          continue;
-        }
-
-        // Execution completed
-        return {
-          success: true,
-          data: result.data
-        };
-      }
-
-      // Timeout
       return {
-        success: false,
-        error: 'Execution timeout - code took too long to execute'
+        success: true,
+        data: response.data.data
       };
 
     } catch (error) {
       console.error('❌ [JUDGE0] Execute error:', error);
       return {
         success: false,
-        error: error.message
+        error: error.message || 'Failed to execute code'
       };
     }
   }
