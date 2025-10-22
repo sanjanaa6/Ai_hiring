@@ -160,7 +160,12 @@ const InterviewMain = ({
           handleCloseCanvas();
           onNextQuestion();
         }}
-        onBack={handleCloseCanvas}
+        onBack={() => {
+          console.log('🔙 System Design question submitted, closing canvas');
+          handleCloseCanvas();
+          // Don't call onNextQuestion here - just close canvas
+          // Next question will be shown when user clicks "Open Canvas" again
+        }}
       />
     );
   }

@@ -80,6 +80,12 @@ const getInterviewResults = async (req, res) => {
         const allStrengths = userAnswers.flatMap(answer => answer.aiEvaluation?.strengths || []);
         const allImprovements = userAnswers.flatMap(answer => answer.aiEvaluation?.improvements || []);
         
+        // Get system design submissions for this user
+        const systemDesignSubmissions = interview.systemDesignSubmissions?.filter(
+          sub => sub.candidateId === user._id.toString() || 
+                 sub.candidateEmail === user.email
+        ) || [];
+        
         candidateData.push({
           candidateId: user._id.toString(),
           candidateName: user.name,
@@ -100,7 +106,8 @@ const getInterviewResults = async (req, res) => {
           status: interviewProgress.status,
           strengths: allStrengths.length > 0 ? allStrengths : generateMockStrengths(averageScore),
           improvements: allImprovements.length > 0 ? allImprovements : generateMockImprovements(averageScore),
-          answers: userAnswers // Include actual answers for detailed reports
+          answers: userAnswers, // Include actual answers for detailed reports
+          systemDesignSubmissions: systemDesignSubmissions // Add system design data
         });
       }
     });
@@ -122,6 +129,11 @@ const getInterviewResults = async (req, res) => {
             answers: candidateAnswers.length
           });
           
+          // Get system design submissions for this candidate
+          const systemDesignSubmissions = interview.systemDesignSubmissions?.filter(
+            sub => sub.candidateId === candidateId
+          ) || [];
+          
           candidateData.push({
             candidateId: candidateId,
             candidateName: firstAnswer.candidateName || 'Anonymous',
@@ -138,7 +150,8 @@ const getInterviewResults = async (req, res) => {
             status: 'completed',
             strengths: candidateAnswers.flatMap(a => a.aiEvaluation?.strengths || []),
             improvements: candidateAnswers.flatMap(a => a.aiEvaluation?.improvements || []),
-            answers: candidateAnswers
+            answers: candidateAnswers,
+            systemDesignSubmissions: systemDesignSubmissions // Add system design data
           });
         }
       }

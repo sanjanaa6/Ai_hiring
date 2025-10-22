@@ -164,6 +164,9 @@ const systemDesignSubmissionSchema = new mongoose.Schema({
   candidateName: { type: String, required: true },
   candidateEmail: { type: String, required: true },
   roundId: { type: String, required: true },
+  questionId: { type: String }, // NEW: To support multiple questions per round (optional for backward compatibility)
+  questionText: { type: String }, // NEW: Store the question text
+  questionIndex: { type: Number }, // NEW: Question order in the round
   diagramData: { type: mongoose.Schema.Types.Mixed, required: true }, // Stores the complete diagram JSON
   submittedAt: { type: Date, default: Date.now },
   timeSpent: { type: Number, default: 0 }, // in seconds

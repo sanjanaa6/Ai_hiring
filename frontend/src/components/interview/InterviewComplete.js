@@ -131,8 +131,34 @@ const InterviewComplete = ({
 
       // Get candidate info from userProgress or localStorage
       const candidateId = userProgress?.candidateId || localStorage.getItem('candidateId') || `anon_${Date.now()}`;
-      const candidateName = userProgress?.candidateName || localStorage.getItem('candidateName') || 'Anonymous Candidate';
-      const candidateEmail = userProgress?.candidateEmail || localStorage.getItem('candidateEmail') || 'anonymous@example.com';
+      let candidateName = userProgress?.candidateName || localStorage.getItem('candidateName') || 'Anonymous Candidate';
+      let candidateEmail = userProgress?.candidateEmail || localStorage.getItem('candidateEmail') || 'anonymous@example.com';
+
+      // Try to fetch actual candidate details from the interview
+      try {
+        console.log('🔍 Fetching candidate details from interview...');
+        const interviewData = await apiService.getInterview(interviewId);
+        
+        if (interviewData.success && interviewData.data) {
+          const interview = interviewData.data;
+          
+          // Find candidate's answers to get their actual submitted name/email
+          const candidateAnswers = interview.candidateAnswers?.filter(
+            ans => ans.candidateId === candidateId
+          );
+          
+          if (candidateAnswers && candidateAnswers.length > 0) {
+            const firstAnswer = candidateAnswers[0];
+            // Use the name/email from their actual submission
+            candidateName = firstAnswer.candidateName || candidateName;
+            candidateEmail = firstAnswer.candidateEmail || candidateEmail;
+            console.log('✅ Found candidate details from interview:', { candidateName, candidateEmail });
+          }
+        }
+      } catch (fetchError) {
+        console.warn('⚠️ Could not fetch candidate details from interview:', fetchError.message);
+        // Continue with localStorage values
+      }
 
       console.log('🎯 Generating feedback for:', { candidateId, candidateName, candidateEmail });
 

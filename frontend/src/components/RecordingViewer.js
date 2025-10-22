@@ -22,20 +22,44 @@ const RecordingViewer = ({ recording, onClose }) => {
     const video = videoRef.current;
     if (!video) return;
 
+    // Set initial duration from recording data if available
+    if (recording.duration && !duration) {
+      setDuration(recording.duration);
+    }
+
     const handleTimeUpdate = () => setCurrentTime(video.currentTime);
-    const handleDurationChange = () => setDuration(video.duration);
+    const handleDurationChange = () => {
+      if (video.duration && !isNaN(video.duration) && isFinite(video.duration)) {
+        setDuration(video.duration);
+      }
+    };
+    const handleLoadedMetadata = () => {
+      if (video.duration && !isNaN(video.duration) && isFinite(video.duration)) {
+        setDuration(video.duration);
+      } else if (recording.duration) {
+        // Fallback to recording duration from database
+        setDuration(recording.duration);
+      }
+    };
     const handleEnded = () => setIsPlaying(false);
 
     video.addEventListener('timeupdate', handleTimeUpdate);
     video.addEventListener('durationchange', handleDurationChange);
+    video.addEventListener('loadedmetadata', handleLoadedMetadata);
     video.addEventListener('ended', handleEnded);
+
+    // Try to load metadata immediately
+    if (video.readyState >= 1) {
+      handleLoadedMetadata();
+    }
 
     return () => {
       video.removeEventListener('timeupdate', handleTimeUpdate);
       video.removeEventListener('durationchange', handleDurationChange);
+      video.removeEventListener('loadedmetadata', handleLoadedMetadata);
       video.removeEventListener('ended', handleEnded);
     };
-  }, []);
+  }, [recording.duration, duration]);
 
   const togglePlay = () => {
     const video = videoRef.current;
@@ -156,6 +180,8 @@ const RecordingViewer = ({ recording, onClose }) => {
             src={recording.signedUrl}
             className="w-full h-auto max-h-[60vh]"
             onClick={togglePlay}
+            preload="metadata"
+            crossOrigin="anonymous"
           />
 
           {/* Play/Pause Overlay */}
@@ -178,17 +204,17 @@ const RecordingViewer = ({ recording, onClose }) => {
             <input
               type="range"
               min="0"
-              max={duration || 0}
+              max={duration || recording.duration || 0}
               value={currentTime}
               onChange={handleSeek}
               className="w-full h-2 bg-gray-300 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer"
               style={{
-                background: `linear-gradient(to right, #8b5cf6 0%, #8b5cf6 ${(currentTime / duration) * 100}%, #d1d5db ${(currentTime / duration) * 100}%, #d1d5db 100%)`
+                background: `linear-gradient(to right, #8b5cf6 0%, #8b5cf6 ${(currentTime / (duration || recording.duration || 1)) * 100}%, #d1d5db ${(currentTime / (duration || recording.duration || 1)) * 100}%, #d1d5db 100%)`
               }}
             />
             <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400 mt-1">
               <span>{formatTime(currentTime)}</span>
-              <span>{formatTime(duration)}</span>
+              <span>{formatTime(duration || recording.duration || 0)}</span>
             </div>
           </div>
 

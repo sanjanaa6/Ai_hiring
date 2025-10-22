@@ -8,6 +8,9 @@ router.post('/system-design/autosave', async (req, res) => {
     const {
       interviewId,
       roundId,
+      questionId,
+      questionText,
+      questionIndex,
       diagramData,
       timeSpent,
       candidateId,
@@ -18,6 +21,8 @@ router.post('/system-design/autosave', async (req, res) => {
     console.log('📐 [SYSTEM DESIGN] Auto-saving diagram:', {
       interviewId,
       roundId,
+      questionId,
+      questionIndex,
       candidateId,
       elementsCount: diagramData?.elements?.length || 0
     });
@@ -28,9 +33,11 @@ router.post('/system-design/autosave', async (req, res) => {
       return res.status(404).json({ success: false, message: 'Interview not found' });
     }
 
-    // Check if submission already exists
+    // Check if submission already exists for this specific question
     const existingSubmissionIndex = interview.systemDesignSubmissions.findIndex(
-      sub => sub.candidateId === candidateId && sub.roundId === roundId
+      sub => sub.candidateId === candidateId && 
+             sub.roundId === roundId && 
+             sub.questionId === questionId
     );
 
     const submissionData = {
@@ -38,6 +45,9 @@ router.post('/system-design/autosave', async (req, res) => {
       candidateName,
       candidateEmail,
       roundId,
+      questionId,
+      questionText,
+      questionIndex,
       diagramData,
       timeSpent,
       submittedAt: new Date(),
@@ -71,6 +81,9 @@ router.post('/system-design/submit', async (req, res) => {
     const {
       interviewId,
       roundId,
+      questionId,
+      questionText,
+      questionIndex,
       diagramData,
       timeSpent,
       candidateId,
@@ -81,6 +94,8 @@ router.post('/system-design/submit', async (req, res) => {
     console.log('📐 [SYSTEM DESIGN] Submitting diagram:', {
       interviewId,
       roundId,
+      questionId,
+      questionIndex,
       candidateId,
       elementsCount: diagramData?.elements?.length || 0
     });
@@ -91,9 +106,11 @@ router.post('/system-design/submit', async (req, res) => {
       return res.status(404).json({ success: false, message: 'Interview not found' });
     }
 
-    // Check if submission already exists
+    // Check if submission already exists for this specific question
     const existingSubmissionIndex = interview.systemDesignSubmissions.findIndex(
-      sub => sub.candidateId === candidateId && sub.roundId === roundId
+      sub => sub.candidateId === candidateId && 
+             sub.roundId === roundId && 
+             sub.questionId === questionId
     );
 
     const submissionData = {
@@ -101,6 +118,9 @@ router.post('/system-design/submit', async (req, res) => {
       candidateName,
       candidateEmail,
       roundId,
+      questionId,
+      questionText,
+      questionIndex,
       diagramData,
       timeSpent,
       submittedAt: new Date(),
@@ -113,9 +133,11 @@ router.post('/system-design/submit', async (req, res) => {
         ...interview.systemDesignSubmissions[existingSubmissionIndex].toObject(),
         ...submissionData
       };
+      console.log('📝 [SYSTEM DESIGN] Updated existing submission');
     } else {
       // Create new submission
       interview.systemDesignSubmissions.push(submissionData);
+      console.log('✨ [SYSTEM DESIGN] Created new submission');
     }
 
     await interview.save();
