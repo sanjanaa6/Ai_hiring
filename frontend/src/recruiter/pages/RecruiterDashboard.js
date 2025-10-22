@@ -774,7 +774,7 @@ The interview should feel natural and relevant to someone applying for this spec
 
   // Sidebar navigation items
   const sidebarItems = [
-    { id: 'jobs', label: 'Jobs', icon: Briefcase },
+    { id: 'jobs', label: 'Interviews', icon: Briefcase },
     { id: 'manage-jobs', label: 'Job Management', icon: Settings },
     { id: 'scheduler', label: 'Scheduler', icon: Calendar },
     { id: 'candidate-manager', label: 'Candidate Manager', icon: Users },
@@ -783,7 +783,6 @@ The interview should feel natural and relevant to someone applying for this spec
     { id: 'recordings', label: 'Recordings', icon: Video },
     { id: 'analytics', label: 'Analytics', icon: BarChart3 },
     { id: 'answers', label: 'Results', icon: Award },
-    { id: 'messages', label: 'Messages', icon: MessageSquare },
     { id: 'settings', label: 'Settings', icon: Settings }
   ];
 

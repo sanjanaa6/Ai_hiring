@@ -74,11 +74,13 @@ const Interview = () => {
         console.log('Loaded candidate info from localStorage:', parsedInfo);
         setCandidateInfo(parsedInfo);
       } else {
-        // Generate anonymous candidate info
+        // Generate anonymous candidate info with user-friendly naming
+        const timestamp = Date.now();
+        const randomId = Math.floor(Math.random() * 10000);
         const anonymousInfo = {
-          id: `candidate_${Date.now()}`,
-          name: `Anonymous_${Date.now()}`,
-          email: `anonymous_${Date.now()}@interview.com`,
+          id: `anon_${timestamp}`,
+          name: `Anonymous Candidate #${randomId}`,
+          email: `anonymous${randomId}@interview.temp`,
           phone: ''
         };
         console.log('Generated anonymous candidate info:', anonymousInfo);
