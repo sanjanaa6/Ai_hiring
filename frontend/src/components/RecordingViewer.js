@@ -181,7 +181,6 @@ const RecordingViewer = ({ recording, onClose }) => {
             className="w-full h-auto max-h-[60vh]"
             onClick={togglePlay}
             preload="metadata"
-            crossOrigin="anonymous"
           />
 
           {/* Play/Pause Overlay */}

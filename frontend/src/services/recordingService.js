@@ -39,6 +39,34 @@ const getAuthHeaders = () => {
 };
 
 /**
+ * Convert S3 signed URL to backend proxy URL to bypass CORS
+ */
+const convertToProxyUrl = (signedUrl, s3Key) => {
+  if (!signedUrl) return null;
+  
+  // Get auth token to append as query parameter
+  const token = localStorage.getItem('token');
+  const tokenParam = token ? `?token=${encodeURIComponent(token)}` : '';
+  
+  // If s3Key is provided, use it directly for the proxy endpoint
+  if (s3Key) {
+    return `${API_BASE_URL}/recordings/stream/${s3Key}${tokenParam}`;
+  }
+  
+  // Otherwise, extract s3Key from the signed URL
+  try {
+    const url = new URL(signedUrl);
+    const pathParts = url.pathname.split('/');
+    // Remove the leading slash and bucket name to get the s3Key
+    const s3KeyFromUrl = pathParts.slice(2).join('/'); // Skip empty string and bucket name
+    return `${API_BASE_URL}/recordings/stream/${s3KeyFromUrl}${tokenParam}`;
+  } catch (error) {
+    console.error('❌ [PROXY URL] Failed to parse S3 URL:', error);
+    return signedUrl; // Fallback to original URL
+  }
+};
+
+/**
  * Recording Service
  * Handles all API calls related to interview recordings
  */
@@ -157,6 +185,15 @@ const recordingService = {
         status: response.data?.data?.status
       });
       
+      // Convert signedUrl to proxy URL to bypass CORS
+      if (response.data?.data?.signedUrl && response.data?.data?.s3Key) {
+        response.data.data.signedUrl = convertToProxyUrl(
+          response.data.data.signedUrl,
+          response.data.data.s3Key
+        );
+        console.log('🔄 [FRONTEND S3] Converted to proxy URL:', response.data.data.signedUrl);
+      }
+      
       return response.data;
     } catch (error) {
       console.error('❌ [FRONTEND S3] Get recording failed:', {
@@ -196,6 +233,17 @@ const recordingService = {
           hasSignedUrl: !!r.signedUrl
         }))
       });
+      
+      // Convert all signedUrls to proxy URLs to bypass CORS
+      if (response.data?.data && Array.isArray(response.data.data)) {
+        response.data.data = response.data.data.map(recording => {
+          if (recording.signedUrl && recording.s3Key) {
+            recording.signedUrl = convertToProxyUrl(recording.signedUrl, recording.s3Key);
+          }
+          return recording;
+        });
+        console.log('🔄 [FRONTEND S3] Converted all URLs to proxy URLs');
+      }
       
       return response.data;
     } catch (error) {

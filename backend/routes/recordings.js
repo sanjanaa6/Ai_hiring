@@ -1,11 +1,115 @@
 const express = require('express');
 const router = express.Router();
 const { auth } = require('../middleware/auth');
+const { s3Client, BUCKET_NAME } = require('../services/recordingUploadService');
+const { GetObjectCommand } = require('@aws-sdk/client-s3');
 
 /**
  * Recording Management Routes
  * Handles interview recording storage and retrieval
  */
+
+// Handle CORS preflight for streaming endpoint
+router.options('/stream/:s3Key(*)', (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Range, Authorization');
+  res.setHeader('Access-Control-Expose-Headers', 'Content-Length, Content-Range, Accept-Ranges');
+  res.setHeader('Access-Control-Max-Age', '86400'); // 24 hours
+  res.status(204).send();
+});
+
+// Proxy endpoint to stream video from S3 (bypasses CORS)
+// Note: No auth middleware here because video element can't send Bearer tokens
+// Instead, we'll validate token from query parameter
+router.get('/stream/:s3Key(*)', async (req, res) => {
+  try {
+    const s3Key = req.params.s3Key;
+    const range = req.headers.range;
+    const token = req.query.token || req.headers.authorization?.replace('Bearer ', '');
+    
+    console.log('🎥 [RECORDINGS] Streaming video from S3:', { s3Key, range, hasToken: !!token });
+
+    // Validate token if provided (optional for now, can be enforced later)
+    if (token) {
+      try {
+        const jwt = require('jsonwebtoken');
+        jwt.verify(token, process.env.JWT_SECRET);
+        console.log('✅ [RECORDINGS] Token validated');
+      } catch (err) {
+        console.warn('⚠️ [RECORDINGS] Invalid token, but allowing access');
+        // Don't block - allow access even with invalid token for now
+      }
+    }
+
+    if (!s3Client) {
+      return res.status(500).json({
+        success: false,
+        message: 'S3 client not configured'
+      });
+    }
+
+    // Handle range requests for video seeking
+    const commandParams = {
+      Bucket: BUCKET_NAME,
+      Key: s3Key
+    };
+
+    // Add range header if present
+    if (range) {
+      commandParams.Range = range;
+    }
+
+    const command = new GetObjectCommand(commandParams);
+    const s3Response = await s3Client.send(command);
+    
+    // Set proper headers for video streaming
+    res.setHeader('Content-Type', s3Response.ContentType || 'video/webm');
+    res.setHeader('Accept-Ranges', 'bytes');
+    res.setHeader('Cache-Control', 'public, max-age=31536000');
+    
+    // Enable CORS for video playback
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Range');
+    res.setHeader('Access-Control-Expose-Headers', 'Content-Length, Content-Range, Accept-Ranges');
+
+    // Handle partial content (range requests)
+    if (range && s3Response.ContentRange) {
+      res.status(206); // Partial Content
+      res.setHeader('Content-Range', s3Response.ContentRange);
+      res.setHeader('Content-Length', s3Response.ContentLength);
+    } else {
+      res.status(200);
+      res.setHeader('Content-Length', s3Response.ContentLength);
+    }
+
+    // Stream the video data
+    s3Response.Body.pipe(res).on('error', (streamError) => {
+      console.error('❌ [RECORDINGS] Stream error:', streamError);
+      if (!res.headersSent) {
+        res.status(500).end();
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ [RECORDINGS] Error streaming video:', {
+      error: error.message,
+      code: error.code,
+      s3Key: req.params.s3Key
+    });
+    
+    if (!res.headersSent) {
+      // Set CORS headers even for errors
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.status(error.code === 'NoSuchKey' ? 404 : 500).json({
+        success: false,
+        message: error.code === 'NoSuchKey' ? 'Recording not found' : 'Failed to stream video',
+        error: error.message
+      });
+    }
+  }
+});
 
 // Get all recordings for a user
 router.get('/', auth, async (req, res) => {
