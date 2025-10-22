@@ -207,9 +207,34 @@ class ApiService {
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error('Login error:', error);
+      
+      // Extract error message from response
+      let errorMessage = 'Login failed';
+      
+      if (error.response?.data) {
+        const data = error.response.data;
+        
+        // Check for validation errors array (e.g., from express-validator)
+        if (data.errors && Array.isArray(data.errors)) {
+          errorMessage = data.errors.map(err => err.msg).join(', ');
+        }
+        // Check for message field (most common)
+        else if (data.message) {
+          errorMessage = data.message;
+        }
+        // Check for error field (alternative)
+        else if (data.error) {
+          errorMessage = data.error;
+        }
+      }
+      // Network or other errors
+      else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       return {
         success: false,
-        error: error.response?.data?.error || error.message || 'Login failed'
+        error: errorMessage
       };
     }
   }
