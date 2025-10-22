@@ -384,7 +384,6 @@ const saveRecording = async (recordingData, buffer) => {
 const getRecordingWithSignedUrl = async (recordingId, userId) => {
   try {
     const recording = await InterviewRecording.findById(recordingId)
-      .populate('candidateId', 'name email')
       .populate('recruiterId', 'name email');
 
     if (!recording || recording.isDeleted) {
@@ -416,7 +415,6 @@ const getRecordingWithSignedUrl = async (recordingId, userId) => {
 const getInterviewRecordings = async (interviewId) => {
   try {
     const recordings = await InterviewRecording.findByInterview(interviewId)
-      .populate('candidateId', 'name email')
       .populate('recruiterId', 'name email');
 
     // Generate signed URLs for all recordings
@@ -452,7 +450,6 @@ const getRecruiterRecordings = async (recruiterId) => {
         { recruiterId: { $exists: false } }
       ]
     })
-      .populate('candidateId', 'name email profile')
       .populate('jobId', 'title company')
       .sort({ createdAt: -1 })
       .limit(100); // Limit for performance
