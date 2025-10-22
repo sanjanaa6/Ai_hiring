@@ -111,13 +111,13 @@ const RecordingsList = ({ interviewId, candidateId, showActions = true }) => {
     });
   };
 
+  // No longer need to format anonymous names/emails since backend returns real user details
   const formatCandidateName = (name) => {
-    // Convert "Anonymous_176076148721" to "Anonymous Candidate #8721"
-    if (name && name.match(/^Anonymous_\d+$/)) {
-      const userId = name.replace('Anonymous_', '');
-      return `Anonymous Candidate #${userId.slice(-4)}`;
-    }
-    return name;
+    return name || 'Unknown Candidate';
+  };
+
+  const formatCandidateEmail = (email) => {
+    return email || 'No email provided';
   };
 
   if (loading) {
@@ -187,7 +187,7 @@ const RecordingsList = ({ interviewId, candidateId, showActions = true }) => {
 
                 <div className="space-y-1 mb-3">
                   <p className="text-sm text-gray-600 dark:text-gray-400">
-                    📧 {recording.candidateEmail}
+                    📧 {formatCandidateEmail(recording.candidateEmail)}
                   </p>
                   {recording.interviewerName && (
                     <p className="text-sm text-purple-600 dark:text-purple-400 font-medium">

@@ -32,6 +32,24 @@ const generateFeedback = async (req, res) => {
       });
     }
 
+    // Fetch real user details from User model
+    const User = require('../models/User');
+    let realCandidateName = candidateName;
+    let realCandidateEmail = candidateEmail;
+    
+    try {
+      const user = await User.findById(candidateId).select('name email');
+      if (user) {
+        realCandidateName = user.name;
+        realCandidateEmail = user.email;
+        console.log('✅ [FEEDBACK] Found real user details:', { name: realCandidateName, email: realCandidateEmail });
+      } else {
+        console.log('⚠️ [FEEDBACK] User not found, using provided details');
+      }
+    } catch (userError) {
+      console.log('⚠️ [FEEDBACK] Could not fetch user details:', userError.message);
+    }
+
     // Check if OpenRouter API key is configured
     if (!process.env.OPENROUTER_API_KEY) {
       console.error('❌ [FEEDBACK] OPENROUTER_API_KEY not configured');
@@ -118,8 +136,8 @@ const generateFeedback = async (req, res) => {
     const prompt = `You are a STRICT technical interviewer evaluating candidate performance. Be CRITICAL and HONEST in your assessment.
 
 **Candidate Information:**
-- Name: ${candidateName}
-- Email: ${candidateEmail}
+- Name: ${realCandidateName}
+- Email: ${realCandidateEmail}
 - Interview: ${interview.title}
 - Position: ${interview.jobTitle}
 
@@ -382,8 +400,8 @@ Answer: ${a.answer}
     }
 
     console.log('📄 [FEEDBACK] Generating PDF with data:', {
-      candidateName,
-      candidateEmail,
+      candidateName: realCandidateName,
+      candidateEmail: realCandidateEmail,
       interviewTitle: interview.title,
       jobTitle: interview.jobTitle,
       interviewType,
@@ -391,8 +409,8 @@ Answer: ${a.answer}
     });
 
     await generatePDF(pdfPath, {
-      candidateName,
-      candidateEmail,
+      candidateName: realCandidateName,
+      candidateEmail: realCandidateEmail,
       interviewTitle: interview.title,
       jobTitle: interview.jobTitle,
       interviewType,
@@ -416,8 +434,8 @@ Answer: ${a.answer}
     // Save feedback to database with STRICT SCORES
     const feedback = {
       candidateId,
-      candidateName,
-      candidateEmail,
+      candidateName: realCandidateName,
+      candidateEmail: realCandidateEmail,
       overallScore: feedbackData.overallScore, // NEW: Overall score 0-10
       overallPerformance: feedbackData.overallPerformance,
       strengths: feedbackData.strengths || [],

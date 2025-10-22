@@ -384,7 +384,8 @@ const saveRecording = async (recordingData, buffer) => {
 const getRecordingWithSignedUrl = async (recordingId, userId) => {
   try {
     const recording = await InterviewRecording.findById(recordingId)
-      .populate('recruiterId', 'name email');
+      .populate('recruiterId', 'name email')
+      .populate('candidateId', 'name email'); // Populate candidate details
 
     if (!recording || recording.isDeleted) {
       throw new Error('Recording not found');
@@ -401,6 +402,12 @@ const getRecordingWithSignedUrl = async (recordingId, userId) => {
     // Return recording with signed URL
     const recordingObj = recording.toObject();
     recordingObj.signedUrl = signedUrl;
+    
+    // Replace anonymous details with real user details if available
+    if (recordingObj.candidateId) {
+      recordingObj.candidateName = recordingObj.candidateId.name || recordingObj.candidateName;
+      recordingObj.candidateEmail = recordingObj.candidateId.email || recordingObj.candidateEmail;
+    }
 
     return recordingObj;
   } catch (error) {
@@ -415,7 +422,8 @@ const getRecordingWithSignedUrl = async (recordingId, userId) => {
 const getInterviewRecordings = async (interviewId) => {
   try {
     const recordings = await InterviewRecording.findByInterview(interviewId)
-      .populate('recruiterId', 'name email');
+      .populate('recruiterId', 'name email')
+      .populate('candidateId', 'name email'); // Populate candidate details
 
     // Generate signed URLs for all recordings
     const recordingsWithUrls = await Promise.all(
@@ -423,6 +431,13 @@ const getInterviewRecordings = async (interviewId) => {
         const signedUrl = await generateSignedUrl(recording.s3Key);
         const recordingObj = recording.toObject();
         recordingObj.signedUrl = signedUrl;
+        
+        // Replace anonymous details with real user details if available
+        if (recordingObj.candidateId) {
+          recordingObj.candidateName = recordingObj.candidateId.name || recordingObj.candidateName;
+          recordingObj.candidateEmail = recordingObj.candidateId.email || recordingObj.candidateEmail;
+        }
+        
         return recordingObj;
       })
     );
@@ -451,12 +466,23 @@ const getRecruiterRecordings = async (recruiterId) => {
       ]
     })
       .populate('jobId', 'title company')
+      .populate('candidateId', 'name email') // Populate candidate details
       .sort({ createdAt: -1 })
       .limit(100); // Limit for performance
 
     console.log('✅ [GET RECRUITER RECORDINGS] Found:', recordings.length);
     
-    return recordings;
+    // Replace anonymous details with real user details if available
+    const recordingsWithRealDetails = recordings.map(recording => {
+      const recordingObj = recording.toObject();
+      if (recordingObj.candidateId) {
+        recordingObj.candidateName = recordingObj.candidateId.name || recordingObj.candidateName;
+        recordingObj.candidateEmail = recordingObj.candidateId.email || recordingObj.candidateEmail;
+      }
+      return recordingObj;
+    });
+    
+    return recordingsWithRealDetails;
   } catch (error) {
     console.error('❌ [RECORDING] Get recruiter recordings failed:', error);
     throw error;
