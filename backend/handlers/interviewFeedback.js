@@ -391,7 +391,7 @@ Answer: ${a.answer}
     // Generate PDF
     const pdfFileName = `feedback_${candidateId}_${Date.now()}.pdf`;
     const pdfPath = path.join(__dirname, '../uploads', pdfFileName);
-    const pdfUrl = `/uploads/${pdfFileName}`;
+    const pdfUrl = `/api/interviews/${interviewId}/feedback/${candidateId}/pdf`; // Protected URL
 
     // Ensure uploads directory exists
     const uploadsDir = path.join(__dirname, '../uploads');
@@ -446,7 +446,8 @@ Answer: ${a.answer}
       pcbDesigns: pcbDesigns.length > 0 ? pcbDesigns : undefined, // Include PCB designs if any
       pdfUrl,
       pdfPath,
-      generatedAt: new Date()
+      generatedAt: new Date(),
+      downloadAllowed: false // Require recruiter approval before candidate can download
     };
     
     console.log('📊 [FEEDBACK] Feedback Summary:');
@@ -514,9 +515,28 @@ const getFeedback = async (req, res) => {
       });
     }
 
+    // Check if user is authenticated
+    const isAuthenticated = req.user && req.user.id;
+    const isRecruiter = isAuthenticated && (req.user.role === 'recruiter' || req.user.role === 'admin');
+    const isCandidate = isAuthenticated && req.user.id === candidateId;
+
+    // If candidate is requesting their own feedback, check download permission
+    if (isCandidate && !isRecruiter) {
+      if (!feedback.downloadAllowed) {
+        return res.status(403).json({
+          success: false,
+          error: 'Feedback download not yet approved by recruiter',
+          downloadAllowed: false,
+          message: 'Your feedback is being reviewed. You will be notified when it is available for download.'
+        });
+      }
+    }
+
+    // Return feedback (recruiters can always see it, candidates only if approved)
     res.json({
       success: true,
-      data: feedback
+      data: feedback,
+      downloadAllowed: feedback.downloadAllowed
     });
 
   } catch (error) {
@@ -833,7 +853,209 @@ async function generatePDF(filePath, data) {
   });
 }
 
+/**
+ * Allow candidate to download feedback (Recruiter only)
+ */
+const allowFeedbackDownload = async (req, res) => {
+  try {
+    const { interviewId, candidateId } = req.params;
+
+    console.log('✅ [FEEDBACK] Allow download request:', { interviewId, candidateId, recruiterId: req.user.id });
+
+    // Check if user is recruiter or admin
+    if (req.user.role !== 'recruiter' && req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        error: 'Only recruiters and admins can approve feedback downloads'
+      });
+    }
+
+    const interview = await Interview.findOne({ interviewId });
+    if (!interview) {
+      return res.status(404).json({
+        success: false,
+        error: 'Interview not found'
+      });
+    }
+
+    const feedbackIndex = interview.candidateFeedbacks.findIndex(
+      f => f.candidateId === candidateId
+    );
+
+    if (feedbackIndex === -1) {
+      return res.status(404).json({
+        success: false,
+        error: 'Feedback not found for this candidate'
+      });
+    }
+
+    // Update download permission
+    interview.candidateFeedbacks[feedbackIndex].downloadAllowed = true;
+    interview.candidateFeedbacks[feedbackIndex].downloadApprovedBy = req.user.id;
+    interview.candidateFeedbacks[feedbackIndex].downloadApprovedAt = new Date();
+    interview.candidateFeedbacks[feedbackIndex].downloadDeniedReason = undefined;
+
+    await interview.save();
+
+    console.log('✅ [FEEDBACK] Download approved for candidate:', candidateId);
+
+    res.json({
+      success: true,
+      message: 'Feedback download approved',
+      data: interview.candidateFeedbacks[feedbackIndex]
+    });
+
+  } catch (error) {
+    console.error('❌ [FEEDBACK] Error approving download:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to approve feedback download'
+    });
+  }
+};
+
+/**
+ * Deny candidate feedback download (Recruiter only)
+ */
+const denyFeedbackDownload = async (req, res) => {
+  try {
+    const { interviewId, candidateId } = req.params;
+    const { reason } = req.body;
+
+    console.log('🚫 [FEEDBACK] Deny download request:', { interviewId, candidateId, reason });
+
+    // Check if user is recruiter or admin
+    if (req.user.role !== 'recruiter' && req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        error: 'Only recruiters and admins can deny feedback downloads'
+      });
+    }
+
+    const interview = await Interview.findOne({ interviewId });
+    if (!interview) {
+      return res.status(404).json({
+        success: false,
+        error: 'Interview not found'
+      });
+    }
+
+    const feedbackIndex = interview.candidateFeedbacks.findIndex(
+      f => f.candidateId === candidateId
+    );
+
+    if (feedbackIndex === -1) {
+      return res.status(404).json({
+        success: false,
+        error: 'Feedback not found for this candidate'
+      });
+    }
+
+    // Update download permission
+    interview.candidateFeedbacks[feedbackIndex].downloadAllowed = false;
+    interview.candidateFeedbacks[feedbackIndex].downloadDeniedReason = reason || 'Download denied by recruiter';
+    interview.candidateFeedbacks[feedbackIndex].downloadApprovedBy = undefined;
+    interview.candidateFeedbacks[feedbackIndex].downloadApprovedAt = undefined;
+
+    await interview.save();
+
+    console.log('🚫 [FEEDBACK] Download denied for candidate:', candidateId);
+
+    res.json({
+      success: true,
+      message: 'Feedback download denied',
+      data: interview.candidateFeedbacks[feedbackIndex]
+    });
+
+  } catch (error) {
+    console.error('❌ [FEEDBACK] Error denying download:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to deny feedback download'
+    });
+  }
+};
+
+/**
+ * Serve feedback PDF file (with permission check)
+ */
+const serveFeedbackPDF = async (req, res) => {
+  try {
+    const { interviewId, candidateId } = req.params;
+
+    console.log('📄 [FEEDBACK PDF] Request:', { interviewId, candidateId, userId: req.user?.id });
+
+    const interview = await Interview.findOne({ interviewId });
+    if (!interview) {
+      return res.status(404).json({
+        success: false,
+        error: 'Interview not found'
+      });
+    }
+
+    const feedback = interview.candidateFeedbacks.find(
+      f => f.candidateId === candidateId
+    );
+
+    if (!feedback || !feedback.pdfPath) {
+      return res.status(404).json({
+        success: false,
+        error: 'Feedback PDF not found'
+      });
+    }
+
+    // Check permissions
+    const isRecruiter = req.user.role === 'recruiter' || req.user.role === 'admin';
+    const isCandidate = req.user.id === candidateId;
+
+    // Recruiters can always download
+    if (!isRecruiter) {
+      // Candidates need approval
+      if (!isCandidate) {
+        return res.status(403).json({
+          success: false,
+          error: 'Access denied'
+        });
+      }
+
+      if (!feedback.downloadAllowed) {
+        return res.status(403).json({
+          success: false,
+          error: 'Feedback download not yet approved by recruiter',
+          downloadAllowed: false
+        });
+      }
+    }
+
+    // Serve the PDF file
+    const pdfPath = path.resolve(feedback.pdfPath);
+    
+    if (!fs.existsSync(pdfPath)) {
+      return res.status(404).json({
+        success: false,
+        error: 'PDF file not found on server'
+      });
+    }
+
+    console.log('✅ [FEEDBACK PDF] Serving file:', pdfPath);
+    
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="feedback_${candidateId}.pdf"`);
+    res.sendFile(pdfPath);
+
+  } catch (error) {
+    console.error('❌ [FEEDBACK PDF] Error serving PDF:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to serve feedback PDF'
+    });
+  }
+};
+
 module.exports = {
   generateFeedback,
-  getFeedback
+  getFeedback,
+  allowFeedbackDownload,
+  denyFeedbackDownload,
+  serveFeedbackPDF
 };

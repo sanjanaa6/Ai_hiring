@@ -137,7 +137,12 @@ const candidateFeedbackSchema = new mongoose.Schema({
   },
   pdfUrl: { type: String },
   pdfPath: { type: String },
-  generatedAt: { type: Date, default: Date.now }
+  generatedAt: { type: Date, default: Date.now },
+  // Download permission control
+  downloadAllowed: { type: Boolean, default: false },
+  downloadApprovedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  downloadApprovedAt: { type: Date },
+  downloadDeniedReason: { type: String }
 });
 
 const fileUploadSchema = new mongoose.Schema({

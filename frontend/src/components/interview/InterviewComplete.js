@@ -20,6 +20,7 @@ const InterviewComplete = ({
   const [feedbackPdfUrl, setFeedbackPdfUrl] = useState(null);
   const [feedbackError, setFeedbackError] = useState(null);
   const [completionMarked, setCompletionMarked] = useState(false);
+  const [downloadAllowed, setDownloadAllowed] = useState(false);
 
   // Debug logging
   console.log('🎉 InterviewComplete component rendered');
@@ -27,6 +28,42 @@ const InterviewComplete = ({
   console.log('📊 All Rounds:', allRounds);
   console.log('📊 Completed Rounds:', completedRounds);
   console.log('📊 User Progress:', userProgress);
+
+  // Check download approval status periodically
+  useEffect(() => {
+    if (!feedbackGenerated || !feedbackPdfUrl || downloadAllowed) {
+      return; // Don't check if feedback not generated or already allowed
+    }
+
+    const checkDownloadStatus = async () => {
+      try {
+        const candidateId = localStorage.getItem('candidateId');
+        if (!candidateId) return;
+
+        const result = await apiService.getFeedback(interviewId, candidateId);
+        if (result.success && result.data) {
+          const isAllowed = result.data.downloadAllowed || result.downloadAllowed;
+          if (isAllowed !== downloadAllowed) {
+            console.log('✅ Download status updated:', isAllowed);
+            setDownloadAllowed(isAllowed);
+            if (isAllowed) {
+              setFeedbackError(null); // Clear the pending message
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error checking download status:', error);
+      }
+    };
+
+    // Check immediately
+    checkDownloadStatus();
+
+    // Then check every 10 seconds
+    const interval = setInterval(checkDownloadStatus, 10000);
+
+    return () => clearInterval(interval);
+  }, [feedbackGenerated, feedbackPdfUrl, downloadAllowed, interviewId]);
 
   // Mark interview as completed when component mounts
   useEffect(() => {
@@ -170,8 +207,15 @@ const InterviewComplete = ({
 
       if (result.success) {
         setFeedbackGenerated(true);
-        setFeedbackPdfUrl(result.data.pdfUrl);
+        setFeedbackPdfUrl(result.data.pdfUrl || result.data.feedback?.pdfUrl);
+        setDownloadAllowed(result.data.feedback?.downloadAllowed || false);
         console.log('✅ Feedback generated successfully:', result.data.pdfUrl);
+        console.log('📊 Download allowed:', result.data.feedback?.downloadAllowed);
+        
+        // Show message if download not allowed
+        if (!result.data.feedback?.downloadAllowed) {
+          setFeedbackError('Feedback generated! Waiting for recruiter approval before you can download.');
+        }
       } else {
         setFeedbackError(result.error || 'Failed to generate feedback');
         console.error('❌ Feedback generation failed:', result.error);
@@ -184,11 +228,22 @@ const InterviewComplete = ({
     }
   };
 
-  const handleDownloadFeedback = () => {
-    if (feedbackPdfUrl) {
-      const baseUrl = apiService.client.defaults.baseURL.replace('/api', '');
-      const fullUrl = `${baseUrl}${feedbackPdfUrl}`;
+  const handleDownloadFeedback = async () => {
+    if (!feedbackPdfUrl) return;
+    
+    try {
+      // The pdfUrl is now a protected API endpoint, not a direct file path
+      // It will check permissions on the backend
+      const baseUrl = window.location.origin;
+      const fullUrl = feedbackPdfUrl.startsWith('http') 
+        ? feedbackPdfUrl 
+        : `${baseUrl}${feedbackPdfUrl}`;
+      
+      console.log('📄 Opening feedback PDF:', fullUrl);
       window.open(fullUrl, '_blank');
+    } catch (error) {
+      console.error('❌ Error opening feedback:', error);
+      setFeedbackError('Failed to open feedback PDF. Please try again.');
     }
   };
 
@@ -247,9 +302,29 @@ const InterviewComplete = ({
             
             {feedbackError && (
               <div className={`mb-4 p-4 rounded-lg ${
-                isDarkMode ? 'bg-red-900/30 border border-red-500/30 text-red-300' : 'bg-red-50 border border-red-200 text-red-700'
+                feedbackError.includes('Waiting for recruiter')
+                  ? isDarkMode ? 'bg-yellow-900/30 border border-yellow-500/30 text-yellow-300' : 'bg-yellow-50 border border-yellow-200 text-yellow-700'
+                  : isDarkMode ? 'bg-red-900/30 border border-red-500/30 text-red-300' : 'bg-red-50 border border-red-200 text-red-700'
               }`}>
-                {feedbackError}
+                <div className="flex items-center justify-between">
+                  <span>{feedbackError}</span>
+                  {feedbackError.includes('Waiting for recruiter') && (
+                    <button
+                      onClick={async () => {
+                        const candidateId = localStorage.getItem('candidateId');
+                        if (!candidateId) return;
+                        const result = await apiService.getFeedback(interviewId, candidateId);
+                        if (result.success && result.data?.downloadAllowed) {
+                          setDownloadAllowed(true);
+                          setFeedbackError(null);
+                        }
+                      }}
+                      className="ml-3 px-3 py-1 text-sm bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg"
+                    >
+                      🔄 Check Status
+                    </button>
+                  )}
+                </div>
               </div>
             )}
 
@@ -281,14 +356,18 @@ const InterviewComplete = ({
               ) : (
                 <button
                   onClick={handleDownloadFeedback}
+                  disabled={!downloadAllowed}
                   className={`flex-1 px-6 py-3 rounded-xl font-semibold transition-all transform flex items-center justify-center gap-2 ${
-                    isDarkMode
-                      ? 'bg-green-600 hover:bg-green-700 text-white shadow-lg hover:shadow-xl hover:scale-105'
-                      : 'bg-green-600 hover:bg-green-700 text-white shadow-lg hover:shadow-xl hover:scale-105'
+                    !downloadAllowed
+                      ? 'bg-gray-400 cursor-not-allowed opacity-60'
+                      : isDarkMode
+                        ? 'bg-green-600 hover:bg-green-700 text-white shadow-lg hover:shadow-xl hover:scale-105'
+                        : 'bg-green-600 hover:bg-green-700 text-white shadow-lg hover:shadow-xl hover:scale-105'
                   }`}
+                  title={!downloadAllowed ? 'Waiting for recruiter approval' : 'Download your feedback PDF'}
                 >
                   <Download className="w-5 h-5" />
-                  Download Feedback PDF
+                  {downloadAllowed ? 'Download Feedback PDF' : '⏳ Pending Approval'}
                 </button>
               )}
             </div>

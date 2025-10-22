@@ -868,8 +868,47 @@ class ApiService {
       console.error('Get feedback error:', error);
       return {
         success: false,
-        error: error.response?.data?.error || error.message || 'Failed to get feedback'
+        error: error.response?.data?.error || error.message || 'Failed to get feedback',
+        downloadAllowed: error.response?.data?.downloadAllowed || false
       };
+    }
+  }
+
+  async allowFeedbackDownload(interviewId, candidateId) {
+    try {
+      const response = await this.client.post(`/interviews/${interviewId}/feedback/${candidateId}/allow-download`);
+      return response.data;
+    } catch (error) {
+      console.error('Allow feedback download error:', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to allow feedback download'
+      };
+    }
+  }
+
+  async denyFeedbackDownload(interviewId, candidateId, reason) {
+    try {
+      const response = await this.client.post(`/interviews/${interviewId}/feedback/${candidateId}/deny-download`, { reason });
+      return response.data;
+    } catch (error) {
+      console.error('Deny feedback download error:', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to deny feedback download'
+      };
+    }
+  }
+
+  async getFeedbackPDF(interviewId, candidateId) {
+    try {
+      const response = await this.client.get(`/interviews/${interviewId}/feedback/${candidateId}/pdf`, {
+        responseType: 'blob' // Important for PDF files
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Get feedback PDF error:', error);
+      throw error;
     }
   }
 

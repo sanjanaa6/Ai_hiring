@@ -254,6 +254,19 @@ const ModernInterviewAnalytics = ({ interviewId, onClose }) => {
                             </div>
                           </div>
                           
+                          {/* Download Status Badge */}
+                          {candidate.feedbackReport?.pdfUrl && (
+                            <div className={`mt-2 px-2 py-1 rounded text-xs font-medium ${
+                              candidate.feedbackReport?.downloadAllowed 
+                                ? 'bg-green-100 text-green-800' 
+                                : 'bg-yellow-100 text-yellow-800'
+                            }`}>
+                              {candidate.feedbackReport?.downloadAllowed 
+                                ? '✓ Download Approved' 
+                                : '⏳ Pending Approval'}
+                            </div>
+                          )}
+                          
                           <button 
                             onClick={async (e) => {
                               e.stopPropagation();
@@ -294,6 +307,51 @@ const ModernInterviewAnalytics = ({ interviewId, onClose }) => {
                             <FileText className="w-4 h-4" />
                             {candidate.feedbackReport?.pdfUrl ? 'View Feedback PDF' : 'Generate Feedback'}
                           </button>
+                          
+                          {/* Approval Buttons for Recruiters */}
+                          {candidate.feedbackReport?.pdfUrl && !candidate.feedbackReport?.downloadAllowed && (
+                            <div className="flex gap-2 mt-2">
+                              <button
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  try {
+                                    const result = await apiService.allowFeedbackDownload(interviewId, candidate.candidateId);
+                                    if (result.success) {
+                                      alert('✅ Feedback download approved!');
+                                      loadResults();
+                                    } else {
+                                      alert('Failed: ' + result.error);
+                                    }
+                                  } catch (error) {
+                                    alert('Error: ' + error.message);
+                                  }
+                                }}
+                                className="flex-1 bg-green-600 text-white py-1.5 rounded text-xs font-semibold hover:bg-green-700"
+                              >
+                                ✓ Approve
+                              </button>
+                              <button
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  const reason = prompt('Reason for denial (optional):');
+                                  try {
+                                    const result = await apiService.denyFeedbackDownload(interviewId, candidate.candidateId, reason);
+                                    if (result.success) {
+                                      alert('🚫 Feedback download denied');
+                                      loadResults();
+                                    } else {
+                                      alert('Failed: ' + result.error);
+                                    }
+                                  } catch (error) {
+                                    alert('Error: ' + error.message);
+                                  }
+                                }}
+                                className="flex-1 bg-red-600 text-white py-1.5 rounded text-xs font-semibold hover:bg-red-700"
+                              >
+                                ✗ Deny
+                              </button>
+                            </div>
+                          )}
                         </motion.div>
                       )}
                     </div>

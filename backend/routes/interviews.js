@@ -58,7 +58,10 @@ const {
 
 const {
   generateFeedback,
-  getFeedback
+  getFeedback,
+  allowFeedbackDownload,
+  denyFeedbackDownload,
+  serveFeedbackPDF
 } = require('../handlers/interviewFeedback');
 
 const {
@@ -193,7 +196,10 @@ router.get('/:interviewId/check-completion', async (req, res) => {
 
 // Feedback routes
 router.post('/:interviewId/feedback/generate', generateFeedback);
-router.get('/:interviewId/feedback/:candidateId', getFeedback);
+router.get('/:interviewId/feedback/:candidateId', auth, getFeedback); // Added auth middleware
+router.get('/:interviewId/feedback/:candidateId/pdf', auth, serveFeedbackPDF); // Protected PDF serving
+router.post('/:interviewId/feedback/:candidateId/allow-download', auth, allowFeedbackDownload);
+router.post('/:interviewId/feedback/:candidateId/deny-download', auth, denyFeedbackDownload);
 
 // Get interview by ID (authenticated) - MUST BE LAST TO AVOID CONFLICTS
 router.get('/:interviewId', auth, getInterviewById);
