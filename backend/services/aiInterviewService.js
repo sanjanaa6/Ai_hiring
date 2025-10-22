@@ -61,20 +61,47 @@ async function createRoleSpecificInterview(prompt, jobDetails, req = null) {
     if (isDeveloperRole) {
       roleSpecificPrompt = `
 DEVELOPER-SPECIFIC REQUIREMENTS:
-- Round 2 MUST be a "Coding Challenge" round with live coding questions
-- Round 3 MUST be a "System Design & Architecture" round
-- Include specific programming languages, frameworks, and technologies
-- Add algorithm and data structure questions
-- Include code review and debugging scenarios
-- Focus on software development best practices
+
+CRITICAL - QUESTION TYPE ENFORCEMENT:
+- Round 1: ONLY behavioral/conversational questions ("Tell me about...", "What motivated you...")
+- Round 2: ONLY practical coding questions ("Write a function to...", "Implement...")
+- Round 3: ONLY system design questions ("How would you design...", "Design a system for...")
+- Round 4: ONLY theoretical questions ("What is...", "Explain...", "Describe...")
+- Round 5: ONLY theoretical questions ("What is...", "Explain...", "Describe...")
+- Round 6: ONLY behavioral questions ("How do you handle...", "Describe a time when...")
 
 Round Structure for Developers:
-- Round 1: Introduction & Background (5 questions)
-- Round 2: Coding Challenge & Technical Skills (5 questions) 
-- Round 3: System Design & Architecture (5 questions)
-- Round 4: Problem Solving & Debugging (5 questions)
-- Round 5: Advanced Technical Assessment (5 questions)
-- Round 6: Final Evaluation & Cultural Fit (5 questions)`;
+- Round 1: Introduction & Background (5 BEHAVIORAL questions - NO technical questions)
+  * Questions must start with: "Tell me about", "What motivated", "Why do you"
+  * Focus on background, experience, motivation
+  * NO coding, NO technical concepts
+
+- Round 2: Coding Challenge (5 CODING questions ONLY - NO theoretical questions)
+  * Questions must start with: "Write a function", "Implement", "Create a program"
+  * Include algorithm problems, data structure implementations
+  * Each question requires writing actual code
+  * NO "What is" or "Explain" questions
+
+- Round 3: System Design & Architecture (5 DESIGN questions ONLY - NO coding, NO theory)
+  * Questions must start with: "How would you design", "Design a system", "Architect a solution"
+  * Focus on high-level architecture, scalability, components
+  * Questions should be answerable with diagrams and explanations
+  * NO code implementation, NO "What is" questions
+
+- Round 4: Problem Solving & Debugging (5 THEORETICAL questions ONLY - NO coding)
+  * Questions must start with: "What is", "Explain", "Describe", "How does"
+  * Focus on debugging approaches, problem-solving methodologies
+  * NO code writing, only explanations
+
+- Round 5: Advanced Technical Assessment (5 THEORETICAL questions ONLY - NO coding)
+  * Questions must start with: "What is", "Explain", "Describe", "Compare"
+  * Focus on advanced concepts, best practices, architecture patterns
+  * NO code writing, only explanations
+
+- Round 6: Final Evaluation & Cultural Fit (5 BEHAVIORAL questions ONLY - NO technical)
+  * Questions must start with: "How do you", "Describe a time", "What motivates"
+  * Focus on soft skills, teamwork, culture fit
+  * NO technical questions at all`;
     } else if (isSalesRole) {
       roleSpecificPrompt = `
 SALES-SPECIFIC REQUIREMENTS:
@@ -83,6 +110,7 @@ SALES-SPECIFIC REQUIREMENTS:
 - Include lead generation, prospecting, and closing techniques
 - Add negotiation and objection handling scenarios
 - Focus on sales metrics and performance indicators
+
 
 Round Structure for Sales:
 - Round 1: Introduction & Background (5 questions)
@@ -140,12 +168,13 @@ ${roleSpecificPrompt}
 GENERAL REQUIREMENTS:
 1. Create exactly 6 rounds with 5 questions each (30 total questions)
 2. Each round should have a specific focus and increasing difficulty
-3. Include various question types: behavioral, technical, situational, role-play, problem-solving
-4. ${isDeveloperRole ? 'INCLUDE coding questions with specific programming languages and frameworks' : 'DO NOT include any coding, programming, or technical implementation questions'}
+3. ${isDeveloperRole ? 'STRICTLY FOLLOW THE QUESTION TYPE RULES ABOVE - Round 2 = ONLY coding, Round 3 = ONLY design, Others = ONLY theoretical/behavioral' : 'Include various question types: behavioral, technical, situational, role-play, problem-solving'}
+4. ${isDeveloperRole ? 'Round 2 questions MUST require writing actual code. Round 3 questions MUST be about system architecture/design. NO mixing of question types.' : 'DO NOT include any coding, programming, or technical implementation questions'}
 5. Make questions specific to the role and industry
 6. Include realistic time limits and difficulty levels
 7. Add follow-up questions where appropriate
-8. ${isDeveloperRole ? 'For system design, include scalability, performance, and architecture considerations' : 'Focus on role-specific skills, industry knowledge, and professional competencies'}
+8. ${isDeveloperRole ? 'For Round 3 system design: focus on architecture, scalability, components, data flow - NO code implementation' : 'Focus on role-specific skills, industry knowledge, and professional competencies'}
+9. ${isDeveloperRole ? 'ABSOLUTE RULE: Do NOT put coding questions in Round 3. Do NOT put design questions in Round 2. Do NOT put theoretical questions in Round 2 or 3.' : ''}
 
 CRITICAL JSON FORMATTING REQUIREMENTS:
 - Respond with ONLY valid JSON - no additional text, explanations, or formatting

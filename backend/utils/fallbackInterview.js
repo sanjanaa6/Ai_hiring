@@ -123,12 +123,12 @@ const createFallbackInterview = (jobDetails, interviewId) => {
         },
         {
           id: "q2_3",
-          type: "technical",
-          question: isDeveloperRole ? "Explain the difference between a stack and a queue with examples." : "How do you approach problem-solving in your field?",
-          expectedAnswer: isDeveloperRole ? "Look for clear understanding of data structures and their use cases" : "Look for systematic problem-solving approach",
-          timeLimit: 3,
+          type: isDeveloperRole ? "coding" : "technical",
+          question: isDeveloperRole ? "Write a function to find the maximum element in an array." : "How do you approach problem-solving in your field?",
+          expectedAnswer: isDeveloperRole ? "Look for efficient algorithm and proper array traversal" : "Look for systematic problem-solving approach",
+          timeLimit: isDeveloperRole ? 5 : 3,
           difficulty: "medium",
-          followUpQuestions: isDeveloperRole ? ["When would you use each one?", "Can you implement them?"] : ["Can you give an example?", "How do you handle complex problems?"]
+          followUpQuestions: isDeveloperRole ? ["What's the time complexity?", "Can you handle empty arrays?"] : ["Can you give an example?", "How do you handle complex problems?"]
         },
         {
           id: "q2_4",
@@ -141,12 +141,12 @@ const createFallbackInterview = (jobDetails, interviewId) => {
         },
         {
           id: "q2_5",
-          type: "technical",
-          question: isDeveloperRole ? "What is the difference between REST and GraphQL APIs?" : "How do you ensure quality in your work?",
-          expectedAnswer: isDeveloperRole ? "Look for understanding of API design patterns and their trade-offs" : "Look for quality assurance processes and attention to detail",
-          timeLimit: 3,
+          type: isDeveloperRole ? "coding" : "technical",
+          question: isDeveloperRole ? "Implement a function to remove duplicates from an array." : "How do you ensure quality in your work?",
+          expectedAnswer: isDeveloperRole ? "Look for efficient solution using Set or other data structures" : "Look for quality assurance processes and attention to detail",
+          timeLimit: isDeveloperRole ? 5 : 3,
           difficulty: "hard",
-          followUpQuestions: isDeveloperRole ? ["When would you choose one over the other?", "What are the performance implications?"] : ["What quality metrics do you use?", "How do you handle errors or issues?"]
+          followUpQuestions: isDeveloperRole ? ["Can you do it in-place?", "What about maintaining order?"] : ["What quality metrics do you use?", "How do you handle errors or issues?"]
         }
       ],
       evaluationCriteria: {
@@ -165,7 +165,7 @@ const createFallbackInterview = (jobDetails, interviewId) => {
       questions: [
         {
           id: "q3_1",
-          type: isDeveloperRole ? "technical" : "situational",
+          type: isDeveloperRole ? "design" : "situational",
           question: isDeveloperRole ? "How would you design a URL shortener service like bit.ly?" : "Describe a challenging situation you faced and how you resolved it.",
           expectedAnswer: isDeveloperRole ? "Look for system design thinking and scalability considerations" : "Look for problem-solving approach and resolution skills",
           timeLimit: 5,
@@ -174,39 +174,39 @@ const createFallbackInterview = (jobDetails, interviewId) => {
         },
         {
           id: "q3_2",
-          type: "situational",
-          question: isDeveloperRole ? "How would you handle a system that's experiencing high load?" : "How do you prioritize multiple competing tasks?",
-          expectedAnswer: isDeveloperRole ? "Look for performance optimization and scalability strategies" : "Look for prioritization skills and time management",
-          timeLimit: 4,
+          type: isDeveloperRole ? "design" : "situational",
+          question: isDeveloperRole ? "Design a scalable notification system for a social media platform." : "How do you prioritize multiple competing tasks?",
+          expectedAnswer: isDeveloperRole ? "Look for architecture design, message queues, and scalability" : "Look for prioritization skills and time management",
+          timeLimit: 5,
           difficulty: "hard",
-          followUpQuestions: isDeveloperRole ? ["What monitoring would you implement?", "How would you prevent this in the future?"] : ["What criteria do you use?", "How do you communicate priorities?"]
+          followUpQuestions: isDeveloperRole ? ["How would you handle millions of users?", "What about real-time delivery?"] : ["What criteria do you use?", "How do you communicate priorities?"]
         },
         {
           id: "q3_3",
-          type: "technical",
-          question: isDeveloperRole ? "Explain the CAP theorem and its implications for distributed systems." : "How do you handle ambiguity in requirements?",
-          expectedAnswer: isDeveloperRole ? "Look for understanding of distributed systems concepts" : "Look for clarification skills and requirement analysis",
-          timeLimit: 4,
+          type: isDeveloperRole ? "design" : "technical",
+          question: isDeveloperRole ? "How would you architect a real-time chat application like WhatsApp?" : "How do you handle ambiguity in requirements?",
+          expectedAnswer: isDeveloperRole ? "Look for WebSocket usage, message persistence, and scalability" : "Look for clarification skills and requirement analysis",
+          timeLimit: 5,
           difficulty: "hard",
-          followUpQuestions: isDeveloperRole ? ["How do you choose between consistency and availability?", "Give examples of each type of system."] : ["What questions do you ask?", "How do you validate your understanding?"]
+          followUpQuestions: isDeveloperRole ? ["How would you handle offline messages?", "What about group chats?"] : ["What questions do you ask?", "How do you validate your understanding?"]
         },
         {
           id: "q3_4",
-          type: "situational",
-          question: isDeveloperRole ? "How would you debug a production issue that's affecting users?" : "Describe a time when you had to work with a difficult team member.",
-          expectedAnswer: isDeveloperRole ? "Look for debugging methodology and incident response" : "Look for conflict resolution and teamwork skills",
-          timeLimit: 4,
+          type: isDeveloperRole ? "design" : "situational",
+          question: isDeveloperRole ? "Design a caching strategy for an e-commerce website." : "Describe a time when you had to work with a difficult team member.",
+          expectedAnswer: isDeveloperRole ? "Look for cache layers, invalidation strategies, and CDN usage" : "Look for conflict resolution and teamwork skills",
+          timeLimit: 5,
           difficulty: "medium",
-          followUpQuestions: isDeveloperRole ? ["How would you prevent similar issues?", "What monitoring would help?"] : ["How did you resolve the conflict?", "What was the outcome?"]
+          followUpQuestions: isDeveloperRole ? ["How would you handle cache invalidation?", "What about distributed caching?"] : ["How did you resolve the conflict?", "What was the outcome?"]
         },
         {
           id: "q3_5",
-          type: "technical",
-          question: isDeveloperRole ? "How would you implement caching in a web application?" : "How do you stay current with industry trends and best practices?",
-          expectedAnswer: isDeveloperRole ? "Look for caching strategies and performance optimization" : "Look for continuous learning and professional development",
-          timeLimit: 4,
+          type: isDeveloperRole ? "design" : "technical",
+          question: isDeveloperRole ? "Design a database schema for a food delivery application like Uber Eats." : "How do you stay current with industry trends and best practices?",
+          expectedAnswer: isDeveloperRole ? "Look for entity relationships, normalization, and query optimization" : "Look for continuous learning and professional development",
+          timeLimit: 5,
           difficulty: "medium",
-          followUpQuestions: isDeveloperRole ? ["What are the trade-offs?", "How would you handle cache invalidation?"] : ["What resources do you use?", "How do you apply new knowledge?"]
+          followUpQuestions: isDeveloperRole ? ["How would you handle order tracking?", "What about restaurant ratings?"] : ["What resources do you use?", "How do you apply new knowledge?"]
         }
       ],
       evaluationCriteria: {

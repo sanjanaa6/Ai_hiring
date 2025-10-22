@@ -584,15 +584,12 @@ const CodingRound = ({
 
                   <button
                     onClick={async () => {
-                      console.log('🔵 [CODING NEXT] Clicked - submitting answer first');
-                      // Submit answer before moving to next question
+                      console.log('🔵 [CODING NEXT] Clicked - submitting answer');
+                      // Submit answer (which will automatically move to next question)
                       if (onSubmitAnswer) {
                         await onSubmitAnswer();
                       }
-                      // Then move to next question
-                      if (onNextQuestion) {
-                        onNextQuestion();
-                      }
+                      // Note: onSubmitAnswer already calls moveToNextQuestion internally
                     }}
                     className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all ${
                       isDarkMode

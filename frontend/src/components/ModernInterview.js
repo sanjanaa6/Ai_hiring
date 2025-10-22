@@ -450,9 +450,24 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
     }
   }, [interviewId, allRounds, setCompletedRounds, roundStartTime, setUserProgress]);
 
+  // Track last spoken question to prevent duplicates
+  const lastSpokenQuestionRef = useRef(null);
+  const lastSpokenTimeRef = useRef(0);
+
   // Speak question
   const speakQuestion = useCallback(async (questionText) => {
     return new Promise(async (resolve) => {
+      // Prevent speaking the same question twice within 2 seconds
+      const now = Date.now();
+      if (lastSpokenQuestionRef.current === questionText && (now - lastSpokenTimeRef.current) < 2000) {
+        console.log('⏭️ [TTS] Skipping duplicate question speak (same question within 2 seconds)');
+        resolve();
+        return;
+      }
+
+      lastSpokenQuestionRef.current = questionText;
+      lastSpokenTimeRef.current = now;
+
       setIsAISpeaking(true);
       try {
         await ttsService.speak(questionText);
@@ -719,6 +734,7 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
       setIsLiveCodingRound(isCoding);
       setIsSalesRound(isSales);
       setIsPCBRound(isPCB);
+      setIsSystemDesignRound(isSystemDesign); // Reset for each round to prevent canvas button on wrong rounds
       
       // AI Language Detection for coding rounds
       if (isCoding) {
@@ -807,7 +823,7 @@ const ModernInterview = ({ interviewId, candidateInfo, onComplete, onError }) =>
       console.error('❌ Failed to select round:', error);
       setError(`Failed to start round: ${error.message}`);
     }
-  }, [setCurrentRound, setQuestionIndex, setIsLiveCodingRound, setIsSalesRound, setIsPCBRound, setCurrentQuestion, setStep, setError, speakQuestion, setSelectedLanguage, setIsLanguageLocked, setAiDeterminedLanguage, allRounds, completedRounds]);
+  }, [setCurrentRound, setQuestionIndex, setIsLiveCodingRound, setIsSalesRound, setIsPCBRound, setIsSystemDesignRound, setCurrentQuestion, setStep, setError, speakQuestion, setSelectedLanguage, setIsLanguageLocked, setAiDeterminedLanguage, allRounds, completedRounds]);
 
   // Handle start interview
   const handleStartInterview = useCallback(async () => {
