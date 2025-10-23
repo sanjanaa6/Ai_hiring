@@ -47,6 +47,25 @@ const InterviewResults = ({ interviewId, onClose }) => {
   const [showAnalytics, setShowAnalytics] = useState(false);
   const [viewingSubmission, setViewingSubmission] = useState(null); // For viewing system design, PCB, etc.
 
+  // Helper function to get base URL for file downloads
+  const getBaseUrl = () => {
+    if (process.env.REACT_APP_API_URL) {
+      // Remove /api suffix if present
+      return process.env.REACT_APP_API_URL.replace(/\/api$/, '');
+    }
+    if (process.env.NODE_ENV === 'production') {
+      if (typeof window !== 'undefined') {
+        const { protocol, hostname } = window.location;
+        if (hostname.includes('eval8.ai')) {
+          return 'https://aihire.eval8.xyz';
+        }
+        return `${protocol}//${hostname}:5000`;
+      }
+      return 'https://aihire.eval8.xyz';
+    }
+    return 'http://localhost:5000';
+  };
+
   const loadInterviewResults = useCallback(async () => {
     try {
       setLoading(true);
@@ -1271,7 +1290,7 @@ const InterviewResults = ({ interviewId, onClose }) => {
                     </div>
                     {viewingSubmission.data.filePath && (
                       <a
-                        href={`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}${viewingSubmission.data.filePath}`}
+                        href={`${getBaseUrl()}${viewingSubmission.data.filePath}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
