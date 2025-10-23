@@ -161,10 +161,10 @@ const InterviewMain = ({
           onNextQuestion();
         }}
         onBack={() => {
-          console.log('🔙 System Design question submitted, closing canvas');
+          console.log('🔙 System Design question submitted, closing canvas and moving to next question');
           handleCloseCanvas();
-          // Don't call onNextQuestion here - just close canvas
-          // Next question will be shown when user clicks "Open Canvas" again
+          // Move to next question after submission
+          onNextQuestion();
         }}
       />
     );
