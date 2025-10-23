@@ -315,7 +315,7 @@ router.get('/health', async (req, res) => {
       data: {
         status: 'healthy',
         supportedLanguages: Object.keys(languages).length,
-        judge0Url: 'http://51.21.187.99:2358'
+        judge0Url: 'http://50.17.210.111:2358'
       }
     });
 

@@ -3,7 +3,7 @@ const axios = require('axios');
 
 class Judge0Service {
   constructor() {
-    this.baseURL = 'http://51.21.187.99:2358';
+    this.baseURL = 'http://50.17.210.111:2358';
     this.supportedLanguages = {
       // Popular languages for interviews
       'javascript': { id: 63, name: 'JavaScript (Node.js 12.14.0)', extension: 'js' },
