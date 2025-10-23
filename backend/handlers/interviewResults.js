@@ -86,6 +86,24 @@ const getInterviewResults = async (req, res) => {
                  sub.candidateEmail === user.email
         ) || [];
         
+        // Get PCB design submissions for this user
+        const pcbDesignSubmissions = interview.pcbDesignSubmissions?.filter(
+          sub => sub.candidateId === user._id.toString() || 
+                 sub.candidateEmail === user.email
+        ) || [];
+        
+        // Get form submissions for this user
+        const formSubmissions = interview.formSubmissions?.filter(
+          sub => sub.candidateId === user._id.toString() || 
+                 sub.candidateEmail === user.email
+        ) || [];
+        
+        // Get file uploads for this user
+        const fileUploads = interview.fileUploads?.filter(
+          upload => upload.candidateId === user._id.toString() || 
+                    upload.candidateEmail === user.email
+        ) || [];
+        
         candidateData.push({
           candidateId: user._id.toString(),
           candidateName: user.name,
@@ -107,7 +125,10 @@ const getInterviewResults = async (req, res) => {
           strengths: allStrengths.length > 0 ? allStrengths : generateMockStrengths(averageScore),
           improvements: allImprovements.length > 0 ? allImprovements : generateMockImprovements(averageScore),
           answers: userAnswers, // Include actual answers for detailed reports
-          systemDesignSubmissions: systemDesignSubmissions // Add system design data
+          systemDesignSubmissions: systemDesignSubmissions, // Add system design data
+          pcbDesignSubmissions: pcbDesignSubmissions, // Add PCB design data
+          formSubmissions: formSubmissions, // Add form submissions
+          fileUploads: fileUploads // Add file uploads
         });
       }
     });
@@ -134,6 +155,21 @@ const getInterviewResults = async (req, res) => {
             sub => sub.candidateId === candidateId
           ) || [];
           
+          // Get PCB design submissions for this candidate
+          const pcbDesignSubmissions = interview.pcbDesignSubmissions?.filter(
+            sub => sub.candidateId === candidateId
+          ) || [];
+          
+          // Get form submissions for this candidate
+          const formSubmissions = interview.formSubmissions?.filter(
+            sub => sub.candidateId === candidateId
+          ) || [];
+          
+          // Get file uploads for this candidate
+          const fileUploads = interview.fileUploads?.filter(
+            upload => upload.candidateId === candidateId
+          ) || [];
+          
           candidateData.push({
             candidateId: candidateId,
             candidateName: firstAnswer.candidateName || 'Anonymous',
@@ -151,7 +187,10 @@ const getInterviewResults = async (req, res) => {
             strengths: candidateAnswers.flatMap(a => a.aiEvaluation?.strengths || []),
             improvements: candidateAnswers.flatMap(a => a.aiEvaluation?.improvements || []),
             answers: candidateAnswers,
-            systemDesignSubmissions: systemDesignSubmissions // Add system design data
+            systemDesignSubmissions: systemDesignSubmissions, // Add system design data
+            pcbDesignSubmissions: pcbDesignSubmissions, // Add PCB design data
+            formSubmissions: formSubmissions, // Add form submissions
+            fileUploads: fileUploads // Add file uploads
           });
         }
       }

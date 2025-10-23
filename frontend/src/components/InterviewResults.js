@@ -4,6 +4,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useNavigate } from 'react-router-dom';
 import apiService from '../services/apiService';
 import ModernInterviewAnalytics from './ModernInterviewAnalytics';
+import SystemDesignViewer from '../recruiter/components/SystemDesignViewer';
 import { 
   Trophy, 
   Clock, 
@@ -26,7 +27,8 @@ import {
   Download,
   ExternalLink,
   Code,
-  Settings
+  Settings,
+  X
 } from 'lucide-react';
 
 const InterviewResults = ({ interviewId, onClose }) => {
@@ -43,6 +45,7 @@ const InterviewResults = ({ interviewId, onClose }) => {
   const [expandedCandidates, setExpandedCandidates] = useState({});
   const [playingRecording, setPlayingRecording] = useState(null);
   const [showAnalytics, setShowAnalytics] = useState(false);
+  const [viewingSubmission, setViewingSubmission] = useState(null); // For viewing system design, PCB, etc.
 
   const loadInterviewResults = useCallback(async () => {
     try {
@@ -925,9 +928,11 @@ const InterviewResults = ({ interviewId, onClose }) => {
                       View all candidate form submissions and responses.
                     </p>
                     
-                    {results?.candidates && results.candidates.length > 0 ? (
+                    {results?.rankedCandidates && results.rankedCandidates.some(c => c.formSubmissions && c.formSubmissions.length > 0) ? (
                       <div className="space-y-4">
-                        {results.candidates.map((candidate, index) => (
+                        {results.rankedCandidates
+                          .filter(candidate => candidate.formSubmissions && candidate.formSubmissions.length > 0)
+                          .map((candidate, index) => (
                           <div key={index} className={`${isDarkMode ? 'bg-gray-700 border border-gray-600' : 'bg-gray-50 border border-gray-200'} rounded-lg p-4`}>
                             <div className="flex items-center justify-between mb-3">
                               <h4 className={`font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
@@ -936,11 +941,11 @@ const InterviewResults = ({ interviewId, onClose }) => {
                               <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                                 isDarkMode ? 'bg-blue-600 text-white' : 'bg-blue-100 text-blue-800'
                               }`}>
-                                View Submissions
+                                {candidate.formSubmissions.length} Form{candidate.formSubmissions.length > 1 ? 's' : ''}
                               </span>
                             </div>
                             <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                              Email: {candidate.email || 'N/A'}
+                              Email: {candidate.candidateEmail || 'N/A'}
                             </p>
                           </div>
                         ))}
@@ -973,9 +978,11 @@ const InterviewResults = ({ interviewId, onClose }) => {
                       View all candidate file uploads and documents.
                     </p>
                     
-                    {results?.candidates && results.candidates.length > 0 ? (
+                    {results?.rankedCandidates && results.rankedCandidates.some(c => c.fileUploads && c.fileUploads.length > 0) ? (
                       <div className="space-y-4">
-                        {results.candidates.map((candidate, index) => (
+                        {results.rankedCandidates
+                          .filter(candidate => candidate.fileUploads && candidate.fileUploads.length > 0)
+                          .map((candidate, index) => (
                           <div key={index} className={`${isDarkMode ? 'bg-gray-700 border border-gray-600' : 'bg-gray-50 border border-gray-200'} rounded-lg p-4`}>
                             <div className="flex items-center justify-between mb-3">
                               <h4 className={`font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
@@ -984,12 +991,24 @@ const InterviewResults = ({ interviewId, onClose }) => {
                               <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                                 isDarkMode ? 'bg-purple-600 text-white' : 'bg-purple-100 text-purple-800'
                               }`}>
-                                View Files
+                                {candidate.fileUploads.length} File{candidate.fileUploads.length > 1 ? 's' : ''}
                               </span>
                             </div>
-                            <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                              Email: {candidate.email || 'N/A'}
+                            <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'} mb-2`}>
+                              Email: {candidate.candidateEmail || 'N/A'}
                             </p>
+                            <div className="mt-3 space-y-1">
+                              {candidate.fileUploads.map((upload, upIndex) => (
+                                <button
+                                  key={upIndex}
+                                  onClick={() => setViewingSubmission({ type: 'file', data: upload, candidate })}
+                                  className={`w-full text-xs ${isDarkMode ? 'text-gray-300 hover:bg-gray-600' : 'text-gray-700 hover:bg-gray-100'} flex items-center gap-2 p-2 rounded transition-colors cursor-pointer text-left`}
+                                >
+                                  <Eye className="w-3 h-3" />
+                                  📄 {upload.originalFileName || upload.fileName}
+                                </button>
+                              ))}
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -1021,9 +1040,11 @@ const InterviewResults = ({ interviewId, onClose }) => {
                       View all candidate system design diagrams and submissions.
                     </p>
                     
-                    {results?.candidates && results.candidates.length > 0 ? (
+                    {results?.rankedCandidates && results.rankedCandidates.some(c => c.systemDesignSubmissions && c.systemDesignSubmissions.length > 0) ? (
                       <div className="space-y-4">
-                        {results.candidates.map((candidate, index) => (
+                        {results.rankedCandidates
+                          .filter(candidate => candidate.systemDesignSubmissions && candidate.systemDesignSubmissions.length > 0)
+                          .map((candidate, index) => (
                           <div key={index} className={`${isDarkMode ? 'bg-gray-700 border border-gray-600' : 'bg-gray-50 border border-gray-200'} rounded-lg p-4`}>
                             <div className="flex items-center justify-between mb-3">
                               <h4 className={`font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
@@ -1032,12 +1053,34 @@ const InterviewResults = ({ interviewId, onClose }) => {
                               <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                                 isDarkMode ? 'bg-green-600 text-white' : 'bg-green-100 text-green-800'
                               }`}>
-                                View Design
+                                {candidate.systemDesignSubmissions.length} Submission{candidate.systemDesignSubmissions.length > 1 ? 's' : ''}
                               </span>
                             </div>
-                            <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                              Email: {candidate.email || 'N/A'}
+                            <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'} mb-2`}>
+                              Email: {candidate.candidateEmail || 'N/A'}
                             </p>
+                            <div className="mt-3 space-y-2">
+                              {candidate.systemDesignSubmissions.map((submission, subIndex) => (
+                                <button
+                                  key={subIndex}
+                                  onClick={() => setViewingSubmission({ type: 'systemDesign', data: submission, candidate })}
+                                  className={`w-full text-xs ${isDarkMode ? 'text-gray-300 hover:bg-gray-600' : 'text-gray-700 hover:bg-gray-100'} flex items-center justify-between p-2 rounded transition-colors cursor-pointer`}
+                                >
+                                  <span className="flex items-center gap-2">
+                                    <Eye className="w-3 h-3" />
+                                    {submission.questionText || `Question ${submission.questionIndex + 1}`}
+                                  </span>
+                                  <span className={`px-2 py-1 rounded text-xs ${
+                                    submission.status === 'reviewed' ? 'bg-blue-100 text-blue-800' :
+                                    submission.status === 'approved' ? 'bg-green-100 text-green-800' :
+                                    submission.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                                    'bg-gray-100 text-gray-800'
+                                  }`}>
+                                    {submission.status || 'submitted'}
+                                  </span>
+                                </button>
+                              ))}
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -1069,9 +1112,11 @@ const InterviewResults = ({ interviewId, onClose }) => {
                       View all candidate PCB designs and electronic circuit submissions.
                     </p>
                     
-                    {results?.candidates && results.candidates.length > 0 ? (
+                    {results?.rankedCandidates && results.rankedCandidates.some(c => c.pcbDesignSubmissions && c.pcbDesignSubmissions.length > 0) ? (
                       <div className="space-y-4">
-                        {results.candidates.map((candidate, index) => (
+                        {results.rankedCandidates
+                          .filter(candidate => candidate.pcbDesignSubmissions && candidate.pcbDesignSubmissions.length > 0)
+                          .map((candidate, index) => (
                           <div key={index} className={`${isDarkMode ? 'bg-gray-700 border border-gray-600' : 'bg-gray-50 border border-gray-200'} rounded-lg p-4`}>
                             <div className="flex items-center justify-between mb-3">
                               <h4 className={`font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
@@ -1080,12 +1125,29 @@ const InterviewResults = ({ interviewId, onClose }) => {
                               <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                                 isDarkMode ? 'bg-orange-600 text-white' : 'bg-orange-100 text-orange-800'
                               }`}>
-                                View PCB
+                                {candidate.pcbDesignSubmissions.length} PCB{candidate.pcbDesignSubmissions.length > 1 ? 's' : ''}
                               </span>
                             </div>
-                            <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                              Email: {candidate.email || 'N/A'}
+                            <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'} mb-2`}>
+                              Email: {candidate.candidateEmail || 'N/A'}
                             </p>
+                            <div className="mt-3 space-y-2">
+                              {candidate.pcbDesignSubmissions.map((submission, subIndex) => (
+                                <div key={subIndex} className={`text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-500'} flex items-center justify-between`}>
+                                  <span>
+                                    Question {submission.questionId}
+                                  </span>
+                                  <span className={`px-2 py-1 rounded ${
+                                    submission.status === 'reviewed' ? 'bg-blue-100 text-blue-800' :
+                                    submission.status === 'approved' ? 'bg-green-100 text-green-800' :
+                                    submission.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                                    'bg-gray-100 text-gray-800'
+                                  }`}>
+                                    {submission.status || 'submitted'}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -1111,6 +1173,133 @@ const InterviewResults = ({ interviewId, onClose }) => {
           interviewId={interviewId}
           onClose={() => setShowAnalytics(false)}
         />
+      )}
+
+      {/* Submission Viewer Modal */}
+      {viewingSubmission && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className={`${isDarkMode ? 'bg-gray-900' : 'bg-white'} rounded-2xl shadow-2xl max-w-7xl w-full max-h-[90vh] overflow-hidden flex flex-col`}
+          >
+            {/* Modal Header */}
+            <div className={`flex items-center justify-between p-6 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+              <div>
+                <h2 className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                  {viewingSubmission.type === 'systemDesign' && '🎨 System Design Submission'}
+                  {viewingSubmission.type === 'pcb' && '🔌 PCB Design Submission'}
+                  {viewingSubmission.type === 'form' && '📝 Form Submission'}
+                  {viewingSubmission.type === 'file' && '📁 File Upload'}
+                </h2>
+                <p className={`text-sm mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                  {viewingSubmission.candidate.candidateName} ({viewingSubmission.candidate.candidateEmail})
+                </p>
+              </div>
+              <button
+                onClick={() => setViewingSubmission(null)}
+                className={`p-2 rounded-lg transition-colors ${
+                  isDarkMode ? 'hover:bg-gray-800 text-gray-400' : 'hover:bg-gray-100 text-gray-600'
+                }`}
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="flex-1 overflow-auto p-6">
+              {viewingSubmission.type === 'systemDesign' && (
+                <SystemDesignViewer
+                  diagramData={viewingSubmission.data.diagramData}
+                  candidateInfo={{
+                    name: viewingSubmission.candidate.candidateName,
+                    email: viewingSubmission.candidate.candidateEmail
+                  }}
+                  submissionTime={viewingSubmission.data.submittedAt}
+                  timeSpent={viewingSubmission.data.timeSpent}
+                  roundInfo={{
+                    title: 'System Design Round',
+                    question: viewingSubmission.data.questionText
+                  }}
+                />
+              )}
+
+              {viewingSubmission.type === 'form' && (
+                <div className={`${isDarkMode ? 'bg-gray-800' : 'bg-gray-50'} rounded-lg p-6`}>
+                  <h3 className={`text-lg font-semibold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                    Form Responses
+                  </h3>
+                  <div className="space-y-4">
+                    {viewingSubmission.data.responses?.map((response, idx) => (
+                      <div key={idx} className={`p-4 rounded ${isDarkMode ? 'bg-gray-700' : 'bg-white'}`}>
+                        <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                          {response.fieldId}
+                        </p>
+                        <p className={`mt-1 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                          {JSON.stringify(response.value)}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {viewingSubmission.type === 'file' && (
+                <div className={`${isDarkMode ? 'bg-gray-800' : 'bg-gray-50'} rounded-lg p-6`}>
+                  <h3 className={`text-lg font-semibold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                    File Information
+                  </h3>
+                  <div className="space-y-3">
+                    <div>
+                      <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>File Name:</p>
+                      <p className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                        {viewingSubmission.data.originalFileName || viewingSubmission.data.fileName}
+                      </p>
+                    </div>
+                    <div>
+                      <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>File Size:</p>
+                      <p className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                        {(viewingSubmission.data.fileSize / 1024).toFixed(2)} KB
+                      </p>
+                    </div>
+                    <div>
+                      <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>File Type:</p>
+                      <p className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                        {viewingSubmission.data.fileType}
+                      </p>
+                    </div>
+                    {viewingSubmission.data.filePath && (
+                      <a
+                        href={`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}${viewingSubmission.data.filePath}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                      >
+                        <Download className="w-4 h-4" />
+                        Download File
+                      </a>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {viewingSubmission.type === 'pcb' && (
+                <div className={`${isDarkMode ? 'bg-gray-800' : 'bg-gray-50'} rounded-lg p-6`}>
+                  <h3 className={`text-lg font-semibold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                    PCB Design Data
+                  </h3>
+                  <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                    PCB viewer component would go here
+                  </p>
+                  <pre className={`mt-4 p-4 rounded ${isDarkMode ? 'bg-gray-900 text-gray-300' : 'bg-white text-gray-800'} overflow-auto text-xs`}>
+                    {JSON.stringify(viewingSubmission.data.pcbData, null, 2)}
+                  </pre>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        </div>
       )}
     </div>
   );
