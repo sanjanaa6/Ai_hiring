@@ -47,7 +47,7 @@ const InterviewResults = ({ interviewId, onClose }) => {
   const [showAnalytics, setShowAnalytics] = useState(false);
   const [viewingSubmission, setViewingSubmission] = useState(null); // For viewing system design, PCB, etc.
 
-  // Helper function to get base URL for file downloads
+          // Helper function to get base URL for file downloads
   const getBaseUrl = () => {
     if (process.env.REACT_APP_API_URL) {
       // Remove /api suffix if present
