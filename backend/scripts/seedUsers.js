@@ -48,7 +48,7 @@ const demoUsers = [
     },
     recruiterProfile: {
       company: 'TechCorp Solutions',
-      companySize: '500-1000 employees',
+      companySize: '501-1000',
       industry: 'Technology',
       position: 'Senior Talent Acquisition Manager',
       department: 'Human Resources',
