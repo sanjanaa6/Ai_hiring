@@ -19,14 +19,6 @@ An end-to-end recruitment platform built with the **MERN stack** that leverages 
 
 ---
 
-## 🛠️ Tech Stack
-
-* **Frontend:** React.js, Redux / Context API, Tailwind CSS / Material UI
-* **Backend:** Node.js, Express.js
-* **Database:** MongoDB, Mongoose ORM
-* **AI / ML Integration:** OpenAI API (GPT-4) / Hugging Face / LangChain for NLP & resume analysis
-* **Authentication:** JSON Web Tokens (JWT) & OAuth 2.0
-* **Storage:** AWS S3 / Cloudinary (for storing candidate resumes and media files)
 
 ---
 
